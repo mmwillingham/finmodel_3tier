@@ -17,6 +17,7 @@ podman run \
   --name my-postgres \
   -e POSTGRES_USER=bolauder \
   -e POSTGRES_PASSWORD=iamhe123 \
+  -e Start PostgreSQ \
   -p 5432:5432 \
   -v /home/mwilling/pgdata/finmodel:/var/lib/postgresql \
   -d postgres:latest
