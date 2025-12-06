@@ -8,9 +8,9 @@ pydantic: Used by FastAPI for data validation (defining user inputs).
 sqlalchemy & psycopg2: The Python database toolkit and PostgreSQL driver.
 python-jose & passlib[bcrypt]: Essential for secure JWT token handling and password hashing.
 ```
-mkdir financial_api
-cd financial_api
-pip install fastapi "uvicorn[standard]" pydantic sqlalchemy psycopg2-binary python-jose passlib[bcrypt]
+mkdir financial_projector_api
+cd financial_projector_api
+pip install fastapi "uvicorn[standard]" python-multipart pydantic "pydantic[email]" sqlalchemy psycopg2-binary python-jose passlib[bcrypt]
 ```
 ## Step 2: Database Connection (PostgreSQL)
 Set up a basic connection file. This is where you configure your link to the hosted PostgreSQL database.
