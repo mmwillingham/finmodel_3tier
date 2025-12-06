@@ -1824,7 +1824,7 @@ Update Connection String: In your database.py, make sure SQLALCHEMY_DATABASE_URL
 
 Run FastAPI: Start the API server using Uvicorn. This must be running before you test any endpoints.
 ```
-uvicorn main:app --reload --port 8000
+uvicorn financial_projector_api.main:app --reload --port 8000
 ```
 
 2. Use FastAPI's Interactive Docs (Swagger UI)
