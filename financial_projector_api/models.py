@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from .database import Base
+from financial_projector_api.database import Base
 from datetime import datetime
 
 class User(Base):
