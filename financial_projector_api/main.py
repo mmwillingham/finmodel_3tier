@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import exc
 
-from .database import SessionLocal, engine 
+from financial_projector_api.database import SessionLocal, engine 
 from . import models, schemas, auth, calculations # Ensure all modules are imported
 
 # Create tables in the DB if they don't exist
