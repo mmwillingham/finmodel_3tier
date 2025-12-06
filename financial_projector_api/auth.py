@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from . import models, schemas
-from .database import SessionLocal # Import database session
+from financial_projector_api.database import SessionLocal # Import database session
 
 # --- Configuration ---
 # You must change these values!
