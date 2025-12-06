@@ -35,7 +35,7 @@ Define how your Users and Projections tables look in PostgreSQL.
 cat <<EOF>models.py
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from .database import Base
+from financial_projector_api.database import Base
 from datetime import datetime
 
 class User(Base):
@@ -133,7 +133,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from . import models, schemas
-from .database import SessionLocal # Import database session
+from financial_projector_api.database import SessionLocal # Import database session
 
 # --- Configuration ---
 # You must change these values!
@@ -363,7 +363,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import exc
 
-from .database import SessionLocal, engine 
+from financial_projector_api.database import SessionLocal, engine 
 from . import models, schemas, auth, calculations # Ensure all modules are imported
 
 # Create tables in the DB if they don't exist
