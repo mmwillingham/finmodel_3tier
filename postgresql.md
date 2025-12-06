@@ -31,3 +31,14 @@ sudo firewall-cmd --reload
 
 # Connect to it
 psql -h 127.0.0.1 -p 5432 -U bolauder -d postgres
+
+# Create the database and verify it exists
+postgres=# CREATE DATABASE finmodel;
+CREATE DATABASE
+postgres=# SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_database WHERE datname = 'finmodel');
+ exists 
+--------
+ t
+(1 row)
+
+
