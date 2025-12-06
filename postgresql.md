@@ -14,10 +14,10 @@ podman pull docker.io/library/postgres
 
 # Run the PostgreSQL container
 podman run \
-  --name my-postgres \
+  --name finmodel-data \
   -e POSTGRES_USER=bolauder \
   -e POSTGRES_PASSWORD=iamhe123 \
-  -e Start PostgreSQ \
+  -e POSTGRES_DB=finmodel \
   -p 5432:5432 \
   -v /home/mwilling/pgdata/finmodel:/var/lib/postgresql \
   -d postgres:latest
