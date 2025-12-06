@@ -1812,4 +1812,70 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+```
 
+# Phase 6a - Test the Backend Foundation (FastAPI & PostgreSQL)
+You need to ensure your API and database are connected and the core functions (Auth and CRUD) work correctly in isolation.
+
+1. Set Up the Environment TODO
+Start PostgreSQL: Ensure your local PostgreSQL server (or the one running in a container) is active and accessible.
+
+Update Connection String: In your database.py, make sure SQLALCHEMY_DATABASE_URL is correct for your local setup (e.g., postgresql://user:password@localhost:5432/test_db).
+
+Run FastAPI: Start the API server using Uvicorn. This must be running before you test any endpoints.
+```
+uvicorn main:app --reload --port 8000
+```
+
+2. Use FastAPI's Interactive Docs (Swagger UI)
+FastAPI automatically generates interactive documentation, which is the easiest way to test your endpoints without the React front-end.
+
+a. Open Docs: Navigate to http://localhost:8000/docs in your web browser.
+b. Test Signup (POST /signup):
+  - Find the /signup endpoint and click "Try it out".
+  - Enter a test email and password.
+  - Click "Execute". You should receive a 200 OK response with the new user's details (ID, email).
+c. Test Login (POST /token):
+  - Find the /token endpoint.
+  - Enter the same email (as username) and password.
+  - Click "Execute". You must receive a 200 OK response containing the access_token (the JWT). Copy this token.
+d. Authorize Future Requests:
+  - Click the green "Authorize" button at the top right of the Swagger UI page.
+  - Paste the copied access_token into the value field, prefixed with Bearer (e.g., Bearer eyJhbGciOiJIUzI1NiI...). Click "Authorize".
+e. Test Protected Route (GET /users/me):
+  - Run this endpoint. It should now succeed, returning the user details, confirming the JWT works.
+f. Test Calculation (POST /projections):
+  - Run the calculation endpoint, providing sample data that matches the ProjectionRequest schema.
+  - It should return a 200 OK response with the calculated values and a new projection ID, confirming your calculations.py logic works and the record was saved to PostgreSQL.
+# Phase 6b - Test the Full Stack Integration (React to FastAPI)
+Now that the backend is confirmed, you test the React application's ability to communicate securely with the API.
+
+1. Start the React Application
+- In a separate terminal window (keep the FastAPI server running!), navigate to your React project directory (financial-projector-ui).
+- Start the React development server. The app should open in your browser, usually at http://localhost:3000.
+```
+npm start
+```
+2. Test Security and Authentication
+  a. Initial Load: The app should redirect immediately to /login because no token exists (thanks to the ProtectedRoute).
+  b. Test Logout: Go to the application and ensure the logout button clears the token and redirects to /login.
+  c. Test Signup (Full Cycle): Use a new email address on the /signup page.
+    - Success: You should be registered and immediately logged in, redirecting you to the main Calculator component. The application confirms the React/Auth service is talking to the /signup and /token endpoints correctly.
+
+3. Test Core Functionality (Calculator and CRUD)
+  a. Calculator Test:
+    - Fill out the form in the Calculator.js component with test account data.
+    - Click "Calculate & Save Projection".
+    - Success: The page should navigate to the ProjectionDetail view (/projection/:id), confirming your React component correctly built the payload, and the authenticated request successfully hit the /projections endpoint.
+
+  b. Detail/Chart Test:
+    - On the detail page, confirm that the key metrics (Final Value, Interest Earned) match the expected output.
+    - Verify the Chart.js chart renders correctly using the yearly_data received from the API.
+
+  c. Dashboard Test:
+    - Navigate to the /dashboard page.
+    - Confirm your newly created projection appears in the list (Testing GET /projections).
+
+  d. Delete Test (Security Check):
+    - From the detail view, click the "Delete Plan" button.
+    - Success: You should be redirected back to the dashboard, and the item should disappear from the list (Testing DELETE /projections/{id}).
