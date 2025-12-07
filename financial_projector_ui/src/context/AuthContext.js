@@ -1,65 +1,74 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import AuthService from '../services/auth.service';
-import ApiService from '../services/api.service'; // Needed to fetch current user data
+import ApiService from '../services/api.service'; // Needed to fetch /users/me
 
-// 1. Create the Context
-const AuthContext = createContext(null);
+// 1. Create the Context object
+const AuthContext = createContext();
 
-// 2. Custom hook for easy access to the context
+// 2. Custom hook to easily consume the context
 export const useAuth = () => {
     return useContext(AuthContext);
 };
 
-// 3. The Provider Component
+// 3. The Provider component manages state and provides it to the app
 export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true); // Tracks initial token check
 
-    // Function to handle the successful login (stores user data and token)
-    const handleLoginSuccess = async (token) => {
-        // 1. Store the token in local storage (handled by AuthService)
-        // 2. Fetch the user's detailed profile from the secure endpoint
-        try {
-            // This GET request uses the token attached by api.service.js
-            const response = await ApiService.api.get('users/me'); 
-            setCurrentUser(response.data);
-            setIsLoading(false);
-        } catch (error) {
-            console.error("Failed to fetch user profile:", error);
-            AuthService.logout(); // Clear token if profile fetch fails
-            setCurrentUser(null);
-            setIsLoading(false);
+    // Function to check local storage and fetch user details
+    const checkUserSession = async () => {
+        const token = AuthService.getToken();
+        if (token) {
+            try {
+                // Use the token to fetch the user's details from the protected endpoint
+                // ApiService handles placing the token in the Authorization header
+                const userResponse = await ApiService.get("/users/me");
+                
+                // Set the user data from the successful response
+                setCurrentUser(userResponse.data);
+            } catch (error) {
+                // Token is invalid/expired (401 Unauthorized), so clear it
+                AuthService.logout();
+                setCurrentUser(null);
+            }
         }
-    };
-
-    // Function to handle logout
-    const handleLogout = () => {
-        AuthService.logout();
-        setCurrentUser(null);
         setIsLoading(false);
     };
 
-    // Effect: Runs once when the component mounts to check for an existing session
+    // The 'login' function is called *after* AuthService.login has successfully saved the token.
+    const login = async () => {
+        // We only call this function to update the app state after a successful POST /token
+        setIsLoading(true);
+        await checkUserSession(); // This will read the newly saved token and fetch /users/me
+    };
+
+    const logout = () => {
+        AuthService.logout();
+        setCurrentUser(null);
+        navigate('/login'); // Optional: redirect on logout if necessary
+    };
+    
+    // Check for a saved token when the application first loads
     useEffect(() => {
-        const token = AuthService.getCurrentToken();
-        if (token) {
-            // If token exists, validate it by fetching user profile
-            handleLoginSuccess(token);
-        } else {
-            setIsLoading(false);
-        }
+        checkUserSession();
     }, []);
 
+    // The object that will be exposed to consumers
     const value = {
         currentUser,
         isLoading,
-        login: handleLoginSuccess, // Expose the successful login handler
-        logout: handleLogout
+        login, // Function to trigger state update after successful login POST
+        logout,
     };
 
-    if (isLoading) {
-        return <div className="loading-screen">Loading application...</div>;
-    }
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    // 4. Provide the value to the application children
+    return (
+        <AuthContext.Provider value={value}>
+            {/* We prevent rendering the children until the initial 
+                token check is complete (isLoading is false). 
+                This prevents flash-of-unauthenticated-content (FOUC) errors. 
+            */}
+            {!isLoading && children}
+        </AuthContext.Provider>
+    );
 };
