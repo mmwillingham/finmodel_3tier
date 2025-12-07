@@ -29,14 +29,14 @@ class Projection(Base):
 # Base.metadata.create_all(bind=engine)
 
 # --- TEMPORARY CODE TO INITIALIZE TABLES ---
-if __name__ == "__main__":
-    from .database import engine, Base
+# if __name__ == "__main__":
+#     from .database import engine, Base
     
-    # Ensure all models are imported so Base knows about them (they are defined above)
+#     # Ensure all models are imported so Base knows about them (they are defined above)
 
-    # This command checks all objects inheriting from Base 
-    # (i.e., your User and Projection classes) and creates their tables
-    # if they do not already exist in the database.
-    Base.metadata.create_all(bind=engine) 
-    print("Database tables created successfully.")
+#     # This command checks all objects inheriting from Base 
+#     # (i.e., your User and Projection classes) and creates their tables
+#     # if they do not already exist in the database.
+#     Base.metadata.create_all(bind=engine) 
+#     print("Database tables created successfully.")
     
