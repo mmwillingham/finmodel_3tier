@@ -46,10 +46,13 @@ pydantic: Used by FastAPI for data validation (defining user inputs).
 sqlalchemy & psycopg2: The Python database toolkit and PostgreSQL driver.
 python-jose & passlib[bcrypt]: Essential for secure JWT token handling and password hashing.
 ```
-mkdir financial_projector_api
-cd financial_projector_api
+python3 -m venv venv
+source venv/bin/activate
 pip install fastapi "uvicorn[standard]" python-multipart pydantic "pydantic[email]" sqlalchemy psycopg2-binary python-jose passlib[bcrypt]
 pip install --upgrade passlib bcrypt
+pip install pandas
+mkdir financial_projector_api
+cd financial_projector_api
 ```
 ## Step 2: Database Connection (PostgreSQL)
 Set up a basic connection file. This is where you configure your link to the hosted PostgreSQL database.
@@ -1885,6 +1888,7 @@ Update Connection String: In your database.py, make sure SQLALCHEMY_DATABASE_URL
 
 Run FastAPI: Start the API server using Uvicorn. This must be running before you test any endpoints.
 ```
+source venv/bin/activate
 uvicorn financial_projector_api.main:app --reload --port 8000
 ```
 
