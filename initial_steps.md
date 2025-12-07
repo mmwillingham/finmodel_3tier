@@ -682,6 +682,7 @@ npx create-react-app financial_projector_ui
 cd financial_projector_ui
 # Install necessary JavaScript libraries
 npm install axios react-router-dom chart.js react-chartjs-2
+npm install
 cd ..
 ```
 
