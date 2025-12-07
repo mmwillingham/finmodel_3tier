@@ -34,12 +34,7 @@ app.add_middleware(
 
 
 # --- DEPENDENCIES ---
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 
 
 # --- USER/AUTH ROUTES ---
