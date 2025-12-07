@@ -12,6 +12,12 @@ sudo dnf install psql -y
 # Pull the PostgreSQL image:
 podman pull docker.io/library/postgres
 
+# Remove data folder if exists
+sudo rm -rf /home/mwilling/pgdata/finmodel
+
+# Create a named volume
+podman volume create finmodel_pg_data
+
 # Run the PostgreSQL container
 podman run \
   --name finmodel-data \
@@ -19,26 +25,30 @@ podman run \
   -e POSTGRES_PASSWORD=iamhe123 \
   -e POSTGRES_DB=finmodel \
   -p 5432:5432 \
-  -v /home/mwilling/pgdata/finmodel:/var/lib/postgresql \
-  -d postgres:latest
+  -v finmodel_pg_data:/var/lib/postgresql \
+  -d \
+  postgres:latest
 
 # Verify pod is running
 podman ps
+
+# Check logs
+podman logs finmodel-data
 
 # Open firewall
 sudo firewall-cmd --permanent --add-port=5432/tcp
 sudo firewall-cmd --reload
 
 # Connect to it
-psql -h 127.0.0.1 -p 5432 -U bolauder -d postgres
+psql -h 127.0.0.1 -p 5432 -U bolauder -W iamhe123 -d postgres
+exit
 
 # Create the database and verify it exists
-postgres=# CREATE DATABASE finmodel;
-CREATE DATABASE
-postgres=# SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_database WHERE datname = 'finmodel');
- exists 
---------
- t
-(1 row)
+PGPASSWORD=iamhe123 podman exec -it finmodel-data psql -h 127.0.0.1 -p 5432 -U bolauder -d postgres -c "CREATE DATABASE finmodel;"
+PGPASSWORD=iamhe123 podman exec -it finmodel-data psql -h 127.0.0.1 -p 5432 -U bolauder -d postgres -c "SELECT 1 FROM pg_catalog.pg_database WHERE datname = 'finmodel';"
+
+# To delete database
+drop database finmodel
+
 
 
