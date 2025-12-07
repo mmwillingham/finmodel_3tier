@@ -596,8 +596,8 @@ chart.js & react-chartjs-2: To render the dynamic, interactive line charts from 
 sudo dnf install npx -y
 # Create a new React project
 cd ~/git/finmodel_3tier
-npx create-react-app financial-projector-ui 
-cd financial-projector-ui
+npx create-react-app financial_projector_ui 
+cd financial_projector_ui
 # Install necessary JavaScript libraries
 npm install axios react-router-dom chart.js react-chartjs-2
 cd ..
@@ -1877,7 +1877,7 @@ f. Test Calculation (POST /projections):
 Now that the backend is confirmed, you test the React application's ability to communicate securely with the API.
 
 1. Start the React Application
-- In a separate terminal window (keep the FastAPI server running!), navigate to your React project directory (financial-projector-ui).
+- In a separate terminal window (keep the FastAPI server running!), navigate to your React project directory (financial_projector_ui).
 - Start the React development server. The app should open in your browser, usually at http://localhost:3000.
 ```
 
