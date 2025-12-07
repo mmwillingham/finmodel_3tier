@@ -1,55 +1,70 @@
-import axios from "axios";
+import axios from 'axios';
 
-// Define your backend URL (change this when deploying!)
-const API_URL = "http://localhost:8000/"; // Assuming FastAPI runs on port 8000
+// IMPORTANT: This must match your FastAPI server address/port
+const API_URL = "http://localhost:8000/"; 
 
-class AuthService {
-    
-    // --- 1. LOGIN ---
-    login(email, password) {
-        // FastAPI's /token endpoint expects data in the URL-encoded format,
-        // which matches the standard browser FormData submission, NOT JSON.
-        const data = new URLSearchParams();
-        data.append('username', email); // FastAPI uses 'username' for email
-        data.append('password', password);
+const AuthService = {
+    /**
+     * Attempts to log the user in by sending credentials to FastAPI.
+     * On success, saves the JWT to local storage.
+     * * @param {string} email 
+     * @param {string} password 
+     */
+    async login(email, password) {
+        // FastAPI's /token endpoint requires data in x-www-form-urlencoded format.
+        const formData = new URLSearchParams();
+        formData.append("username", email);
+        formData.append("password", password);
 
-        return axios
-            .post(API_URL + "token", data)
-            .then(response => {
-                // If login is successful, store the JWT in local storage
-                if (response.data.access_token) {
-                    localStorage.setItem("user_token", JSON.stringify(response.data.access_token));
-                }
+        // Clear any old tokens before attempting a new login
+        localStorage.removeItem("user_token"); 
+
+        try {
+            const response = await axios.post(API_URL + "token", formData, {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+
+            // The FastAPI response contains the token in the 'access_token' field
+            if (response.data.access_token) {
+                // Save the token to local storage for persistence
+                localStorage.setItem("user_token", response.data.access_token);
+                
+                // Return the response data (not strictly needed, but useful for debugging)
                 return response.data;
-            });
-    }
+            }
+        } catch (error) {
+            // Re-throw the error so the component can catch and display it
+            throw error;
+        }
+    },
 
-    // --- 2. LOGOUT ---
+    /**
+     * Registers a new user via the FastAPI /signup route.
+     * * @param {string} email 
+     * @param {string} password 
+     */
+    async signup(email, password) {
+        // FastAPI's /signup expects JSON data
+        const response = await axios.post(API_URL + "signup", {
+            email: email,
+            password: password,
+        });
+        return response.data;
+    },
+
+    /**
+     * Clears the token from local storage.
+     */
     logout() {
-        // Simply remove the token from local storage
         localStorage.removeItem("user_token");
-    }
+    },
+    
+    /**
+     * Retrieves the stored token.
+     */
+    getToken() {
+        return localStorage.getItem("user_token");
+    },
+};
 
-    // --- 3. SIGNUP ---
-    signup(email, password) {
-        // FastAPI's /signup endpoint expects a JSON payload
-        return axios
-            .post(API_URL + "signup", {
-                email,
-                password
-            })
-            .then(response => {
-                // Optionally log the user in immediately after signup
-                return this.login(email, password);
-            });
-    }
-
-    // --- 4. GET CURRENT TOKEN ---
-    getCurrentToken() {
-        // Retrieve the token for use in API headers
-        const token = localStorage.getItem("user_token");
-        return token ? JSON.parse(token) : null;
-    }
-}
-
-export default new AuthService();
+export default AuthService;
