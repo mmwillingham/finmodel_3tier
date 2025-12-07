@@ -1860,7 +1860,12 @@ c. Test Login (POST /token):
   - Find the /token endpoint.
   - Enter the same email (as username) and password.
   - Click "Execute". You must receive a 200 OK response containing the access_token (the JWT). Copy this token.
-d. Authorize Future Requests:
+d. Authorize Future Requests: (NOTE: Swagger doesn't handle this correctly. It doesn't ask for bearer token
+INSTEAD, test token with curl. For example:
+
+$ curl -X GET "http://localhost:8000/users/me" -H "accept: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyN0BleGFtcGxlLmNvbSIsImV4cCI6MTc2NTEzOTc1MH0.9ndo3Edue_1gZ4DqjrxCkP6MGT2bVxHBYmTSQ4xhuvk"
+{"email":"user7@example.com","id":6,"is_active":true}
+
   - Click the green "Authorize" button at the top right of the Swagger UI page.
   - Paste the copied access_token into the value field, prefixed with Bearer (e.g., Bearer eyJhbGciOiJIUzI1NiI...). Click "Authorize".
 e. Test Protected Route (GET /users/me):
