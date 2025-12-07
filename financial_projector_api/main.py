@@ -1,7 +1,7 @@
 import json
 from datetime import timedelta
 from typing import List, Optional
-
+from fastapi.openapi.models import SecurityScheme
 from fastapi import FastAPI, Depends, HTTPException, status, Path, Query
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
@@ -13,7 +13,23 @@ from . import models, schemas, auth, calculations # Ensure all modules are impor
 # Create tables in the DB if they don't exist
 models.Base.metadata.create_all(bind=engine) 
 
-app = FastAPI(title="Financial Projection API")
+# --- Define the App with Custom Security Scheme ---
+app = FastAPI(
+    title="Financial Projection API",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+        "components": {
+            "securitySchemes": {
+                "BearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                    "description": "Enter the JWT in the format: **Bearer &lt;token&gt;**"
+                }
+            }
+        }
+    }
+)
 
 # --- Dependencies ---
 
