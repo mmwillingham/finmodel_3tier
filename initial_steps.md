@@ -1,4 +1,5 @@
 # NOTE. I may have the wrong locations of the files below, so here is the tree.
+```
 .
 ├── venv/                           # ⬅️ Your Python Virtual Environment (Created by `python -m venv venv`)
 ├── financial_projector_api/        # ⬅️ FastAPI BACKEND PACKAGE (Port 8000)
@@ -34,7 +35,7 @@
     │       └── ChartConfig.js      # Chart.js data transformation logic
     ├── package.json                # NPM project definition and dependencies
     └── .gitignore
-
+```
     
 
 # Phase 1: Setting up the Secure Back-End Foundation
