@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // <--- ADDED FOR FIX
 import AuthService from '../services/auth.service';
-import ApiService from '../services/api.service'; // Needed to fetch /users/me
+import ApiService from '../services/api.service';
 
 // 1. Create the Context object
 const AuthContext = createContext();
@@ -13,21 +14,22 @@ export const useAuth = () => {
 // 3. The Provider component manages state and provides it to the app
 export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true); // Tracks initial token check
+    const [isLoading, setIsLoading] = useState(true);
+
+    // CRITICAL FIX: Get the navigate function here
+    const navigate = useNavigate();
 
     // Function to check local storage and fetch user details
     const checkUserSession = async () => {
         const token = AuthService.getToken();
         if (token) {
             try {
-                // Use the token to fetch the user's details from the protected endpoint
-                // ApiService handles placing the token in the Authorization header
+                // This call uses api.service.js which includes the token
                 const userResponse = await ApiService.get("/users/me");
                 
-                // Set the user data from the successful response
                 setCurrentUser(userResponse.data);
             } catch (error) {
-                // Token is invalid/expired (401 Unauthorized), so clear it
+                // If token is invalid or expired, clear it and set state to null
                 AuthService.logout();
                 setCurrentUser(null);
             }
@@ -37,15 +39,16 @@ export const AuthProvider = ({ children }) => {
 
     // The 'login' function is called *after* AuthService.login has successfully saved the token.
     const login = async () => {
-        // We only call this function to update the app state after a successful POST /token
         setIsLoading(true);
-        await checkUserSession(); // This will read the newly saved token and fetch /users/me
+        // This will read the newly saved token, fetch /users/me, and update currentUser
+        await checkUserSession(); 
     };
 
     const logout = () => {
         AuthService.logout();
         setCurrentUser(null);
-        navigate('/login'); // Optional: redirect on logout if necessary
+        // This is the line that required the useNavigate fix
+        navigate('/login'); 
     };
     
     // Check for a saved token when the application first loads
@@ -53,21 +56,16 @@ export const AuthProvider = ({ children }) => {
         checkUserSession();
     }, []);
 
-    // The object that will be exposed to consumers
     const value = {
         currentUser,
         isLoading,
-        login, // Function to trigger state update after successful login POST
+        login, 
         logout,
     };
 
-    // 4. Provide the value to the application children
     return (
         <AuthContext.Provider value={value}>
-            {/* We prevent rendering the children until the initial 
-                token check is complete (isLoading is false). 
-                This prevents flash-of-unauthenticated-content (FOUC) errors. 
-            */}
+            {/* Prevent rendering until the initial token check is complete */}
             {!isLoading && children}
         </AuthContext.Provider>
     );
