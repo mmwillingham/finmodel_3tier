@@ -40,7 +40,7 @@ app.add_middleware(
 # --- USER/AUTH ROUTES ---
 
 @app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["auth"])
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     """Registers a new user."""
     db_user = auth.get_user(db, email=user.email)
     if db_user:
@@ -56,7 +56,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 @app.post("/token", tags=["auth"])
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.database.get_db)):
     """Authenticates user and returns an access token."""
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -82,7 +82,7 @@ def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
 @app.post("/projections", response_model=schemas.ProjectionResponse, tags=["projections"])
 def create_projection(
     projection_data: schemas.ProjectionRequest, 
-    db: Session = Depends(get_db),
+    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
     """Calculates and saves a new financial projection."""
@@ -123,7 +123,7 @@ def create_projection(
 def get_projection_details(
     projection_id: int = Path(..., description="ID of the projection to retrieve"),
     current_user: models.User = Depends(auth.get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(database.get_db)
 ):
     """
     Retrieves the full details of a single projection, ensuring ownership.
