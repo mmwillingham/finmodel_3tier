@@ -1,4 +1,5 @@
 import json
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import timedelta
 from typing import List, Optional
 from fastapi.openapi.models import SecurityScheme
@@ -34,6 +35,21 @@ app = FastAPI(
             "securitySchemes": bearer_scheme 
         }
     }
+)
+
+# --- ADD THIS CORS CONFIGURATION ---
+origins = [
+    "http://localhost:3000",  # Allow your React development server
+    "http://127.0.0.1:3000",
+    # If you were running React on port 3001, add that too
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # List of origins that are allowed to make requests
+    allow_credentials=True, # Allows cookies and authorization headers (JWT)
+    allow_methods=["*"],    # Allows all HTTP methods (GET, POST, DELETE, etc.)
+    allow_headers=["*"],    # Allows all headers, including Authorization
 )
 
 # --- Dependencies ---
