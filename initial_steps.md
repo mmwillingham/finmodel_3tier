@@ -52,6 +52,9 @@ pip install fastapi "uvicorn[standard]" python-multipart pydantic "pydantic[emai
 pip install --upgrade passlib bcrypt
 pip install pandas
 pip install passlib[scrypt]
+pip uninstall passlib bcrypt scrypt -y
+pip install passlib
+pip install scrypt
 mkdir financial_projector_api
 cd financial_projector_api
 ```
