@@ -56,6 +56,8 @@ pip uninstall passlib bcrypt scrypt -y
 pip install passlib
 pip install scrypt
 pip install passlib[scrypt] passlib[bcrypt]
+pip uninstall passlib bcrypt scrypt -y
+pip install passlib scrypt
 mkdir financial_projector_api
 cd financial_projector_api
 ```
