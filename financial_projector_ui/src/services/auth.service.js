@@ -7,8 +7,6 @@ const AuthService = {
     /**
      * Attempts to log the user in by sending credentials to FastAPI.
      * On success, saves the JWT to local storage.
-     * * @param {string} email 
-     * @param {string} password 
      */
     async login(email, password) {
         // FastAPI's /token endpoint requires data in x-www-form-urlencoded format.
@@ -16,7 +14,6 @@ const AuthService = {
         formData.append("username", email);
         formData.append("password", password);
 
-        // Clear any old tokens before attempting a new login
         localStorage.removeItem("user_token"); 
 
         try {
@@ -24,27 +21,20 @@ const AuthService = {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
             });
 
-            // The FastAPI response contains the token in the 'access_token' field
             if (response.data.access_token) {
                 // Save the token to local storage for persistence
                 localStorage.setItem("user_token", response.data.access_token);
-                
-                // Return the response data (not strictly needed, but useful for debugging)
                 return response.data;
             }
         } catch (error) {
-            // Re-throw the error so the component can catch and display it
             throw error;
         }
     },
 
     /**
      * Registers a new user via the FastAPI /signup route.
-     * * @param {string} email 
-     * @param {string} password 
      */
     async signup(email, password) {
-        // FastAPI's /signup expects JSON data
         const response = await axios.post(API_URL + "signup", {
             email: email,
             password: password,
