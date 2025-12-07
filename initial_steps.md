@@ -369,20 +369,24 @@ from . import models, schemas, auth, calculations # Ensure all modules are impor
 # Create tables in the DB if they don't exist
 models.Base.metadata.create_all(bind=engine) 
 
-# --- Define the App with Custom Security Scheme ---
+# Define the security scheme structure for Swagger UI
+bearer_scheme = {
+    "Bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter the JWT token (e.g., Bearer eyJhbGciOi...)"
+    }
+}
+
 app = FastAPI(
     title="Financial Projection API",
+    # Tell Swagger which security scheme to use globally
+    security=[{"Bearer": []}], 
+    # Tell Swagger the definition of the "Bearer" scheme
     openapi_extra={
-        "security": [{"BearerAuth": []}],
         "components": {
-            "securitySchemes": {
-                "BearerAuth": {
-                    "type": "http",
-                    "scheme": "bearer",
-                    "bearerFormat": "JWT",
-                    "description": "Enter the JWT in the format: **Bearer &lt;token&gt;**"
-                }
-            }
+            "securitySchemes": bearer_scheme 
         }
     }
 )
