@@ -20,6 +20,10 @@ class UserOut(UserBase):
     class Config:
         from_attributes = True 
 
+class TokenData(BaseModel):
+    """Schema for the data payload extracted from the JWT."""
+    email: Optional[str] = None
+
 # --- CALCULATION INPUT SCHEMAS ---
 
 class ProjectionRequest(BaseModel):
