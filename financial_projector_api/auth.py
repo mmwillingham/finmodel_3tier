@@ -16,7 +16,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # --- Hashing Context (used for passwords) ---
 # bcrypt is the standard secure algorithm for hashing passwords
-pwd_context = CryptContext(schemes=["scrypt", "bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["scrypt"], 
+    deprecated="auto"
+)
 
 # --- OAuth2 Scheme (used to extract token from request headers) ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
