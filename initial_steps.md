@@ -1,3 +1,42 @@
+# NOTE. I may have the wrong locations of the files below, so here is the tree.
+.
+├── venv/                           # ⬅️ Your Python Virtual Environment (Created by `python -m venv venv`)
+├── financial_projector_api/        # ⬅️ FastAPI BACKEND PACKAGE (Port 8000)
+│   ├── __init__.py                 # EMPTY file, required for package imports (Crucial!)
+│   ├── main.py                     # FastAPI app initialization, routes (Auth, CRUD, Projections)
+│   ├── auth.py                     # JWT logic, password hashing, dependency functions
+│   ├── database.py                 # SQLAlchemy setup, engine, session, get_db()
+│   ├── models.py                   # SQLAlchemy ORM classes (User, Projection)
+│   ├── schemas.py                  # Pydantic models (User, Token, ProjectionRequest, ProjectionResponse)
+│   ├── calculations.py             # Core Python financial projection logic
+│   └── .env (or config file)       # (Optional) Stores SECRET_KEY and DATABASE_URL
+│
+└── financial-projector-ui/         # ⬅️ React FRONTEND PROJECT (Port 3000)
+    ├── node_modules/               # NPM dependencies (created by `npm install`)
+    ├── public/                     # Static files (index.html, etc.)
+    ├── src/
+    │   ├── App.js                  # Main component, sets up the Router and AuthProvider (Crucial!)
+    │   ├── index.js                # App entry point
+    │   ├── context/
+    │   │   └── AuthContext.js      # Global state for user and token management
+    │   ├── services/
+    │   │   ├── auth.service.js     # Handles login/signup/logout API calls and token storage
+    │   │   └── api.service.js      # Axios instance with JWT interceptor for protected calls
+    │   ├── components/
+    │   │   ├── Header.js           # Navigation bar with conditional links and Logout
+    │   │   ├── ProtectedRoute.js   # Router protection logic
+    │   │   ├── LoginPage.js        # Login form
+    │   │   ├── SignupPage.js       # Signup form
+    │   │   ├── Calculator.js       # Dynamic input form and POST logic (The core)
+    │   │   ├── Dashboard.js        # List of saved projections (GET summary)
+    │   │   └── ProjectionDetail.js # Renders chart and detailed table (GET detail)
+    │   └── utils/
+    │       └── ChartConfig.js      # Chart.js data transformation logic
+    ├── package.json                # NPM project definition and dependencies
+    └── .gitignore
+
+    
+
 # Phase 1: Setting up the Secure Back-End Foundation
 We will start by creating the project structure, setting up the database connection, and defining the data model (users and projections).
 
@@ -980,7 +1019,7 @@ EOF
 5. App.js (The Router)
 The main application file sets up the routes and wraps the entire application in the AuthProvider.
 ```
-cat <<EOF> App.js
+cat <<EOF> src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
