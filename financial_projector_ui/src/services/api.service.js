@@ -1,55 +1,45 @@
 import axios from "axios";
 import AuthService from "./auth.service";
 
+// IMPORTANT: This MUST match your FastAPI server address/port
 const API_URL = "http://localhost:8000/";
 
-// Create an instance of Axios
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+// Create a custom Axios instance
+const ApiService = axios.create({
+    baseURL: API_URL,
+    headers: {
+        "Content-type": "application/json",
+    },
 });
 
-// Interceptor: Runs before every request is sent
-api.interceptors.request.use(
-  (config) => {
-    const token = AuthService.getCurrentToken();
-
-    // If a token exists, add it to the Authorization header
-    if (token) {
-      config.headers["Authorization"] = 'Bearer ' + token;
+// Request Interceptor: Attach the JWT token before sending
+ApiService.interceptors.request.use(
+    (config) => {
+        const token = AuthService.getToken();
+        if (token) {
+            // Attach the token in the 'Authorization: Bearer <token>' format
+            config.headers["Authorization"] = "Bearer " + token;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
 );
 
-// --- Define your main protected API methods here ---
+// Response Interceptor (Optional, but good for handling 401s globally)
+ApiService.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    (error) => {
+        // If the server returns 401 (Unauthorized), it means the token is expired or invalid
+        if (error.response && error.response.status === 401) {
+            AuthService.logout();
+            // Note: We can't use 'navigate' here, so we rely on AuthContext to manage redirect on state change
+        }
+        return Promise.reject(error);
+    }
+);
 
-class ApiService {
-  // POST /projections
-  saveProjection(projectionData) {
-    return api.post("projections", projectionData);
-  }
-
-  // GET /projections
-  getProjectionsSummary() {
-    return api.get("projections");
-  }
-
-  // GET /projections/{id}
-  getProjectionDetails(id) {
-    return api.get(`projections/${id}`);
-  }
-
-  // DELETE /projections/{id}
-  deleteProjection(id) {
-    return api.delete(`projections/${id}`);
-  }
-}
-
-export default new ApiService();
-
+export default ApiService;
