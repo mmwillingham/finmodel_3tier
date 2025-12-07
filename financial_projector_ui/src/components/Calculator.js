@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import ApiService from '../services/api.service';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ApiService from '../services/api.service'; // CRITICAL: This sends the API call
 
 // Global constants matching your Python constants (simplified here)
 const INVESTMENT_TYPES = [
