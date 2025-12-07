@@ -572,11 +572,12 @@ axios: For making HTTP requests to your FastAPI API.
 react-router-dom: For handling secure navigation between pages (Login, Dashboard, Calculator).
 chart.js & react-chartjs-2: To render the dynamic, interactive line charts from the data returned by the API.
 ```
-# Create a new React project
+# Install npx
 sudo dnf install npx -y
+# Create a new React project
+cd ~/git/finmodel_3tier
 npx create-react-app financial-projector-ui 
 cd financial-projector-ui
-
 # Install necessary JavaScript libraries
 npm install axios react-router-dom chart.js react-chartjs-2
 cd ..
@@ -1829,7 +1830,7 @@ uvicorn financial_projector_api.main:app --reload --port 8000
 
 2. Use FastAPI's Interactive Docs (Swagger UI)
 FastAPI automatically generates interactive documentation, which is the easiest way to test your endpoints without the React front-end.
-
+```
 a. Open Docs: Navigate to http://localhost:8000/docs in your web browser.
 b. Test Signup (POST /signup):
   - Find the /signup endpoint and click "Try it out".
@@ -1853,6 +1854,8 @@ Now that the backend is confirmed, you test the React application's ability to c
 1. Start the React Application
 - In a separate terminal window (keep the FastAPI server running!), navigate to your React project directory (financial-projector-ui).
 - Start the React development server. The app should open in your browser, usually at http://localhost:3000.
+```
+
 ```
 npm start
 ```
