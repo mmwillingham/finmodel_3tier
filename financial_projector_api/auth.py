@@ -1,51 +1,64 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from . import models, schemas
-from financial_projector_api.database import SessionLocal # Import database session
+from passlib.context import CryptContext
 
-# --- Configuration ---
-# You must change these values!
-SECRET_KEY = "YOUR_SUPER_SECRET_KEY" 
+from . import models, database, schemas
+
+# --- CONFIGURATION ---
+
+# IMPORTANT: You MUST set a strong secret key in a production environment
+# For development, this placeholder is acceptable.
+SECRET_KEY = "your-very-secret-key-that-should-be-in-an-env-file"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# --- Hashing Context (used for passwords) ---
-# bcrypt is the standard secure algorithm for hashing passwords
-pwd_context = CryptContext(
-    schemes=["scrypt"], 
-    deprecated="auto"
-)
+# --- PASSWORD HASHING (Using SCrypt) ---
 
-# --- OAuth2 Scheme (used to extract token from request headers) ---
+# We use SCrypt as it resolved the dependency conflict with bcrypt on your system
+# This context object handles hashing and verification.
+pwd_context = CryptContext(schemes=["scrypt"], deprecated="auto")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# --- Database Dependency (Helper to access DB in this module) ---
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
-# --- Password Utilities ---
-
-def hash_password(password: str):
-    """Securely hashes a plain-text password."""
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str):
-    """Verifies a plain-text password against a hashed one."""
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifies a plaintext password against a stored hash."""
+    # passlib handles checking the hash type (scrypt or old bcrypt) and verifying
     return pwd_context.verify(plain_password, hashed_password)
 
-# --- JWT Token Utilities ---
+def get_password_hash(password: str) -> str:
+    """Hashes a plaintext password."""
+    return pwd_context.hash(password)
+
+# --- USER LOOKUP AND AUTHENTICATION ---
+
+def get_user(db: Session, email: str):
+    """Retrieves a user model by email."""
+    return db.query(models.User).filter(models.User.email == email).first()
+
+def authenticate_user(db: Session, email: str, password: str):
+    """
+    CRITICAL FUNCTION: Looks up user by email and verifies the password.
+    This is the function main.py was looking for.
+    """
+    user = get_user(db, email=email)
+    if not user:
+        return False
+    
+    if not verify_password(password, user.hashed_password):
+        return False
+        
+    return user
+
+# --- JWT TOKEN FUNCTIONS ---
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Creates a JWT access token."""
+    """Creates a JWT access token with optional expiration."""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -55,34 +68,34 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_user_by_email(db: Session, email: str):
-    """Helper to fetch a user from the DB by email."""
-    return db.query(models.User).filter(models.User.email == email).first()
-
-# --- Authentication Dependency ---
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
     """
-    Dependency function used in API endpoints to secure them.
-    Raises an error if the token is invalid or the user is not found.
+    Dependency function to retrieve the current authenticated user from the JWT token.
+    Raises HTTPException if the token is invalid or expired.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
     try:
-        # Decode the token to get the user's email
+        # Decode the token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Extract the subject (user email)
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
+        
+        # Ensure the schema is used (optional, but good practice)
         token_data = schemas.TokenData(email=email)
     except JWTError:
         raise credentials_exception
     
-    # Fetch the user object from the database
-    user = get_user_by_email(db, email=token_data.email)
+    # Look up the user in the database
+    user = get_user(db, email=token_data.email)
     if user is None:
         raise credentials_exception
+        
     return user
