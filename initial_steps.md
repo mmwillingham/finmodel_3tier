@@ -51,6 +51,7 @@ source venv/bin/activate
 pip install fastapi "uvicorn[standard]" python-multipart pydantic "pydantic[email]" sqlalchemy psycopg2-binary python-jose passlib[bcrypt]
 pip install --upgrade passlib bcrypt
 pip install pandas
+pip install passlib[scrypt]
 mkdir financial_projector_api
 cd financial_projector_api
 ```
@@ -185,7 +186,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # --- Hashing Context (used for passwords) ---
 # bcrypt is the standard secure algorithm for hashing passwords
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["scrypt"], deprecated="auto")
 
 # --- OAuth2 Scheme (used to extract token from request headers) ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
