@@ -56,7 +56,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     return db_user
 
 @app.post("/token", tags=["auth"])
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.database.get_db)):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
     """Authenticates user and returns an access token."""
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
