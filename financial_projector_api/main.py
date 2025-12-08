@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
@@ -13,23 +13,24 @@ from . import models, schemas, database, auth, calculations
 database.Base.metadata.create_all(bind=database.engine) 
 
 app = FastAPI(title="Financial Projector API", version="1.0")
-# --- CORS CONFIGURATION ---
-# List of origins (frontend URLs) that are allowed to make requests
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,          # Allows requests from your React development server
-    allow_credentials=True,         # Allows cookies/authorization headers
-    allow_methods=["*"],            # Allows all methods (GET, POST, PUT, DELETE)
-    allow_headers=["*"],            # Allows all headers (including Authorization)
-)
-# --- END CORS CONFIGURATION ---
 
 # --- CONFIGURATION ---
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+# --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
+origins = [
+    "http://localhost:3000",  # Your React dev server
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          
+    allow_credentials=True,         
+    allow_methods=["*"],            
+    allow_headers=["*"],            
+)
+# --- END CORS CONFIGURATION ---
 
 # --- AUTHENTICATION ROUTES ---
 
@@ -85,21 +86,21 @@ def create_projection(
     """Creates a new financial projection and saves it to the database."""
 
     # 1. Run Calculation
-    projection_df = calculations.calculate_projection(projection_data)
+    # CRITICAL: This is the line that had the NameError (must be called and assigned)
+    projection_df = calculations.calculate_projection(projection_data) 
     
     # Extract final value and convert projection data to JSON string for storage
     final_value = projection_df['Value'].iloc[-1]
-        
+    projection_data_json = projection_df.to_json(orient='records')
+    
     # 2. Create DB Model and Save
+    # CRITICAL: Using final_value and data_json to match your model.py
     db_projection = models.Projection(
         name=projection_data.plan_name,
         years=projection_data.years,
         final_value=final_value,
-        
-        # CRITICAL FIX: Save the JSON string to the correct column name
-        data_json=projection_data_json, 
-        
-        owner_id=current_user.id
+        data_json=projection_data_json, # Corrected to data_json
+        owner_id=current_user.id  
     )
     
     db.add(db_projection)
@@ -107,38 +108,4 @@ def create_projection(
     db.refresh(db_projection)
     return db_projection
 
-@app.get("/projections/{projection_id}", response_model=schemas.ProjectionResponse, tags=["projections"])
-def get_projection_details(
-    projection_id: int, 
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """Retrieves a single projection if the user is the owner."""
-    
-    # 1. Retrieve the Projection
-    # Note: Use first() not one() to avoid an exception if not found
-    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
-    
-    # 2. Check if Projection Exists (404)
-    if not projection:
-        # Front-end will report this as "may not exist"
-        raise HTTPException(status_code=404, detail="Projection not found.")
-
-    # 3. Check Ownership (CRITICAL: This is where the failure is occurring)
-    if projection.owner_id != current_user.id:
-        # Front-end will report this as "or you lack access"
-        raise HTTPException(status_code=403, detail="Not authorized to view this projection.")
-    
-    # 4. Success
-    return projection
-
-@app.get("/projections", response_model=List[schemas.ProjectionResponse], tags=["projections"])
-def list_projections(
-    db: Session = Depends(database.get_db), 
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """Lists all projections owned by the current user."""
-    
-    projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
-    
-    return projections
+@app.get("/projections/{projection_id
