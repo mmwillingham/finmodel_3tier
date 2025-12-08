@@ -74,14 +74,14 @@ const Calculator = () => {
 
         // 1. Format the data into the FastAPI ProjectionRequest schema
         const requestPayload = {
-            projection_name: projectionName,
+            plan_name: projectionName,
             years: years,
             accounts: accounts.map(acc => ({
                 name: acc.name,
                 type: acc.type,
-                initial_balance: acc.initial_balance,
-                monthly_contribution: acc.monthly_contribution,
-                annual_rate_percent: acc.annual_rate_percent,
+                initial_balance: parseFloat(acc.initial_balance || 0),
+                monthly_contribution: parseFloat(acc.monthly_contribution || 0),
+                annual_rate_percent: parseFloat(acc.annual_rate_percent || 0),
             }))
         };
         
