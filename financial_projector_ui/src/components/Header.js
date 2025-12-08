@@ -26,11 +26,6 @@ const Header = () => {
                         <>
                             <Link to="/">Calculator</Link>
                             <Link to="/dashboard">Dashboard</Link>
-                            
-                            {/* Display user email and the logout button */}
-                            <span className="user-info">
-                                Logged in as: <strong>{currentUser.email}</strong>
-                            </span>
                             <button onClick={handleLogout} className="logout-button">
                                 Logout
                             </button>
@@ -43,6 +38,12 @@ const Header = () => {
                         </>
                     )}
                 </div>
+                {/* Display user email in the top right */}
+                {currentUser && (
+                    <div className="user-info">
+                        Logged in as: <strong>{currentUser.email}</strong>
+                    </div>
+                )}
             </nav>
         </header>
     );
