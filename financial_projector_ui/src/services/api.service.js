@@ -16,6 +16,8 @@ const ApiService = axios.create({
 ApiService.interceptors.request.use(
     (config) => {
         const token = AuthService.getToken();
+        console.log("Interceptor Running.");
+        console.log("Token retrieved:", token);
         if (token) {
             // Attach the token in the 'Authorization: Bearer <token>' format
             config.headers["Authorization"] = "Bearer " + token;
