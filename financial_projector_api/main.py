@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -12,6 +13,20 @@ from . import models, schemas, database, auth, calculations
 database.Base.metadata.create_all(bind=database.engine) 
 
 app = FastAPI(title="Financial Projector API", version="1.0")
+# --- CORS CONFIGURATION ---
+# List of origins (frontend URLs) that are allowed to make requests
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          # Allows requests from your React development server
+    allow_credentials=True,         # Allows cookies/authorization headers
+    allow_methods=["*"],            # Allows all methods (GET, POST, PUT, DELETE)
+    allow_headers=["*"],            # Allows all headers (including Authorization)
+)
+# --- END CORS CONFIGURATION ---
 
 # --- CONFIGURATION ---
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
