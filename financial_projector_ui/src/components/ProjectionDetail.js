@@ -97,7 +97,17 @@ const ProjectionDetail = () => {
     const chartData = data_json ? JSON.parse(data_json) : [];
 
     const accountValueKeys = getAccountKeys(chartData);
-    const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#00bcd4', '#ff7300', '#7cb342']; 
+    const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#00bcd4', '#ff7300', '#7cb342'];
+    
+    // Currency formatter with commas and 0 decimal places
+    const formatCurrency = (value) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value ?? 0);
+    }; 
 
     // Prepare Chart.js data structure
     const chartLabels = chartData.map(row => `Year ${row.Year}`);
@@ -235,13 +245,13 @@ const ProjectionDetail = () => {
                         {chartData.map(row => (
                             <tr key={row.Year}>
                                 <td>{row.Year}</td>
-                                <td>${((row.StartingValue ?? row.Total_Value ?? 0)).toFixed(2)}</td>
+                                <td>{formatCurrency(row.StartingValue ?? row.Total_Value ?? 0)}</td>
                                 {accountValueKeys.map(key => (
                                     <td key={key}>
-                                        ${((row[key] ?? 0)).toFixed(2)}
+                                        {formatCurrency(row[key] ?? 0)}
                                     </td>
                                 ))}
-                                <td><strong>${((row.Value ?? row.Total_Value ?? 0)).toFixed(2)}</strong></td>
+                                <td><strong>{formatCurrency(row.Value ?? row.Total_Value ?? 0)}</strong></td>
                             </tr>
                         ))}
                     </tbody>
