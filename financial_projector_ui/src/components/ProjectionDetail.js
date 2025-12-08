@@ -34,22 +34,33 @@ const ProjectionDetail = () => {
     const [error, setError] = useState(null);
 
     // --- Data Fetching Effect ---
+    
     useEffect(() => {
+        // 1. Get ID from URL params (assuming you use useParams or similar)
+        // const { id } = useParams(); // Or whatever method you use
+    
         const fetchProjection = async () => {
             try {
-                setLoading(true);
-                const data = await ProjectionService.getProjectionDetails(id);
-                setProjection(response.data);
+                // CRITICAL: Call the correct service method
+                const data = await ProjectionService.getProjectionDetails(id); 
+            
+                // Set the state directly with the clean data object
+                setProjection(data); 
+                
                 setLoading(false);
-            } catch (err) {
-                // This catches 404 (not found) or 401 (unauthorized) errors
-                setError("Error loading projection. It may not exist or you lack access.");
-                setLoading(false);
-                console.error("Fetch Error:", err);
+                setError(null);
+            
+            } catch (error) {
+                console.error("Error fetching projection:", error);
+                // This is the line that triggers the visible error message
+            setError("Error loading projection. It may not exist or you lack access."); 
+            setLoading(false);
             }
         };
 
-        fetchProjection();
+        if (id) {
+            fetchProjection();
+        }
     }, [id]);
 
     // --- Delete Handler ---
