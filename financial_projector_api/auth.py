@@ -51,11 +51,11 @@ def get_user(db: Session, user_id: int):
 
 def authenticate_user(db: Session, username: str, password: str):
     # This is where you would lookup the user and verify the password hash
-    user = db.query(models.User).filter(models.User.username == username).first()
+    user = db.query(models.User).filter(models.User.email == username).first()
     if not user:
         return False
-    # Placeholder: Replace with actual password hashing verification (e.g., bcrypt.checkpw)
-    if password != user.hashed_password:
+
+    if not verify_password(password, user.hashed_password):
         return False
     return user
 
