@@ -31,6 +31,9 @@ class Projection(Base):
     
     # CRITICAL: Use your existing column name for the detailed data
     data_json = Column(String) 
+
+    total_contributed = Column(Float) 
+    total_growth = Column(Float)
     
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="projections")
