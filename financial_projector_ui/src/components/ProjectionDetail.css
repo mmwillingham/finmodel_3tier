@@ -1,0 +1,14 @@
+/* financial_projector_ui/src/components/ProjectionDetail.css */
+
+.projection-detail-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    font-family: sans-serif;
+}
+
+.detail-header h1 {
+    color: #004d99;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
