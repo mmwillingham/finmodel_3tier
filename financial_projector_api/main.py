@@ -76,6 +76,42 @@ def read_users_me(
 ):
     return current_user
 
+@app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
+def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    """
+    Registers a new user in the database.
+    """
+    # 1. Check if user already exists (by username or email)
+    db_user = db.query(models.User).filter(
+        (models.User.username == user.username) | (models.User.email == user.email)
+    ).first()
+    
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or Email already registered"
+        )
+        
+    # 2. Hash the password
+    # 🚨 NOTE: You need a utility function to hash the password here (e.g., in auth.py)
+    # Assuming auth.get_password_hash(password) exists:
+    hashed_password = auth.get_password_hash(user.password)
+    
+    # 3. Create the database model instance
+    db_user = models.User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        is_active=True # Default to active
+    )
+    
+    # 4. Save to DB
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    # The response_model handles converting the model to schemas.UserOut
+    return db_user
 
 @app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED)
 def create_projection(
