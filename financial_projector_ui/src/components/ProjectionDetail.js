@@ -225,19 +225,23 @@ const ProjectionDetail = () => {
                         <tr>
                             <th>Year</th>
                             <th>Starting Value</th>
-                            <th>Contributions</th>
-                            <th>Growth</th>
-                            <th>Ending Value</th>
+                            {accountValueKeys.map(key => (
+                                <th key={key}>{key.replace('_Value', '')}</th>
+                            ))}
+                            <th>Total Value</th>
                         </tr>
                     </thead>
                     <tbody>
                         {chartData.map(row => (
                             <tr key={row.Year}>
                                 <td>{row.Year}</td>
-                                <td>${row.StartingValue.toFixed(2)}</td>
-                                <td>${row.Contributions.toFixed(2)}</td>
-                                <td>${row.Growth.toFixed(2)}</td>
-                                <td><strong>${row.Value.toFixed(2)}</strong></td>
+                                <td>${((row.StartingValue ?? row.Total_Value ?? 0)).toFixed(2)}</td>
+                                {accountValueKeys.map(key => (
+                                    <td key={key}>
+                                        ${((row[key] ?? 0)).toFixed(2)}
+                                    </td>
+                                ))}
+                                <td><strong>${((row.Value ?? row.Total_Value ?? 0)).toFixed(2)}</strong></td>
                             </tr>
                         ))}
                     </tbody>
