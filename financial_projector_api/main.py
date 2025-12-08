@@ -86,20 +86,23 @@ def create_projection(
     """Creates a new financial projection and saves it to the database."""
 
     # 1. Run Calculation
-    # CRITICAL: This is the line that had the NameError (must be called and assigned)
     projection_df = calculations.calculate_projection(projection_data) 
     
-    # Extract final value and convert projection data to JSON string for storage
-    final_value = projection_df['Value'].iloc[-1]
+    # Extract final value
+    final_value_np = projection_df['Value'].iloc[-1]
+    
+    # CRITICAL FIX: Explicitly cast the NumPy float to a standard Python float
+    final_value = float(final_value_np) 
+    
+    # Convert projection data to JSON string for storage
     projection_data_json = projection_df.to_json(orient='records')
     
     # 2. Create DB Model and Save
-    # CRITICAL: Using final_value and data_json to match your model.py
     db_projection = models.Projection(
         name=projection_data.plan_name,
         years=projection_data.years,
         final_value=final_value,
-        data_json=projection_data_json, # Corrected to data_json
+        data_json=projection_data_json, 
         owner_id=current_user.id  
     )
     
