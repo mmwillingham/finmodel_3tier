@@ -39,6 +39,37 @@ app.add_middleware(
 )
 # --- END CORS CONFIGURATION ---
 
+@app.post("/token")
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(database.get_db)
+):
+    # This function should be defined in your 'auth' module
+    user = auth.authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Create the access token using a function from your 'auth' module
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
+    # financial_projector_api/main.py (Insert this after your /token route)
+
+    @app.get("/users/me", response_model=schemas.UserOut)
+    def read_users_me(
+        current_user: schemas.UserOut = Depends(auth.get_current_user)
+    ):
+        # auth.get_current_user already handled the token validation and user lookup.
+        return current_user
+    
 # --- 1. Security Constants (Keep these, but make sure they are defined in auth.py too!) ---
 # Read the SECRET_KEY from the environment
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-insecure-key") 
