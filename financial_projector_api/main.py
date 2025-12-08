@@ -144,7 +144,7 @@ def create_projection(
     # 3. Create the database object
     db_projection = models.Projection(
         owner_id=user.id, 
-        name=projection_data.name,
+        name=projection_data.plan_name,
         years=projection_data.years,
         # Save the detailed results from the calculation function
         final_value=final_value,
