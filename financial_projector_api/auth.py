@@ -10,19 +10,18 @@ from fastapi.security import OAuth2PasswordBearer
 from . import models, schemas, database
 from .config import settings # 🌟 NEW: Import settings from the central config file
 
-# Assuming you use passlib and its bcrypt context
 from passlib.context import CryptContext
 # Define the context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["scrypt"], deprecated="auto")
 
 
-def get_password_hash(password):
-    """Generates a secure hash of the password."""
+def get_password_hash(password: str) -> str:
+    """Generates a secure scrypt hash of the password."""
+    # We remove the 72-byte truncation because scrypt handles long passwords.
     return pwd_context.hash(password)
 
-# You will also need this for login verification later:
-def verify_password(plain_password, hashed_password):
-    """Verifies a plain password against a stored hash."""
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifies a plain password against a stored scrypt hash."""
     return pwd_context.verify(plain_password, hashed_password)
     
 
