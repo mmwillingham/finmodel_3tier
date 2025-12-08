@@ -1,55 +1,35 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Path
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
-import json
+from typing import List
 
 # Internal Modules
 from . import models, schemas, database, auth, calculations
 
 # --- INITIALIZATION ---
-app = FastAPI(
-    title="Financial Projector API",
-    description="Backend API for financial projection and user management."
-)
+# Create database tables if they don't exist
+database.Base.metadata.create_all(bind=database.engine) 
 
-# Replace with your desired database URL configuration
-database.Base.metadata.create_all(bind=database.engine)
+app = FastAPI(title="Financial Projector API", version="1.0")
 
+# --- CONFIGURATION ---
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# --- CORS CONFIGURATION (CRUCIAL FOR REACT) ---
-origins = [
-    "http://localhost:3000",  # Your React Frontend
-    "http://127.0.0.1:3000",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# --- DEPENDENCIES ---
-
-
-
-# --- USER/AUTH ROUTES ---
+# --- AUTHENTICATION ROUTES ---
 
 @app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["auth"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    """Registers a new user."""
+    """Creates a new user account."""
+    
     db_user = auth.get_user(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Hash password using the SCrypt context
+    # Hash the password and create the user
     hashed_password = auth.get_password_hash(user.password)
-    
     db_user = models.User(email=user.email, hashed_password=hashed_password)
+    
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -57,7 +37,8 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
 
 @app.post("/token", tags=["auth"])
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
-    """Authenticates user and returns an access token."""
+    """Handles user login and returns a JWT access token."""
+    
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -65,88 +46,82 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+    
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/users/me", response_model=schemas.UserOut, tags=["users"])
-def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
-    """Returns the currently logged-in user's details."""
+@app.get("/users/me", response_model=schemas.UserOut, tags=["auth"])
+def read_users_me(current_user: schemas.UserOut = Depends(auth.get_current_user)):
+    """Returns the details of the currently authenticated user."""
     return current_user
-
 
 # --- PROJECTION ROUTES ---
 
-@app.post("/projections", response_model=schemas.ProjectionResponse, tags=["projections"])
+@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED, tags=["projections"])
 def create_projection(
     projection_data: schemas.ProjectionRequest, 
-    db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    db: Session = Depends(database.get_db), 
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Calculates and saves a new financial projection."""
+    """Creates a new financial projection and saves it to the database."""
+
+    # 1. Run Calculation
+    projection_df = calculations.calculate_projection(projection_data)
     
-    # 1. Calculation: Run the financial model
-    projection_df = calculations.calculate_projection(projection_data) 
+    # Extract final value and convert projection data to JSON string for storage
+    final_value = projection_df['Value'].iloc[-1]
+    projection_data_json = projection_df.to_json(orient='records')
     
-    # 2. Data Preparation
-    data_json = projection_df.to_json(orient='records')
-    
-    # 3. Create Database Model Instance (CRITICAL: Assign owner_id)
-    new_projection = models.Projection(
+    # 2. Create DB Model and Save
+    db_projection = models.Projection(
         name=projection_data.plan_name,
         years=projection_data.years,
-        owner_id=current_user.id, # Link the projection to the logged-in user
-        data_json=data_json
+        final_value=final_value,
+        projection_data=projection_data_json,
+        owner_id=current_user.id  # CRITICAL: Link to the logged-in user ID
     )
     
-    # 4. Save to database
-    db.add(new_projection)
+    db.add(db_projection)
     db.commit()
-    db.refresh(new_projection)
-    
-    # 5. Prepare Response Data
-    final_value = projection_df['Value'].iloc[-1] if not projection_df.empty else 0
-    data_list = json.loads(new_projection.data_json)
-
-    # Note: Return the full data to the front-end for immediate display
-    return {
-        "id": new_projection.id,
-        "name": new_projection.name,
-        "years": new_projection.years,
-        "final_value": final_value,
-        "projection_data": data_list
-    }
+    db.refresh(db_projection)
+    return db_projection
 
 @app.get("/projections/{projection_id}", response_model=schemas.ProjectionResponse, tags=["projections"])
 def get_projection_details(
-    projection_id: int = Path(..., description="ID of the projection to retrieve"),
-    current_user: models.User = Depends(auth.get_current_user),
-    db: Session = Depends(database.get_db)
+    projection_id: int, 
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """
-    Retrieves the full details of a single projection, ensuring ownership.
-    """
+    """Retrieves a single projection if the user is the owner."""
     
-    # CRUCIAL: Filter by both ID AND owner_id to enforce ownership (Foreign Key check)
-    projection = db.query(models.Projection).filter(
-        models.Projection.id == projection_id,
-        models.Projection.owner_id == current_user.id 
-    ).first()
+    # 1. Retrieve the Projection
+    # Note: Use first() not one() to avoid an exception if not found
+    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
     
+    # 2. Check if Projection Exists (404)
     if not projection:
-        # Deny access without revealing if the ID exists (security best practice)
-        raise HTTPException(status_code=404, detail="Projection not found or access denied.")
-    
-    # Prepare and return the response
-    data_list = json.loads(projection.data_json)
-    final_value = data_list[-1]['Value'] if data_list else 0
+        # Front-end will report this as "may not exist"
+        raise HTTPException(status_code=404, detail="Projection not found.")
 
-    return {
-        "id": projection.id,
-        "name": projection.name,
-        "years": projection.years,
-        "final_value": final_value,
-        "projection_data": data_list
-    }
+    # 3. Check Ownership (CRITICAL: This is where the failure is occurring)
+    if projection.owner_id != current_user.id:
+        # Front-end will report this as "or you lack access"
+        raise HTTPException(status_code=403, detail="Not authorized to view this projection.")
+    
+    # 4. Success
+    return projection
+
+@app.get("/projections", response_model=List[schemas.ProjectionResponse], tags=["projections"])
+def list_projections(
+    db: Session = Depends(database.get_db), 
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Lists all projections owned by the current user."""
+    
+    projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
+    
+    return projections
