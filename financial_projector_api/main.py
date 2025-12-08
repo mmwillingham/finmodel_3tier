@@ -108,4 +108,35 @@ def create_projection(
     db.refresh(db_projection)
     return db_projection
 
-@app.get("/projections/{projection_id
+@app.get("/projections/{projection_id}", response_model=schemas.ProjectionResponse, tags=["projections"])
+def get_projection_details(
+    projection_id: int, 
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Retrieves a single projection if the user is the owner."""
+    
+    # 1. Retrieve the Projection
+    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
+    
+    # 2. Check if Projection Exists (404)
+    if not projection:
+        raise HTTPException(status_code=404, detail="Projection not found.")
+
+    # 3. Check Ownership 
+    if projection.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this projection.")
+    
+    # 4. Success
+    return projection
+
+@app.get("/projections", response_model=List[schemas.ProjectionResponse], tags=["projections"])
+def list_projections(
+    db: Session = Depends(database.get_db), 
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Lists all projections owned by the current user."""
+    
+    projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
+    
+    return projections
