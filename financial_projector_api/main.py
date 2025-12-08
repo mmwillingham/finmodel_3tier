@@ -78,15 +78,18 @@ ALGORITHM = "HS256"
 # Ensure the key is loaded
 if SECRET_KEY == "fallback-insecure-key":
     print("WARNING: SECRET_KEY not set in environment. Using insecure fallback.")
-    
 
-# NOTE: Since you are importing 'auth', it's best practice to define all
-# security constants and functions in that module and import them here, 
-# but we will leave this block for now.
+@app.get("/users/me", response_model=schemas.UserOut)
+def read_users_me(
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """
+    Retrieves the details of the currently authenticated user.
+    Uses auth.get_current_user to validate the JWT and fetch the user object.
+    """
+    # auth.get_current_user already handled token validation and user lookup.
+    return current_user
 
-# --- AUTHENTICATION ROUTES (You would typically have a /token route here) ---
-
-# --- MAIN APPLICATION LOGIC ---
 
 @app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED)
 def create_projection(
