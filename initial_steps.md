@@ -58,6 +58,9 @@ pip install scrypt
 pip install passlib[scrypt] passlib[bcrypt]
 pip uninstall passlib bcrypt scrypt -y
 pip install passlib scrypt
+pip install fastapi[all] # This includes starlette, which handles middleware
+
+
 mkdir financial_projector_api
 cd financial_projector_api
 ```
