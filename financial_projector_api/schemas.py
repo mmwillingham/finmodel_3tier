@@ -62,8 +62,6 @@ class ProjectionResponse(BaseModel):
     total_growth: float
     # CRITICAL FIX: The response schema must use the model's attribute name
     data_json: str
-    # OR, if you use Pydantic v2/BaseModel:
-    # data_json: str
-    # if you want to use the field as-is.
+    timestamp: datetime
     class Config:
         from_attributes = True

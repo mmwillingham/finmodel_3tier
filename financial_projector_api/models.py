@@ -34,6 +34,9 @@ class Projection(Base):
     total_growth = Column(Float)
     accounts = Column(String) # To store the serialized JSON list of input accounts
     
+    # Timestamp for when the projection was created
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="projections")
 

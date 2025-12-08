@@ -1,8 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // <--- NEW IMPORTS
+import { Line } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
 import ProjectionService from '../services/projection.service';
 import './ProjectionDetail.css';
+
+// Register Chart.js components
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+);
 
 const getAccountKeys = (data) => {
     if (!data || data.length === 0) return [];
@@ -78,12 +99,101 @@ const ProjectionDetail = () => {
     const accountValueKeys = getAccountKeys(chartData);
     const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#00bcd4', '#ff7300', '#7cb342']; 
 
-// ----------------------------------------------------
+    // Prepare Chart.js data structure
+    const chartLabels = chartData.map(row => `Year ${row.Year}`);
+    const chartDatasets = [];
+
+    // Add individual account datasets
+    accountValueKeys.forEach((key, index) => {
+        chartDatasets.push({
+            label: key.replace('_Value', ''),
+            data: chartData.map(row => row[key] || 0),
+            borderColor: CHART_COLORS[index % CHART_COLORS.length],
+            backgroundColor: CHART_COLORS[index % CHART_COLORS.length] + '40',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.1,
+        });
+    });
+
+    // Add Total Value line
+    if (chartData.length > 0 && chartData[0].Total_Value !== undefined) {
+        chartDatasets.push({
+            label: 'Total Account Value',
+            data: chartData.map(row => row.Total_Value || 0),
+            borderColor: '#000000',
+            backgroundColor: '#00000040',
+            borderWidth: 3,
+            pointRadius: 0,
+            tension: 0.1,
+        });
+    }
+
+    const chartJsData = {
+        labels: chartLabels,
+        datasets: chartDatasets,
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Projection Over Time',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += new Intl.NumberFormat('en-US', { 
+                                style: 'currency', 
+                                currency: 'USD' 
+                            }).format(context.parsed.y);
+                        }
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Value ($)',
+                },
+                ticks: {
+                    callback: function(value) {
+                        return new Intl.NumberFormat('en-US', { 
+                            style: 'currency', 
+                            currency: 'USD', 
+                            minimumFractionDigits: 0 
+                        }).format(value);
+                    }
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Year',
+                }
+            }
+        }
+    };
+
     return (
         <div className="projection-detail-container">
             <header className="detail-header">
                 <h1>{name}</h1>
-                <p>Projection Period: **{years} Years**</p>
+                <p>Projection Period: <strong>{years} Years</strong></p>
             </header>
 
             <section className="summary-cards">
@@ -103,48 +213,9 @@ const ProjectionDetail = () => {
 
             <section className="chart-section">
                 <h2>Projection Over Time</h2>
-                
-                {/* * 🌟 START OF THE CHART IMPLEMENTATION 🌟
-                  * This component uses the parsed chartData array
-                  */}
-
-                <ResponsiveContainer width="100%" height={400}>
-                    <LineChart
-                        data={chartData}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="Year" />
-                        <YAxis tickFormatter={(value) => `$${value.toLocaleString()}`} />
-                        {/* Update Tooltip to show cleaner account names */}
-                        <Tooltip formatter={(value, name) => [`$${value.toLocaleString()}`, name.replace('_Value', '')]} />
-                        <Legend />
-        
-                        {/* Dynamic Lines for Each Account */}
-                        {accountValueKeys.map((key, index) => (
-                            <Line
-                                key={key}
-                                type="monotone"
-                                dataKey={key}
-                                stroke={CHART_COLORS[index % CHART_COLORS.length]} // Cycle through colors
-                                name={key.replace('_Value', '')} // Clean up the name for the legend
-                                strokeWidth={2}
-                                dot={false} // Use dots for individual accounts
-                            />
-                        ))}
-
-                        {/* Total Value Line - This remains static and is useful for context */}
-                        <Line 
-                            type="monotone" 
-                            dataKey="Total_Value" 
-                            stroke="#000000" // Black for the total line
-                            name="Total Account Value" 
-                            strokeWidth={3} 
-                            dot={false} 
-                        />
-                    </LineChart>
-                </ResponsiveContainer>                {/* * 🌟 END OF THE CHART IMPLEMENTATION 🌟
-                  */}
+                <div style={{ height: '400px', width: '100%' }}>
+                    <Line data={chartJsData} options={chartOptions} />
+                </div>
             </section>
 
             <section className="table-section">
@@ -166,7 +237,7 @@ const ProjectionDetail = () => {
                                 <td>${row.StartingValue.toFixed(2)}</td>
                                 <td>${row.Contributions.toFixed(2)}</td>
                                 <td>${row.Growth.toFixed(2)}</td>
-                                <td>**${row.Value.toFixed(2)}**</td>
+                                <td><strong>${row.Value.toFixed(2)}</strong></td>
                             </tr>
                         ))}
                     </tbody>

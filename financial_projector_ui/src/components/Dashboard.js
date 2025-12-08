@@ -11,7 +11,7 @@ const Dashboard = () => {
     const fetchProjections = async () => {
         try {
             setLoading(true);
-            const response = await ApiService.getProjectionsSummary(); // GET /projections
+            const response = await ApiService.get("/projections");
             setProjections(response.data);
             setLoading(false);
         } catch (err) {
@@ -53,7 +53,7 @@ const Dashboard = () => {
                                 <td>{proj.years}</td>
                                 <td>{formatCurrency(proj.total_contributed)}</td>
                                 <td>{formatCurrency(proj.final_value)}</td>
-                                <td>{new Date(proj.timestamp).toLocaleDateString()}</td>
+                                <td>{proj.timestamp ? new Date(proj.timestamp).toLocaleDateString() : 'N/A'}</td>
                                 <td>
                                     <button 
                                         onClick={() => navigate(`/projection/${proj.id}`)}

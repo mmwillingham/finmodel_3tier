@@ -6,58 +6,67 @@ const SignupPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleSignup = (e) => {
+    const handleSignup = async (e) => {
         e.preventDefault();
         setMessage('');
+        setLoading(true);
 
-        // 1. Attempt signup, which includes a POST to /signup
-        AuthService.signup(email, password)
-            .then(
-                () => {
-                    // 2. If successful (and optionally auto-logged in by authService), navigate
-                    setMessage('Registration successful! Redirecting...');
-                    setTimeout(() => navigate('/'), 1000); // Navigate to main page after delay
-                },
-                (error) => {
-                    // 3. Handle errors (e.g., Email already registered)
-                    const resMessage =
-                        (error.response &&
-                            error.response.data &&
-                            error.response.data.detail) ||
-                        error.message ||
-                        error.toString();
-
-                    setMessage(`Registration failed: ${resMessage}`);
-                }
-            );
+        try {
+            // Attempt signup, which includes a POST to /signup
+            await AuthService.signup(email, password);
+            
+            // If successful, navigate to login page
+            setMessage('Registration successful! Redirecting to login...');
+            setTimeout(() => navigate('/login'), 1000);
+        } catch (error) {
+            // Handle errors (e.g., Email already registered)
+            const errorMessage = 
+                (error.response && error.response.data && error.response.data.detail) ||
+                error.message ||
+                'Registration failed. Please try again.';
+            
+            setMessage(`Registration failed: ${errorMessage}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="auth-form-container">
+        <div className="auth-container">
             <h2>Create Your Account</h2>
-            <form onSubmit={handleSignup}>
-                <label htmlFor="email">Email:</label>
-                <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
+            <form onSubmit={handleSignup} className="auth-form">
+                {message && <p className={message.includes('successful') ? 'success-message' : 'error-message'}>{message}</p>}
 
-                <label htmlFor="password">Password:</label>
-                <input
-                    type="password"
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
+                <div className="form-group">
+                    <label htmlFor="email">Email:</label>
+                    <input
+                        type="email"
+                        id="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={loading}
+                    />
+                </div>
 
-                <button type="submit">Sign Up</button>
-                {message && <div className="info-message">{message}</div>}
+                <div className="form-group">
+                    <label htmlFor="password">Password:</label>
+                    <input
+                        type="password"
+                        id="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        disabled={loading}
+                    />
+                </div>
+
+                <button type="submit" disabled={loading} className="submit-button">
+                    {loading ? 'Signing Up...' : 'Sign Up'}
+                </button>
             </form>
         </div>
     );
