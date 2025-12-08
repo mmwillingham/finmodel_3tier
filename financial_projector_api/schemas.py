@@ -37,6 +37,7 @@ class ProjectionRequest(BaseModel):
     plan_name: str
     years: int
     accounts: List[AccountSchema] # <--- CRITICAL CHANGE
+    nameL str
     
     class Config:
         from_attributes = True
