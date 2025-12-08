@@ -75,6 +75,10 @@ const ProjectionDetail = () => {
     // Prepare chart data: parse the JSON string
     const chartData = data_json ? JSON.parse(data_json) : [];
 
+    const accountValueKeys = getAccountKeys(chartData);
+    const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#00bcd4', '#ff7300', '#7cb342']; 
+
+// ----------------------------------------------------
     return (
         <div className="projection-detail-container">
             <header className="detail-header">
@@ -104,12 +108,6 @@ const ProjectionDetail = () => {
                   * This component uses the parsed chartData array
                   */}
 
-// --- The Chart Implementation ---
-
-                // --- Find the keys dynamically ---
-                const accountValueKeys = getAccountKeys(chartData);
-                // Define a list of colors for the lines
-                const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#00bcd4', '#ff7300', '#7cb342'];
                 <ResponsiveContainer width="100%" height={400}>
                     <LineChart
                         data={chartData}
