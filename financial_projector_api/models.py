@@ -25,7 +25,7 @@ class Projection(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     years = Column(Integer)
-    
+    accounts = Column(String)
     # NEW FIELD: Stores the final numerical result (to fix the previous TypeError)
     final_value = Column(Float) 
     
