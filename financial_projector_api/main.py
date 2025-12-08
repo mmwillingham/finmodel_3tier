@@ -89,8 +89,7 @@ def create_projection(
     
     # Extract final value and convert projection data to JSON string for storage
     final_value = projection_df['Value'].iloc[-1]
-    project
-    
+        
     # 2. Create DB Model and Save
     db_projection = models.Projection(
         name=projection_data.plan_name,
