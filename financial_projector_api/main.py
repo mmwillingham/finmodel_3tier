@@ -1,28 +1,26 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer # <-- FIXED SYNTAX
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
-from jose import jwt, JWTError # <-- FIXED TYPO
+from jose import jwt, JWTError
 import json
-import os # Needed to access environment variables
-from dotenv import load_dotenv # Needed to load .env file
+import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
 
 # Internal Modules
 from . import models, schemas, database, auth, calculations
+from .config import settings # 🌟 NEW: Import the settings object
 
 # --- INITIALIZATION ---
-# Load environment variables from .env file (for development)
-load_dotenv()
-
 # Create database tables if they don't exist
 database.Base.metadata.create_all(bind=database.engine) 
 
 app = FastAPI(title="Financial Projector API", version="1.0")
 
 # --- CONFIGURATION ---
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+# Use the centralized setting
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
 
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
 origins = [
@@ -38,6 +36,17 @@ app.add_middleware(
     allow_headers=["*"],                
 )
 # --- END CORS CONFIGURATION ---
+
+# 🚨 REMOVED: SECRET_KEY and ALGORITHM manual definitions are now in config.py
+# --- 1. Security Constants ---
+# SECRET_KEY = "..." 
+# ALGORITHM = "HS256"
+
+# --- 2. Define the Token Scheme ---
+# NOTE: If tokenUrl is not defined in auth.py, it should be here.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") 
+
+# --- AUTHENTICATION ROUTES ---
 
 @app.post("/token")
 def login_for_access_token(
@@ -61,42 +70,18 @@ def login_for_access_token(
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-    # financial_projector_api/main.py (Insert this after your /token route)
-
-    @app.get("/users/me", response_model=schemas.UserOut)
-    def read_users_me(
-        current_user: schemas.UserOut = Depends(auth.get_current_user)
-    ):
-        # auth.get_current_user already handled the token validation and user lookup.
-        return current_user
-    
-# --- 1. Security Constants (Keep these, but make sure they are defined in auth.py too!) ---
-# Read the SECRET_KEY from the environment
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-insecure-key") 
-ALGORITHM = "HS256"
-
-# Ensure the key is loaded
-if SECRET_KEY == "fallback-insecure-key":
-    print("WARNING: SECRET_KEY not set in environment. Using insecure fallback.")
-
 @app.get("/users/me", response_model=schemas.UserOut)
 def read_users_me(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """
-    Retrieves the details of the currently authenticated user.
-    Uses auth.get_current_user to validate the JWT and fetch the user object.
-    """
-    # auth.get_current_user already handled token validation and user lookup.
     return current_user
 
 
 @app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED)
 def create_projection(
     projection_data: schemas.ProjectionRequest,
-    # 🌟 CRITICAL FIX: Use the imported authentication function for consistency
     user: schemas.UserOut = Depends(auth.get_current_user), 
-    db: Session = Depends(database.get_db) # Use database.get_db for consistency
+    db: Session = Depends(database.get_db)
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database.
@@ -123,7 +108,6 @@ def create_projection(
     
     # 3. Create the database object
     db_projection = models.Projection(
-        # user is now schemas.UserOut, which has .id
         owner_id=user.id, 
         name=projection_data.name,
         years=projection_data.years,
