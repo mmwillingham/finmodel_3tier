@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ApiService from '../services/api.service'; // CRITICAL: This sends the API call
+import ProjectionService from ".../projection.service";
 
 // Global constants matching your Python constants (simplified here)
 const INVESTMENT_TYPES = [
