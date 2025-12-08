@@ -87,7 +87,7 @@ const Calculator = () => {
         
         // 2. Send the authenticated request to the secure API
         try {
-            const response = await ApiService.post("/projections", requestPayload);
+            const response = await ProjectionService.createProjection(requestPayload);
             setMessage("Calculation successful! Redirecting to results...");
             
             // 3. On success, navigate to the detail view of the new projection
