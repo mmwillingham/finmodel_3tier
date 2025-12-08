@@ -6,11 +6,16 @@ from datetime import timedelta
 from typing import List
 from jose import jwt, JWTError # <-- FIXED TYPO
 import json
+import os # Needed to access environment variables
+from dotenv import load_dotenv # Needed to load .env file
 
 # Internal Modules
 from . import models, schemas, database, auth, calculations
 
 # --- INITIALIZATION ---
+# Load environment variables from .env file (for development)
+load_dotenv()
+
 # Create database tables if they don't exist
 database.Base.metadata.create_all(bind=database.engine) 
 
@@ -35,8 +40,14 @@ app.add_middleware(
 # --- END CORS CONFIGURATION ---
 
 # --- 1. Security Constants (Keep these, but make sure they are defined in auth.py too!) ---
-SECRET_KEY = "YOUR_SUPER_SECRET_KEY" 
+# Read the SECRET_KEY from the environment
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback-insecure-key") 
 ALGORITHM = "HS256"
+
+# Ensure the key is loaded
+if SECRET_KEY == "fallback-insecure-key":
+    print("WARNING: SECRET_KEY not set in environment. Using insecure fallback.")
+    
 
 # NOTE: Since you are importing 'auth', it's best practice to define all
 # security constants and functions in that module and import them here, 
