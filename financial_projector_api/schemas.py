@@ -6,13 +6,14 @@ from datetime import datetime
 
 class UserBase(BaseModel):
     email: str
+    username: str
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=6)
 
 class UserOut(UserBase):
     id: int
-    
+    is_active: bool
     class Config:
         from_attributes = True 
 
