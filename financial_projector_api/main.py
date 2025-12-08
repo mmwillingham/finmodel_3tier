@@ -34,84 +34,53 @@ app.add_middleware(
 
 # --- AUTHENTICATION ROUTES ---
 
-@app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["auth"])
-def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    """Creates a new user account."""
-    
-    db_user = auth.get_user(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Hash the password and create the user
-    hashed_password = auth.get_password_hash(user.password)
-    db_user = models.User(email=user.email, hashed_password=hashed_password)
-    
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-@app.post("/token", tags=["auth"])
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
-    """Handles user login and returns a JWT access token."""
-    
-    user = auth.authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    
-    return {"access_token": access_token, "token_type": "bearer"}
-
-@app.get("/users/me", response_model=schemas.UserOut, tags=["auth"])
-def read_users_me(current_user: schemas.UserOut = Depends(auth.get_current_user)):
-    """Returns the details of the currently authenticated user."""
-    return current_user
-
-# --- PROJECTION ROUTES ---
-
-@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED, tags=["projections"])
+@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED)
 def create_projection(
-    projection_data: schemas.ProjectionRequest, 
-    db: Session = Depends(database.get_db), 
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    projection_data: schemas.ProjectionRequest,
+    user: schemas.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
-    """Creates a new financial projection and saves it to the database."""
+    """
+    Creates a new projection, runs the calculation, and saves the results to the database.
+    """
+    try:
+        # 1. Run the calculation with the corrected arguments
+        projection_results = calculations.calculate_projection(
+            years=projection_data.years,
+            accounts=projection_data.accounts
+        )
+    except Exception as e:
+        # This catches any remaining errors within calculations.py
+        print(f"Calculation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Projection calculation failed: {e}"
+        )
 
-    # 1. Run Calculation
-    projection_results = calculations.calculate_projection(
+    # 2. Extract results from the dictionary returned by the calculation function
+    final_value = projection_results["final_value"]
+    data_json = projection_results["data_json"]
+    total_contributed = projection_results["total_contributed"]
+    total_growth = projection_results["total_growth"]
+    
+    # 3. Create the database object
+    db_projection = models.Projection(
+        owner_id=user.id,
+        name=projection_data.name,
         years=projection_data.years,
-        accounts=projection_data.accounts
-    )
-    
-    # Extract final value
-    final_value_np = projection_data['Value'].iloc[-1]
-    
-    # CRITICAL FIX: Explicitly cast the NumPy float to a standard Python float
-    final_value = float(final_value_np) 
-    
-    # Convert projection data to JSON string for storage
-    projection_data_json = projection_results.to_json(orient='records')
-    
-    # 2. Create DB Model and Save
-    projection_results = models.Projection(
-        name=projection_data.plan_name,
-        years=projection_data.years,
+        # Save the detailed results from the calculation function
         final_value=final_value,
-        data_json=projection_data_json, 
-        owner_id=current_user.id  
+        total_contributed=total_contributed,
+        total_growth=total_growth,
+        data_json=data_json,
+        # Serialize the accounts list to store in the DB (assuming the column is a JSON/String type)
+        accounts=json.dumps([acc.model_dump() for acc in projection_data.accounts]),
     )
-    
+
     db.add(db_projection)
     db.commit()
     db.refresh(db_projection)
+    
     return db_projection
 
 @app.get("/projections/{projection_id}", response_model=schemas.ProjectionResponse, tags=["projections"])
