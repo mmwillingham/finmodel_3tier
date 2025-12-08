@@ -62,6 +62,6 @@ class ProjectionResponse(BaseModel):
     total_growth: float
     # CRITICAL FIX: The response schema must use the model's attribute name
     data_json: str
-    timestamp: datetime
+    timestamp: Optional[datetime] = None  # Optional for backward compatibility with existing records
     class Config:
         from_attributes = True
