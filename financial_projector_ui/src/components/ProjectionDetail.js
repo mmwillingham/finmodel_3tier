@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
-import ApiService from '../services/api.service';
+import ProjectionService from ".../projection.service";
 import { generateChartData, chartOptions } from '../utils/ChartConfig';
 import {
     Chart as ChartJS,
@@ -38,7 +38,7 @@ const ProjectionDetail = () => {
         const fetchProjection = async () => {
             try {
                 setLoading(true);
-                const response = await ApiService.getProjectionDetails(id);
+                const data = await ProjectionService.getProjectionDetails(id);
                 setProjection(response.data);
                 setLoading(false);
             } catch (err) {
