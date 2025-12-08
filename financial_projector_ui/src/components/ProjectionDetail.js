@@ -1,33 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import ProjectionService from '../services/projection.service'; // Corrected import path
-import './ProjectionDetail.css'; // Assuming you have a CSS file
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // <--- NEW IMPORTS
+import ProjectionService from '../services/projection.service';
+import './ProjectionDetail.css';
 
 const ProjectionDetail = () => {
-    // 1. Get the projection ID from the URL
     const { id } = useParams();
     const navigate = useNavigate();
 
-    // 2. Initialize state safely: projection is null until loaded
     const [projection, setProjection] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Fetch data when the component mounts or the ID changes
     useEffect(() => {
         const fetchProjection = async () => {
             setLoading(true);
             setError(null);
             
             try {
-                // Call the service method which now returns the clean data payload
                 const data = await ProjectionService.getProjectionDetails(id); 
-                
                 setProjection(data); 
 
             } catch (err) {
                 console.error("Error fetching projection:", err);
-                // Handle 404/403 errors returned by the service
                 if (err.response && (err.response.status === 404 || err.response.status === 403)) {
                     setError("Error loading projection. It may not exist or you lack access.");
                 } else {
@@ -46,7 +41,6 @@ const ProjectionDetail = () => {
         }
     }, [id, navigate]);
 
-    // 3. Destructure properties safely using || {} to prevent "Cannot read properties of undefined"
     const { 
         name, 
         years, 
@@ -56,8 +50,6 @@ const ProjectionDetail = () => {
         total_growth = 0
     } = projection || {}; 
     
-    // --- Render Logic with State Checks ---
-
     if (loading) {
         return <div className="loading-state">Loading projection data...</div>;
     }
@@ -70,6 +62,7 @@ const ProjectionDetail = () => {
          return <div className="error-state">No projection data available.</div>;
     }
 
+    // Prepare chart data: parse the JSON string
     const chartData = data_json ? JSON.parse(data_json) : [];
 
     return (
@@ -97,12 +90,50 @@ const ProjectionDetail = () => {
             <section className="chart-section">
                 <h2>Projection Over Time</h2>
                 
-
-[Image of a line chart showing investment growth over 25 years]
-
-                <div className="chart-placeholder">
-                    <p>Financial Chart Component goes here, using data from the {name} projection.</p>
-                </div>
+                {/* * 🌟 START OF THE CHART IMPLEMENTATION 🌟
+                  * This component uses the parsed chartData array
+                  */}
+                <ResponsiveContainer width="100%" height={400}>
+                    <LineChart
+                        data={chartData}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="Year" />
+                        <YAxis tickFormatter={(value) => `$${value.toLocaleString()}`} />
+                        <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Value']} />
+                        <Legend />
+                        
+                        {/* Line 1: Total Account Value (Value) */}
+                        <Line 
+                            type="monotone" 
+                            dataKey="Value" 
+                            stroke="#8884d8" 
+                            name="Total Value" 
+                            strokeWidth={2}
+                        />
+                        
+                        {/* Line 2: Cumulative Contributions (Contributions) */}
+                        <Line 
+                            type="monotone" 
+                            dataKey="Contributions" 
+                            stroke="#82ca9d" 
+                            name="Contributions (Yearly)" 
+                            strokeWidth={2}
+                        />
+                        
+                        {/* Line 3: Cumulative Growth (Growth) */}
+                        <Line 
+                            type="monotone" 
+                            dataKey="Growth" 
+                            stroke="#ffc658" 
+                            name="Growth (Yearly)" 
+                            strokeWidth={2}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+                {/* * 🌟 END OF THE CHART IMPLEMENTATION 🌟
+                  */}
             </section>
 
             <section className="table-section">
