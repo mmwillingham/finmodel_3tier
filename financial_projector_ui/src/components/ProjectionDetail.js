@@ -210,7 +210,7 @@ const ProjectionDetail = () => {
                 {/* Left Pane: Navigation and Summary */}
                 <div className="left-pane">
                     <nav className="detail-nav">
-                        <Link to="/" className="nav-link">Calculator</Link>
+                        <Link to="/" className="nav-link">New Projection</Link>
                         <Link to="/my-projections" className="nav-link">My Projections</Link>
                     </nav>
 
