@@ -20,10 +20,9 @@ const ProjectionDetail = () => {
             setError(null);
             
             try {
-                // Call the correct service method which now returns the clean data payload
+                // Call the service method which now returns the clean data payload
                 const data = await ProjectionService.getProjectionDetails(id); 
                 
-                // Set the state directly with the clean data object
                 setProjection(data); 
 
             } catch (err) {
@@ -47,15 +46,13 @@ const ProjectionDetail = () => {
         }
     }, [id, navigate]);
 
-    // 3. Destructure properties safely using || {}
-    // This prevents "Cannot read properties of undefined" during the initial render
+    // 3. Destructure properties safely using || {} to prevent "Cannot read properties of undefined"
     const { 
         name, 
         years, 
         final_value, 
         data_json,
-        // Assuming these two fields are also part of your final ProjectionResponse schema
-        total_contributed = 0, // Initialize totals with 0
+        total_contributed = 0, 
         total_growth = 0
     } = projection || {}; 
     
@@ -69,16 +66,11 @@ const ProjectionDetail = () => {
         return <div className="error-state">{error}</div>;
     }
 
-    // Since loading is false and error is null, we must have data.
-    // If projection is still null here, something is wrong with the data, so we show the error.
     if (!projection) {
          return <div className="error-state">No projection data available.</div>;
     }
 
-    // Now, it's safe to render the main content using the destructured properties.
-    // We assume data_json is a JSON string of records and needs to be parsed for display.
     const chartData = data_json ? JSON.parse(data_json) : [];
-
 
     return (
         <div className="projection-detail-container">
@@ -94,7 +86,6 @@ const ProjectionDetail = () => {
                 </div>
                 <div className="card">
                     <h3>Total Contributions</h3>
-                    {/* CRITICAL: total_contributed must exist on your schema */}
                     <p>${total_contributed.toLocaleString()}</p>
                 </div>
                 <div className="card">
@@ -105,14 +96,11 @@ const ProjectionDetail = () => {
 
             <section className="chart-section">
                 <h2>Projection Over Time</h2>
-                {/* * Placeholder for a Chart Component (e.g., using D3, Chart.js, or Recharts) 
-                  * You would typically map the chartData here.
-                  */}
-                <div className="chart-placeholder">
-                    
+                
 
 [Image of a line chart showing investment growth over 25 years]
 
+                <div className="chart-placeholder">
                     <p>Financial Chart Component goes here, using data from the {name} projection.</p>
                 </div>
             </section>
@@ -133,4 +121,18 @@ const ProjectionDetail = () => {
                         {chartData.map(row => (
                             <tr key={row.Year}>
                                 <td>{row.Year}</td>
-                                <td>${row
+                                <td>${row.StartingValue.toFixed(2)}</td>
+                                <td>${row.Contributions.toFixed(2)}</td>
+                                <td>${row.Growth.toFixed(2)}</td>
+                                <td>**${row.Value.toFixed(2)}**</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </section>
+
+        </div>
+    );
+};
+
+export default ProjectionDetail;
