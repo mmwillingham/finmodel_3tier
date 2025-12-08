@@ -89,15 +89,18 @@ def create_projection(
     
     # Extract final value and convert projection data to JSON string for storage
     final_value = projection_df['Value'].iloc[-1]
-    projection_data_json = projection_df.to_json(orient='records')
+    project
     
     # 2. Create DB Model and Save
     db_projection = models.Projection(
         name=projection_data.plan_name,
         years=projection_data.years,
         final_value=final_value,
-        projection_data=projection_data_json,
-        owner_id=current_user.id  # CRITICAL: Link to the logged-in user ID
+        
+        # CRITICAL FIX: Save the JSON string to the correct column name
+        data_json=projection_data_json, 
+        
+        owner_id=current_user.id
     )
     
     db.add(db_projection)
