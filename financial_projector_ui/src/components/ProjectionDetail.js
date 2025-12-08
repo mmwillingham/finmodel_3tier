@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
-import ProjectionService from ".../projection.service";
+import ProjectionService from "../projection.service";
 import { generateChartData, chartOptions } from '../utils/ChartConfig';
 import {
     Chart as ChartJS,
