@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ApiService from '../services/api.service';
 import { useNavigate } from 'react-router-dom';
 
-const Dashboard = () => {
+const MyProjections = () => {
     const [projections, setProjections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -15,7 +15,7 @@ const Dashboard = () => {
             setProjections(response.data);
             setLoading(false);
         } catch (err) {
-            setError("Failed to load dashboard data.");
+            setError("Failed to load projections data.");
             setLoading(false);
         }
     };
@@ -26,12 +26,12 @@ const Dashboard = () => {
 
     const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
     
-    if (loading) return <div>Loading Dashboard...</div>;
-    if (error) return <div className="dashboard-error">{error}</div>;
+    if (loading) return <div>Loading My Projections...</div>;
+    if (error) return <div className="my-projections-error">{error}</div>;
 
     return (
-        <div className="dashboard-page">
-            <h1>📚 Saved Financial Projections</h1>
+        <div className="my-projections-page">
+            <h1>📚 My Financial Projections</h1>
             {projections.length === 0 ? (
                 <p>No projections saved yet. Go to the Calculator to create one!</p>
             ) : (
@@ -71,4 +71,4 @@ const Dashboard = () => {
     );
 };
 
-export default Dashboard;
+export default MyProjections;

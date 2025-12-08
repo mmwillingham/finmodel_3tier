@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -206,57 +206,70 @@ const ProjectionDetail = () => {
                 <p>Projection Period: <strong>{years} Years</strong></p>
             </header>
 
-            <section className="summary-cards">
-                <div className="card">
-                    <h3>Final Value</h3>
-                    <p>${final_value ? final_value.toLocaleString() : 'N/A'}</p>
-                </div>
-                <div className="card">
-                    <h3>Total Contributions</h3>
-                    <p>${total_contributed.toLocaleString()}</p>
-                </div>
-                <div className="card">
-                    <h3>Total Growth (Interest)</h3>
-                    <p>${total_growth.toLocaleString()}</p>
-                </div>
-            </section>
+            <div className="two-pane-layout">
+                {/* Left Pane: Navigation and Summary */}
+                <div className="left-pane">
+                    <nav className="detail-nav">
+                        <Link to="/" className="nav-link">Calculator</Link>
+                        <Link to="/my-projections" className="nav-link">My Projections</Link>
+                    </nav>
 
-            <section className="chart-section">
-                <h2>Projection Over Time</h2>
-                <div style={{ height: '400px', width: '100%' }}>
-                    <Line data={chartJsData} options={chartOptions} />
+                    <section className="summary-cards">
+                        <div className="card">
+                            <h3>Final Value</h3>
+                            <p>${final_value ? final_value.toLocaleString() : 'N/A'}</p>
+                        </div>
+                        <div className="card">
+                            <h3>Total Contributions</h3>
+                            <p>${total_contributed.toLocaleString()}</p>
+                        </div>
+                        <div className="card">
+                            <h3>Total Growth (Interest)</h3>
+                            <p>${total_growth.toLocaleString()}</p>
+                        </div>
+                    </section>
                 </div>
-            </section>
 
-            <section className="table-section">
-                <h2>Yearly Breakdown</h2>
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            <th>Year</th>
-                            <th>Starting Value</th>
-                            {accountValueKeys.map(key => (
-                                <th key={key}>{key.replace('_Value', '')}</th>
-                            ))}
-                            <th>Total Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {chartData.map(row => (
-                            <tr key={row.Year}>
-                                <td>{row.Year}</td>
-                                <td>{formatCurrency(row.StartingValue ?? row.Total_Value ?? 0)}</td>
-                                {accountValueKeys.map(key => (
-                                    <td key={key}>
-                                        {formatCurrency(row[key] ?? 0)}
-                                    </td>
+                {/* Right Pane: Chart and Table */}
+                <div className="right-pane">
+                    <section className="chart-section">
+                        <h2>Projection Over Time</h2>
+                        <div style={{ height: '400px', width: '100%' }}>
+                            <Line data={chartJsData} options={chartOptions} />
+                        </div>
+                    </section>
+
+                    <section className="table-section">
+                        <h2>Yearly Breakdown</h2>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Starting Value</th>
+                                    {accountValueKeys.map(key => (
+                                        <th key={key}>{key.replace('_Value', '')}</th>
+                                    ))}
+                                    <th>Total Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {chartData.map(row => (
+                                    <tr key={row.Year}>
+                                        <td>{row.Year}</td>
+                                        <td>{formatCurrency(row.StartingValue ?? row.Total_Value ?? 0)}</td>
+                                        {accountValueKeys.map(key => (
+                                            <td key={key}>
+                                                {formatCurrency(row[key] ?? 0)}
+                                            </td>
+                                        ))}
+                                        <td><strong>{formatCurrency(row.Value ?? row.Total_Value ?? 0)}</strong></td>
+                                    </tr>
                                 ))}
-                                <td><strong>{formatCurrency(row.Value ?? row.Total_Value ?? 0)}</strong></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </section>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
 
         </div>
     );

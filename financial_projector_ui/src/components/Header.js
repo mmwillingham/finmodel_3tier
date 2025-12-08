@@ -25,7 +25,7 @@ const Header = () => {
                     {currentUser ? (
                         <>
                             <Link to="/">Calculator</Link>
-                            <Link to="/dashboard">Dashboard</Link>
+                            <Link to="/my-projections">My Projections</Link>
                             <button onClick={handleLogout} className="logout-button">
                                 Logout
                             </button>

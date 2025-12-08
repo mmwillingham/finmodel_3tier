@@ -26,11 +26,13 @@ code {
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
 }
 
 .app-header .logo {
   font-size: 1.5rem;
   font-weight: bold;
+  flex: 0 0 auto;
 }
 
 .app-header .logo a {
@@ -42,6 +44,8 @@ code {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex: 1;
+  justify-content: center;
 }
 
 .app-header .nav-links a {
@@ -71,9 +75,10 @@ code {
 }
 
 .app-header .user-info {
-  position: absolute;
-  top: 1rem;
-  right: 2rem;
+  flex: 0 0 auto;
   font-size: 0.9rem;
   color: #666;
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: 1rem;
 }

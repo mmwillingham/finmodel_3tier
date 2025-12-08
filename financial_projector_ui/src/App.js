@@ -8,7 +8,7 @@ import Header from './components/Header';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import Calculator from './components/Calculator'; 
-import Dashboard from './components/Dashboard';   
+import MyProjections from './components/MyProjections';   
 import ProjectionDetail from './components/ProjectionDetail';
 
 // The Main Application Structure
@@ -34,10 +34,10 @@ function App() {
                             }
                         />
                          <Route
-                            path="/dashboard"
+                            path="/my-projections"
                             element={
                                 <ProtectedRoute>
-                                    <Dashboard /> {/* List of saved plans */}
+                                    <MyProjections /> {/* List of saved plans */}
                                 </ProtectedRoute>
                             }
                         />
