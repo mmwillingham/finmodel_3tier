@@ -7,20 +7,14 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
-from . import models, database, schemas
+from . import models, database, schemas # Ensure schemas is imported
 
 # --- CONFIGURATION ---
-
-# IMPORTANT: You MUST set a strong secret key in a production environment
-# For development, this placeholder is acceptable.
 SECRET_KEY = "your-very-secret-key-that-should-be-in-an-env-file"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# --- PASSWORD HASHING (Using SCrypt) ---
-
-# We use SCrypt as it resolved the dependency conflict with bcrypt on your system
-# This context object handles hashing and verification.
+# --- PASSWORD HASHING ---
 pwd_context = CryptContext(schemes=["scrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -28,7 +22,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifies a plaintext password against a stored hash."""
-    # passlib handles checking the hash type (scrypt or old bcrypt) and verifying
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
@@ -39,13 +32,11 @@ def get_password_hash(password: str) -> str:
 
 def get_user(db: Session, email: str):
     """Retrieves a user model by email."""
+    # Ensure this returns the SQLAlchemy model (models.User)
     return db.query(models.User).filter(models.User.email == email).first()
 
 def authenticate_user(db: Session, email: str, password: str):
-    """
-    CRITICAL FUNCTION: Looks up user by email and verifies the password.
-    This is the function main.py was looking for.
-    """
+    """Looks up user by email and verifies the password."""
     user = get_user(db, email=email)
     if not user:
         return False
@@ -71,7 +62,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 def get_current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
     """
     Dependency function to retrieve the current authenticated user from the JWT token.
-    Raises HTTPException if the token is invalid or expired.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -88,7 +78,7 @@ def get_current_user(db: Session = Depends(database.get_db), token: str = Depend
         if email is None:
             raise credentials_exception
         
-        # Ensure the schema is used (optional, but good practice)
+        # Use the TokenData schema to validate the payload structure
         token_data = schemas.TokenData(email=email)
     except JWTError:
         raise credentials_exception
@@ -98,4 +88,4 @@ def get_current_user(db: Session = Depends(database.get_db), token: str = Depend
     if user is None:
         raise credentials_exception
         
-    return user
+    return user # <--- Returns SQLAlchemy User model, which is validated against schemas.UserOut
