@@ -86,7 +86,10 @@ def create_projection(
     """Creates a new financial projection and saves it to the database."""
 
     # 1. Run Calculation
-    projection_df = calculations.calculate_projection(projection_data) 
+    projection_results = calculations.calculate_projection(
+        years=projection_data.years,
+        accounts=projection_data.accounts
+    )
     
     # Extract final value
     final_value_np = projection_df['Value'].iloc[-1]
@@ -95,10 +98,10 @@ def create_projection(
     final_value = float(final_value_np) 
     
     # Convert projection data to JSON string for storage
-    projection_data_json = projection_df.to_json(orient='records')
+    projection_data_json = projection_results.to_json(orient='records')
     
     # 2. Create DB Model and Save
-    db_projection = models.Projection(
+    projection_results = models.Projection(
         name=projection_data.plan_name,
         years=projection_data.years,
         final_value=final_value,
