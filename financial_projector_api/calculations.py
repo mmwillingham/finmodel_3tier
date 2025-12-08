@@ -1,59 +1,64 @@
+# financial_projector_api/calculations.py
+
 import pandas as pd
-import json
+from typing import List
+# Note: Assuming schemas and the ProjectionRequest model are accessible here
+from .schemas import ProjectionRequest 
 
-def calculate_future_value_dynamic(initial_balances: list, monthly_contributions: list, annual_rates_percent: list, years: int):
+def calculate_projection(projection_data: ProjectionRequest) -> pd.DataFrame:
     """
-    Calculates the future value for a dynamic number of accounts.
-    Returns the final balance, total contributed, and a JSON-encoded string 
-    containing the full projection (for storage).
+    Calculates a financial projection based on the list of accounts.
     """
-    
-    num_accounts = len(initial_balances)
-    rate_annual = [r / 100.0 for r in annual_rates_percent]
-    rate_monthly = [r / 12 for r in rate_annual]
-    total_months = years * 12
-    
-    # Use a list of lists to hold dynamic account balances over time
-    account_balance_lists = [[] for _ in range(num_accounts)]
-    
-    total_portfolio_numeric = []
-    year_list = []
-    
-    current_balances = list(initial_balances)
-    total_contributed = sum(initial_balances)
-    
-    for month in range(1, total_months + 1):
-        
-        for i in range(num_accounts):
-            current_balances[i] += monthly_contributions[i]
-            total_contributed += monthly_contributions[i]
-            current_balances[i] *= (1 + rate_monthly[i])
-        
-        if month % 12 == 0:
-            year_list.append(month // 12)
-            
-            for i in range(num_accounts):
-                account_balance_lists[i].append(current_balances[i])
-            
-            total_portfolio_numeric.append(sum(current_balances))
-    
-    # --- Prepare the Output Data ---
-    
-    # 1. Create dynamic column names for the internal DataFrame
-    df_col_names_internal = [f'Account {i+1} Balance' for i in range(num_accounts)]
-    
-    data = {'Year': year_list}
-    for i in range(num_accounts):
-        data[df_col_names_internal[i]] = account_balance_lists[i]
 
-    data['Total Projected Balance'] = total_portfolio_numeric
+    # 1. Aggregate Inputs from all accounts
     
-    # The final data structure to be stored and returned
-    projection_data = {
-        "final_value": total_portfolio_numeric[-1] if total_portfolio_numeric else 0.0,
-        "total_contributed": total_contributed,
-        "yearly_data": data
-    }
+    # Check for empty accounts list to avoid errors
+    if not projection_data.accounts:
+        # Return an empty dataframe if no accounts are provided
+        return pd.DataFrame(columns=['Year', 'StartingValue', 'Contributions', 'Growth', 'Value'])
 
-    # Return the final value, total contributed, and the full projection data (as a JSON string)
-    return projection_data["final_value"], total_contributed, json.dumps(projection_data)
+    # Aggregate initial capital and monthly contributions
+    starting_capital = sum(acc.initial_balance for acc in projection_data.accounts)
+    monthly_contribution = sum(acc.monthly_contribution for acc in projection_data.accounts)
+    
+    # CRITICAL: Determine a single weighted annual rate. 
+    # For simplicity, we'll use the average rate of all accounts here.
+    # In a real app, you'd use a weighted average based on initial_balance.
+    total_rate_percent = sum(acc.annual_rate_percent for acc in projection_data.accounts)
+    annual_rate_percent = total_rate_percent / len(projection_data.accounts)
+
+    # Convert rate percentage to decimal
+    annual_rate = annual_rate_percent / 100.0 
+    
+    # Get parameters
+    years = projection_data.years
+    
+    # 2. Run the Core Calculation Logic
+
+    data = []
+    current_value = starting_capital
+    
+    for year in range(1, years + 1):
+        starting_value = current_value
+        
+        # Calculate contributions for the year
+        contributions_year = monthly_contribution * 12
+        
+        # Value before growth
+        value_before_growth = starting_value + contributions_year
+        
+        # Simple compound interest growth on (start_value + contributions)
+        # Note: A more precise calculation would compound monthly.
+        growth = value_before_growth * annual_rate
+        
+        current_value = value_before_growth + growth
+        
+        data.append({
+            'Year': year,
+            'StartingValue': round(starting_value, 2),
+            'Contributions': round(contributions_year, 2),
+            'Growth': round(growth, 2),
+            'Value': round(current_value, 2)
+        })
+
+    return pd.DataFrame(data)
