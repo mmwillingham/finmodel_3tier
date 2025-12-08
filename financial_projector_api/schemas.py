@@ -58,7 +58,11 @@ class ProjectionResponse(BaseModel):
     name: str
     years: int
     final_value: float
-    projection_data: List[ProjectionDataPoint] 
-
+    
+    # CRITICAL FIX: The response schema must use the model's attribute name
+    projection_data: str = Field(alias="data_json") # Map the frontend name to the backend name
+    # OR, if you use Pydantic v2/BaseModel:
+    # data_json: str
+    # if you want to use the field as-is.
     class Config:
         from_attributes = True
