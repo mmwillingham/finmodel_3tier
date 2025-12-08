@@ -103,6 +103,13 @@ const ProjectionDetail = () => {
                 {/* * 🌟 START OF THE CHART IMPLEMENTATION 🌟
                   * This component uses the parsed chartData array
                   */}
+
+// --- The Chart Implementation ---
+
+                // --- Find the keys dynamically ---
+                const accountValueKeys = getAccountKeys(chartData);
+                // Define a list of colors for the lines
+                const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#00bcd4', '#ff7300', '#7cb342'];
                 <ResponsiveContainer width="100%" height={400}>
                     <LineChart
                         data={chartData}
@@ -111,38 +118,34 @@ const ProjectionDetail = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="Year" />
                         <YAxis tickFormatter={(value) => `$${value.toLocaleString()}`} />
-                        <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Value']} />
+                        {/* Update Tooltip to show cleaner account names */}
+                        <Tooltip formatter={(value, name) => [`$${value.toLocaleString()}`, name.replace('_Value', '')]} />
                         <Legend />
-                        
-                        {/* Line 1: Total Account Value (Value) */}
+        
+                        {/* Dynamic Lines for Each Account */}
+                        {accountValueKeys.map((key, index) => (
+                            <Line
+                                key={key}
+                                type="monotone"
+                                dataKey={key}
+                                stroke={CHART_COLORS[index % CHART_COLORS.length]} // Cycle through colors
+                                name={key.replace('_Value', '')} // Clean up the name for the legend
+                                strokeWidth={2}
+                                dot={false} // Use dots for individual accounts
+                            />
+                        ))}
+
+                        {/* Total Value Line - This remains static and is useful for context */}
                         <Line 
                             type="monotone" 
-                            dataKey="Value" 
-                            stroke="#8884d8" 
-                            name="Total Value" 
-                            strokeWidth={2}
-                        />
-                        
-                        {/* Line 2: Cumulative Contributions (Contributions) */}
-                        <Line 
-                            type="monotone" 
-                            dataKey="Contributions" 
-                            stroke="#82ca9d" 
-                            name="Contributions (Yearly)" 
-                            strokeWidth={2}
-                        />
-                        
-                        {/* Line 3: Cumulative Growth (Growth) */}
-                        <Line 
-                            type="monotone" 
-                            dataKey="Growth" 
-                            stroke="#ffc658" 
-                            name="Growth (Yearly)" 
-                            strokeWidth={2}
+                            dataKey="Total_Value" 
+                            stroke="#000000" // Black for the total line
+                            name="Total Account Value" 
+                            strokeWidth={3} 
+                            dot={false} 
                         />
                     </LineChart>
-                </ResponsiveContainer>
-                {/* * 🌟 END OF THE CHART IMPLEMENTATION 🌟
+                </ResponsiveContainer>                {/* * 🌟 END OF THE CHART IMPLEMENTATION 🌟
                   */}
             </section>
 
