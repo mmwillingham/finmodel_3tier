@@ -91,7 +91,7 @@ const Calculator = () => {
             setMessage("Calculation successful! Redirecting to results...");
             
             // 3. On success, navigate to the detail view of the new projection
-            navigate(`/projection/${response.data.id}`);
+            navigate(`/projection/${response.id}`);
 
         } catch (error) {
             // 4. Handle errors (e.g., 401 Unauthorized, 400 Bad Request)
