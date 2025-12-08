@@ -1,157 +1,136 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Line } from 'react-chartjs-2';
-import ProjectionService from "../services/projection.service";
-import { generateChartData, chartOptions } from '../utils/ChartConfig';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-} from 'chart.js';
-
-// Register Chart.js components
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend
-);
+import ProjectionService from '../services/projection.service'; // Corrected import path
+import './ProjectionDetail.css'; // Assuming you have a CSS file
 
 const ProjectionDetail = () => {
-    const { id } = useParams(); // Get the projection ID from the URL
+    // 1. Get the projection ID from the URL
+    const { id } = useParams();
     const navigate = useNavigate();
-    
+
+    // 2. Initialize state safely: projection is null until loaded
     const [projection, setProjection] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- Data Fetching Effect ---
-    
+    // Fetch data when the component mounts or the ID changes
     useEffect(() => {
-        // 1. Get ID from URL params (assuming you use useParams or similar)
-        // const { id } = useParams(); // Or whatever method you use
-    
         const fetchProjection = async () => {
-            try {
-                // CRITICAL: Call the correct service method
-                const data = await ProjectionService.getProjectionDetails(id); 
+            setLoading(true);
+            setError(null);
             
+            try {
+                // Call the correct service method which now returns the clean data payload
+                const data = await ProjectionService.getProjectionDetails(id); 
+                
                 // Set the state directly with the clean data object
                 setProjection(data); 
-                
+
+            } catch (err) {
+                console.error("Error fetching projection:", err);
+                // Handle 404/403 errors returned by the service
+                if (err.response && (err.response.status === 404 || err.response.status === 403)) {
+                    setError("Error loading projection. It may not exist or you lack access.");
+                } else {
+                    setError("An unexpected error occurred while fetching data.");
+                }
+            } finally {
                 setLoading(false);
-                setError(null);
-            
-            } catch (error) {
-                console.error("Error fetching projection:", error);
-                // This is the line that triggers the visible error message
-            setError("Error loading projection. It may not exist or you lack access."); 
-            setLoading(false);
             }
         };
 
         if (id) {
             fetchProjection();
+        } else {
+            setError("No projection ID provided.");
+            setLoading(false);
         }
-    }, [id]);
+    }, [id, navigate]);
 
-    // --- Delete Handler ---
-    const handleDelete = async () => {
-        if (window.confirm("Are you sure you want to permanently delete this projection?")) {
-            try {
-                await ApiService.deleteProjection(id);
-                // Redirect user to the dashboard after successful deletion
-                navigate('/dashboard');
-            } catch (err) {
-                alert("Failed to delete projection. Please try again.");
-                console.error("Delete Error:", err);
-            }
-        }
-    };
-
-    if (loading) return <div className="detail-loading">Loading Projection Data...</div>;
-    if (error) return <div className="detail-error">{error}</div>;
-    if (!projection) return <div className="detail-error">No data available.</div>;
-
-    // --- Data Preparation ---
-    const finalValue = projection.final_value;
-    const totalContributed = projection.projection_data.total_contributed;
-    const chartData = generateChartData(projection.projection_data);
-    const chartConfigOptions = chartOptions(finalValue);
-    const yearlyTableData = projection.projection_data.yearly_data;
+    // 3. Destructure properties safely using || {}
+    // This prevents "Cannot read properties of undefined" during the initial render
+    const { 
+        name, 
+        years, 
+        final_value, 
+        data_json,
+        // Assuming these two fields are also part of your final ProjectionResponse schema
+        total_contributed = 0, // Initialize totals with 0
+        total_growth = 0
+    } = projection || {}; 
     
-    // Calculate Interest Earned
-    const interestEarned = finalValue - totalContributed;
-    const interestRatio = totalContributed > 0 ? (interestEarned / totalContributed) * 100 : 0;
+    // --- Render Logic with State Checks ---
 
-    // Helper for currency formatting
-    const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    if (loading) {
+        return <div className="loading-state">Loading projection data...</div>;
+    }
+
+    if (error) {
+        return <div className="error-state">{error}</div>;
+    }
+
+    // Since loading is false and error is null, we must have data.
+    // If projection is still null here, something is wrong with the data, so we show the error.
+    if (!projection) {
+         return <div className="error-state">No projection data available.</div>;
+    }
+
+    // Now, it's safe to render the main content using the destructured properties.
+    // We assume data_json is a JSON string of records and needs to be parsed for display.
+    const chartData = data_json ? JSON.parse(data_json) : [];
+
 
     return (
-        <div className="projection-detail-page">
-            <div className="header-actions">
-                <h1>{projection.name} ({projection.years} Years)</h1>
-                <button onClick={handleDelete} className="delete-btn">
-                    🗑️ Delete Plan
-                </button>
-            </div>
-            
-            {/* Key Metrics */}
-            <div className="metrics-summary">
-                <div className="metric-box">
-                    <span>💰 Final Portfolio Value</span>
-                    <strong>{formatCurrency(finalValue)}</strong>
-                </div>
-                <div className="metric-box">
-                    <span>💵 Total Contributions</span>
-                    <strong>{formatCurrency(totalContributed)}</strong>
-                </div>
-                <div className="metric-box interest-box">
-                    <span>📈 Total Interest Earned</span>
-                    <strong>{formatCurrency(interestEarned)}</strong>
-                    <p>{interestRatio.toFixed(1)}% Return</p>
-                </div>
-            </div>
+        <div className="projection-detail-container">
+            <header className="detail-header">
+                <h1>{name}</h1>
+                <p>Projection Period: **{years} Years**</p>
+            </header>
 
-            {/* Chart Area */}
-            <div className="chart-container">
-                <Line data={chartData} options={chartConfigOptions} />
-            </div>
+            <section className="summary-cards">
+                <div className="card">
+                    <h3>Final Value</h3>
+                    <p>${final_value ? final_value.toLocaleString() : 'N/A'}</p>
+                </div>
+                <div className="card">
+                    <h3>Total Contributions</h3>
+                    {/* CRITICAL: total_contributed must exist on your schema */}
+                    <p>${total_contributed.toLocaleString()}</p>
+                </div>
+                <div className="card">
+                    <h3>Total Growth (Interest)</h3>
+                    <p>${total_growth.toLocaleString()}</p>
+                </div>
+            </section>
 
-            {/* Yearly Table */}
-            <h2>Yearly Breakdown</h2>
-            <div className="table-responsive">
-                <table>
+            <section className="chart-section">
+                <h2>Projection Over Time</h2>
+                {/* * Placeholder for a Chart Component (e.g., using D3, Chart.js, or Recharts) 
+                  * You would typically map the chartData here.
+                  */}
+                <div className="chart-placeholder">
+                    
+
+[Image of a line chart showing investment growth over 25 years]
+
+                    <p>Financial Chart Component goes here, using data from the {name} projection.</p>
+                </div>
+            </section>
+
+            <section className="table-section">
+                <h2>Yearly Breakdown</h2>
+                <table className="data-table">
                     <thead>
                         <tr>
                             <th>Year</th>
-                            {Object.keys(yearlyTableData).filter(key => key !== 'Year').map(key => (
-                                <th key={key}>{key.replace(' Balance', '')}</th>
-                            ))}
+                            <th>Starting Value</th>
+                            <th>Contributions</th>
+                            <th>Growth</th>
+                            <th>Ending Value</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {yearlyTableData.Year.map((year, index) => (
-                            <tr key={year}>
-                                <td>{year}</td>
-                                {Object.keys(yearlyTableData).filter(key => key !== 'Year').map(key => (
-                                    <td key={key}>{formatCurrency(yearlyTableData[key][index])}</td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-};
-
-export default ProjectionDetail;
+                        {chartData.map(row => (
+                            <tr key={row.Year}>
+                                <td>{row.Year}</td>
+                                <td>${row
