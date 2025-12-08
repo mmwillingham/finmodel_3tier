@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer # <-- FIXED SYNTAX
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
+from jose import jwt, JWTError # <-- FIXED TYPO
+import json
 
 # Internal Modules
 from . import models, schemas, database, auth, calculations
@@ -25,20 +27,31 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          
-    allow_credentials=True,         
-    allow_methods=["*"],            
-    allow_headers=["*"],            
+    allow_origins=origins,              
+    allow_credentials=True,             
+    allow_methods=["*"],                
+    allow_headers=["*"],                
 )
 # --- END CORS CONFIGURATION ---
 
-# --- AUTHENTICATION ROUTES ---
+# --- 1. Security Constants (Keep these, but make sure they are defined in auth.py too!) ---
+SECRET_KEY = "YOUR_SUPER_SECRET_KEY" 
+ALGORITHM = "HS256"
+
+# NOTE: Since you are importing 'auth', it's best practice to define all
+# security constants and functions in that module and import them here, 
+# but we will leave this block for now.
+
+# --- AUTHENTICATION ROUTES (You would typically have a /token route here) ---
+
+# --- MAIN APPLICATION LOGIC ---
 
 @app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED)
 def create_projection(
     projection_data: schemas.ProjectionRequest,
-    user: schemas.User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    # 🌟 CRITICAL FIX: Use the imported authentication function for consistency
+    user: schemas.UserOut = Depends(auth.get_current_user), 
+    db: Session = Depends(database.get_db) # Use database.get_db for consistency
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database.
@@ -65,7 +78,8 @@ def create_projection(
     
     # 3. Create the database object
     db_projection = models.Projection(
-        owner_id=user.id,
+        # user is now schemas.UserOut, which has .id
+        owner_id=user.id, 
         name=projection_data.name,
         years=projection_data.years,
         # Save the detailed results from the calculation function
@@ -73,7 +87,7 @@ def create_projection(
         total_contributed=total_contributed,
         total_growth=total_growth,
         data_json=data_json,
-        # Serialize the accounts list to store in the DB (assuming the column is a JSON/String type)
+        # Serialize the accounts list to store in the DB
         accounts=json.dumps([acc.model_dump() for acc in projection_data.accounts]),
     )
 
