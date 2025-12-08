@@ -92,7 +92,7 @@ def create_projection(
     )
     
     # Extract final value
-    final_value_np = projection_df['Value'].iloc[-1]
+    final_value_np = projection_data['Value'].iloc[-1]
     
     # CRITICAL FIX: Explicitly cast the NumPy float to a standard Python float
     final_value = float(final_value_np) 
