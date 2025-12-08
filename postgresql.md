@@ -40,7 +40,7 @@ sudo firewall-cmd --permanent --add-port=5432/tcp
 sudo firewall-cmd --reload
 
 # Connect to it
-psql -h 127.0.0.1 -p 5432 -U bolauder -W iamhe123 -d postgres
+psql -h 127.0.0.1 -p 5432 -U bolauder -W iamhe123 -d finmodel
 exit
 
 # Create the database and verify it exists
