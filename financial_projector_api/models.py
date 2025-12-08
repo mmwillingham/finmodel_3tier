@@ -25,15 +25,14 @@ class Projection(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     years = Column(Integer)
-    accounts = Column(String)
-    # NEW FIELD: Stores the final numerical result (to fix the previous TypeError)
-    final_value = Column(Float) 
     
-    # CRITICAL: Use your existing column name for the detailed data
+    final_value = Column(Float) 
     data_json = Column(String) 
-
+    
+    # 🌟 CRITICAL FIXES: ADD THESE THREE MISSING COLUMNS
     total_contributed = Column(Float) 
     total_growth = Column(Float)
+    accounts = Column(String) # To store the serialized JSON list of input accounts
     
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="projections")
