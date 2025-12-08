@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-# Import Base from the database module
 from .database import Base
-
+from datetime import datetime
 
 class User(Base):
     """
@@ -21,20 +20,20 @@ class User(Base):
 class Projection(Base):
     """
     SQLAlchemy Model for the Projection table.
-    Stores the calculation inputs and the resulting JSON data.
     """
     __tablename__ = "projections"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     years = Column(Integer)
-    data_json = Column(String)
-
-    # CRUCIAL: Define the Foreign Key to link to the User table
-    # This column holds the ID of the user who owns the projection
-    owner_id = Column(Integer, ForeignKey("users.id")) 
-
-    # Relationship to User: one projection belongs to one owner
+    
+    # NEW FIELD: Stores the final numerical result (to fix the previous TypeError)
+    final_value = Column(Float) 
+    
+    # CRITICAL: Use your existing column name for the detailed data
+    data_json = Column(String) 
+    
+    owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="projections")
 
 # NOTE: The temporary __main__ block to create tables has been removed, 
