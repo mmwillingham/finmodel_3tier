@@ -42,9 +42,20 @@ class CashFlowItem(Base):
     __tablename__ = "cashflow_items"
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    is_income = Column(Boolean, nullable=False)  # True = income, False = expense
-    category = Column(String, nullable=False)    # e.g., Salary, Tax
+    is_income = Column(Boolean, nullable=False)
+    category = Column(String, nullable=False)
     description = Column(String, nullable=False)
-    frequency = Column(String, nullable=False)   # 'monthly' | 'yearly'
-    yearly_value = Column(Float, nullable=False) # stored normalized to yearly
+    frequency = Column(String, nullable=False)
+    yearly_value = Column(Float, nullable=False)
+    annual_increase_percent = Column(Float, default=0.0)  # For income
+    inflation_percent = Column(Float, default=0.0)  # For expenses
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    default_inflation_percent = Column(Float, default=2.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

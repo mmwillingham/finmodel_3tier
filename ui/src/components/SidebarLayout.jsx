@@ -9,6 +9,7 @@ import ProjectionsTable from "./ProjectionsTable";
 import ProjectionDetail from "./ProjectionDetail";
 import CashFlowView from "./CashFlowView";
 import CashFlowSummary from "./CashFlowSummary";
+import SettingsModal from "./SettingsModal";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("home");
@@ -19,6 +20,7 @@ export default function SidebarLayout() {
   const [cashFlowView, setCashFlowView] = useState(null); // 'income' | 'expenses'
   const [incomeItems, setIncomeItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Load persisted cashflow
   useEffect(() => {
@@ -228,6 +230,8 @@ export default function SidebarLayout() {
           </section>
         )}
       </main>
+
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 }

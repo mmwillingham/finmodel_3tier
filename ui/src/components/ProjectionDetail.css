@@ -273,3 +273,12 @@
 .account-section {
   margin-bottom: 2rem;
 }
+
+.chart-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  margin-bottom: 2rem;
+  max-height: 400px;
+}

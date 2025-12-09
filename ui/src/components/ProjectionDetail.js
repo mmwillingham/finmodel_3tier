@@ -91,6 +91,38 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
   const accountNames = getAccountNames();
   const currentYear = getCurrentYear();
 
+  // Prepare chart data
+  const chartLabels = data.map((_, idx) => currentYear + idx);
+  const chartDatasets = accountNames.map((name, idx) => ({
+    label: name,
+    data: accountDetails.map(year => year[name]),
+    borderColor: `hsl(${idx * 60}, 70%, 50%)`,
+    backgroundColor: `hsla(${idx * 60}, 70%, 50%, 0.1)`,
+    tension: 0.4,
+  }));
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: `${projection.name} - Growth Over Time` },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) =>
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }).format(value),
+        },
+      },
+    },
+  };
+
   return (
     <div className="projection-detail">
       <div className="projection-header">
@@ -102,6 +134,11 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
           {onEdit && <button onClick={() => onEdit(projection)} className="edit-btn">Edit</button>}
           {onDelete && <button onClick={() => onDelete(projection.id)} className="delete-btn">Delete</button>}
         </div>
+      </div>
+
+      <h3>Growth Chart</h3>
+      <div className="chart-container">
+        <Line data={{ labels: chartLabels, datasets: chartDatasets }} options={chartOptions} />
       </div>
 
       <h3>Year-by-Year Breakdown</h3>

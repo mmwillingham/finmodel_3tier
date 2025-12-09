@@ -266,6 +266,8 @@ def create_cashflow(
         description=payload.description,
         frequency=payload.frequency,
         yearly_value=yearly_value,
+        annual_increase_percent=payload.annual_increase_percent,
+        inflation_percent=payload.inflation_percent,
     )
     db.add(item)
     db.commit()
@@ -277,18 +279,21 @@ def update_cashflow(
     item_id: int,
     payload: schemas.CashFlowUpdate,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     if item.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
     item.is_income = payload.is_income
     item.category = payload.category
     item.description = payload.description
     item.frequency = payload.frequency
-    item.yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    item.yearly_value = yearly_value
+    item.annual_increase_percent = payload.annual_increase_percent
+    item.inflation_percent = payload.inflation_percent
     db.commit()
     db.refresh(item)
     return item
@@ -307,3 +312,31 @@ def delete_cashflow(
     db.delete(item)
     db.commit()
     return Response(status_code=204)
+
+@app.get("/settings", response_model=schemas.UserSettingsOut, tags=["settings"])
+def get_settings(
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
+    if not settings:
+        settings = models.UserSettings(user_id=current_user.id, default_inflation_percent=2.0)
+        db.add(settings)
+        db.commit()
+        db.refresh(settings)
+    return settings
+
+@app.put("/settings", response_model=schemas.UserSettingsOut, tags=["settings"])
+def update_settings(
+    payload: schemas.UserSettingsUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
+    if not settings:
+        settings = models.UserSettings(user_id=current_user.id)
+        db.add(settings)
+    settings.default_inflation_percent = payload.default_inflation_percent
+    db.commit()
+    db.refresh(settings)
+    return settings

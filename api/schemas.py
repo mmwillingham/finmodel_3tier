@@ -94,10 +94,16 @@ class CashFlowBase(BaseModel):
     frequency: str  # 'monthly' | 'yearly'
     value: float     # raw user-entered number
 
-class CashFlowCreate(CashFlowBase):
-    pass
+class CashFlowCreate(BaseModel):
+    is_income: bool
+    category: str
+    description: str
+    frequency: str
+    value: float
+    annual_increase_percent: float = 0.0
+    inflation_percent: float = 0.0
 
-class CashFlowUpdate(CashFlowBase):
+class CashFlowUpdate(CashFlowCreate):
     pass
 
 class CashFlowOut(BaseModel):
@@ -107,4 +113,15 @@ class CashFlowOut(BaseModel):
     description: str
     frequency: str
     yearly_value: float
+    annual_increase_percent: float
+    inflation_percent: float
     model_config = ConfigDict(from_attributes=True)
+
+class UserSettingsOut(BaseModel):
+    id: int
+    user_id: int
+    default_inflation_percent: float
+    model_config = ConfigDict(from_attributes=True)
+
+class UserSettingsUpdate(BaseModel):
+    default_inflation_percent: float
