@@ -1,6 +1,6 @@
 .cashflow-container {
-  padding: 2rem;
-  max-width: 900px;
+  width: 100%;
+  max-width: 1000px;
 }
 
 .cashflow-container h2 {
@@ -10,7 +10,7 @@
 
 .add-item-form {
   display: grid;
-  grid-template-columns: 150px 1fr 150px auto;
+  grid-template-columns: 150px 1fr 120px 150px auto;
   gap: 1rem;
   margin-bottom: 2rem;
 }

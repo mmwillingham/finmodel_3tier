@@ -6,7 +6,7 @@ const EXPENSE_TYPES = ['401k', 'Charitable Giving', 'Health', 'Tax', 'Food', 'Ho
 
 export default function CashFlowView({ type }) {
   const [items, setItems] = useState([]);
-  const [newItem, setNewItem] = useState({ type: '', description: '', value: '' });
+  const [newItem, setNewItem] = useState({ type: '', description: '', value: '', frequency: 'yearly' });
   const [editingId, setEditingId] = useState(null);
 
   const typeOptions = type === 'income' ? INCOME_TYPES : EXPENSE_TYPES;
@@ -14,29 +14,48 @@ export default function CashFlowView({ type }) {
 
   const addItem = () => {
     if (newItem.type && newItem.description && newItem.value) {
+      const yearlyValue = newItem.frequency === 'monthly' 
+        ? parseFloat(newItem.value) * 12 
+        : parseFloat(newItem.value);
+
       if (editingId) {
         // Update existing item
         setItems(items.map(item => 
           item.id === editingId 
-            ? { ...item, type: newItem.type, description: newItem.description, value: parseFloat(newItem.value) }
+            ? { ...item, type: newItem.type, description: newItem.description, yearlyValue, frequency: newItem.frequency }
             : item
         ));
         setEditingId(null);
       } else {
         // Add new item
-        setItems([...items, { id: Date.now(), ...newItem, value: parseFloat(newItem.value) }]);
+        setItems([...items, { 
+          id: Date.now(), 
+          type: newItem.type, 
+          description: newItem.description, 
+          yearlyValue,
+          frequency: newItem.frequency
+        }]);
       }
-      setNewItem({ type: defaultType, description: '', value: '' });
+      setNewItem({ type: defaultType, description: '', value: '', frequency: 'yearly' });
     }
   };
 
   const editItem = (item) => {
-    setNewItem({ type: item.type, description: item.description, value: item.value.toString() });
+    const displayValue = item.frequency === 'monthly' 
+      ? (item.yearlyValue / 12).toString() 
+      : item.yearlyValue.toString();
+    
+    setNewItem({ 
+      type: item.type, 
+      description: item.description, 
+      value: displayValue,
+      frequency: item.frequency
+    });
     setEditingId(item.id);
   };
 
   const cancelEdit = () => {
-    setNewItem({ type: defaultType, description: '', value: '' });
+    setNewItem({ type: defaultType, description: '', value: '', frequency: 'yearly' });
     setEditingId(null);
   };
 
@@ -44,7 +63,7 @@ export default function CashFlowView({ type }) {
     setItems(items.filter(item => item.id !== id));
   };
 
-  const total = items.reduce((sum, item) => sum + item.value, 0);
+  const total = items.reduce((sum, item) => sum + item.yearlyValue, 0);
   const title = type === 'income' ? 'Income' : 'Expenses';
 
   return (
@@ -69,6 +88,14 @@ export default function CashFlowView({ type }) {
           onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
         />
 
+        <select
+          value={newItem.frequency}
+          onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })}
+        >
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+        </select>
+
         <input
           type="number"
           placeholder="Value"
@@ -88,7 +115,8 @@ export default function CashFlowView({ type }) {
           <tr>
             <th>Type</th>
             <th>Description</th>
-            <th>Value</th>
+            <th>Frequency</th>
+            <th>Yearly Value</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -97,7 +125,8 @@ export default function CashFlowView({ type }) {
             <tr key={item.id}>
               <td>{item.type}</td>
               <td>{item.description}</td>
-              <td>${item.value.toFixed(2)}</td>
+              <td>{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
+              <td>${item.yearlyValue.toFixed(2)}</td>
               <td>
                 <button onClick={() => editItem(item)} className="edit-btn-small">Edit</button>
                 <button onClick={() => deleteItem(item.id)} className="delete-btn-small">Delete</button>
@@ -108,7 +137,7 @@ export default function CashFlowView({ type }) {
       </table>
 
       <div className="total">
-        <strong>Total {title}: ${total.toFixed(2)}</strong>
+        <strong>Total {title} (Yearly): ${total.toFixed(2)}</strong>
       </div>
     </div>
   );
