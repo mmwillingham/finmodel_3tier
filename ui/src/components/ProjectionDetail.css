@@ -246,6 +246,11 @@
   text-align: left;
 }
 
+.projection-table th:nth-child(2),
+.projection-table td:nth-child(2) {
+  text-align: left;
+}
+
 .projection-table tbody tr:hover {
   background-color: #fafafa;
 }

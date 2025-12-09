@@ -79,20 +79,21 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
                 const parsed = JSON.parse(projection.data_json);
                 setData(parsed);
                 
-                // Extract account-level data (by account name)
-                const accounts = {};
+                // Build account details table: Year, Account, Account Value, Final Value
+                const details = [];
                 parsed.forEach(year => {
                   Object.keys(year).forEach(key => {
                     if (key !== 'Year' && key !== 'StartingValue' && key !== 'Total_Contribution' && key !== 'Total_Growth' && key !== 'Total_Value') {
-                      if (!accounts[key]) accounts[key] = [];
-                      accounts[key].push({
+                      details.push({
                         year: year.Year,
-                        value: year[key]
+                        account: key,
+                        accountValue: year[key],
+                        finalValue: year.Total_Value
                       });
                     }
                   });
                 });
-                setAccountsData(accounts);
+                setAccountsData(details);
               } catch (e) {
                 console.error("Failed to parse projection data", e);
               }
@@ -263,27 +264,26 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
                     {/* Account-by-Account Table */}
                     <section className="account-table-section">
                         <h2>Account Details</h2>
-                        {Object.entries(accountsData).map(([accountName, values]) => (
-                            <div key={accountName} className="account-section">
-                                <h3>{accountName}</h3>
-                                <table className="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Year</th>
-                                            <th>Value</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {values.map((entry, idx) => (
-                                            <tr key={idx}>
-                                                <td>{entry.year}</td>
-                                                <td>{formatCurrency(entry.value)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))}
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Account</th>
+                                    <th>Account Value</th>
+                                    <th>Final Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {accountsData.map((detail, idx) => (
+                                    <tr key={idx}>
+                                        <td>{detail.year}</td>
+                                        <td>{detail.account}</td>
+                                        <td>{formatCurrency(detail.accountValue)}</td>
+                                        <td>{formatCurrency(detail.finalValue)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </section>
                 </div>
             </div>
