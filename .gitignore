@@ -47,3 +47,8 @@ package-lock.json
 
 # React build
 ui/build/
+
+# Database files
+*.db
+*.db.backup
+*.db-journal

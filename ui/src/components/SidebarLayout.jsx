@@ -204,10 +204,11 @@ export default function SidebarLayout() {
         )}
         {!loading && view === "cashflow" && (
           <div className="cashflow-view">
-            <h2>Cash Flow {cashFlowView === 'income' ? "Income" : "Expenses"}</h2>
             <CashFlowView 
-              items={cashFlowView === 'income' ? incomeItems : expenseItems} 
-              onRefresh={refreshCashflow}
+              type={cashFlowView}
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+              refreshCashflow={refreshCashflow}
             />
           </div>
         )}
