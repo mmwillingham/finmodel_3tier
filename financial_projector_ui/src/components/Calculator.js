@@ -21,7 +21,7 @@ const DEFAULT_ACCOUNT = {
     annual_rate_percent: 0.0,
 };
 
-const Calculator = () => {
+const Calculator = ({ onProjectionCreated }) => {
     // State to hold the dynamic list of accounts
     const [accounts, setAccounts] = useState([
         { ...DEFAULT_ACCOUNT, name: "Main Savings", initial_balance: 10000, monthly_contribution: 200, annual_rate_percent: 4.5 },
@@ -72,7 +72,6 @@ const Calculator = () => {
         e.preventDefault();
         setMessage("Calculating...");
 
-        // 1. Format the data into the FastAPI ProjectionRequest schema
         const requestPayload = {
             plan_name: projectionName,
             years: years,
@@ -85,16 +84,18 @@ const Calculator = () => {
             }))
         };
         
-        // 2. Send the authenticated request to the secure API
         try {
             const response = await ProjectionService.createProjection(requestPayload);
-            setMessage("Calculation successful! Redirecting to results...");
+            setMessage("Calculation successful!");
             
-            // 3. On success, navigate to the detail view of the new projection
-            navigate(`/projection/${response.id}`);
+            // Call the callback if provided, otherwise navigate
+            if (onProjectionCreated) {
+                onProjectionCreated(response.id);
+            } else {
+                navigate(`/projection/${response.id}`);
+            }
 
         } catch (error) {
-            // 4. Handle errors (e.g., 401 Unauthorized, 400 Bad Request)
             const errorMsg = error.response?.data?.detail || "An unexpected error occurred.";
             setMessage(`Calculation Failed: ${errorMsg}`);
             console.error(error);

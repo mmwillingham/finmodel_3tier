@@ -39,6 +39,25 @@ export default function SidebarLayout() {
     setView("detail");
   };
 
+  const handleProjectionCreated = async (id) => {
+    // Refresh projections list
+    try {
+      const response = await ApiService.get("/projections");
+      const items = (response.data || []).slice().sort((a, b) => {
+        const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return tb - ta;
+      });
+      setProjections(items);
+    } catch (err) {
+      console.error("Error refreshing projections:", err);
+    }
+
+    // Navigate to detail view
+    setSelectedProjectionId(id);
+    setView("detail");
+  };
+
   return (
     <div className="layout">
       <aside className="sidebar" aria-label="Main sidebar">
@@ -101,7 +120,7 @@ export default function SidebarLayout() {
 
         {view === "calculator" && (
           <section className="right-content">
-            <Calculator />
+            <Calculator onProjectionCreated={handleProjectionCreated} />
           </section>
         )}
 
