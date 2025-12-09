@@ -69,7 +69,9 @@ export default function Chart() {
 
   const chartData = latestProj.data_json ? JSON.parse(latestProj.data_json) : [];
   const accountValueKeys = getAccountKeys(chartData);
-  const labels = chartData.map((row) => `Year ${row.Year}`);
+  
+  const currentYear = new Date().getFullYear();
+  const labels = chartData.map((row) => `${currentYear + row.Year - 1}`);
   const datasets = [];
 
   accountValueKeys.forEach((key, i) => {
