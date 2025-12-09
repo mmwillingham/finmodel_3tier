@@ -82,11 +82,14 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
   const formatCurrency = (v) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
 
+  const getCurrentYear = () => new Date().getFullYear();
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="error">{error}</p>;
   if (!projection) return <p>No projection found.</p>;
 
   const accountNames = getAccountNames();
+  const currentYear = getCurrentYear();
 
   return (
     <div className="projection-detail">
@@ -115,7 +118,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         <tbody>
           {data.map((year, idx) => (
             <tr key={idx}>
-              <td>{year.Year}</td>
+              <td>{currentYear + idx}</td>
               <td>{formatCurrency(year.StartingValue)}</td>
               <td>{formatCurrency(year.Total_Contribution)}</td>
               <td>{formatCurrency(year.Total_Growth)}</td>
@@ -139,7 +142,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         <tbody>
           {accountDetails.map((year, idx) => (
             <tr key={idx}>
-              <td>{year.Year}</td>
+              <td>{currentYear + idx}</td>
               {accountNames.map(name => (
                 <td key={name}>{formatCurrency(year[name])}</td>
               ))}
