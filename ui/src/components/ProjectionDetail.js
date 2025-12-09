@@ -24,15 +24,6 @@ ChartJS.register(
     Legend
 );
 
-const getAccountKeys = (data) => {
-    if (!data || data.length === 0) return [];
-    
-    // Check all keys in the first data object
-    const keys = Object.keys(data[0]);
-    
-    // Filter out the standard keys and return only the account value keys
-    return keys.filter(key => key.endsWith('_Value'));
-};
 
 const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
   const id = projectionId;
