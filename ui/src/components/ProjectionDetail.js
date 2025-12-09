@@ -40,6 +40,8 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     const [projection, setProjection] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [data, setData] = useState([]);
+    const [accountsData, setAccountsData] = useState({});
 
     useEffect(() => {
         if (!id) {
@@ -70,6 +72,32 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
 
         fetchProjection();
     }, [id]);
+
+    useEffect(() => {
+        if (projection?.data_json) {
+            try {
+                const parsed = JSON.parse(projection.data_json);
+                setData(parsed);
+                
+                // Extract account-level data (by account name)
+                const accounts = {};
+                parsed.forEach(year => {
+                  Object.keys(year).forEach(key => {
+                    if (key !== 'Year' && key !== 'StartingValue' && key !== 'Total_Contribution' && key !== 'Total_Growth' && key !== 'Total_Value') {
+                      if (!accounts[key]) accounts[key] = [];
+                      accounts[key].push({
+                        year: year.Year,
+                        value: year[key]
+                      });
+                    }
+                  });
+                });
+                setAccountsData(accounts);
+              } catch (e) {
+                console.error("Failed to parse projection data", e);
+              }
+        }
+    }, [projection]);
 
     const { 
         name, 
@@ -230,6 +258,32 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
                                 ))}
                             </tbody>
                         </table>
+                    </section>
+
+                    {/* Account-by-Account Table */}
+                    <section className="account-table-section">
+                        <h2>Account Details</h2>
+                        {Object.entries(accountsData).map(([accountName, values]) => (
+                            <div key={accountName} className="account-section">
+                                <h3>{accountName}</h3>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Year</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {values.map((entry, idx) => (
+                                            <tr key={idx}>
+                                                <td>{entry.year}</td>
+                                                <td>{formatCurrency(entry.value)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
                     </section>
                 </div>
             </div>
