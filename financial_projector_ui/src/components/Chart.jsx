@@ -38,8 +38,11 @@ export default function Chart() {
   // Render ProjectionChart with the full object (same as ProjectionDetail)
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
-      <h2>Chart Placeholder</h2>
-      <p>Add your chart component here</p>
+      <h2>Welcome to Financial Projector</h2>
+      <p>
+        Select "New Projection" to create a plan or "My Projections" to view
+        existing ones.
+      </p>
     </div>
   );
 }
