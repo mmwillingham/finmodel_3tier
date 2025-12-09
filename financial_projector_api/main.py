@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -229,3 +229,19 @@ def update_projection(
     db.refresh(projection)
     
     return projection
+
+@app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
+def delete_projection(
+    projection_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Delete a projection if the current user is the owner."""
+    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
+    if not projection:
+        raise HTTPException(status_code=404, detail="Projection not found.")
+    if projection.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this projection.")
+    db.delete(projection)
+    db.commit()
+    return Response(status_code=204)
