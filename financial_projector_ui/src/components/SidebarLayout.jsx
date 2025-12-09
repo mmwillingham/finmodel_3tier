@@ -7,6 +7,7 @@ import Calculator from "./Calculator";
 import ProjectionsTable from "./ProjectionsTable";
 import ProjectionDetail from "./ProjectionDetail";
 import CashFlowView from "./CashFlowView";
+import CashFlowSummary from "./CashFlowSummary";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("home");
@@ -14,7 +15,9 @@ export default function SidebarLayout() {
   const [editingProjection, setEditingProjection] = useState(null);
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cashFlowView, setCashFlowView] = useState(null); // "income" or "expenses"
+  const [cashFlowView, setCashFlowView] = useState(null); // 'income' | 'expenses'
+  const [incomeItems, setIncomeItems] = useState([]);
+  const [expenseItems, setExpenseItems] = useState([]);
 
   const fetchProjections = async () => {
     try {
@@ -78,22 +81,13 @@ export default function SidebarLayout() {
           {/* Projections Section */}
           <section className="nav-section">
             <h3>Projections</h3>
-            <button 
-              className={`nav-btn ${view === 'home' ? 'active' : ''}`}
-              onClick={() => { setView('home'); setCashFlowView(null); }}
-            >
+            <button className={`nav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => { setView('home'); setCashFlowView(null); }}>
               Dashboard
             </button>
-            <button 
-              className={`nav-btn ${view === 'calculator' ? 'active' : ''}`}
-              onClick={() => { setView('calculator'); setCashFlowView(null); }}
-            >
+            <button className={`nav-btn ${view === 'calculator' ? 'active' : ''}`} onClick={() => { setView('calculator'); setCashFlowView(null); }}>
               New Projection
             </button>
-            <button 
-              className={`nav-btn ${view === 'projections' ? 'active' : ''}`}
-              onClick={() => { setView('projections'); setCashFlowView(null); }}
-            >
+            <button className={`nav-btn ${view === 'projections' ? 'active' : ''}`} onClick={() => { setView('projections'); setCashFlowView(null); }}>
               My Projections
             </button>
           </section>
@@ -101,17 +95,23 @@ export default function SidebarLayout() {
           {/* Cash Flow Section */}
           <section className="nav-section">
             <h3>Cash Flow</h3>
-            <button 
-              className={`nav-btn ${cashFlowView === 'income' ? 'active' : ''}`}
+            <button
+              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
             >
               Income
             </button>
-            <button 
-              className={`nav-btn ${cashFlowView === 'expenses' ? 'active' : ''}`}
+            <button
+              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expenses' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('expenses'); }}
             >
               Expenses
+            </button>
+            <button
+              className={`nav-btn ${view === 'cashflow-summary' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow-summary'); setCashFlowView(null); }}
+            >
+              Surplus / Deficit
             </button>
           </section>
         </nav>
@@ -167,8 +167,23 @@ export default function SidebarLayout() {
         )}
 
         {view === 'cashflow' && (
-          <section className="right-content">
-            <CashFlowView type={cashFlowView} />
+          <section className="right-content centered">
+            <CashFlowView
+              type={cashFlowView}
+              incomeItems={incomeItems}
+              setIncomeItems={setIncomeItems}
+              expenseItems={expenseItems}
+              setExpenseItems={setExpenseItems}
+            />
+          </section>
+        )}
+
+        {view === 'cashflow-summary' && (
+          <section className="right-content centered">
+            <CashFlowSummary
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+            />
           </section>
         )}
       </main>

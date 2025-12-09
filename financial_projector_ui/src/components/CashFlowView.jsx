@@ -1,53 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './CashFlowView.css';
 
 const INCOME_TYPES = ['Salary', 'Interest', 'Dividends', 'Social Security', 'Pension'];
 const EXPENSE_TYPES = ['401k', 'Charitable Giving', 'Health', 'Tax', 'Food', 'Home', 'Insurance', 'Clothing', 'Hobbies', 'Transportation', 'Other'];
 
-export default function CashFlowView({ type }) {
-  const [items, setItems] = useState([]);
+export default function CashFlowView({ type, incomeItems, setIncomeItems, expenseItems, setExpenseItems }) {
   const [newItem, setNewItem] = useState({ type: '', description: '', value: '', frequency: 'yearly' });
   const [editingId, setEditingId] = useState(null);
 
   const typeOptions = type === 'income' ? INCOME_TYPES : EXPENSE_TYPES;
-  const defaultType = typeOptions[0];
+  const defaultType = typeOptions?.[0] ?? '';
+  const items = type === 'income' ? incomeItems : expenseItems;
+  const setItems = type === 'income' ? setIncomeItems : setExpenseItems;
+
+  useEffect(() => {
+    setNewItem({ type: defaultType, description: '', value: '', frequency: 'yearly' });
+    setEditingId(null);
+  }, [type, defaultType]);
+
+  if (!type) return null;
 
   const addItem = () => {
     if (newItem.type && newItem.description && newItem.value) {
-      const yearlyValue = newItem.frequency === 'monthly' 
-        ? parseFloat(newItem.value) * 12 
+      const yearlyValue = newItem.frequency === 'monthly'
+        ? parseFloat(newItem.value) * 12
         : parseFloat(newItem.value);
 
       if (editingId) {
-        // Update existing item
-        setItems(items.map(item => 
-          item.id === editingId 
+        setItems(items.map(item =>
+          item.id === editingId
             ? { ...item, type: newItem.type, description: newItem.description, yearlyValue, frequency: newItem.frequency }
             : item
         ));
         setEditingId(null);
       } else {
-        // Add new item
-        setItems([...items, { 
-          id: Date.now(), 
-          type: newItem.type, 
-          description: newItem.description, 
-          yearlyValue,
-          frequency: newItem.frequency
-        }]);
+        setItems([
+          ...items,
+          {
+            id: Date.now(),
+            type: newItem.type,
+            description: newItem.description,
+            yearlyValue,
+            frequency: newItem.frequency
+          }
+        ]);
       }
       setNewItem({ type: defaultType, description: '', value: '', frequency: 'yearly' });
     }
   };
 
   const editItem = (item) => {
-    const displayValue = item.frequency === 'monthly' 
-      ? (item.yearlyValue / 12).toString() 
+    const displayValue = item.frequency === 'monthly'
+      ? (item.yearlyValue / 12).toString()
       : item.yearlyValue.toString();
-    
-    setNewItem({ 
-      type: item.type, 
-      description: item.description, 
+
+    setNewItem({
+      type: item.type,
+      description: item.description,
       value: displayValue,
       frequency: item.frequency
     });
