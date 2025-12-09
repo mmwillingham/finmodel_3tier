@@ -24,7 +24,7 @@ export default function SidebarLayout() {
   const fetchProjections = async () => {
     try {
       setLoading(true);
-      const response = await ProjectionService.getAllProjections();
+      const response = await ProjectionService.getProjections();
       const items = (response.data || []).slice().sort((a, b) => {
         const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -101,7 +101,6 @@ export default function SidebarLayout() {
     <div className="sidebar-layout">
       <aside className="sidebar">
         <nav className="sidebar-nav">
-          {/* Projections Section */}
           <section className="nav-section">
             <h3>Projections</h3>
             <button 
@@ -131,7 +130,6 @@ export default function SidebarLayout() {
             </button>
           </section>
 
-          {/* Cash Flow Section */}
           <section className="nav-section">
             <h3>Cash Flow</h3>
             <button
@@ -154,7 +152,6 @@ export default function SidebarLayout() {
             </button>
           </section>
 
-          {/* Settings Button at Bottom */}
           <button 
             className="settings-btn"
             onClick={() => setShowSettings(true)}
