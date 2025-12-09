@@ -8,7 +8,6 @@ import Header from './components/Header';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import SidebarLayout from './components/SidebarLayout';
-import ProjectionDetail from './components/ProjectionDetail';
 
 // The Main Application Structure
 function App() {
@@ -28,23 +27,15 @@ function App() {
                             path="/"
                             element={
                                 <ProtectedRoute>
-                                    <SidebarLayout /> {/* Sidebar with Calculator and MyProjections */}
-                                </ProtectedRoute>
-                            }
-                        />
-                         <Route
-                            path="/my-projections"
-                            element={
-                                <ProtectedRoute>
-                                    <SidebarLayout /> {/* Same layout for /my-projections */}
+                                    <SidebarLayout />
                                 </ProtectedRoute>
                             }
                         />
                         <Route
-                            path="/projection/:id"
+                            path="/my-projections"
                             element={
                                 <ProtectedRoute>
-                                    <ProjectionDetail /> {/* Individual projection view */}
+                                    <SidebarLayout />
                                 </ProtectedRoute>
                             }
                         />

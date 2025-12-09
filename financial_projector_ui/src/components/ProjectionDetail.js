@@ -44,6 +44,12 @@ const ProjectionDetail = ({ projectionId }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        if (!id) {
+            setError("No projection ID provided.");
+            setLoading(false);
+            return;
+        }
+
         const fetchProjection = async () => {
             setLoading(true);
             setError(null);
@@ -64,13 +70,8 @@ const ProjectionDetail = ({ projectionId }) => {
             }
         };
 
-        if (id) {
-            fetchProjection();
-        } else {
-            setError("No projection ID provided.");
-            setLoading(false);
-        }
-    }, [id, navigate]);
+        fetchProjection();
+    }, [id]);
 
     const { 
         name, 
