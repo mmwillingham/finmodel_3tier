@@ -10,8 +10,9 @@ class User(Base):
     """
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_active = Column(Boolean, default=True)
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner")
@@ -26,19 +27,14 @@ class Projection(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     years = Column(Integer)
-    
-    final_value = Column(Float) 
-    data_json = Column(String) 
-    
-    # 🌟 CRITICAL FIXES: ADD THESE THREE MISSING COLUMNS
-    total_contributed = Column(Float) 
+    final_value = Column(Float)
+    data_json = Column(String)  # yearly results
+    accounts_json = Column(String)  # account metadata with types
+    total_contributed = Column(Float)
     total_growth = Column(Float)
-    accounts = Column(String) # To store the serialized JSON list of input accounts
-    
-    # Timestamp for when the projection was created
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
     owner = relationship("User", back_populates="projections")
 
 
@@ -52,6 +48,3 @@ class CashFlowItem(Base):
     frequency = Column(String, nullable=False)   # 'monthly' | 'yearly'
     yearly_value = Column(Float, nullable=False) # stored normalized to yearly
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-# NOTE: The temporary __main__ block to create tables has been removed, 
-# as it should have been executed via `python -m api.models` already.

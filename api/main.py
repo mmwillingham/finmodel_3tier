@@ -143,22 +143,18 @@ def create_projection(
     
     # 3. Create the database object
     db_projection = models.Projection(
-        owner_id=user.id, 
+        owner_id=user.id,
         name=projection_data.plan_name,
         years=projection_data.years,
-        # Save the detailed results from the calculation function
         final_value=final_value,
         total_contributed=total_contributed,
         total_growth=total_growth,
         data_json=data_json,
-        # Serialize the accounts list to store in the DB
-        accounts=json.dumps([acc.model_dump() for acc in projection_data.accounts]),
+        accounts_json=json.dumps([acc.model_dump() for acc in projection_data.accounts]),
     )
-
     db.add(db_projection)
     db.commit()
     db.refresh(db_projection)
-    
     return db_projection
 
 @app.get("/projections/{projection_id}", response_model=schemas.ProjectionResponse, tags=["projections"])
@@ -285,7 +281,7 @@ def update_cashflow(
     item_id: int,
     payload: schemas.CashFlowUpdate,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
 ):
     item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
     if not item:

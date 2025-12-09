@@ -37,36 +37,35 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
     // Load edit data from prop instead of location.state
     useEffect(() => {
         if (editingProjection) {
-            setProjectionName(editingProjection.name || "My New Plan");
-            setYears(editingProjection.years || 25);
-            setIsEditing(true);
+            setProjectionName(editingProjection.name);
+            setYears(editingProjection.years);
             setEditingId(editingProjection.id);
-            
-            // Parse accounts from data_json
-            if (editingProjection.data_json) {
-                try {
-                    const yearlyData = JSON.parse(editingProjection.data_json);
-                    if (Array.isArray(yearlyData) && yearlyData.length > 0) {
-                        const firstYear = yearlyData[0];
-                        const accountNames = Object.keys(firstYear)
-                            .filter(key => key.endsWith('_Value') && key !== 'Total_Value')
-                            .map(key => key.replace('_Value', ''));
+            setIsEditing(true);
 
-                        const reconstructedAccounts = accountNames.map(name => ({
-                            ...DEFAULT_ACCOUNT,
-                            name,
-                            initial_balance: firstYear[`${name}_Value`] || 0,
-                            // We don't have type in data_json; use a safe default
-                            type: "Other/Custom",
-                        }));
+            try {
+                const data = JSON.parse(editingProjection.data_json || '[]');
+                const accountsData = JSON.parse(editingProjection.accounts_json || '[]');
+                
+                if (accountsData.length > 0) {
+                    // Use accounts_json which has the type preserved
+                    setAccounts(accountsData);
+                } else if (data.length > 0) {
+                    // Fallback to reconstructing from data_json (legacy)
+                    const firstYear = data[0];
+                    const accountNames = Object.keys(firstYear)
+                        .filter(key => key.endsWith('_Value') && key !== 'Total_Value')
+                        .map(key => key.replace('_Value', ''));
 
-                        if (reconstructedAccounts.length > 0) {
-                            setAccounts(reconstructedAccounts);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error parsing edit data:", e);
+                    const reconstructedAccounts = accountNames.map(name => ({
+                        ...DEFAULT_ACCOUNT,
+                        name,
+                        initial_balance: firstYear[`${name}_Value`] || 0,
+                        type: INVESTMENT_TYPES[0],
+                    }));
+                    setAccounts(reconstructedAccounts);
                 }
+            } catch (e) {
+                console.error("Failed to parse projection data", e);
             }
         }
     }, [editingProjection]);

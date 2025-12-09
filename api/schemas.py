@@ -82,6 +82,7 @@ class ProjectionDetailOut(BaseModel):
     total_contributed: float | None = None
     total_growth: float | None = None
     data_json: str | None = None
+    accounts_json: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 # --- CASH FLOW SCHEMAS ---
