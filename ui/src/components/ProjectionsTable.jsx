@@ -22,47 +22,41 @@ export default function ProjectionsTable({ projections, onViewProjection, onEdit
   return (
     <div className="projections-table-container">
       <table className="projections-table">
+        <colgroup>
+          <col style={{ width: '180px' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '20%' }} />
+        </colgroup>
         <thead>
           <tr>
-            <th>Actions</th>
+            <th className="actions">Actions</th>
             <th>Plan Name</th>
-            <th>Years</th>
-            <th>Final Value</th>
-            <th>Total Contributed</th>
-            <th>Total Growth</th>
+            <th className="numeric">Years</th>
+            <th className="numeric">Final Value</th>
+            <th className="numeric">Total Contributed</th>
+            <th className="numeric">Total Growth</th>
             <th>Last Updated</th>
           </tr>
         </thead>
         <tbody>
           {projections.map((proj) => (
             <tr key={proj.id}>
-              <td>
+              <td className="actions">
                 <div className="action-buttons">
-                  <button
-                    onClick={() => onViewProjection(proj.id)}
-                    className="view-btn"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => onEdit(proj)}
-                    className="edit-btn"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onDelete(proj.id)}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>
+                  <button onClick={() => onViewProjection(proj.id)} className="view-btn">View</button>
+                  <button onClick={() => onEdit(proj)} className="edit-btn">Edit</button>
+                  <button onClick={() => onDelete(proj.id)} className="delete-btn">Delete</button>
                 </div>
               </td>
               <td>{proj.name}</td>
-              <td>{proj.years}</td>
-              <td>{formatCurrency(proj.final_value)}</td>
-              <td>{formatCurrency(proj.total_contributed)}</td>
-              <td>{formatCurrency(proj.total_growth)}</td>
+              <td className="numeric">{proj.years}</td>
+              <td className="numeric">{formatCurrency(proj.final_value)}</td>
+              <td className="numeric">{formatCurrency(proj.total_contributed)}</td>
+              <td className="numeric">{formatCurrency(proj.total_growth)}</td>
               <td>{formatDate(proj.timestamp)}</td>
             </tr>
           ))}

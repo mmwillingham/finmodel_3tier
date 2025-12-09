@@ -4,7 +4,7 @@ import SettingsService from "../services/settings.service";
 import "./CashFlowView.css";
 
 export default function CashFlowView({ type, incomeItems, expenseItems, refreshCashflow }) {
-  const items = type === 'income' ? incomeItems : expenseItems;
+  const items = type === 'income' ? (incomeItems || []) : (expenseItems || []);
   
   const typeOptions = type === 'income'
     ? ["Salary", "Bonus", "Investment Income", "Other"]

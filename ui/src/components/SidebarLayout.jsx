@@ -54,9 +54,18 @@ export default function SidebarLayout() {
     setView("detail");
   };
 
-  const handleEdit = (projection) => {
-    setEditingProjection(projection);
-    setView("calculator");
+  const handleEdit = async (projection) => {
+    try {
+      setLoading(true);
+      const full = await ProjectionService.getProjectionDetails(projection.id);
+      setEditingProjection(full);
+      setView("calculator");
+    } catch (err) {
+      console.error("Error loading projection for edit:", err);
+      alert("Could not load projection details.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -149,94 +158,70 @@ export default function SidebarLayout() {
           <section className="nav-section">
             <h3>Settings</h3>
             <button 
-              className={`nav-btn ${showSettings ? 'active' : ''}`} 
-              onClick={() => setShowSettings(!showSettings)}
+              className={`nav-btn ${view === 'settings' ? 'active' : ''}`} 
+              onClick={() => setView('settings')}
             >
-              {showSettings ? 'Hide' : 'Show'} Settings
+              General Settings
             </button>
           </section>
         </nav>
       </aside>
 
       <main className="main-content">
-        {view === 'home' && (
-          <>
-            <section className="right-top">
-              <Chart projection={projections[0]} loading={loading} />
-            </section>
-            <section className="right-bottom">
-              {loading ? (
-                <p>Loading projections...</p>
-              ) : projections.length > 0 ? (
-                <ProjectionsTable 
-                  projections={projections} 
-                  onViewProjection={handleViewProjection}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ) : (
-                <p>No projections yet. Create one to get started!</p>
-              )}
-            </section>
-          </>
+        {loading && <div className="loading">Loading...</div>}
+        {!loading && view === "home" && (
+          <div className="dashboard">
+            <h2>Welcome to the Cash Flow Projection Tool</h2>
+            <p>Select a projection or create a new one to get started.</p>
+          </div>
         )}
-
-        {view === 'calculator' && (
-          <section className="right-content">
-            <Calculator
-              onProjectionCreated={handleProjectionCreated}
-              editingProjection={editingProjection}
-            />
-          </section>
-        )}
-
-        {view === 'detail' && selectedProjectionId && (
-          <section className="right-content">
-            <ProjectionDetail
-              projectionId={selectedProjectionId}
-            />
-          </section>
-        )}
-
-        {view === 'projections' && (
-          <section className="right-content">
+        {!loading && view === "projections" && (
+          <div className="projections">
             <h2>My Projections</h2>
-            {loading ? (
-              <p>Loading...</p>
-            ) : projections.length > 0 ? (
-              <ProjectionsTable 
-                projections={projections} 
-                onViewProjection={handleViewProjection}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ) : (
-              <p>No projections yet.</p>
-            )}
-          </section>
+            <ProjectionsTable 
+              projections={projections} 
+              onView={handleViewProjection} 
+              onEdit={handleEdit} 
+              onDelete={handleDelete}
+            />
+          </div>
         )}
-
-        {view === 'cashflow' && (
-          <section className="right-content">
-            {cashFlowView === 'income' && (
-              <CashFlowView 
-                title="Income"
-                items={incomeItems}
-                onRefresh={refreshCashflow}
-              />
-            )}
-            {cashFlowView === 'expenses' && (
-              <CashFlowView 
-                title="Expenses"
-                items={expenseItems}
-                onRefresh={refreshCashflow}
-              />
-            )}
-          </section>
+        {!loading && view === "calculator" && (
+          <div className="calculator">
+            <h2>{editingProjection ? "Edit Projection" : "New Projection"}</h2>
+            <Calculator 
+              projection={editingProjection} 
+              onSave={handleProjectionCreated} 
+              onCancel={() => setEditingProjection(null)}
+            />
+          </div>
         )}
-
-        {showSettings && (
-          <SettingsModal onClose={() => setShowSettings(false)} />
+        {!loading && view === "detail" && selectedProjectionId && (
+          <div className="projection-detail">
+            <h2>Projection Detail</h2>
+            <ProjectionDetail 
+              projectionId={selectedProjectionId} 
+              onBack={() => setView("projections")}
+            />
+          </div>
+        )}
+        {!loading && view === "cashflow" && (
+          <div className="cashflow-view">
+            <h2>Cash Flow {cashFlowView === 'income' ? "Income" : "Expenses"}</h2>
+            <CashFlowView 
+              items={cashFlowView === 'income' ? incomeItems : expenseItems} 
+              onRefresh={refreshCashflow}
+            />
+          </div>
+        )}
+        {!loading && view === "settings" && (
+          <div className="settings">
+            <h2>Settings</h2>
+            <SettingsModal 
+              onClose={() => setShowSettings(false)} 
+              isOpen={showSettings}
+            />
+          </div>
         )}
       </main>
     </div>

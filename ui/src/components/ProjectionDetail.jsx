@@ -42,6 +42,15 @@ export default function ProjectionDetail({ projectionId }) {
       maximumFractionDigits: 0,
     }).format(value ?? 0);
 
+  const formatCell = (key, value) => {
+    if (value === null || value === undefined) return "-";
+    if (typeof value === "number") {
+      const isPercent = /rate|percent|action/i.test(key);
+      return isPercent ? `${value}%` : formatCurrency(value);
+    }
+    return value;
+  };
+
   return (
     <div className="projection-detail">
       <h2>{projection.name}</h2>
@@ -81,7 +90,7 @@ export default function ProjectionDetail({ projectionId }) {
                 {Object.entries(row)
                   .filter(([key]) => key !== "Year")
                   .map(([key, value], i) => (
-                    <td key={i}>{formatCurrency(value)}</td>
+                    <td key={i}>{formatCell(key, value)}</td>
                   ))}
               </tr>
             ))}

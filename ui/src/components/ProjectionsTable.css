@@ -4,6 +4,7 @@
 
 .projections-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   background: white;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
@@ -13,9 +14,21 @@
 
 .projections-table th,
 .projections-table td {
+  box-sizing: border-box;
   padding: 0.75rem;
-  text-align: left;
+  vertical-align: middle;
   border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.projections-table th.numeric,
+.projections-table td.numeric {
+  text-align: right;
+}
+
+.projections-table th.actions,
+.projections-table td.actions {
+  width: 180px;
 }
 
 .projections-table th {
@@ -44,7 +57,8 @@
 
 .action-buttons {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .view-btn,
