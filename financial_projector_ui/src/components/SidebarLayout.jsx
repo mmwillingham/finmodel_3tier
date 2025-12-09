@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./SidebarLayout.css";
 import ApiService from "../services/api.service";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import Chart from "./Chart";
 import Calculator from "./Calculator";
@@ -12,6 +13,9 @@ export default function SidebarLayout() {
   const [selectedProjectionId, setSelectedProjectionId] = useState(null);
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingProjection, setEditingProjection] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchProjections = async () => {
@@ -56,6 +60,11 @@ export default function SidebarLayout() {
     // Navigate to detail view
     setSelectedProjectionId(id);
     setView("detail");
+  };
+
+  const handleEditProjection = (projection) => {
+    setEditingProjection(projection);
+    setView("calculator");
   };
 
   return (
@@ -120,7 +129,10 @@ export default function SidebarLayout() {
 
         {view === "calculator" && (
           <section className="right-content">
-            <Calculator onProjectionCreated={handleProjectionCreated} />
+            <Calculator 
+              onProjectionCreated={handleProjectionCreated}
+              editingProjection={editingProjection}
+            />
           </section>
         )}
 
@@ -138,7 +150,10 @@ export default function SidebarLayout() {
 
         {view === "detail" && selectedProjectionId && (
           <section className="right-content">
-            <ProjectionDetail projectionId={selectedProjectionId} />
+            <ProjectionDetail 
+              projectionId={selectedProjectionId}
+              onEdit={handleEditProjection}
+            />
           </section>
         )}
       </main>

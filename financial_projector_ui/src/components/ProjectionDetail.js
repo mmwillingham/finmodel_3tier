@@ -35,7 +35,7 @@ const getAccountKeys = (data) => {
     return keys.filter(key => key.endsWith('_Value'));
 };
 
-const ProjectionDetail = ({ projectionId }) => {
+const ProjectionDetail = ({ projectionId, onEdit }) => {
     const id = projectionId;
     const navigate = useNavigate();
 
@@ -210,7 +210,9 @@ const ProjectionDetail = ({ projectionId }) => {
                 <button 
                     className="edit-btn"
                     onClick={() => {
-                        navigate('/', { state: { editProjection: projection } });
+                        if (onEdit) {
+                            onEdit(projection);
+                        }
                     }}
                 >
                     Edit

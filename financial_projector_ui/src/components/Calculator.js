@@ -21,7 +21,7 @@ const DEFAULT_ACCOUNT = {
     annual_rate_percent: 0.0,
 };
 
-const Calculator = ({ onProjectionCreated }) => {
+const Calculator = ({ onProjectionCreated, editingProjection }) => {
     // State to hold the dynamic list of accounts
     const [accounts, setAccounts] = useState([
         { ...DEFAULT_ACCOUNT, name: "Main Savings", initial_balance: 10000, monthly_contribution: 200, annual_rate_percent: 4.5 },
@@ -32,6 +32,8 @@ const Calculator = ({ onProjectionCreated }) => {
     const [projectionName, setProjectionName] = useState("My New Plan");
     const [years, setYears] = useState(25);
     const [message, setMessage] = useState('');
+    const [editMode, setEditMode] = useState(false);
+    const [editId, setEditId] = useState(null);
     const navigate = useNavigate();
 
     // --- Account Management Functions ---
@@ -101,6 +103,25 @@ const Calculator = ({ onProjectionCreated }) => {
             console.error(error);
         }
     };
+
+    // Load edit data from prop instead of location.state
+    useEffect(() => {
+        if (editingProjection) {
+            setProjectionName(editingProjection.name || "My New Plan");
+            setYears(editingProjection.years || 25);
+            setEditMode(true);
+            setEditId(editingProjection.id);
+            // Parse account data
+            const parsedAccounts = editingProjection.accounts.map(acc => ({
+                name: acc.name,
+                type: acc.type,
+                initial_balance: parseFloat(acc.initial_balance) || 0.0,
+                monthly_contribution: parseFloat(acc.monthly_contribution) || 0.0,
+                annual_rate_percent: parseFloat(acc.annual_rate_percent) || 0.0,
+            }));
+            setAccounts(parsedAccounts);
+        }
+    }, [editingProjection]);
 
     // --- Rendering ---
 
