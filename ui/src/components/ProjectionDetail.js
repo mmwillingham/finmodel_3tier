@@ -61,22 +61,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         if (projData?.data_json) {
           const parsed = JSON.parse(projData.data_json);
           setData(parsed);
-          
-          // Build account details table
-          const details = [];
-          parsed.forEach(year => {
-            Object.keys(year).forEach(key => {
-              if (key !== 'Year' && key !== 'StartingValue' && key !== 'Total_Contribution' && key !== 'Total_Growth' && key !== 'Total_Value') {
-                details.push({
-                  year: year.Year,
-                  account: key,
-                  accountValue: year[key],
-                  finalValue: year.Total_Value
-                });
-              }
-            });
-          });
-          setAccountDetails(details);
+          setAccountDetails(parsed);
         }
       } catch (err) {
         setError(err.message || "Failed to load projection.");
@@ -88,12 +73,20 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     fetchProjection();
   }, [id]);
 
+  const getAccountNames = () => {
+    if (!accountDetails || accountDetails.length === 0) return [];
+    const keys = Object.keys(accountDetails[0]);
+    return keys.filter(k => k !== 'Year' && k !== 'StartingValue' && k !== 'Total_Contribution' && k !== 'Total_Growth' && k !== 'Total_Value');
+  };
+
   const formatCurrency = (v) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="error">{error}</p>;
   if (!projection) return <p>No projection found.</p>;
+
+  const accountNames = getAccountNames();
 
   return (
     <div className="projection-detail">
@@ -137,18 +130,20 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         <thead>
           <tr>
             <th>Year</th>
-            <th>Account</th>
-            <th>Account Value</th>
+            {accountNames.map(name => (
+              <th key={name}>{name}</th>
+            ))}
             <th>Final Value</th>
           </tr>
         </thead>
         <tbody>
-          {accountDetails.map((detail, idx) => (
+          {accountDetails.map((year, idx) => (
             <tr key={idx}>
-              <td>{detail.year}</td>
-              <td>{detail.account}</td>
-              <td>{formatCurrency(detail.accountValue)}</td>
-              <td>{formatCurrency(detail.finalValue)}</td>
+              <td>{year.Year}</td>
+              {accountNames.map(name => (
+                <td key={name}>{formatCurrency(year[name])}</td>
+              ))}
+              <td>{formatCurrency(year.Total_Value)}</td>
             </tr>
           ))}
         </tbody>
