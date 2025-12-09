@@ -180,7 +180,7 @@ export default function SidebarLayout() {
             <h2>My Projections</h2>
             <ProjectionsTable 
               projections={projections} 
-              onView={handleViewProjection} 
+              onViewProjection={handleViewProjection} 
               onEdit={handleEdit} 
               onDelete={handleDelete}
             />
@@ -190,9 +190,8 @@ export default function SidebarLayout() {
           <div className="calculator">
             <h2>{editingProjection ? "Edit Projection" : "New Projection"}</h2>
             <Calculator 
-              projection={editingProjection} 
-              onSave={handleProjectionCreated} 
-              onCancel={() => setEditingProjection(null)}
+              editingProjection={editingProjection} 
+              onProjectionCreated={handleProjectionCreated}
             />
           </div>
         )}
@@ -222,15 +221,6 @@ export default function SidebarLayout() {
               isOpen={showSettings}
             />
           </div>
-        )}
-        {view === 'calculator' && (
-          <section className="right-content">
-            <Calculator
-              key={editingProjection ? editingProjection.id : 'new'}
-              onProjectionCreated={handleProjectionCreated}
-              editingProjection={editingProjection}
-            />
-          </section>
         )}
       </main>
     </div>
