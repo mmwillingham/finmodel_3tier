@@ -203,8 +203,18 @@ const ProjectionDetail = ({ projectionId }) => {
     return (
         <div className="projection-detail-container">
             <header className="detail-header">
-                <h1>{name}</h1>
-                <p>Projection Period: <strong>{years} Years</strong></p>
+                <div>
+                    <h1>{name}</h1>
+                    <p>Projection Period: <strong>{years} Years</strong></p>
+                </div>
+                <button 
+                    className="edit-btn"
+                    onClick={() => {
+                        navigate('/', { state: { editProjection: projection } });
+                    }}
+                >
+                    Edit
+                </button>
             </header>
 
             <div className="two-pane-layout">
