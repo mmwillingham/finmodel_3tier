@@ -1,6 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 import SettingsService from '../services/settings.service';
 import './CashFlowSummary.css';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function CashFlowSummary({ incomeItems, expenseItems }) {
   const [years, setYears] = useState(10);
@@ -61,6 +82,75 @@ export default function CashFlowSummary({ incomeItems, expenseItems }) {
   const totalExpenses = expenseItems.reduce((sum, item) => sum + (item.yearly_value || 0), 0);
   const currentSurplus = totalIncome - totalExpenses;
 
+  // Chart data
+  const chartData = {
+    labels: yearlyData.map(d => d.year),
+    datasets: [
+      {
+        label: 'Income',
+        data: yearlyData.map(d => d.income),
+        borderColor: '#2e7d32',
+        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+        tension: 0.4,
+      },
+      {
+        label: 'Expenses',
+        data: yearlyData.map(d => d.expenses),
+        borderColor: '#c62828',
+        backgroundColor: 'rgba(198, 40, 40, 0.1)',
+        tension: 0.4,
+      },
+      {
+        label: 'Surplus/Deficit',
+        data: yearlyData.map(d => d.surplus),
+        borderColor: '#1565c0',
+        backgroundColor: 'rgba(21, 101, 192, 0.1)',
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          font: { size: 11 },
+          boxWidth: 12,
+          padding: 10,
+        },
+      },
+      title: {
+        display: true,
+        text: 'Cash Flow Projection',
+        font: { size: 13 },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          font: { size: 10 },
+          callback: (value) =>
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+              notation: 'compact',
+            }).format(value),
+        },
+      },
+      x: {
+        ticks: {
+          font: { size: 10 },
+        },
+      },
+    },
+  };
+
   return (
     <div className="cashflow-summary">
       <h2>Cash Flow Summary</h2>
@@ -94,6 +184,10 @@ export default function CashFlowSummary({ incomeItems, expenseItems }) {
           />
           years
         </label>
+      </div>
+
+      <div className="chart-container">
+        <Line data={chartData} options={chartOptions} />
       </div>
 
       <h3>Year-by-Year Projection</h3>
