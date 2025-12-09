@@ -1,23 +1,22 @@
-import React, { useEffect, useState } from "react";
-import "./SidebarLayout.css";
-import ApiService from "../services/api.service";
+import React, { useState, useEffect } from "react";
+import ProjectionService from "../services/projection.service";
 import CashFlowService from "../services/cashflow.service";
-
-import Chart from "./Chart";
 import Calculator from "./Calculator";
-import ProjectionsTable from "./ProjectionsTable";
 import ProjectionDetail from "./ProjectionDetail";
+import ProjectionsTable from "./ProjectionsTable";
+import Chart from "./Chart";
 import CashFlowView from "./CashFlowView";
 import CashFlowSummary from "./CashFlowSummary";
 import SettingsModal from "./SettingsModal";
+import "./SidebarLayout.css";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("home");
-  const [selectedProjectionId, setSelectedProjectionId] = useState(null);
-  const [editingProjection, setEditingProjection] = useState(null);
+  const [cashFlowView, setCashFlowView] = useState(null);
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cashFlowView, setCashFlowView] = useState(null); // 'income' | 'expenses'
+  const [selectedProjectionId, setSelectedProjectionId] = useState(null);
+  const [editingProjection, setEditingProjection] = useState(null);
   const [incomeItems, setIncomeItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -128,6 +127,25 @@ export default function SidebarLayout() {
           {/* Projections Section */}
           <section className="nav-section">
             <h3>Projections</h3>
+            <button 
+              className={`nav-btn ${view === 'calculator' ? 'active' : ''}`} 
+              onClick={() => { 
+                setView('calculator'); 
+                setCashFlowView(null); 
+                setEditingProjection(null);
+              }}
+            >
+              New Projection
+            </button>
+            <button 
+              className={`nav-btn ${view === 'projections' ? 'active' : ''}`} 
+              onClick={() => { 
+                setView('projections'); 
+                setCashFlowView(null);
+              }}
+            >
+              My Projections
+            </button>
             <button className={`nav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => { setView('home'); setCashFlowView(null); }}>
               Dashboard
             </button>
@@ -147,85 +165,4 @@ export default function SidebarLayout() {
               onClick={() => { setView('cashflow'); setCashFlowView('expenses'); }}
             >
               Expenses
-            </button>
-            <button
-              className={`nav-btn ${view === 'cashflow-summary' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow-summary'); setCashFlowView(null); }}
-            >
-              Surplus / Deficit
-            </button>
-          </section>
-        </nav>
-      </aside>
-
-      <main className="main-content">
-        {view === 'home' && (
-          <>
-            <section className="right-top">
-              <Chart projection={projections[0]} loading={loading} />
-            </section>
-            <section className="right-bottom">
-              {loading ? (
-                <p>Loading projections...</p>
-              ) : projections.length > 0 ? (
-                <ProjectionsTable projections={projections} onViewProjection={handleViewProjection} />
-              ) : (
-                <p>No projections yet. Create one to get started!</p>
-              )}
-            </section>
-          </>
-        )}
-
-        {view === 'calculator' && (
-          <section className="right-content">
-            <Calculator
-              onProjectionCreated={handleProjectionCreated}
-              editingProjection={editingProjection}
-            />
-          </section>
-        )}
-
-        {view === 'projections' && (
-          <section className="right-content">
-            {loading ? (
-              <p>Loading...</p>
-            ) : projections.length > 0 ? (
-              <ProjectionsTable projections={projections} onViewProjection={handleViewProjection} />
-            ) : (
-              <p>No projections yet.</p>
-            )}
-          </section>
-        )}
-
-        {view === 'detail' && selectedProjectionId && (
-          <section className="right-content">
-            <ProjectionDetail
-              projectionId={selectedProjectionId}
-              onEdit={handleEditProjection}
-              onDelete={handleDeleteProjection}
-            />
-          </section>
-        )}
-
-        {view === 'cashflow' && (
-          <section className="right-content centered">
-            <CashFlowView
-              type={cashFlowView}
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              refreshCashflow={refreshCashflow}
-            />
-          </section>
-        )}
-
-        {view === 'cashflow-summary' && (
-          <section className="right-content centered">
-            <CashFlowSummary incomeItems={incomeItems} expenseItems={expenseItems} />
-          </section>
-        )}
-      </main>
-
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
-    </div>
-  );
-}
+   
