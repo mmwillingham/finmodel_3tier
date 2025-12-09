@@ -65,3 +65,17 @@ class ProjectionResponse(BaseModel):
     timestamp: Optional[datetime] = None  # Optional for backward compatibility with existing records
     class Config:
         from_attributes = True
+
+class ProjectionOut(BaseModel):
+    id: int
+    name: str
+    years: int
+    final_value: float
+    total_contributed: float
+    total_growth: float
+    data_json: str
+    timestamp: Optional[datetime] = None
+    owner_id: int
+
+    class Config:
+        from_attributes = True
