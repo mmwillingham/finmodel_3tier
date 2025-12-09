@@ -146,8 +146,8 @@ export default function SidebarLayout() {
               Income
             </button>
             <button
-              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expenses' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow'); setCashFlowView('expenses'); }}
+              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow'); setCashFlowView('expense'); }}
             >
               Expenses
             </button>
