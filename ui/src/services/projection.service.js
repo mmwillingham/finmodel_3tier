@@ -3,27 +3,34 @@
 import ApiService from "./api.service";
 
 const ProjectionService = {
-    // Defines the missing function you are calling
+    // Get all projections for the current user
+    async getProjections() {
+        const response = await ApiService.get("/projections");
+        return response; // Return full response with .data property
+    },
+
+    // Get details for a specific projection
     async getProjectionDetails(id) {
-        // Correct URL path is plural on the server, but your router is singular! 
-        // We MUST use the server's plural path here: /projections/{id}
         const url = `/projections/${id}`;
-        
-        // ApiService.get returns the full Axios response object!
         const response = await ApiService.get(url);
-        
-        // CRITICAL: We return ONLY the data payload for the component to use
         return response.data;
     },
 
-    // The function used in Calculator.js's submission
+    // Create a new projection
     async createProjection(payload) {
         const response = await ApiService.post("/projections", payload);
-        return response.data; // CRITICAL: Return data payload
+        return response.data;
     },
 
-    updateProjection: async (id, projectionData) => {
+    // Update an existing projection
+    async updateProjection(id, projectionData) {
         const response = await ApiService.put(`/projections/${id}`, projectionData);
+        return response.data;
+    },
+
+    // Delete a projection
+    async deleteProjection(id) {
+        const response = await ApiService.delete(`/projections/${id}`);
         return response.data;
     },
 };
