@@ -5,9 +5,11 @@ import ApiService from "../services/api.service";
 import Chart from "./Chart";
 import Calculator from "./Calculator";
 import ProjectionsTable from "./ProjectionsTable";
+import ProjectionDetail from "./ProjectionDetail";
 
 export default function SidebarLayout() {
-  const [view, setView] = useState("home"); // "home" | "calculator" | "projections"
+  const [view, setView] = useState("home"); // "home" | "calculator" | "projections" | "detail"
+  const [selectedProjectionId, setSelectedProjectionId] = useState(null);
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,12 @@ export default function SidebarLayout() {
       }
     };
     fetchProjections();
-  }, []);
+  }, [view]); // Refetch when view changes
+
+  const handleViewProjection = (id) => {
+    setSelectedProjectionId(id);
+    setView("detail");
+  };
 
   return (
     <div className="layout">
@@ -41,7 +48,10 @@ export default function SidebarLayout() {
           className={`sidebar-item ${view === "home" ? "active" : ""}`}
           type="button"
           aria-pressed={view === "home"}
-          onClick={() => setView("home")}
+          onClick={() => {
+            setView("home");
+            setSelectedProjectionId(null);
+          }}
         >
           Home
         </button>
@@ -50,7 +60,10 @@ export default function SidebarLayout() {
           className={`sidebar-item ${view === "calculator" ? "active" : ""}`}
           type="button"
           aria-pressed={view === "calculator"}
-          onClick={() => setView("calculator")}
+          onClick={() => {
+            setView("calculator");
+            setSelectedProjectionId(null);
+          }}
         >
           New Projection
         </button>
@@ -59,7 +72,10 @@ export default function SidebarLayout() {
           className={`sidebar-item ${view === "projections" ? "active" : ""}`}
           type="button"
           aria-pressed={view === "projections"}
-          onClick={() => setView("projections")}
+          onClick={() => {
+            setView("projections");
+            setSelectedProjectionId(null);
+          }}
         >
           My Projections
         </button>
@@ -75,7 +91,7 @@ export default function SidebarLayout() {
               {loading ? (
                 <p>Loading projections...</p>
               ) : projections.length > 0 ? (
-                <ProjectionsTable projections={projections} />
+                <ProjectionsTable projections={projections} onViewProjection={handleViewProjection} />
               ) : (
                 <p>No projections yet. Create one to get started!</p>
               )}
@@ -94,10 +110,16 @@ export default function SidebarLayout() {
             {loading ? (
               <p>Loading projections...</p>
             ) : projections.length > 0 ? (
-              <ProjectionsTable projections={projections} />
+              <ProjectionsTable projections={projections} onViewProjection={handleViewProjection} />
             ) : (
               <p>No projections yet.</p>
             )}
+          </section>
+        )}
+
+        {view === "detail" && selectedProjectionId && (
+          <section className="right-content">
+            <ProjectionDetail projectionId={selectedProjectionId} />
           </section>
         )}
       </main>
