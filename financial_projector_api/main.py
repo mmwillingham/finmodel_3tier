@@ -212,8 +212,8 @@ def update_projection(
     
     # Recalculate using the new data
     result = calculations.calculate_projection(
-        accounts=req.accounts,
-        years=req.years
+        years=req.years,
+        accounts=req.accounts
     )
     
     # Update projection fields
@@ -222,7 +222,7 @@ def update_projection(
     projection.final_value = result["final_value"]
     projection.total_contributed = result["total_contributed"]
     projection.total_growth = result["total_growth"]
-    projection.data_json = json.dumps(result["yearly_data"])
+    projection.data_json = result["data_json"]  # Already a JSON string
     projection.timestamp = datetime.utcnow()
     
     db.commit()
