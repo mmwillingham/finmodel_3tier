@@ -20,7 +20,12 @@ const ProjectionService = {
     async createProjection(payload) {
         const response = await ApiService.post("/projections", payload);
         return response.data; // CRITICAL: Return data payload
-    }
+    },
+
+    updateProjection: async (id, projectionData) => {
+        const response = await ApiService.put(`/projections/${id}`, projectionData);
+        return response.data;
+    },
 };
 
 export default ProjectionService;

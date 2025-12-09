@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List
 from jose import jwt, JWTError
 import json
@@ -193,3 +193,39 @@ def list_projections(
     projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
     
     return projections
+
+@app.put("/projections/{projection_id}", response_model=schemas.ProjectionOut, tags=["projections"])
+def update_projection(
+    projection_id: int,
+    req: schemas.ProjectionRequest,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Updates an existing projection if user is the owner."""
+    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
+    
+    if not projection:
+        raise HTTPException(status_code=404, detail="Projection not found.")
+    
+    if projection.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this projection.")
+    
+    # Recalculate using the new data
+    result = calculations.calculate_projection(
+        accounts=req.accounts,
+        years=req.years
+    )
+    
+    # Update projection fields
+    projection.name = req.plan_name
+    projection.years = req.years
+    projection.final_value = result["final_value"]
+    projection.total_contributed = result["total_contributed"]
+    projection.total_growth = result["total_growth"]
+    projection.data_json = json.dumps(result["yearly_data"])
+    projection.timestamp = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(projection)
+    
+    return projection
