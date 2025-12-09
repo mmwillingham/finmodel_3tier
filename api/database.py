@@ -5,7 +5,7 @@ from typing import Generator
 import os
 
 # Use environment variable DATABASE_URL or default to SQLite
-# For PostgreSQL: "postgresql://bolauder:iamhe123@127.0.0.1/finmodel"
+# For PostgreSQL: set DATABASE_URL environment variable to "postgresql://user:pass@host/dbname"
 # For SQLite: "sqlite:///./finmodel.db"
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finmodel.db")
 
