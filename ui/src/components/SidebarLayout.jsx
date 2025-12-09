@@ -131,12 +131,6 @@ export default function SidebarLayout() {
             <button className={`nav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => { setView('home'); setCashFlowView(null); }}>
               Dashboard
             </button>
-            <button className={`nav-btn ${view === 'calculator' ? 'active' : ''}`} onClick={() => { setView('calculator'); setCashFlowView(null); setEditingProjection(null); }}>
-              New Projection
-            </button>
-            <button className={`nav-btn ${view === 'projections' ? 'active' : ''}`} onClick={() => { setView('projections'); setCashFlowView(null); }}>
-              My Projections
-            </button>
           </section>
 
           {/* Cash Flow Section */}
