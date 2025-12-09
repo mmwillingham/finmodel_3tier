@@ -109,7 +109,8 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     }; 
 
     // Prepare Chart.js data structure
-    const chartLabels = chartData.map(row => `Year ${row.Year}`);
+    const currentYear = new Date().getFullYear();
+    const chartLabels = chartData.map(row => `${currentYear + row.Year - 1}`);
     const chartDatasets = [];
 
     // Add individual account datasets
@@ -267,7 +268,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
                             <tbody>
                                 {chartData.map(row => (
                                     <tr key={row.Year}>
-                                        <td>{row.Year}</td>
+                                       <td>{currentYear + row.Year - 1}</td>
                                         <td>{formatCurrency(row.StartingValue ?? row.Total_Value ?? 0)}</td>
                                         {accountValueKeys.map(key => (
                                             <td key={key}>
