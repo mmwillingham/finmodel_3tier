@@ -214,12 +214,12 @@ def update_projection(
     projection.final_value = result["final_value"]
     projection.total_contributed = result["total_contributed"]
     projection.total_growth = result["total_growth"]
-    projection.data_json = result["data_json"]  # Already a JSON string
+    projection.data_json = result["data_json"]
+    projection.accounts_json = json.dumps([acc.model_dump() for acc in req.accounts])
     projection.timestamp = datetime.utcnow()
     
     db.commit()
     db.refresh(projection)
-    
     return projection
 
 @app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
