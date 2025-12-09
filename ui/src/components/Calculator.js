@@ -47,10 +47,18 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                 const accountsData = JSON.parse(editingProjection.accounts_json || '[]');
                 
                 if (accountsData.length > 0) {
-                    // Use accounts_json which has the type preserved
-                    setAccounts(accountsData);
+                    // Normalize legacy keys and ensure defaults
+                    const normalized = accountsData.map((acc) => ({
+                        ...DEFAULT_ACCOUNT,
+                        ...acc,
+                        type: acc.type || acc.account_type || DEFAULT_ACCOUNT.type,
+                        initial_balance: parseFloat(acc.initial_balance ?? acc.balance ?? 0) || 0,
+                        monthly_contribution: parseFloat(acc.monthly_contribution ?? acc.contrib ?? 0) || 0,
+                        annual_rate_percent: parseFloat(acc.annual_rate_percent ?? acc.rate ?? 0) || 0,
+                    }));
+                    setAccounts(normalized);
                 } else if (data.length > 0) {
-                    // Fallback to reconstructing from data_json (legacy)
+                    // Fallback legacy reconstruction
                     const firstYear = data[0];
                     const accountNames = Object.keys(firstYear)
                         .filter(key => key.endsWith('_Value') && key !== 'Total_Value')
@@ -60,7 +68,7 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                         ...DEFAULT_ACCOUNT,
                         name,
                         initial_balance: firstYear[`${name}_Value`] || 0,
-                        type: INVESTMENT_TYPES[0],
+                        type: DEFAULT_ACCOUNT.type,
                     }));
                     setAccounts(reconstructedAccounts);
                 }
