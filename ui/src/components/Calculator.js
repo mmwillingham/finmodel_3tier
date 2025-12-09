@@ -124,10 +124,10 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
             let response;
             if (isEditing && editingId) {
                 response = await ProjectionService.updateProjection(editingId, requestPayload);
-                setMessage("Update successful!");
+                setMessage("Projection updated successfully!");
             } else {
                 response = await ProjectionService.createProjection(requestPayload);
-                setMessage("Calculation successful!");
+                setMessage("Projection created successfully!");
             }
             
             if (onProjectionCreated) {
@@ -139,34 +139,6 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
         } catch (error) {
             const errorMsg = error.response?.data?.detail || "An unexpected error occurred.";
             setMessage(`${isEditing ? 'Update' : 'Calculation'} Failed: ${errorMsg}`);
-            console.error(error);
-        }
-    };
-
-    const handleSave = async () => {
-        if (!isEditing || !editingId) return;
-        
-        setMessage("Saving changes...");
-        
-        const requestPayload = {
-            plan_name: projectionName,
-            years: years,
-            accounts: accounts.map(acc => ({
-                name: acc.name,
-                type: acc.type,
-                initial_balance: parseFloat(acc.initial_balance || 0),
-                monthly_contribution: parseFloat(acc.monthly_contribution || 0),
-                annual_rate_percent: parseFloat(acc.annual_rate_percent || 0),
-            }))
-        };
-        
-        try {
-            await ProjectionService.updateProjection(editingId, requestPayload);
-            setMessage("Changes saved!");
-            setTimeout(() => setMessage(''), 2000);
-        } catch (error) {
-            const errorMsg = error.response?.data?.detail || "Save failed.";
-            setMessage(`Save Failed: ${errorMsg}`);
             console.error(error);
         }
     };
@@ -280,13 +252,8 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                     <button type="button" onClick={addAccount} className="add-btn">
                         + Add Account
                     </button>
-                    {isEditing && (
-                        <button type="button" onClick={handleSave} className="save-btn">
-                            Save Changes
-                        </button>
-                    )}
-                    <button type="submit" className="calculate-btn" disabled={accounts.length === 0}>
-                        {isEditing ? '💾 Update Projection' : '🚀 Calculate & Save Projection'}
+                    <button type="submit" className="submit-btn">
+                        {isEditing ? 'Save & Recalculate' : 'Calculate Projection'}
                     </button>
                 </div>
             </form>
