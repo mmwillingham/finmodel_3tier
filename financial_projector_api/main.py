@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Response
+from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -243,5 +243,75 @@ def delete_projection(
     if projection.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this projection.")
     db.delete(projection)
+    db.commit()
+    return Response(status_code=204)
+
+@app.get("/cashflow", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
+def list_cashflow(
+    is_income: bool,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    return (
+        db.query(models.CashFlowItem)
+        .filter(models.CashFlowItem.owner_id == current_user.id)
+        .filter(models.CashFlowItem.is_income == is_income)
+        .order_by(models.CashFlowItem.id.desc())
+        .all()
+    )
+
+@app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
+def create_cashflow(
+    payload: schemas.CashFlowCreate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    item = models.CashFlowItem(
+        owner_id=current_user.id,
+        is_income=payload.is_income,
+        category=payload.category,
+        description=payload.description,
+        frequency=payload.frequency,
+        yearly_value=yearly_value,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.put("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
+def update_cashflow(
+    item_id: int,
+    payload: schemas.CashFlowUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_user)
+):
+    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if item.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    item.is_income = payload.is_income
+    item.category = payload.category
+    item.description = payload.description
+    item.frequency = payload.frequency
+    item.yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete("/cashflow/{item_id}", status_code=204, tags=["cashflow"])
+def delete_cashflow(
+    item_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if item.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    db.delete(item)
     db.commit()
     return Response(status_code=204)

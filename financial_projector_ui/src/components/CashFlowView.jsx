@@ -1,78 +1,71 @@
 import React, { useState, useEffect } from 'react';
+import CashFlowService from '../services/cashflow.service';
 import './CashFlowView.css';
 
 const INCOME_TYPES = ['Salary', 'Interest', 'Dividends', 'Social Security', 'Pension'];
 const EXPENSE_TYPES = ['401k', 'Charitable Giving', 'Health', 'Tax', 'Food', 'Home', 'Insurance', 'Clothing', 'Hobbies', 'Transportation', 'Other'];
 
-export default function CashFlowView({ type, incomeItems, setIncomeItems, expenseItems, setExpenseItems }) {
-  const [newItem, setNewItem] = useState({ type: '', description: '', value: '', frequency: 'yearly' });
+const formatCurrency = (v) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
+
+export default function CashFlowView({ type, incomeItems, expenseItems, refreshCashflow }) {
+  const [newItem, setNewItem] = useState({ category: '', description: '', value: '', frequency: 'yearly' });
   const [editingId, setEditingId] = useState(null);
 
   const typeOptions = type === 'income' ? INCOME_TYPES : EXPENSE_TYPES;
   const defaultType = typeOptions?.[0] ?? '';
   const items = type === 'income' ? incomeItems : expenseItems;
-  const setItems = type === 'income' ? setIncomeItems : setExpenseItems;
 
   useEffect(() => {
-    setNewItem({ type: defaultType, description: '', value: '', frequency: 'yearly' });
+    setNewItem({ category: defaultType, description: '', value: '', frequency: 'yearly' });
     setEditingId(null);
   }, [type, defaultType]);
 
   if (!type) return null;
 
-  const addItem = () => {
-    if (newItem.type && newItem.description && newItem.value) {
-      const yearlyValue = newItem.frequency === 'monthly'
-        ? parseFloat(newItem.value) * 12
-        : parseFloat(newItem.value);
-
-      if (editingId) {
-        setItems(items.map(item =>
-          item.id === editingId
-            ? { ...item, type: newItem.type, description: newItem.description, yearlyValue, frequency: newItem.frequency }
-            : item
-        ));
-        setEditingId(null);
-      } else {
-        setItems([
-          ...items,
-          {
-            id: Date.now(),
-            type: newItem.type,
-            description: newItem.description,
-            yearlyValue,
-            frequency: newItem.frequency
-          }
-        ]);
-      }
-      setNewItem({ type: defaultType, description: '', value: '', frequency: 'yearly' });
+  const save = async () => {
+    if (!newItem.category || !newItem.description || !newItem.value) return;
+    const payload = {
+      is_income: type === 'income',
+      category: newItem.category,
+      description: newItem.description,
+      frequency: newItem.frequency,
+      value: parseFloat(newItem.value),
+    };
+    if (editingId) {
+      await CashFlowService.update(editingId, payload);
+    } else {
+      await CashFlowService.create(payload);
     }
+    setNewItem({ category: defaultType, description: '', value: '', frequency: 'yearly' });
+    setEditingId(null);
+    await refreshCashflow();
   };
 
-  const editItem = (item) => {
+  const startEdit = (item) => {
     const displayValue = item.frequency === 'monthly'
-      ? (item.yearlyValue / 12).toString()
-      : item.yearlyValue.toString();
-
+      ? (item.yearly_value / 12).toString()
+      : item.yearly_value.toString();
     setNewItem({
-      type: item.type,
+      category: item.category,
       description: item.description,
       value: displayValue,
-      frequency: item.frequency
+      frequency: item.frequency,
     });
     setEditingId(item.id);
   };
 
   const cancelEdit = () => {
-    setNewItem({ type: defaultType, description: '', value: '', frequency: 'yearly' });
+    setNewItem({ category: defaultType, description: '', value: '', frequency: 'yearly' });
     setEditingId(null);
   };
 
-  const deleteItem = (id) => {
-    setItems(items.filter(item => item.id !== id));
+  const remove = async (id) => {
+    await CashFlowService.remove(id);
+    await refreshCashflow();
   };
 
-  const total = items.reduce((sum, item) => sum + item.yearlyValue, 0);
+  const total = items.reduce((s, i) => s + i.yearly_value, 0);
   const title = type === 'income' ? 'Income' : 'Expenses';
 
   return (
@@ -81,8 +74,8 @@ export default function CashFlowView({ type, incomeItems, setIncomeItems, expens
 
       <div className="add-item-form">
         <select
-          value={newItem.type || defaultType}
-          onChange={(e) => setNewItem({ ...newItem, type: e.target.value })}
+          value={newItem.category || defaultType}
+          onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
         >
           <option value="">Select Type</option>
           {typeOptions.map(opt => (
@@ -114,7 +107,7 @@ export default function CashFlowView({ type, incomeItems, setIncomeItems, expens
         />
 
         <div className="form-actions">
-          <button onClick={addItem}>{editingId ? 'Update' : 'Add'}</button>
+          <button onClick={save}>{editingId ? 'Update' : 'Add'}</button>
           {editingId && <button onClick={cancelEdit} className="cancel-btn">Cancel</button>}
         </div>
       </div>
@@ -132,13 +125,13 @@ export default function CashFlowView({ type, incomeItems, setIncomeItems, expens
         <tbody>
           {items.map(item => (
             <tr key={item.id}>
-              <td>{item.type}</td>
+              <td>{item.category}</td>
               <td>{item.description}</td>
               <td>{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
-              <td>${item.yearlyValue.toFixed(2)}</td>
+              <td>{formatCurrency(item.yearly_value)}</td>
               <td>
-                <button onClick={() => editItem(item)} className="edit-btn-small">Edit</button>
-                <button onClick={() => deleteItem(item.id)} className="delete-btn-small">Delete</button>
+                <button onClick={() => startEdit(item)} className="edit-btn-small">Edit</button>
+                <button onClick={() => remove(item.id)} className="delete-btn-small">Delete</button>
               </td>
             </tr>
           ))}
@@ -146,7 +139,7 @@ export default function CashFlowView({ type, incomeItems, setIncomeItems, expens
       </table>
 
       <div className="total">
-        <strong>Total {title} (Yearly): ${total.toFixed(2)}</strong>
+        <strong>Total {title} (Yearly): {formatCurrency(total)}</strong>
       </div>
     </div>
   );

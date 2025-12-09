@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "./SidebarLayout.css";
 import ApiService from "../services/api.service";
+import CashFlowService from "../services/cashflow.service";
 
 import Chart from "./Chart";
 import Calculator from "./Calculator";
@@ -18,6 +19,27 @@ export default function SidebarLayout() {
   const [cashFlowView, setCashFlowView] = useState(null); // 'income' | 'expenses'
   const [incomeItems, setIncomeItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
+
+  // Load persisted cashflow
+  useEffect(() => {
+    try {
+      const inc = JSON.parse(localStorage.getItem("cashflow_income") || "[]");
+      const exp = JSON.parse(localStorage.getItem("cashflow_expenses") || "[]");
+      setIncomeItems(Array.isArray(inc) ? inc : []);
+      setExpenseItems(Array.isArray(exp) ? exp : []);
+    } catch (e) {
+      console.error("Failed to load cashflow from storage", e);
+    }
+  }, []);
+
+  // Persist on change
+  useEffect(() => {
+    localStorage.setItem("cashflow_income", JSON.stringify(incomeItems));
+  }, [incomeItems]);
+
+  useEffect(() => {
+    localStorage.setItem("cashflow_expenses", JSON.stringify(expenseItems));
+  }, [expenseItems]);
 
   const fetchProjections = async () => {
     try {
@@ -72,6 +94,32 @@ export default function SidebarLayout() {
       console.error("Error deleting projection:", err);
       alert("Failed to delete projection.");
     }
+  };
+
+  // load cashflow once
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [inc, exp] = await Promise.all([
+          CashFlowService.list(true),
+          CashFlowService.list(false),
+        ]);
+        setIncomeItems(inc.data || []);
+        setExpenseItems(exp.data || []);
+      } catch (e) {
+        console.error("Failed to load cashflow", e);
+      }
+    };
+    load();
+  }, []);
+
+  const refreshCashflow = async () => {
+    const [inc, exp] = await Promise.all([
+      CashFlowService.list(true),
+      CashFlowService.list(false),
+    ]);
+    setIncomeItems(inc.data || []);
+    setExpenseItems(exp.data || []);
   };
 
   return (
@@ -171,19 +219,15 @@ export default function SidebarLayout() {
             <CashFlowView
               type={cashFlowView}
               incomeItems={incomeItems}
-              setIncomeItems={setIncomeItems}
               expenseItems={expenseItems}
-              setExpenseItems={setExpenseItems}
+              refreshCashflow={refreshCashflow}
             />
           </section>
         )}
 
         {view === 'cashflow-summary' && (
           <section className="right-content centered">
-            <CashFlowSummary
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-            />
+            <CashFlowSummary incomeItems={incomeItems} expenseItems={expenseItems} />
           </section>
         )}
       </main>

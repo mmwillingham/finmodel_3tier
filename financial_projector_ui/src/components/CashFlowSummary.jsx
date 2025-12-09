@@ -1,6 +1,14 @@
 import React from 'react';
 import './CashFlowView.css'; // reuse table styles
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+
 export default function CashFlowSummary({ incomeItems, expenseItems }) {
   const incomeTotal = incomeItems.reduce((s, i) => s + i.yearlyValue, 0);
   const expenseTotal = expenseItems.reduce((s, i) => s + i.yearlyValue, 0);
@@ -19,15 +27,15 @@ export default function CashFlowSummary({ incomeItems, expenseItems }) {
         <tbody>
           <tr>
             <td>Total Income</td>
-            <td>${incomeTotal.toFixed(2)}</td>
+            <td>{formatCurrency(incomeTotal)}</td>
           </tr>
           <tr>
             <td>Total Expenses</td>
-            <td>${expenseTotal.toFixed(2)}</td>
+            <td>{formatCurrency(expenseTotal)}</td>
           </tr>
           <tr>
             <td>Surplus / Deficit</td>
-            <td>${surplus.toFixed(2)}</td>
+            <td>{formatCurrency(surplus)}</td>
           </tr>
         </tbody>
       </table>

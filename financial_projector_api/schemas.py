@@ -79,3 +79,29 @@ class ProjectionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- CASH FLOW SCHEMAS ---
+
+class CashFlowBase(BaseModel):
+    is_income: bool
+    category: str
+    description: str
+    frequency: str  # 'monthly' | 'yearly'
+    value: float     # raw user-entered number
+
+class CashFlowCreate(CashFlowBase):
+    pass
+
+class CashFlowUpdate(CashFlowBase):
+    pass
+
+class CashFlowOut(BaseModel):
+    id: int
+    is_income: bool
+    category: str
+    description: str
+    frequency: str
+    yearly_value: float
+
+    class Config:
+        orm_mode = True

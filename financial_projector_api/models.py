@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime
+from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from .database import Base
 from datetime import datetime
 
@@ -39,6 +40,18 @@ class Projection(Base):
     
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="projections")
+
+
+class CashFlowItem(Base):
+    __tablename__ = "cashflow_items"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    is_income = Column(Boolean, nullable=False)  # True = income, False = expense
+    category = Column(String, nullable=False)    # e.g., Salary, Tax
+    description = Column(String, nullable=False)
+    frequency = Column(String, nullable=False)   # 'monthly' | 'yearly'
+    yearly_value = Column(Float, nullable=False) # stored normalized to yearly
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 # NOTE: The temporary __main__ block to create tables has been removed, 
 # as it should have been executed via `python -m financial_projector_api.models` already.
