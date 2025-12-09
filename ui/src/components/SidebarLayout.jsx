@@ -55,16 +55,16 @@ export default function SidebarLayout() {
   };
 
   const handleEdit = async (projection) => {
-    // show calculator right away with the selected projection
-    setEditingProjection(projection);
-    setView("calculator");
-
     try {
+      setLoading(true);
       const full = await ProjectionService.getProjectionDetails(projection.id);
-      setEditingProjection(full); // hydrate with accounts_json, etc.
+      setEditingProjection(full);
+      setView("calculator");
     } catch (err) {
       console.error("Error loading projection for edit:", err);
       alert("Could not load projection details.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -222,6 +222,15 @@ export default function SidebarLayout() {
               isOpen={showSettings}
             />
           </div>
+        )}
+        {view === 'calculator' && (
+          <section className="right-content">
+            <Calculator
+              key={editingProjection ? editingProjection.id : 'new'}
+              onProjectionCreated={handleProjectionCreated}
+              editingProjection={editingProjection}
+            />
+          </section>
         )}
       </main>
     </div>

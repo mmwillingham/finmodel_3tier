@@ -1,7 +1,12 @@
 import React from 'react';
 import './ProjectionsTable.css';
 
-export default function ProjectionsTable({ projections, onViewProjection, onEdit, onDelete }) {
+export default function ProjectionsTable({
+  projections,
+  onViewProjection = () => {},
+  onEdit = () => {},
+  onDelete = () => {},
+}) {
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-US', {
       style: 'currency',
