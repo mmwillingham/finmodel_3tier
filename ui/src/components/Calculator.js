@@ -214,7 +214,7 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                         />
                         {/* 2. Type */}
                         <select
-                            value={account.type}
+                            value={account.type || INVESTMENT_TYPES[0]}
                             onChange={(e) => handleAccountChange(index, 'type', e.target.value)}
                         >
                             {INVESTMENT_TYPES.map(type => (
