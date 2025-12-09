@@ -17,8 +17,10 @@ def test_account_schema():
     """Test that the AccountSchema properly validates account data."""
     print("=== Testing AccountSchema ===\n")
     
-    # Import the schema
-    sys.path.insert(0, '/home/runner/work/finmodel_3tier/finmodel_3tier/api')
+    # Import the schema - use relative path for portability
+    import os
+    api_path = os.path.join(os.path.dirname(__file__), 'api')
+    sys.path.insert(0, api_path)
     from schemas import AccountSchema
     
     # Test 1: Valid account with all required fields
@@ -143,7 +145,10 @@ def test_projection_request():
     """Test that ProjectionRequest properly handles accounts with types."""
     print("=== Testing ProjectionRequest ===\n")
     
-    sys.path.insert(0, '/home/runner/work/finmodel_3tier/finmodel_3tier/api')
+    # Import schemas - use relative path for portability
+    import os
+    api_path = os.path.join(os.path.dirname(__file__), 'api')
+    sys.path.insert(0, api_path)
     from schemas import ProjectionRequest, AccountSchema
     
     # Test: Complete projection request

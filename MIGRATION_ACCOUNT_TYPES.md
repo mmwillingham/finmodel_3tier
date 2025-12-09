@@ -35,7 +35,12 @@ This approach creates a reusable function to process the JSON. It's more verbose
    pg_dump -h 127.0.0.1 -U bolauder -d finmodel > backup_before_migration.sql
    ```
 
-2. **Run the simple migration:**
+2. **Set database password environment variable** (for test script only):
+   ```bash
+   export PGPASSWORD="your_password_here"
+   ```
+
+3. **Run the simple migration:**
    ```bash
    psql -h 127.0.0.1 -U bolauder -d finmodel -f add_account_types_simple.sql
    ```
@@ -45,7 +50,7 @@ This approach creates a reusable function to process the JSON. It's more verbose
    psql -h 127.0.0.1 -U bolauder -d finmodel -f add_account_types_to_projections.sql
    ```
 
-3. **Verify the results:**
+4. **Verify the results:**
    ```bash
    psql -h 127.0.0.1 -U bolauder -d finmodel -c "SELECT id, name, accounts_json FROM projections LIMIT 5;"
    ```
@@ -110,7 +115,7 @@ After running the migration:
 ## Verification
 You can also run the included test scripts:
 - **Python logic test**: `python3 test_migration.py` - Tests the JSON transformation logic
-- **Database test**: `./test_migration.sh` - Tests the full database migration (requires PostgreSQL running)
+- **Database test**: `export PGPASSWORD="your_password" && ./test_migration.sh` - Tests the full database migration (requires PostgreSQL running)
 - **API integration test**: `python3 test_api_integration.py` - Tests the Pydantic schemas (requires dependencies installed)
 
 ## Technical Details

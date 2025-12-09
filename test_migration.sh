@@ -8,10 +8,18 @@ echo "=== Account Type Migration Test ==="
 echo ""
 
 # Database connection parameters
-DB_HOST="127.0.0.1"
-DB_USER="bolauder"
-DB_NAME="finmodel"
-export PGPASSWORD="iamhe123"
+# Use environment variables if set, otherwise use defaults
+DB_HOST="${DB_HOST:-127.0.0.1}"
+DB_USER="${DB_USER:-bolauder}"
+DB_NAME="${DB_NAME:-finmodel}"
+# SECURITY: Set PGPASSWORD environment variable before running this script
+# export PGPASSWORD="your_password_here"
+if [ -z "$PGPASSWORD" ]; then
+    echo "WARNING: PGPASSWORD environment variable is not set"
+    echo "Please set it before running this script:"
+    echo "  export PGPASSWORD='your_password'"
+    exit 1
+fi
 
 # Check if PostgreSQL is running
 echo "1. Checking PostgreSQL connection..."
