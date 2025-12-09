@@ -2,7 +2,7 @@
 ```
 .
 ├── venv/                           # ⬅️ Your Python Virtual Environment (Created by `python -m venv venv`)
-├── financial_projector_api/        # ⬅️ FastAPI BACKEND PACKAGE (Port 8000)
+├── api/        # ⬅️ FastAPI BACKEND PACKAGE (Port 8000)
 │   ├── __init__.py                 # EMPTY file, required for package imports (Crucial!)
 │   ├── main.py                     # FastAPI app initialization, routes (Auth, CRUD, Projections)
 │   ├── auth.py                     # JWT logic, password hashing, dependency functions
@@ -63,8 +63,8 @@ pip install python-dotenv
 
 
 
-mkdir financial_projector_api
-cd financial_projector_api
+mkdir api
+cd api
 ```
 ## Step 2: Database Connection (PostgreSQL)
 Set up a basic connection file. This is where you configure your link to the hosted PostgreSQL database.
@@ -89,7 +89,7 @@ Define how your Users and Projections tables look in PostgreSQL.
 cat <<EOF>models.py
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from financial_projector_api.database import Base
+from api.database import Base
 from datetime import datetime
 
 class User(Base):
@@ -187,7 +187,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from . import models, schemas
-from financial_projector_api.database import SessionLocal # Import database session
+from api.database import SessionLocal # Import database session
 
 # --- Configuration ---
 # You must change these values!
@@ -417,7 +417,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import exc
 
-from financial_projector_api.database import SessionLocal, engine 
+from api.database import SessionLocal, engine 
 from . import models, schemas, auth, calculations # Ensure all modules are imported
 
 # Create tables in the DB if they don't exist
@@ -650,8 +650,8 @@ chart.js & react-chartjs-2: To render the dynamic, interactive line charts from 
 sudo dnf install npx -y
 # Create a new React project
 cd ~/git/finmodel_3tier
-npx create-react-app financial_projector_ui 
-cd financial_projector_ui
+npx create-react-app ui 
+cd ui
 # Install necessary JavaScript libraries
 npm install axios react-router-dom chart.js react-chartjs-2
 npm install recharts
@@ -1902,7 +1902,7 @@ Update Connection String: In your database.py, make sure SQLALCHEMY_DATABASE_URL
 Run FastAPI: Start the API server using Uvicorn. This must be running before you test any endpoints.
 ```
 source venv/bin/activate
-uvicorn financial_projector_api.main:app --reload --port 8000
+uvicorn api.main:app --reload --port 8000
 ```
 
 2. Use FastAPI's Interactive Docs (Swagger UI)
@@ -1935,12 +1935,12 @@ f. Test Calculation (POST /projections):
 Now that the backend is confirmed, you test the React application's ability to communicate securely with the API.
 
 1. Start the React Application
-- In a separate terminal window (keep the FastAPI server running!), navigate to your React project directory (financial_projector_ui).
+- In a separate terminal window (keep the FastAPI server running!), navigate to your React project directory (ui).
 - Start the React development server. The app should open in your browser, usually at http://localhost:3000.
 ```
 
 ```
-cd financial_projector_ui
+cd ui
 npm start
 ```
 2. Test Security and Authentication

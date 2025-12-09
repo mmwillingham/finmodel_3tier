@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Any
 from datetime import datetime
 
@@ -10,11 +10,11 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
 
-class UserOut(UserBase):
+class UserOut(BaseModel):
     id: int
-    is_active: bool
-    class Config:
-        from_attributes = True 
+    email: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 class TokenData(BaseModel):
     """Schema for the data payload extracted from the JWT."""
@@ -70,15 +70,19 @@ class ProjectionOut(BaseModel):
     id: int
     name: str
     years: int
-    final_value: float
-    total_contributed: float
-    total_growth: float
-    data_json: str
-    timestamp: Optional[datetime] = None
-    owner_id: int
+    final_value: float | None = None
+    timestamp: datetime | None = None
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+class ProjectionDetailOut(BaseModel):
+    id: int
+    name: str
+    years: int
+    final_value: float | None = None
+    total_contributed: float | None = None
+    total_growth: float | None = None
+    data_json: str | None = None
+    model_config = ConfigDict(from_attributes=True)
 
 # --- CASH FLOW SCHEMAS ---
 
@@ -102,6 +106,4 @@ class CashFlowOut(BaseModel):
     description: str
     frequency: str
     yearly_value: float
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

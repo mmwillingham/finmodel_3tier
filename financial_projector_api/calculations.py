@@ -1,11 +1,11 @@
-# financial_projector_api/calculations.py
+# api/calculations.py
 
 import pandas as pd
 from typing import List
 # Note: Assuming schemas and the ProjectionRequest model are accessible here
 from .schemas import ProjectionRequest 
 
-# financial_projector_api/calculations.py
+# api/calculations.py
 
 import json 
 # ... other imports (e.g., AccountRequest model)

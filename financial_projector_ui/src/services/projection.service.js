@@ -1,4 +1,4 @@
-// financial_projector_ui/src/services/projection.service.js
+// ui/src/services/projection.service.js
 
 import ApiService from "./api.service";
 

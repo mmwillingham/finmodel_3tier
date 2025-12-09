@@ -54,4 +54,4 @@ class CashFlowItem(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 # NOTE: The temporary __main__ block to create tables has been removed, 
-# as it should have been executed via `python -m financial_projector_api.models` already.
+# as it should have been executed via `python -m api.models` already.
