@@ -35,7 +35,7 @@ const getAccountKeys = (data) => {
     return keys.filter(key => key.endsWith('_Value'));
 };
 
-const ProjectionDetail = ({ projectionId, onEdit }) => {
+const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     const id = projectionId;
     const navigate = useNavigate();
 
@@ -207,26 +207,27 @@ const ProjectionDetail = ({ projectionId, onEdit }) => {
                     <h1>{name}</h1>
                     <p>Projection Period: <strong>{years} Years</strong></p>
                 </div>
-                <button 
-                    className="edit-btn"
-                    onClick={() => {
-                        if (onEdit) {
-                            onEdit(projection);
-                        }
-                    }}
-                >
-                    Edit
-                </button>
+                <div className="detail-actions">
+                    <button
+                        className="delete-btn"
+                        onClick={() => onDelete && onDelete(id)}
+                    >
+                        Delete
+                    </button>
+                    <button 
+                        className="edit-btn"
+                        onClick={() => {
+                            if (onEdit) onEdit(projection);
+                        }}
+                    >
+                        Edit
+                    </button>
+                </div>
             </header>
 
             <div className="two-pane-layout">
-                {/* Left Pane: Navigation and Summary */}
+                {/* Left Pane: Summary only (navigation removed; already in sidebar) */}
                 <div className="left-pane">
-                    <nav className="detail-nav">
-                        <Link to="/" className="nav-link">New Projection</Link>
-                        <Link to="/my-projections" className="nav-link">My Projections</Link>
-                    </nav>
-
                     <section className="summary-cards">
                         <div className="card">
                             <h3>Final Value</h3>

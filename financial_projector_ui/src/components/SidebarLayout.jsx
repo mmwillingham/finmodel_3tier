@@ -14,35 +14,9 @@ export default function SidebarLayout() {
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProjections = async () => {
-      try {
-        setLoading(true);
-        const response = await ApiService.get("/projections");
-        const items = (response.data || []).slice().sort((a, b) => {
-          const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-          return tb - ta;
-        });
-        setProjections(items);
-      } catch (err) {
-        console.error("Error fetching projections:", err);
-        setProjections([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjections();
-  }, [view]); // Refetch when view changes
-
-  const handleViewProjection = (id) => {
-    setSelectedProjectionId(id);
-    setView("detail");
-  };
-
-  const handleProjectionCreated = async (id) => {
-    // Refresh projections list
+  const fetchProjections = async () => {
     try {
+      setLoading(true);
       const response = await ApiService.get("/projections");
       const items = (response.data || []).slice().sort((a, b) => {
         const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -51,10 +25,16 @@ export default function SidebarLayout() {
       });
       setProjections(items);
     } catch (err) {
-      console.error("Error refreshing projections:", err);
+      console.error("Error fetching projections:", err);
+      setProjections([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Navigate to detail view
+  useEffect(() => { fetchProjections(); }, []);
+
+  const handleViewProjection = (id) => {
     setSelectedProjectionId(id);
     setView("detail");
   };
@@ -62,6 +42,21 @@ export default function SidebarLayout() {
   const handleEditProjection = (projection) => {
     setEditingProjection(projection);
     setView("calculator");
+  };
+
+  const handleDeleteProjection = async (id) => {
+    if (!id) return;
+    const ok = window.confirm("Delete this projection?");
+    if (!ok) return;
+    try {
+      await ApiService.delete(`/projections/${id}`);
+      setProjections((prev) => prev.filter((p) => p.id !== id));
+      setSelectedProjectionId(null);
+      setView("home");
+    } catch (err) {
+      console.error("Error deleting projection:", err);
+      alert("Failed to delete projection.");
+    }
   };
 
   return (
@@ -147,9 +142,10 @@ export default function SidebarLayout() {
 
         {view === "detail" && selectedProjectionId && (
           <section className="right-content">
-            <ProjectionDetail 
+            <ProjectionDetail
               projectionId={selectedProjectionId}
               onEdit={handleEditProjection}
+              onDelete={handleDeleteProjection}
             />
           </section>
         )}
