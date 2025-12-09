@@ -104,6 +104,14 @@ After running the migration:
 3. Log in and view existing projections
 4. Verify that you can view and edit projections without errors
 5. Check that the account type dropdown shows "Other/Custom" for migrated accounts
+6. Edit a projection and change the account type to a more specific type (e.g., "Savings (High-Yield)")
+7. Save the projection and verify the new type is persisted
+
+## Verification
+You can also run the included test scripts:
+- **Python logic test**: `python3 test_migration.py` - Tests the JSON transformation logic
+- **Database test**: `./test_migration.sh` - Tests the full database migration (requires PostgreSQL running)
+- **API integration test**: `python3 test_api_integration.py` - Tests the Pydantic schemas (requires dependencies installed)
 
 ## Technical Details
 - The migration uses PostgreSQL's `jsonb_array_elements` to iterate through accounts
