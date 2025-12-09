@@ -21,31 +21,10 @@ export default function SidebarLayout() {
   const [expenseItems, setExpenseItems] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
 
-  // Load persisted cashflow
-  useEffect(() => {
-    try {
-      const inc = JSON.parse(localStorage.getItem("cashflow_income") || "[]");
-      const exp = JSON.parse(localStorage.getItem("cashflow_expenses") || "[]");
-      setIncomeItems(Array.isArray(inc) ? inc : []);
-      setExpenseItems(Array.isArray(exp) ? exp : []);
-    } catch (e) {
-      console.error("Failed to load cashflow from storage", e);
-    }
-  }, []);
-
-  // Persist on change
-  useEffect(() => {
-    localStorage.setItem("cashflow_income", JSON.stringify(incomeItems));
-  }, [incomeItems]);
-
-  useEffect(() => {
-    localStorage.setItem("cashflow_expenses", JSON.stringify(expenseItems));
-  }, [expenseItems]);
-
   const fetchProjections = async () => {
     try {
       setLoading(true);
-      const response = await ApiService.get("/projections");
+      const response = await ProjectionService.getAllProjections();
       const items = (response.data || []).slice().sort((a, b) => {
         const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -54,39 +33,38 @@ export default function SidebarLayout() {
       setProjections(items);
     } catch (err) {
       console.error("Error fetching projections:", err);
-      setProjections([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchProjections(); }, []);
+  useEffect(() => {
+    fetchProjections();
+  }, []);
 
   const handleProjectionCreated = async (projectionId) => {
     await fetchProjections();
-    setEditingProjection(null);  // Clear editing state
+    setEditingProjection(null);
     setView('detail');
     setSelectedProjectionId(projectionId);
   };
 
-  const handleViewProjection = (id) => {
-    setSelectedProjectionId(id);
+  const handleViewProjection = (projectionId) => {
+    setSelectedProjectionId(projectionId);
     setView("detail");
   };
 
-  const handleEditProjection = (projection) => {
+  const handleEdit = (projection) => {
     setEditingProjection(projection);
     setView("calculator");
   };
 
-  const handleDeleteProjection = async (id) => {
-    if (!id) return;
+  const handleDelete = async (id) => {
     const ok = window.confirm("Delete this projection?");
     if (!ok) return;
     try {
-      await ApiService.delete(`/projections/${id}`);
+      await ProjectionService.deleteProjection(id);
       await fetchProjections();
-      setSelectedProjectionId(null);
       setView("projections");
     } catch (err) {
       console.error("Error deleting projection:", err);
@@ -94,7 +72,6 @@ export default function SidebarLayout() {
     }
   };
 
-  // load cashflow once
   useEffect(() => {
     const load = async () => {
       try {
