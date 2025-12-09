@@ -1,88 +1,59 @@
 import React from 'react';
+import './ProjectionsTable.css';
 
-const formatCurrency = (amount) => 
-  new Intl.NumberFormat('en-US', { 
-    style: 'currency', 
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount ?? 0);
+export default function ProjectionsTable({ projections, onViewProjection }) {
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value ?? 0);
 
-export default function ProjectionsTable({ projections = [], onViewProjection }) {
-  // Extract account names from first projection's data_json (if available)
-  let accountHeaders = [];
-  if (projections.length > 0 && projections[0].data_json) {
-    try {
-      const yearlyData = JSON.parse(projections[0].data_json);
-      if (Array.isArray(yearlyData) && yearlyData.length > 0) {
-        const firstYear = yearlyData[0];
-        Object.keys(firstYear).forEach(key => {
-          if (key.endsWith('_Value') && key !== 'Total_Value') {
-            accountHeaders.push(key.replace('_Value', ''));
-          }
-        });
-      }
-    } catch (e) {
-      accountHeaders = [];
-    }
-  }
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
 
   return (
-    <table className="projections-table">
-      <thead>
-        <tr>
-          <th>Plan Name</th>
-          <th>Years</th>
-          {accountHeaders.map(accName => (
-            <th key={accName}>{accName}</th>
-          ))}
-          <th>Total Contributed</th>
-          <th>Final Value</th>
-          <th>Date Saved</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {projections.map(proj => {
-          let year1AccountValues = {};
-          if (proj.data_json) {
-            try {
-              const yearlyData = JSON.parse(proj.data_json);
-              if (Array.isArray(yearlyData) && yearlyData.length > 0) {
-                const firstYear = yearlyData[0];
-                accountHeaders.forEach(accName => {
-                  year1AccountValues[accName] = Number(firstYear[`${accName}_Value`] ?? 0);
-                });
-              }
-            } catch (e) {
-              // ignore
-            }
-          }
-
-          return (
+    <div className="projections-table-container">
+      <table className="projections-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Plan Name</th>
+            <th>Years</th>
+            <th>Final Value</th>
+            <th>Total Contributed</th>
+            <th>Total Growth</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {projections.map((proj) => (
             <tr key={proj.id}>
-              <td>{proj.name}</td>
-              <td>{proj.years}</td>
-              {accountHeaders.map(accName => (
-                <td key={accName}>
-                  {formatCurrency(year1AccountValues[accName] ?? 0)}
-                </td>
-              ))}
-              <td>{formatCurrency(proj.total_contributed)}</td>
-              <td>{formatCurrency(proj.final_value)}</td>
-              <td>{proj.timestamp ? new Date(proj.timestamp).toLocaleString() : 'N/A'}</td>
               <td>
-                <button 
-                  onClick={() => onViewProjection && onViewProjection(proj.id)}
+                <button
+                  onClick={() => onViewProjection(proj.id)}
                   className="view-btn"
                 >
                   View
                 </button>
               </td>
+              <td>{proj.name}</td>
+              <td>{proj.years}</td>
+              <td>{formatCurrency(proj.final_value)}</td>
+              <td>{formatCurrency(proj.total_contributed)}</td>
+              <td>{formatCurrency(proj.total_growth)}</td>
+              <td>{formatDate(proj.timestamp)}</td>
             </tr>
-          );
-        })}
-      </tbody>
-    </table>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
