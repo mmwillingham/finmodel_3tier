@@ -38,7 +38,6 @@ def calculate_projection(years: int, accounts: list) -> dict:
         yearly_record = {
             "Year": year, 
             "StartingValue": starting_value,
-            "Total_Value": 0.0
         }
         current_year_total_value = 0.0
         year_total_contributions = 0.0
@@ -54,34 +53,23 @@ def calculate_projection(years: int, accounts: list) -> dict:
             total_contribution += annual_contribution
             year_total_contributions += annual_contribution
             
-            # Simple compounded growth (adjust formula if your model is different)
-            # Growth on the balance held at the start of the year
+            # Simple compounded growth
             growth_on_balance = current_balance * rate 
-            
-            # Simplified growth assumption on contributions (half-year average)
             growth_on_contributions = annual_contribution * rate * 0.5 
+            year_total_growth += growth_on_balance + growth_on_contributions
             
-            growth_amount = growth_on_balance + growth_on_contributions
-            total_growth += growth_amount
-            year_total_growth += growth_amount
-            
-            # --- UPDATE BALANCE ---
-            new_balance = current_balance + annual_contribution + growth_amount
+            # Update balance and add account value to record
+            new_balance = current_balance + annual_contribution + growth_on_balance + growth_on_contributions
             account_balances[account.name] = new_balance
-            
-            # 3. Store the current account balance in the yearly record
-            # CRITICAL: Use the account name as the key for the frontend
             yearly_record[f"{account.name}_Value"] = new_balance
             current_year_total_value += new_balance
-            
-        # 4. Finalize the record for the year with all required fields
-        yearly_record["Total_Value"] = current_year_total_value
-        yearly_record["Contributions"] = year_total_contributions
-        yearly_record["Growth"] = year_total_growth
-        yearly_record["Value"] = current_year_total_value  # Ending value (same as Total_Value)
-        yearly_results.append(yearly_record)
         
-        # Update previous year's total for next iteration
+        # Add totals to yearly record
+        yearly_record["Total_Contribution"] = year_total_contributions
+        yearly_record["Total_Growth"] = year_total_growth
+        yearly_record["Total_Value"] = current_year_total_value
+        
+        yearly_results.append(yearly_record)
         previous_year_total_value = current_year_total_value
     # ----------------------------------------------------------------------
 
