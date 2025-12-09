@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -35,8 +35,8 @@ const getAccountKeys = (data) => {
     return keys.filter(key => key.endsWith('_Value'));
 };
 
-const ProjectionDetail = () => {
-    const { id } = useParams();
+const ProjectionDetail = ({ projectionId }) => {
+    const id = projectionId;
     const navigate = useNavigate();
 
     const [projection, setProjection] = useState(null);

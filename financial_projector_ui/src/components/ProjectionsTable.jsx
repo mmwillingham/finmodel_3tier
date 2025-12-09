@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const formatCurrency = (amount) => 
   new Intl.NumberFormat('en-US', { 
@@ -9,9 +8,7 @@ const formatCurrency = (amount) =>
     maximumFractionDigits: 0
   }).format(amount ?? 0);
 
-export default function ProjectionsTable({ projections = [] }) {
-  const navigate = useNavigate();
-
+export default function ProjectionsTable({ projections = [], onViewProjection }) {
   // Extract account names from first projection's data_json (if available)
   let accountHeaders = [];
   if (projections.length > 0 && projections[0].data_json) {
@@ -76,7 +73,7 @@ export default function ProjectionsTable({ projections = [] }) {
               <td>{proj.timestamp ? new Date(proj.timestamp).toLocaleString() : 'N/A'}</td>
               <td>
                 <button 
-                  onClick={() => navigate(`/projection/${proj.id}`)}
+                  onClick={() => onViewProjection && onViewProjection(proj.id)}
                   className="view-btn"
                 >
                   View
