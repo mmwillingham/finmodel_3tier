@@ -1,6 +1,6 @@
 .cashflow-container {
   padding: 2rem;
-  max-width: 800px;
+  max-width: 900px;
 }
 
 .cashflow-container h2 {
@@ -9,13 +9,14 @@
 }
 
 .add-item-form {
-  display: flex;
+  display: grid;
+  grid-template-columns: 150px 1fr 150px auto;
   gap: 1rem;
   margin-bottom: 2rem;
 }
 
+.add-item-form select,
 .add-item-form input {
-  flex: 1;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
