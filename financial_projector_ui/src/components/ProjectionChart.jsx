@@ -122,16 +122,6 @@ export default function ProjectionChart({ projection, projectionId }) {
         fill: false,
       });
     });
-
-    const total = yearlyData.map(y => Number(y.Total_Value ?? y.Value ?? 0));
-    datasets.push({
-      label: "Total",
-      data: total,
-      borderColor: "#0b57d0",
-      backgroundColor: "rgba(11,87,208,0.12)",
-      tension: 0.2,
-      fill: true,
-    });
   } else {
     const start = Number(proj.total_contributed ?? 0);
     const end = Number(proj.final_value ?? start);

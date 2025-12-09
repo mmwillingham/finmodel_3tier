@@ -51,13 +51,15 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                         const accountNames = Object.keys(firstYear)
                             .filter(key => key.endsWith('_Value') && key !== 'Total_Value')
                             .map(key => key.replace('_Value', ''));
-                        
+
                         const reconstructedAccounts = accountNames.map(name => ({
                             ...DEFAULT_ACCOUNT,
-                            name: name,
+                            name,
                             initial_balance: firstYear[`${name}_Value`] || 0,
+                            // We don't have type in data_json; use a safe default
+                            type: "Other/Custom",
                         }));
-                        
+
                         if (reconstructedAccounts.length > 0) {
                             setAccounts(reconstructedAccounts);
                         }
@@ -191,36 +193,38 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                         />
                         {/* 2. Type */}
                         <select
-                            value={account.type}
+                            value={account.type || "Other/Custom"}
                             onChange={(e) => handleAccountChange(index, 'type', e.target.value)}
                         >
                             {INVESTMENT_TYPES.map(type => (
                                 <option key={type} value={type}>{type}</option>
                             ))}
                         </select>
-                        {/* 3. Balance */}
+
                         <input
                             type="number"
                             min="0"
-                            step="100"
+                            // remove step so arbitrary numbers are allowed
                             value={account.initial_balance}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleAccountChange(index, 'initial_balance', e.target.value)}
                         />
-                        {/* 4. Contribution */}
+
                         <input
                             type="number"
                             min="0"
-                            step="50"
                             value={account.monthly_contribution}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleAccountChange(index, 'monthly_contribution', e.target.value)}
                         />
-                        {/* 5. Rate */}
+
                         <input
                             type="number"
                             min="0"
                             max="100"
                             step="0.1"
                             value={account.annual_rate_percent}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleAccountChange(index, 'annual_rate_percent', e.target.value)}
                         />
                         {/* 6. Action */}

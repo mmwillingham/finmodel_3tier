@@ -34,6 +34,16 @@ export default function SidebarLayout() {
 
   useEffect(() => { fetchProjections(); }, []);
 
+  const handleProjectionCreated = async (id) => {
+    await fetchProjections();
+    if (id) {
+      setSelectedProjectionId(id);
+      setView("detail");
+    } else {
+      setView("home");
+    }
+  };
+
   const handleViewProjection = (id) => {
     setSelectedProjectionId(id);
     setView("detail");
@@ -50,9 +60,9 @@ export default function SidebarLayout() {
     if (!ok) return;
     try {
       await ApiService.delete(`/projections/${id}`);
-      setProjections((prev) => prev.filter((p) => p.id !== id));
+      await fetchProjections();
       setSelectedProjectionId(null);
-      setView("home");
+      setView("projections");
     } catch (err) {
       console.error("Error deleting projection:", err);
       alert("Failed to delete projection.");
@@ -105,7 +115,7 @@ export default function SidebarLayout() {
         {view === "home" && (
           <>
             <section className="right-top">
-              <Chart />
+              <Chart projection={projections[0]} loading={loading} />
             </section>
             <section className="right-bottom">
               {loading ? (
@@ -121,7 +131,7 @@ export default function SidebarLayout() {
 
         {view === "calculator" && (
           <section className="right-content">
-            <Calculator 
+            <Calculator
               onProjectionCreated={handleProjectionCreated}
               editingProjection={editingProjection}
             />

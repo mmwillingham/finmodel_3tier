@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -36,8 +35,7 @@ const getAccountKeys = (data) => {
 };
 
 const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
-    const id = projectionId;
-    const navigate = useNavigate();
+     const id = projectionId;
 
     const [projection, setProjection] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -130,7 +128,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     // Add Total Value line
     if (chartData.length > 0 && chartData[0].Total_Value !== undefined) {
         chartDatasets.push({
-            label: 'Total Account Value',
+            label: 'Total',          // was 'Total Account Value'
             data: chartData.map(row => row.Total_Value || 0),
             borderColor: '#000000',
             backgroundColor: '#00000040',
@@ -214,7 +212,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
                     >
                         Delete
                     </button>
-                    <button 
+                    <button
                         className="edit-btn"
                         onClick={() => {
                             if (onEdit) onEdit(projection);
