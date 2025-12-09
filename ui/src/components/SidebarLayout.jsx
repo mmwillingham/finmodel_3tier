@@ -17,7 +17,6 @@ export default function SidebarLayout() {
   const [editingProjection, setEditingProjection] = useState(null);
   const [incomeItems, setIncomeItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
-  const [showSettings, setShowSettings] = useState(false);
 
   const fetchProjections = async () => {
     try {
@@ -215,8 +214,8 @@ export default function SidebarLayout() {
           <div className="settings">
             <h2>Settings</h2>
             <SettingsModal 
-              onClose={() => setShowSettings(false)} 
-              isOpen={showSettings}
+              onClose={() => setView('home')} 
+              isOpen={true}
             />
           </div>
         )}
