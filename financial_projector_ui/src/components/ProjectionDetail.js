@@ -138,3 +138,116 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
             tension: 0.1,
         });
     }
+
+    const chartJsData = {
+        labels: chartLabels,
+        datasets: chartDatasets,
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => {
+                        const label = ctx.dataset.label ? `${ctx.dataset.label}: ` : '';
+                        return label + formatCurrency(ctx.parsed.y);
+                    },
+                },
+            },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: (v) => formatCurrency(v),
+                },
+            },
+        },
+    };
+
+    return (
+        <div className="projection-detail-container">
+            <header className="detail-header">
+                <div>
+                    <h1>{name}</h1>
+                    <p>Projection Period: <strong>{years} Years</strong></p>
+                </div>
+                <div className="detail-actions">
+                    <button
+                        className="delete-btn"
+                        onClick={() => onDelete && onDelete(id)}
+                    >
+                        Delete
+                    </button>
+                    <button 
+                        className="edit-btn"
+                        onClick={() => {
+                            if (onEdit) onEdit(projection);
+                        }}
+                    >
+                        Edit
+                    </button>
+                </div>
+            </header>
+
+            <div className="two-pane-layout">
+                <div className="left-pane">
+                    <section className="summary-cards">
+                        <div className="card">
+                            <h3>Final Value</h3>
+                            <p>${final_value ? final_value.toLocaleString() : 'N/A'}</p>
+                        </div>
+                        <div className="card">
+                            <h3>Total Contributions</h3>
+                            <p>${total_contributed.toLocaleString()}</p>
+                        </div>
+                        <div className="card">
+                            <h3>Total Growth</h3>
+                            <p>${total_growth.toLocaleString()}</p>
+                        </div>
+                    </section>
+                </div>
+
+                <div className="right-pane">
+                    <section className="chart-section">
+                        <h2>Projection Over Time</h2>
+                        <div style={{ height: '400px', width: '100%' }}>
+                            <Line data={chartJsData} options={chartOptions} />
+                        </div>
+                    </section>
+
+                    <section className="table-section">
+                        <h2>Year-by-Year Breakdown</h2>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Starting Value</th>
+                                    <th>Total Value</th>
+                                    <th>Contributions</th>
+                                    <th>Growth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {chartData.map(row => (
+                                    <tr key={row.Year}>
+                                        <td>{currentYear + row.Year - 1}</td>
+                                        <td>{formatCurrency(row.StartingValue ?? row.Total_Value ?? 0)}</td>
+                                        <td>{formatCurrency(row.Total_Value ?? 0)}</td>
+                                        <td>{formatCurrency(row.Contributions ?? 0)}</td>
+                                        <td>{formatCurrency(row.Growth ?? 0)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ProjectionDetail;
