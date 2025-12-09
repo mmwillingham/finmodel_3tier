@@ -35,260 +35,123 @@ const getAccountKeys = (data) => {
 };
 
 const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
-     const id = projectionId;
+  const id = projectionId;
 
-    const [projection, setProjection] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [data, setData] = useState([]);
-    const [accountsData, setAccountsData] = useState({});
+  const [projection, setProjection] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState([]);
+  const [accountDetails, setAccountDetails] = useState([]);
 
-    useEffect(() => {
-        if (!id) {
-            setError("No projection ID provided.");
-            setLoading(false);
-            return;
-        }
+  useEffect(() => {
+    if (!id) {
+      setError("No projection ID provided.");
+      setLoading(false);
+      return;
+    }
 
-        const fetchProjection = async () => {
-            setLoading(true);
-            setError(null);
-            
-            try {
-                const data = await ProjectionService.getProjectionDetails(id); 
-                setProjection(data); 
+    const fetchProjection = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const projData = await ProjectionService.getProjectionDetails(id); 
+        setProjection(projData);
 
-            } catch (err) {
-                console.error("Error fetching projection:", err);
-                if (err.response && (err.response.status === 404 || err.response.status === 403)) {
-                    setError("Error loading projection. It may not exist or you lack access.");
-                } else {
-                    setError("An unexpected error occurred while fetching data.");
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProjection();
-    }, [id]);
-
-    useEffect(() => {
-        if (projection?.data_json) {
-            try {
-                const parsed = JSON.parse(projection.data_json);
-                setData(parsed);
-                
-                // Build account details table: Year, Account, Account Value, Final Value
-                const details = [];
-                parsed.forEach(year => {
-                  Object.keys(year).forEach(key => {
-                    if (key !== 'Year' && key !== 'StartingValue' && key !== 'Total_Contribution' && key !== 'Total_Growth' && key !== 'Total_Value') {
-                      details.push({
-                        year: year.Year,
-                        account: key,
-                        accountValue: year[key],
-                        finalValue: year.Total_Value
-                      });
-                    }
-                  });
+        if (projData?.data_json) {
+          const parsed = JSON.parse(projData.data_json);
+          setData(parsed);
+          
+          // Build account details table
+          const details = [];
+          parsed.forEach(year => {
+            Object.keys(year).forEach(key => {
+              if (key !== 'Year' && key !== 'StartingValue' && key !== 'Total_Contribution' && key !== 'Total_Growth' && key !== 'Total_Value') {
+                details.push({
+                  year: year.Year,
+                  account: key,
+                  accountValue: year[key],
+                  finalValue: year.Total_Value
                 });
-                setAccountsData(details);
-              } catch (e) {
-                console.error("Failed to parse projection data", e);
               }
+            });
+          });
+          setAccountDetails(details);
         }
-    }, [projection]);
-
-    const { 
-        name, 
-        years, 
-        final_value, 
-        data_json,
-        total_contributed = 0, 
-        total_growth = 0
-    } = projection || {}; 
-    
-    if (loading) {
-        return <div className="loading-state">Loading projection data...</div>;
-    }
-
-    if (error) {
-        return <div className="error-state">{error}</div>;
-    }
-
-    if (!projection) {
-         return <div className="error-state">No projection data available.</div>;
-    }
-
-    // Prepare chart data: parse the JSON string
-    const chartData = data_json ? JSON.parse(data_json) : [];
-
-    const accountValueKeys = getAccountKeys(chartData);
-    const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#00bcd4', '#ff7300', '#7cb342'];
-    
-    // Currency formatter with commas and 0 decimal places
-    const formatCurrency = (value) => {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(value ?? 0);
-    }; 
-
-    // Prepare Chart.js data structure
-    const currentYear = new Date().getFullYear();
-    const chartLabels = chartData.map(row => `${currentYear + row.Year - 1}`);
-    const chartDatasets = [];
-
-    // Add individual account datasets
-    accountValueKeys.forEach((key, index) => {
-        chartDatasets.push({
-            label: key.replace('_Value', ''),
-            data: chartData.map(row => row[key] || 0),
-            borderColor: CHART_COLORS[index % CHART_COLORS.length],
-            backgroundColor: CHART_COLORS[index % CHART_COLORS.length] + '40',
-            borderWidth: 2,
-            pointRadius: 0,
-            tension: 0.1,
-        });
-    });
-
-    const chartJsData = {
-        labels: chartLabels,
-        datasets: chartDatasets,
+      } catch (err) {
+        setError(err.message || "Failed to load projection.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' },
-            tooltip: {
-                callbacks: {
-                    label: (ctx) => {
-                        const label = ctx.dataset.label ? `${ctx.dataset.label}: ` : '';
-                        return label + formatCurrency(ctx.parsed.y);
-                    },
-                },
-            },
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: (v) => formatCurrency(v),
-                },
-            },
-        },
-    };
+    fetchProjection();
+  }, [id]);
 
-    return (
-        <div className="projection-detail-container">
-            <header className="detail-header">
-                <div>
-                    <h1>{name}</h1>
-                    <p>Projection Period: <strong>{years} Years</strong></p>
-                </div>
-                <div className="detail-actions">
-                    <button
-                        className="delete-btn"
-                        onClick={() => onDelete && onDelete(id)}
-                    >
-                        Delete
-                    </button>
-                    <button 
-                        className="edit-btn"
-                        onClick={() => {
-                            if (onEdit) onEdit(projection);
-                        }}
-                    >
-                        Edit
-                    </button>
-                </div>
-            </header>
+  const formatCurrency = (v) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
 
-            <div className="two-pane-layout">
-                <div className="left-pane">
-                    <section className="summary-cards">
-                        <div className="card">
-                            <h3>Final Value</h3>
-                            <p>${final_value ? final_value.toLocaleString() : 'N/A'}</p>
-                        </div>
-                        <div className="card">
-                            <h3>Total Contributions</h3>
-                            <p>${total_contributed.toLocaleString()}</p>
-                        </div>
-                        <div className="card">
-                            <h3>Total Growth</h3>
-                            <p>${total_growth.toLocaleString()}</p>
-                        </div>
-                    </section>
-                </div>
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p className="error">{error}</p>;
+  if (!projection) return <p>No projection found.</p>;
 
-                <div className="right-pane">
-                    <section className="chart-section">
-                        <h2>Projection Over Time</h2>
-                        <div style={{ height: '400px', width: '100%' }}>
-                            <Line data={chartJsData} options={chartOptions} />
-                        </div>
-                    </section>
+  return (
+    <div className="projection-detail">
+      <h2>{projection.name}</h2>
+      <p>Years: {projection.years}</p>
 
-                    <section className="table-section">
-                        <h2>Year-by-Year Breakdown</h2>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Year</th>
-                                    <th>Starting Value</th>
-                                    <th>Total Value</th>
-                                    <th>Contributions</th>
-                                    <th>Growth</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {chartData.map(row => (
-                                    <tr key={row.Year}>
-                                        <td>{currentYear + row.Year - 1}</td>
-                                        <td>{formatCurrency(row.StartingValue ?? row.Total_Value ?? 0)}</td>
-                                        <td>{formatCurrency(row.Total_Value ?? 0)}</td>
-                                        <td>{formatCurrency(row.Contributions ?? 0)}</td>
-                                        <td>{formatCurrency(row.Growth ?? 0)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </section>
+      <h3>Year-by-Year Breakdown</h3>
+      <table className="projection-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Starting Value</th>
+            <th>Contributions</th>
+            <th>Growth</th>
+            <th>Final Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((year, idx) => (
+            <tr key={idx}>
+              <td>{year.Year}</td>
+              <td>{formatCurrency(year.StartingValue)}</td>
+              <td>{formatCurrency(year.Total_Contribution)}</td>
+              <td>{formatCurrency(year.Total_Growth)}</td>
+              <td>{formatCurrency(year.Total_Value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-                    {/* Account-by-Account Table */}
-                    <section className="account-table-section">
-                        <h2>Account Details</h2>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Year</th>
-                                    <th>Account</th>
-                                    <th>Account Value</th>
-                                    <th>Final Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {accountsData.map((detail, idx) => (
-                                    <tr key={idx}>
-                                        <td>{detail.year}</td>
-                                        <td>{detail.account}</td>
-                                        <td>{formatCurrency(detail.accountValue)}</td>
-                                        <td>{formatCurrency(detail.finalValue)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </section>
-                </div>
-            </div>
-        </div>
-    );
+      <h3>Account Details</h3>
+      <table className="projection-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Account</th>
+            <th>Account Value</th>
+            <th>Final Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accountDetails.map((detail, idx) => (
+            <tr key={idx}>
+              <td>{detail.year}</td>
+              <td>{detail.account}</td>
+              <td>{formatCurrency(detail.accountValue)}</td>
+              <td>{formatCurrency(detail.finalValue)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="projection-actions">
+        {onEdit && <button onClick={() => onEdit(projection)}>Edit</button>}
+        {onDelete && <button onClick={() => onDelete(projection.id)}>Delete</button>}
+      </div>
+    </div>
+  );
 };
 
 export default ProjectionDetail;
