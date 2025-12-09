@@ -51,7 +51,7 @@
 - **Impact:** Consistent error handling pattern across all components
 
 ### 7. **Missing Field in ProjectionResponse Schema** ✅ FIXED
-**Location:** `financial_projector_api/schemas.py:56-69`
+**Location:** `api/schemas.py:56-69`
 - **Issue:** `ProjectionResponse` schema doesn't include a timestamp field, but Dashboard expects it
 - **Fixed:** Added `timestamp: datetime` field to `ProjectionResponse` schema
 - **Impact:** Frontend can now display creation dates correctly

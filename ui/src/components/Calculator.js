@@ -143,6 +143,48 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
         }
     };
 
+    const handleSave = async () => {
+        if (!isEditing || !editingId) return;
+        
+        setMessage("Saving changes...");
+        
+        const requestPayload = {
+            plan_name: projectionName,
+            years: years,
+            accounts: accounts.map(acc => ({
+                name: acc.name,
+                type: acc.type,
+                initial_balance: parseFloat(acc.initial_balance || 0),
+                monthly_contribution: parseFloat(acc.monthly_contribution || 0),
+                annual_rate_percent: parseFloat(acc.annual_rate_percent || 0),
+            }))
+        };
+        
+        try {
+            await ProjectionService.updateProjection(editingId, requestPayload);
+            setMessage("Changes saved!");
+            setTimeout(() => setMessage(''), 2000);
+        } catch (error) {
+            const errorMsg = error.response?.data?.detail || "Save failed.";
+            setMessage(`Save Failed: ${errorMsg}`);
+            console.error(error);
+        }
+    };
+
+    // --- Reset Form Handler ---
+
+    const resetForm = () => {
+        setProjectionName("My New Plan");
+        setYears(25);
+        setAccounts([
+            { ...DEFAULT_ACCOUNT, name: "Main Savings", initial_balance: 10000, monthly_contribution: 200, annual_rate_percent: 4.5 },
+            { ...DEFAULT_ACCOUNT, name: "Retirement IRA", initial_balance: 25000, monthly_contribution: 500, annual_rate_percent: 8.5 },
+        ]);
+        setIsEditing(false);
+        setEditingId(null);
+        setMessage('');
+    };
+
     // --- Rendering ---
 
     return (
@@ -238,12 +280,22 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                     <button type="button" onClick={addAccount} className="add-btn">
                         + Add Account
                     </button>
+                    {isEditing && (
+                        <button type="button" onClick={handleSave} className="save-btn">
+                            Save Changes
+                        </button>
+                    )}
                     <button type="submit" className="calculate-btn" disabled={accounts.length === 0}>
                         {isEditing ? '💾 Update Projection' : '🚀 Calculate & Save Projection'}
                     </button>
                 </div>
             </form>
             {message && <div className="status-message">{message}</div>}
+            {isEditing && (
+                <button onClick={resetForm} className="reset-btn">
+                    Cancel Edit / New Projection
+                </button>
+            )}
         </div>
     );
 };
