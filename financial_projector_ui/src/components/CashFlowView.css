@@ -1,0 +1,77 @@
+.cashflow-container {
+  padding: 2rem;
+  max-width: 800px;
+}
+
+.cashflow-container h2 {
+  margin-bottom: 2rem;
+  font-size: 1.75rem;
+}
+
+.add-item-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.add-item-form input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.add-item-form button {
+  padding: 0.75rem 1.5rem;
+  background-color: #0b57d0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.add-item-form button:hover {
+  background-color: #084399;
+}
+
+.cashflow-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+.cashflow-table th,
+.cashflow-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.cashflow-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.cashflow-table button {
+  padding: 0.5rem 1rem;
+  background-color: #c62828;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.cashflow-table button:hover {
+  background-color: #a81f1f;
+}
+
+.total {
+  font-size: 1.25rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  text-align: right;
+}

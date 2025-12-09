@@ -6,6 +6,7 @@ import Chart from "./Chart";
 import Calculator from "./Calculator";
 import ProjectionsTable from "./ProjectionsTable";
 import ProjectionDetail from "./ProjectionDetail";
+import CashFlowView from "./CashFlowView";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("home");
@@ -13,6 +14,7 @@ export default function SidebarLayout() {
   const [editingProjection, setEditingProjection] = useState(null);
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cashFlowView, setCashFlowView] = useState(null); // "income" or "expenses"
 
   const fetchProjections = async () => {
     try {
@@ -70,49 +72,53 @@ export default function SidebarLayout() {
   };
 
   return (
-    <div className="layout">
-      <aside className="sidebar" aria-label="Main sidebar">
-        <h3 className="sidebar-title">Menu</h3>
+    <div className="sidebar-layout">
+      <aside className="sidebar">
+        <nav className="sidebar-nav">
+          {/* Projections Section */}
+          <section className="nav-section">
+            <h3>Projections</h3>
+            <button 
+              className={`nav-btn ${view === 'home' ? 'active' : ''}`}
+              onClick={() => { setView('home'); setCashFlowView(null); }}
+            >
+              Dashboard
+            </button>
+            <button 
+              className={`nav-btn ${view === 'calculator' ? 'active' : ''}`}
+              onClick={() => { setView('calculator'); setCashFlowView(null); }}
+            >
+              New Projection
+            </button>
+            <button 
+              className={`nav-btn ${view === 'projections' ? 'active' : ''}`}
+              onClick={() => { setView('projections'); setCashFlowView(null); }}
+            >
+              My Projections
+            </button>
+          </section>
 
-        <button
-          className={`sidebar-item ${view === "home" ? "active" : ""}`}
-          type="button"
-          aria-pressed={view === "home"}
-          onClick={() => {
-            setView("home");
-            setSelectedProjectionId(null);
-          }}
-        >
-          Home
-        </button>
-
-        <button
-          className={`sidebar-item ${view === "calculator" ? "active" : ""}`}
-          type="button"
-          aria-pressed={view === "calculator"}
-          onClick={() => {
-            setView("calculator");
-            setSelectedProjectionId(null);
-          }}
-        >
-          New Projection
-        </button>
-
-        <button
-          className={`sidebar-item ${view === "projections" ? "active" : ""}`}
-          type="button"
-          aria-pressed={view === "projections"}
-          onClick={() => {
-            setView("projections");
-            setSelectedProjectionId(null);
-          }}
-        >
-          My Projections
-        </button>
+          {/* Cash Flow Section */}
+          <section className="nav-section">
+            <h3>Cash Flow</h3>
+            <button 
+              className={`nav-btn ${cashFlowView === 'income' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
+            >
+              Income
+            </button>
+            <button 
+              className={`nav-btn ${cashFlowView === 'expenses' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow'); setCashFlowView('expenses'); }}
+            >
+              Expenses
+            </button>
+          </section>
+        </nav>
       </aside>
 
-      <main className="main" role="main">
-        {view === "home" && (
+      <main className="main-content">
+        {view === 'home' && (
           <>
             <section className="right-top">
               <Chart projection={projections[0]} loading={loading} />
@@ -129,7 +135,7 @@ export default function SidebarLayout() {
           </>
         )}
 
-        {view === "calculator" && (
+        {view === 'calculator' && (
           <section className="right-content">
             <Calculator
               onProjectionCreated={handleProjectionCreated}
@@ -138,10 +144,10 @@ export default function SidebarLayout() {
           </section>
         )}
 
-        {view === "projections" && (
+        {view === 'projections' && (
           <section className="right-content">
             {loading ? (
-              <p>Loading projections...</p>
+              <p>Loading...</p>
             ) : projections.length > 0 ? (
               <ProjectionsTable projections={projections} onViewProjection={handleViewProjection} />
             ) : (
@@ -150,13 +156,19 @@ export default function SidebarLayout() {
           </section>
         )}
 
-        {view === "detail" && selectedProjectionId && (
+        {view === 'detail' && selectedProjectionId && (
           <section className="right-content">
             <ProjectionDetail
               projectionId={selectedProjectionId}
               onEdit={handleEditProjection}
               onDelete={handleDeleteProjection}
             />
+          </section>
+        )}
+
+        {view === 'cashflow' && (
+          <section className="right-content">
+            <CashFlowView type={cashFlowView} />
           </section>
         )}
       </main>
