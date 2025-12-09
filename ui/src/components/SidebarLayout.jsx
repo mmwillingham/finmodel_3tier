@@ -4,9 +4,7 @@ import CashFlowService from "../services/cashflow.service";
 import Calculator from "./Calculator";
 import ProjectionDetail from "./ProjectionDetail";
 import ProjectionsTable from "./ProjectionsTable";
-import Chart from "./Chart";
 import CashFlowView from "./CashFlowView";
-import CashFlowSummary from "./CashFlowSummary";
 import SettingsModal from "./SettingsModal";
 import "./SidebarLayout.css";
 
