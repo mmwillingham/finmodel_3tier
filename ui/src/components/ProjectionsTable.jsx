@@ -1,7 +1,7 @@
 import React from 'react';
 import './ProjectionsTable.css';
 
-export default function ProjectionsTable({ projections, onViewProjection }) {
+export default function ProjectionsTable({ projections, onViewProjection, onEdit, onDelete }) {
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -24,7 +24,7 @@ export default function ProjectionsTable({ projections, onViewProjection }) {
       <table className="projections-table">
         <thead>
           <tr>
-            <th>Action</th>
+            <th>Actions</th>
             <th>Plan Name</th>
             <th>Years</th>
             <th>Final Value</th>
@@ -37,12 +37,26 @@ export default function ProjectionsTable({ projections, onViewProjection }) {
           {projections.map((proj) => (
             <tr key={proj.id}>
               <td>
-                <button
-                  onClick={() => onViewProjection(proj.id)}
-                  className="view-btn"
-                >
-                  View
-                </button>
+                <div className="action-buttons">
+                  <button
+                    onClick={() => onViewProjection(proj.id)}
+                    className="view-btn"
+                  >
+                    View
+                  </button>
+                  <button
+                    onClick={() => onEdit(proj)}
+                    className="edit-btn"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(proj.id)}
+                    className="delete-btn"
+                  >
+                    Delete
+                  </button>
+                </div>
               </td>
               <td>{proj.name}</td>
               <td>{proj.years}</td>
