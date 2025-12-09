@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./SidebarLayout.css";
 import ApiService from "../services/api.service";
-import { useNavigate, useLocation } from "react-router-dom";
 
 import Chart from "./Chart";
 import Calculator from "./Calculator";
@@ -9,13 +8,11 @@ import ProjectionsTable from "./ProjectionsTable";
 import ProjectionDetail from "./ProjectionDetail";
 
 export default function SidebarLayout() {
-  const [view, setView] = useState("home"); // "home" | "calculator" | "projections" | "detail"
+  const [view, setView] = useState("home");
   const [selectedProjectionId, setSelectedProjectionId] = useState(null);
+  const [editingProjection, setEditingProjection] = useState(null);
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingProjection, setEditingProjection] = useState(null);
-  const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const fetchProjections = async () => {

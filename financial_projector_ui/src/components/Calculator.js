@@ -22,19 +22,52 @@ const DEFAULT_ACCOUNT = {
 };
 
 const Calculator = ({ onProjectionCreated, editingProjection }) => {
-    // State to hold the dynamic list of accounts
     const [accounts, setAccounts] = useState([
         { ...DEFAULT_ACCOUNT, name: "Main Savings", initial_balance: 10000, monthly_contribution: 200, annual_rate_percent: 4.5 },
         { ...DEFAULT_ACCOUNT, name: "Retirement IRA", initial_balance: 25000, monthly_contribution: 500, annual_rate_percent: 8.5 },
     ]);
     
-    // State for global inputs
     const [projectionName, setProjectionName] = useState("My New Plan");
     const [years, setYears] = useState(25);
     const [message, setMessage] = useState('');
-    const [editMode, setEditMode] = useState(false);
-    const [editId, setEditId] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const navigate = useNavigate();
+
+    // Load edit data from prop instead of location.state
+    useEffect(() => {
+        if (editingProjection) {
+            setProjectionName(editingProjection.name || "My New Plan");
+            setYears(editingProjection.years || 25);
+            setIsEditing(true);
+            setEditingId(editingProjection.id);
+            
+            // Parse accounts from data_json
+            if (editingProjection.data_json) {
+                try {
+                    const yearlyData = JSON.parse(editingProjection.data_json);
+                    if (Array.isArray(yearlyData) && yearlyData.length > 0) {
+                        const firstYear = yearlyData[0];
+                        const accountNames = Object.keys(firstYear)
+                            .filter(key => key.endsWith('_Value') && key !== 'Total_Value')
+                            .map(key => key.replace('_Value', ''));
+                        
+                        const reconstructedAccounts = accountNames.map(name => ({
+                            ...DEFAULT_ACCOUNT,
+                            name: name,
+                            initial_balance: firstYear[`${name}_Value`] || 0,
+                        }));
+                        
+                        if (reconstructedAccounts.length > 0) {
+                            setAccounts(reconstructedAccounts);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error parsing edit data:", e);
+                }
+            }
+        }
+    }, [editingProjection]);
 
     // --- Account Management Functions ---
 
@@ -72,7 +105,7 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage("Calculating...");
+        setMessage(isEditing ? "Updating..." : "Calculating...");
 
         const requestPayload = {
             plan_name: projectionName,
@@ -87,10 +120,15 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
         };
         
         try {
-            const response = await ProjectionService.createProjection(requestPayload);
-            setMessage("Calculation successful!");
+            let response;
+            if (isEditing && editingId) {
+                response = await ProjectionService.updateProjection(editingId, requestPayload);
+                setMessage("Update successful!");
+            } else {
+                response = await ProjectionService.createProjection(requestPayload);
+                setMessage("Calculation successful!");
+            }
             
-            // Call the callback if provided, otherwise navigate
             if (onProjectionCreated) {
                 onProjectionCreated(response.id);
             } else {
@@ -99,35 +137,16 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
 
         } catch (error) {
             const errorMsg = error.response?.data?.detail || "An unexpected error occurred.";
-            setMessage(`Calculation Failed: ${errorMsg}`);
+            setMessage(`${isEditing ? 'Update' : 'Calculation'} Failed: ${errorMsg}`);
             console.error(error);
         }
     };
-
-    // Load edit data from prop instead of location.state
-    useEffect(() => {
-        if (editingProjection) {
-            setProjectionName(editingProjection.name || "My New Plan");
-            setYears(editingProjection.years || 25);
-            setEditMode(true);
-            setEditId(editingProjection.id);
-            // Parse account data
-            const parsedAccounts = editingProjection.accounts.map(acc => ({
-                name: acc.name,
-                type: acc.type,
-                initial_balance: parseFloat(acc.initial_balance) || 0.0,
-                monthly_contribution: parseFloat(acc.monthly_contribution) || 0.0,
-                annual_rate_percent: parseFloat(acc.annual_rate_percent) || 0.0,
-            }));
-            setAccounts(parsedAccounts);
-        }
-    }, [editingProjection]);
 
     // --- Rendering ---
 
     return (
         <div className="calculator-page">
-            <h2>Financial Projection Calculator</h2>
+            <h2>{isEditing ? 'Edit Projection' : 'Financial Projection Calculator'}</h2>
             <form onSubmit={handleSubmit}>
                 <div className="global-inputs">
                     <label>Plan Name:</label>
@@ -217,7 +236,7 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                         + Add Account
                     </button>
                     <button type="submit" className="calculate-btn" disabled={accounts.length === 0}>
-                        🚀 Calculate & Save Projection
+                        {isEditing ? '💾 Update Projection' : '🚀 Calculate & Save Projection'}
                     </button>
                 </div>
             </form>
