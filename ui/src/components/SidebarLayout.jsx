@@ -61,14 +61,11 @@ export default function SidebarLayout() {
 
   useEffect(() => { fetchProjections(); }, []);
 
-  const handleProjectionCreated = async (id) => {
+  const handleProjectionCreated = async (projectionId) => {
     await fetchProjections();
-    if (id) {
-      setSelectedProjectionId(id);
-      setView("detail");
-    } else {
-      setView("home");
-    }
+    setEditingProjection(null);  // Clear editing state
+    setView('detail');
+    setSelectedProjectionId(projectionId);
   };
 
   const handleViewProjection = (id) => {
@@ -132,7 +129,7 @@ export default function SidebarLayout() {
             <button className={`nav-btn ${view === 'home' ? 'active' : ''}`} onClick={() => { setView('home'); setCashFlowView(null); }}>
               Dashboard
             </button>
-            <button className={`nav-btn ${view === 'calculator' ? 'active' : ''}`} onClick={() => { setView('calculator'); setCashFlowView(null); }}>
+            <button className={`nav-btn ${view === 'calculator' ? 'active' : ''}`} onClick={() => { setView('calculator'); setCashFlowView(null); setEditingProjection(null); }}>
               New Projection
             </button>
             <button className={`nav-btn ${view === 'projections' ? 'active' : ''}`} onClick={() => { setView('projections'); setCashFlowView(null); }}>
