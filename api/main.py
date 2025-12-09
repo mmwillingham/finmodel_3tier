@@ -118,30 +118,20 @@ def create_projection(
     user: schemas.UserOut = Depends(auth.get_current_user), 
     db: Session = Depends(database.get_db)
 ):
-    """
-    Creates a new projection, runs the calculation, and saves the results to the database.
-    """
+    """Creates a new projection, runs the calculation, and saves the results to the database."""
     try:
-        # 1. Run the calculation with the corrected arguments
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
             accounts=projection_data.accounts
         )
     except Exception as e:
-        # This catches any remaining errors within calculations.py
-        print(f"Calculation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Projection calculation failed: {e}"
-        )
+        raise HTTPException(status_code=400, detail=str(e))
 
-    # 2. Extract results from the dictionary returned by the calculation function
     final_value = projection_results["final_value"]
-    data_json = projection_results["data_json"]
     total_contributed = projection_results["total_contributed"]
     total_growth = projection_results["total_growth"]
-    
-    # 3. Create the database object
+    data_json = projection_results["data_json"]
+
     db_projection = models.Projection(
         owner_id=user.id,
         name=projection_data.plan_name,
@@ -152,9 +142,11 @@ def create_projection(
         data_json=data_json,
         accounts_json=json.dumps([acc.model_dump() for acc in projection_data.accounts]),
     )
+
     db.add(db_projection)
     db.commit()
     db.refresh(db_projection)
+
     return db_projection
 
 @app.get("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
@@ -202,13 +194,11 @@ def update_projection(
     if projection.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this projection.")
     
-    # Recalculate using the new data
     result = calculations.calculate_projection(
         years=req.years,
         accounts=req.accounts
     )
     
-    # Update projection fields
     projection.name = req.plan_name
     projection.years = req.years
     projection.final_value = result["final_value"]
