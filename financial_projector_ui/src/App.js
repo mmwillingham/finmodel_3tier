@@ -7,8 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Header from './components/Header'; 
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
-import Calculator from './components/Calculator'; 
-import MyProjections from './components/MyProjections';   
+import SidebarLayout from './components/SidebarLayout';
 import ProjectionDetail from './components/ProjectionDetail';
 
 // The Main Application Structure
@@ -29,7 +28,7 @@ function App() {
                             path="/"
                             element={
                                 <ProtectedRoute>
-                                    <Calculator /> {/* Default landing page */}
+                                    <SidebarLayout /> {/* Sidebar with Calculator and MyProjections */}
                                 </ProtectedRoute>
                             }
                         />
@@ -37,7 +36,7 @@ function App() {
                             path="/my-projections"
                             element={
                                 <ProtectedRoute>
-                                    <MyProjections /> {/* List of saved plans */}
+                                    <SidebarLayout /> {/* Same layout for /my-projections */}
                                 </ProtectedRoute>
                             }
                         />
