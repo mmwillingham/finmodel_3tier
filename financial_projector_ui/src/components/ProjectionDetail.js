@@ -26,8 +26,12 @@ ChartJS.register(
 
 const getAccountKeys = (data) => {
     if (!data || data.length === 0) return [];
+    
+    // Check all keys in the first data object
     const keys = Object.keys(data[0]);
-    return keys.filter(key => key.endsWith('_Value') && key !== 'Total_Value');
+    
+    // Filter out the standard keys and return only the account value keys
+    return keys.filter(key => key.endsWith('_Value'));
 };
 
 const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
@@ -232,7 +236,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
                             <p>${total_contributed.toLocaleString()}</p>
                         </div>
                         <div className="card">
-                            <h3>Total Growth (Interest)</h3>
+                            <h3>Total Growth</h3>
                             <p>${total_growth.toLocaleString()}</p>
                         </div>
                     </section>
