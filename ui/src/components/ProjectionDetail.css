@@ -12,19 +12,34 @@
   max-width: 1200px;
 }
 
-.detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid #ddd;
+.projection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 2rem;
 }
 
-.detail-actions {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
+.projection-header h2 {
+  margin: 0 0 0.5rem 0;
+}
+
+.projection-header p {
+  margin: 0;
+  color: #666;
+}
+
+.projection-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.projection-actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
 }
 
 .delete-btn {

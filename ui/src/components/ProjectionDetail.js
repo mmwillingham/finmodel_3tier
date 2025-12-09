@@ -97,8 +97,16 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
 
   return (
     <div className="projection-detail">
-      <h2>{projection.name}</h2>
-      <p>Years: {projection.years}</p>
+      <div className="projection-header">
+        <div>
+          <h2>{projection.name}</h2>
+          <p>Years: {projection.years}</p>
+        </div>
+        <div className="projection-actions">
+          {onEdit && <button onClick={() => onEdit(projection)} className="edit-btn">Edit</button>}
+          {onDelete && <button onClick={() => onDelete(projection.id)} className="delete-btn">Delete</button>}
+        </div>
+      </div>
 
       <h3>Year-by-Year Breakdown</h3>
       <table className="projection-table">
@@ -145,11 +153,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
           ))}
         </tbody>
       </table>
-
-      <div className="projection-actions">
-        {onEdit && <button onClick={() => onEdit(projection)}>Edit</button>}
-        {onDelete && <button onClick={() => onDelete(projection.id)}>Delete</button>}
-      </div>
     </div>
   );
 };
