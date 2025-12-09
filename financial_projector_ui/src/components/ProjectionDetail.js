@@ -101,12 +101,12 @@ const ProjectionDetail = () => {
     
     // Currency formatter with commas and 0 decimal places
     const formatCurrency = (value) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(value ?? 0);
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value ?? 0);
     }; 
 
     // Prepare Chart.js data structure
