@@ -126,19 +126,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         });
     });
 
-    // Add Total Value line
-    if (chartData.length > 0 && chartData[0].Total_Value !== undefined) {
-        chartDatasets.push({
-            label: 'Total',
-            data: chartData.map(row => row.Total_Value || 0),
-            borderColor: '#000000',
-            backgroundColor: '#00000040',
-            borderWidth: 3,
-            pointRadius: 0,
-            tension: 0.1,
-        });
-    }
-
     const chartJsData = {
         labels: chartLabels,
         datasets: chartDatasets,
