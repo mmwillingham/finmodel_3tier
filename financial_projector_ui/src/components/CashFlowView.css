@@ -23,6 +23,11 @@
   font-size: 1rem;
 }
 
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .add-item-form button {
   padding: 0.75rem 1.5rem;
   background-color: #0b57d0;
@@ -31,10 +36,19 @@
   border-radius: 4px;
   cursor: pointer;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .add-item-form button:hover {
   background-color: #084399;
+}
+
+.add-item-form .cancel-btn {
+  background-color: #666;
+}
+
+.add-item-form .cancel-btn:hover {
+  background-color: #444;
 }
 
 .cashflow-table {
@@ -55,17 +69,34 @@
   font-weight: 600;
 }
 
-.cashflow-table button {
+.cashflow-table td {
+  vertical-align: middle;
+}
+
+.cashflow-table td button {
   padding: 0.5rem 1rem;
-  background-color: #c62828;
-  color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
+  margin-right: 0.5rem;
 }
 
-.cashflow-table button:hover {
+.edit-btn-small {
+  background-color: #0b57d0;
+  color: white;
+}
+
+.edit-btn-small:hover {
+  background-color: #084399;
+}
+
+.delete-btn-small {
+  background-color: #c62828;
+  color: white;
+}
+
+.delete-btn-small:hover {
   background-color: #a81f1f;
 }
 

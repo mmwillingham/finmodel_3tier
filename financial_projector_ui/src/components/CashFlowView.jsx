@@ -7,15 +7,37 @@ const EXPENSE_TYPES = ['401k', 'Charitable Giving', 'Health', 'Tax', 'Food', 'Ho
 export default function CashFlowView({ type }) {
   const [items, setItems] = useState([]);
   const [newItem, setNewItem] = useState({ type: '', description: '', value: '' });
+  const [editingId, setEditingId] = useState(null);
 
   const typeOptions = type === 'income' ? INCOME_TYPES : EXPENSE_TYPES;
   const defaultType = typeOptions[0];
 
   const addItem = () => {
     if (newItem.type && newItem.description && newItem.value) {
-      setItems([...items, { id: Date.now(), ...newItem, value: parseFloat(newItem.value) }]);
+      if (editingId) {
+        // Update existing item
+        setItems(items.map(item => 
+          item.id === editingId 
+            ? { ...item, type: newItem.type, description: newItem.description, value: parseFloat(newItem.value) }
+            : item
+        ));
+        setEditingId(null);
+      } else {
+        // Add new item
+        setItems([...items, { id: Date.now(), ...newItem, value: parseFloat(newItem.value) }]);
+      }
       setNewItem({ type: defaultType, description: '', value: '' });
     }
+  };
+
+  const editItem = (item) => {
+    setNewItem({ type: item.type, description: item.description, value: item.value.toString() });
+    setEditingId(item.id);
+  };
+
+  const cancelEdit = () => {
+    setNewItem({ type: defaultType, description: '', value: '' });
+    setEditingId(null);
   };
 
   const deleteItem = (id) => {
@@ -51,10 +73,14 @@ export default function CashFlowView({ type }) {
           type="number"
           placeholder="Value"
           value={newItem.value}
+          onFocus={(e) => e.target.select()}
           onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
         />
 
-        <button onClick={addItem}>Add</button>
+        <div className="form-actions">
+          <button onClick={addItem}>{editingId ? 'Update' : 'Add'}</button>
+          {editingId && <button onClick={cancelEdit} className="cancel-btn">Cancel</button>}
+        </div>
       </div>
 
       <table className="cashflow-table">
@@ -63,7 +89,7 @@ export default function CashFlowView({ type }) {
             <th>Type</th>
             <th>Description</th>
             <th>Value</th>
-            <th>Action</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -73,7 +99,8 @@ export default function CashFlowView({ type }) {
               <td>{item.description}</td>
               <td>${item.value.toFixed(2)}</td>
               <td>
-                <button onClick={() => deleteItem(item.id)}>Delete</button>
+                <button onClick={() => editItem(item)} className="edit-btn-small">Edit</button>
+                <button onClick={() => deleteItem(item.id)} className="delete-btn-small">Delete</button>
               </td>
             </tr>
           ))}
