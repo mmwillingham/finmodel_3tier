@@ -1,0 +1,121 @@
+.cashflow-summary {
+  padding: 2rem;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.summary-card {
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.summary-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.summary-card .amount {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.income-card {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.expense-card {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.surplus-card {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.deficit-card {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.projection-controls {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.projection-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.projection-controls input {
+  width: 80px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.yearly-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.yearly-table th,
+.yearly-table td {
+  padding: 0.75rem;
+  text-align: right;
+  border-bottom: 1px solid #ddd;
+}
+
+.yearly-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+}
+
+.yearly-table th:first-child,
+.yearly-table td:first-child {
+  text-align: left;
+}
+
+.yearly-table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+.surplus-row {
+  background-color: #f1f8f4;
+}
+
+.deficit-row {
+  background-color: #fef7f7;
+}
+
+.positive {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.negative {
+  color: #c62828;
+  font-weight: 600;
+}
