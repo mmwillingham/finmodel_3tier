@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from "react";
-import ProjectionService from "../services/projection.service";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
-import Calculator from "./Calculator";
 import ProjectionDetail from "./ProjectionDetail";
-import ProjectionsTable from "./ProjectionsTable";
 import CashFlowView from "./CashFlowView";
 import AssetView from "./AssetView";
 import LiabilityView from "./LiabilityView";
@@ -20,10 +17,9 @@ export default function SidebarLayout() {
   const [view, setView] = useState("new-home"); // New default view
   const [cashFlowView, setCashFlowView] = useState(null);
   // Keep projections state and related functions for now, might be needed by ProjectionDetail if it's kept as a sub-view
-  const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
+// eslint-disable-next-line no-unused-vars
   const [selectedProjectionId, setSelectedProjectionId] = useState(null);
-  const [editingProjection, setEditingProjection] = useState(null);
   const [incomeItems, setIncomeItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
   const [assets, setAssets] = useState([]);
