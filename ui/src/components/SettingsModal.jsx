@@ -3,7 +3,7 @@ import SettingsService from '../services/settings.service';
 import CategoryEditorModal from './CategoryEditorModal';
 import './SettingsModal.css';
 
-export default function SettingsModal({ isOpen, onClose }) {
+export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
   const [inflationPercent, setInflationPercent] = useState(2.0);
   const [assetCategories, setAssetCategories] = useState([]);
   const [liabilityCategories, setLiabilityCategories] = useState([]);
@@ -18,6 +18,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [person1Name, setPerson1Name] = useState("");
   const [person2Name, setPerson2Name] = useState("");
   const [projectionYears, setProjectionYears] = useState(30);
+  const [showChartTotals, setShowChartTotals] = useState(true); // New state for toggle
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function SettingsModal({ isOpen, onClose }) {
       setPerson1Name(res.data.person1_name || "");
       setPerson2Name(res.data.person2_name || "");
       setProjectionYears(res.data.projection_years || 30);
+      setShowChartTotals(res.data.show_chart_totals ?? true); // Read new setting
     } catch (e) {
       console.error('Failed to load settings', e);
     }
@@ -54,8 +56,13 @@ export default function SettingsModal({ isOpen, onClose }) {
         person1_name: person1Name,
         person2_name: person2Name,
         projection_years: parseInt(projectionYears),
+        show_chart_totals: showChartTotals, // Save new setting
       });
       setMessage('Settings saved successfully!');
+      // Call the provided callback to notify parent component of saved settings
+      if (onSettingsSaved) {
+        onSettingsSaved();
+      }
       setTimeout(() => {
         setMessage('');
         onClose();
@@ -101,6 +108,18 @@ export default function SettingsModal({ isOpen, onClose }) {
                 value={projectionYears}
                 onChange={(e) => setProjectionYears(e.target.value)}
                 placeholder="30"
+              />
+            </div>
+            {/* New Toggle for Show Chart Totals */}
+            <div>
+              <label htmlFor="show-chart-totals">
+                Show Chart Totals
+              </label>
+              <input
+                id="show-chart-totals"
+                type="checkbox"
+                checked={showChartTotals}
+                onChange={(e) => setShowChartTotals(e.target.checked)}
               />
             </div>
           </div>

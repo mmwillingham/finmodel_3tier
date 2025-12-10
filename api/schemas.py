@@ -138,6 +138,7 @@ class UserSettingsOut(BaseModel):
     person1_name: str | None = "Person 1"
     person2_name: str | None = "Person 2"
     projection_years: int | None = 30
+    show_chart_totals: bool | None = True # New field
     model_config = ConfigDict(from_attributes=True)
 
 class UserSettingsUpdate(BaseModel):
@@ -149,6 +150,7 @@ class UserSettingsUpdate(BaseModel):
     person1_name: str | None = None
     person2_name: str | None = None
     projection_years: int | None = None
+    show_chart_totals: bool | None = True # New field
 
 
 # --- ASSET SCHEMAS ---
@@ -197,3 +199,4 @@ class LiabilityOut(BaseModel):
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
+

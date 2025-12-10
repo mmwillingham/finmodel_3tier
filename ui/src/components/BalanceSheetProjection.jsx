@@ -1,7 +1,7 @@
 import React from "react";
 import { Line } from "react-chartjs-2";
 
-export default function BalanceSheetProjection({ assets, liabilities, projectionYears, formatCurrency }) {
+export default function BalanceSheetProjection({ assets, liabilities, projectionYears, formatCurrency, showChartTotals }) {
   const currentYear = new Date().getFullYear(); // Get current year
 
   const calculateProjections = () => {
@@ -173,7 +173,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
                 backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.2)`,
                 fill: false,
               })),
-              {
+              ...(showChartTotals ? [{
                 label: "Total Assets",
                 data: totalAssetValues,
                 borderColor: "rgb(0, 0, 0)", // Black color for total
@@ -181,7 +181,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
                 fill: false,
                 borderWidth: 3,
                 pointRadius: 0,
-              },
+              }] : []),
             ],
           }}
           options={chartOptions}

@@ -69,6 +69,7 @@ class UserSettings(Base):
     person1_name = Column(String, default="Person 1")
     person2_name = Column(String, default="Person 2")
     projection_years = Column(Integer, default=30)
+    show_chart_totals = Column(Boolean, default=True) # New field
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

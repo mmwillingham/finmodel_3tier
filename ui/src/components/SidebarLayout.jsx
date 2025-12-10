@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
@@ -25,6 +25,18 @@ export default function SidebarLayout() {
   const [assets, setAssets] = useState([]);
   const [liabilities, setLiabilities] = useState([]);
   const [projectionYears, setProjectionYears] = useState(30); // Added for new components
+  const [showChartTotals, setShowChartTotals] = useState(true); // New state for toggle
+
+  // Function to refresh settings from the backend
+  const refreshSettings = useCallback(async () => {
+    try {
+      const settingsRes = await SettingsService.getSettings();
+      setProjectionYears(settingsRes.data.projection_years || 30);
+      setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
+    } catch (e) {
+      console.error("Failed to refresh settings", e);
+    }
+  }, []); // useCallback with empty dependency array means it's memoized and won't change on re-renders
 
   // Keep loading cashflow, assets, and liabilities as they are part of the new dashboard views
   useEffect(() => {
@@ -43,6 +55,7 @@ export default function SidebarLayout() {
         setAssets(ast.data || []);
         setLiabilities(lib.data || []);
         setProjectionYears(settingsRes.data.projection_years || 30); // Set projection years
+        setShowChartTotals(settingsRes.data.show_chart_totals ?? true); // Fetch new setting
       } catch (e) {
         console.error("Failed to load cashflow, assets, or liabilities", e);
       } finally {
@@ -50,7 +63,7 @@ export default function SidebarLayout() {
       }
     };
     load();
-  }, []);
+  }, [refreshSettings]); // Added refreshSettings to dependencies, as it is a useCallback
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {
@@ -184,6 +197,7 @@ export default function SidebarLayout() {
               liabilities={liabilities}
               projectionYears={projectionYears}
               formatCurrency={formatCurrency}
+              showChartTotals={showChartTotals} // Pass new prop
             />
           </div>
         )}
@@ -233,6 +247,7 @@ export default function SidebarLayout() {
             <SettingsModal 
               onClose={() => setView('new-home')} 
               isOpen={true}
+              onSettingsSaved={refreshSettings} // Pass the new function here
             />
           </div>
         )}
