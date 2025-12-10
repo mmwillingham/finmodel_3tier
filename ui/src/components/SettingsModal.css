@@ -82,18 +82,18 @@
   gap: 8px; /* Gap between label and input/category-display */
 }
 
+.settings-form .setting-group > div:has(input#show-chart-totals) {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+
 .settings-form label {
   font-weight: 600;
   color: #555;
   font-size: 0.95em;
-}
-
-.settings-form .setting-toggle {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px; /* Add some space between the label and the checkbox */
 }
 
 .settings-form input[type="text"],
