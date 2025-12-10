@@ -135,13 +135,13 @@ export default function SidebarLayout() {
               className={`nav-btn ${view === 'assets' ? 'active' : ''}`}
               onClick={() => { setView('assets'); setCashFlowView(null); }}
             >
-              Asset Items
+              Assets
             </button>
             <button
               className={`nav-btn ${view === 'liabilities' ? 'active' : ''}`}
               onClick={() => { setView('liabilities'); setCashFlowView(null); }}
             >
-              Liability Items
+              Liabilities
             </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
@@ -153,7 +153,7 @@ export default function SidebarLayout() {
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('expense'); }}
             >
-              Expense Items
+              Expenses
             </button>
           </section>
 

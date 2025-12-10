@@ -192,7 +192,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
       <table className="cashflow-table" style={{ marginBottom: "50px" }}>
         <thead>
           <tr>
-            <th>Asset Name</th>
+            <th>Asset Name (Category)</th>
             {displayYearsIndices.map((index) => (
               <th key={years[index]}>{years[index]}</th>
             ))}
@@ -201,7 +201,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
         <tbody>
           {individualAssetProjections.map((asset) => (
             <tr key={asset.id}>
-              <td>{asset.name}</td>
+              <td>{`${asset.name} (${asset.category})`}</td>
               {displayYearsIndices.map((index) => (
                 <td key={years[index]}>{formatCurrency(asset.projectedValues[index])}</td>
               ))}
