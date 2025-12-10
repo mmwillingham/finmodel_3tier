@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
 import ProjectionService from "../services/projection.service";
 import CashFlowService from "../services/cashflow.service";
+import AssetService from "../services/asset.service";
+import LiabilityService from "../services/liability.service";
 import Calculator from "./Calculator";
 import ProjectionDetail from "./ProjectionDetail";
 import ProjectionsTable from "./ProjectionsTable";
 import CashFlowView from "./CashFlowView";
+import AssetView from "./AssetView";
+import LiabilityView from "./LiabilityView";
+import CashFlowProjection from "./CashFlowProjection";
 import SettingsModal from "./SettingsModal";
 import "./SidebarLayout.css";
 
@@ -17,6 +22,8 @@ export default function SidebarLayout() {
   const [editingProjection, setEditingProjection] = useState(null);
   const [incomeItems, setIncomeItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
+  const [assets, setAssets] = useState([]);
+  const [liabilities, setLiabilities] = useState([]);
 
   const fetchProjections = async () => {
     try {
@@ -81,14 +88,18 @@ export default function SidebarLayout() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [inc, exp] = await Promise.all([
+        const [inc, exp, ast, lib] = await Promise.all([
           CashFlowService.list(true),
           CashFlowService.list(false),
+          AssetService.list(),
+          LiabilityService.list(),
         ]);
         setIncomeItems(inc.data || []);
         setExpenseItems(exp.data || []);
+        setAssets(ast.data || []);
+        setLiabilities(lib.data || []);
       } catch (e) {
-        console.error("Failed to load cashflow", e);
+        console.error("Failed to load cashflow, assets, or liabilities", e);
       }
     };
     load();
@@ -103,18 +114,32 @@ export default function SidebarLayout() {
     setExpenseItems(exp.data || []);
   };
 
+  const refreshAssets = async () => {
+    const ast = await AssetService.list();
+    setAssets(ast.data || []);
+  };
+
+  const refreshLiabilities = async () => {
+    const lib = await LiabilityService.list();
+    setLiabilities(lib.data || []);
+  };
+
   return (
     <div className="sidebar-layout">
       <aside className="sidebar">
         <nav className="sidebar-nav">
           <section className="nav-section">
-            <h3>Projections</h3>
+            <h3>Dashboard</h3>
             <button 
               className={`nav-btn ${view === 'home' ? 'active' : ''}`} 
               onClick={() => { setView('home'); setCashFlowView(null); }}
             >
-              Dashboard
+              Home
             </button>
+          </section>
+
+          <section className="nav-section">
+            <h3>Projections</h3>
             <button 
               className={`nav-btn ${view === 'projections' ? 'active' : ''}`} 
               onClick={() => { 
@@ -137,7 +162,29 @@ export default function SidebarLayout() {
           </section>
 
           <section className="nav-section">
+            <h3>Balance Sheet</h3>
+            <button
+              className={`nav-btn ${view === 'assets' ? 'active' : ''}`}
+              onClick={() => { setView('assets'); setCashFlowView(null); }}
+            >
+              Assets
+            </button>
+            <button
+              className={`nav-btn ${view === 'liabilities' ? 'active' : ''}`}
+              onClick={() => { setView('liabilities'); setCashFlowView(null); }}
+            >
+              Liabilities
+            </button>
+          </section>
+
+          <section className="nav-section">
             <h3>Cash Flow</h3>
+            <button
+              className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); }}
+            >
+              Cash Flow Projection
+            </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
@@ -209,6 +256,27 @@ export default function SidebarLayout() {
               expenseItems={expenseItems}
               refreshCashflow={refreshCashflow}
             />
+          </div>
+        )}
+        {!loading && view === "assets" && (
+          <div className="assets-view">
+            <AssetView 
+              assets={assets}
+              refreshAssets={refreshAssets}
+            />
+          </div>
+        )}
+        {!loading && view === "liabilities" && (
+          <div className="liabilities-view">
+            <LiabilityView 
+              liabilities={liabilities}
+              refreshLiabilities={refreshLiabilities}
+            />
+          </div>
+        )}
+        {!loading && view === "cashflow-projection" && (
+          <div className="cashflow-projection-view">
+            <CashFlowProjection />
           </div>
         )}
         {!loading && view === "settings" && (
