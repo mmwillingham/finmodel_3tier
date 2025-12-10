@@ -369,9 +369,14 @@ def update_settings(
         settings.person2_name = payload.person2_name
     if payload.projection_years is not None:
         settings.projection_years = payload.projection_years
-    db.commit()
-    db.refresh(settings)
-    return settings
+    try:
+        db.commit()
+        db.refresh(settings)
+        return settings
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating settings: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update settings: {e}")
 
 
 # --- ASSET ENDPOINTS ---

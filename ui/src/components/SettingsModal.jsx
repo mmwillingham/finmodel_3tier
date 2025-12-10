@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import SettingsService from '../services/settings.service';
+import CategoryEditorModal from './CategoryEditorModal';
 import './SettingsModal.css';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const [inflationPercent, setInflationPercent] = useState(2.0);
-  const [assetCategories, setAssetCategories] = useState("");
-  const [liabilityCategories, setLiabilityCategories] = useState("");
-  const [incomeCategories, setIncomeCategories] = useState("");
-  const [expenseCategories, setExpenseCategories] = useState("");
+  const [assetCategories, setAssetCategories] = useState([]);
+  const [liabilityCategories, setLiabilityCategories] = useState([]);
+  const [incomeCategories, setIncomeCategories] = useState([]);
+  const [expenseCategories, setExpenseCategories] = useState([]);
+
+  // State for controlling the visibility of each category editor modal
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [person1Name, setPerson1Name] = useState("");
   const [person2Name, setPerson2Name] = useState("");
   const [projectionYears, setProjectionYears] = useState(30);
@@ -23,10 +30,11 @@ export default function SettingsModal({ isOpen, onClose }) {
     try {
       const res = await SettingsService.getSettings();
       setInflationPercent(res.data.default_inflation_percent);
-      setAssetCategories(res.data.asset_categories || "");
-      setLiabilityCategories(res.data.liability_categories || "");
-      setIncomeCategories(res.data.income_categories || "");
-      setExpenseCategories(res.data.expense_categories || "");
+      // Correctly splitting comma-separated strings into arrays and handling null/empty
+      setAssetCategories(res.data.asset_categories ? res.data.asset_categories.split(',') : []);
+      setLiabilityCategories(res.data.liability_categories ? res.data.liability_categories.split(',') : []);
+      setIncomeCategories(res.data.income_categories ? res.data.income_categories.split(',') : []);
+      setExpenseCategories(res.data.expense_categories ? res.data.expense_categories.split(',') : []);
       setPerson1Name(res.data.person1_name || "");
       setPerson2Name(res.data.person2_name || "");
       setProjectionYears(res.data.projection_years || 30);
@@ -39,10 +47,10 @@ export default function SettingsModal({ isOpen, onClose }) {
     try {
       await SettingsService.updateSettings({
         default_inflation_percent: parseFloat(inflationPercent),
-        asset_categories: assetCategories,
-        liability_categories: liabilityCategories,
-        income_categories: incomeCategories,
-        expense_categories: expenseCategories,
+        asset_categories: assetCategories.join(','),
+        liability_categories: liabilityCategories.join(','),
+        income_categories: incomeCategories.join(','),
+        expense_categories: expenseCategories.join(','),
         person1_name: person1Name,
         person2_name: person2Name,
         projection_years: parseInt(projectionYears),
@@ -54,7 +62,8 @@ export default function SettingsModal({ isOpen, onClose }) {
       }, 1500);
     } catch (e) {
       console.error('Failed to save settings', e);
-      setMessage('Error saving settings');
+      const errorMessage = e.response?.data?.detail || 'Error saving settings';
+      setMessage(errorMessage);
     }
   };
 
@@ -79,49 +88,41 @@ export default function SettingsModal({ isOpen, onClose }) {
             onChange={(e) => setInflationPercent(e.target.value)}
           />
 
-          <label htmlFor="asset-categories">
-            Asset Categories (comma-separated)
-          </label>
-          <input
-            id="asset-categories"
-            type="text"
-            value={assetCategories}
-            onChange={(e) => setAssetCategories(e.target.value)}
-            placeholder="Real Estate,Vehicles,Investments,Other"
-          />
+          {/* Asset Categories */}
+          <label>Asset Categories</label>
+          <div className="category-display">
+            {assetCategories.map((cat, index) => (
+              <span key={index} className="category-tag">{cat}</span>
+            ))}
+            <button type="button" onClick={() => setIsAssetModalOpen(true)}>Manage</button>
+          </div>
 
-          <label htmlFor="liability-categories">
-            Liability Categories (comma-separated)
-          </label>
-          <input
-            id="liability-categories"
-            type="text"
-            value={liabilityCategories}
-            onChange={(e) => setLiabilityCategories(e.target.value)}
-            placeholder="Mortgage,Car Loan,Credit Card,Student Loan,Other"
-          />
+          {/* Liability Categories */}
+          <label>Liability Categories</label>
+          <div className="category-display">
+            {liabilityCategories.map((cat, index) => (
+              <span key={index} className="category-tag">{cat}</span>
+            ))}
+            <button type="button" onClick={() => setIsLiabilityModalOpen(true)}>Manage</button>
+          </div>
 
-          <label htmlFor="income-categories">
-            Income Categories (comma-separated)
-          </label>
-          <input
-            id="income-categories"
-            type="text"
-            value={incomeCategories}
-            onChange={(e) => setIncomeCategories(e.target.value)}
-            placeholder="Salary,Bonus,Investment Income,Other"
-          />
+          {/* Income Categories */}
+          <label>Income Categories</label>
+          <div className="category-display">
+            {incomeCategories.map((cat, index) => (
+              <span key={index} className="category-tag">{cat}</span>
+            ))}
+            <button type="button" onClick={() => setIsIncomeModalOpen(true)}>Manage</button>
+          </div>
 
-          <label htmlFor="expense-categories">
-            Expense Categories (comma-separated)
-          </label>
-          <input
-            id="expense-categories"
-            type="text"
-            value={expenseCategories}
-            onChange={(e) => setExpenseCategories(e.target.value)}
-            placeholder="Housing,Transportation,Food,Healthcare,Entertainment,Other"
-          />
+          {/* Expense Categories */}
+          <label>Expense Categories</label>
+          <div className="category-display">
+            {expenseCategories.map((cat, index) => (
+              <span key={index} className="category-tag">{cat}</span>
+            ))}
+            <button type="button" onClick={() => setIsExpenseModalOpen(true)}>Manage</button>
+          </div>
 
           <label htmlFor="person1-name">
             Person 1 Name
@@ -161,6 +162,36 @@ export default function SettingsModal({ isOpen, onClose }) {
           <button onClick={handleSave}>Save</button>
           <button onClick={onClose}>Cancel</button>
         </div>
+
+        {/* Category Editor Modals */}
+        <CategoryEditorModal 
+          isOpen={isAssetModalOpen}
+          onClose={() => setIsAssetModalOpen(false)}
+          onSave={setAssetCategories}
+          categories={assetCategories}
+          title="Asset Categories"
+        />
+        <CategoryEditorModal 
+          isOpen={isLiabilityModalOpen}
+          onClose={() => setIsLiabilityModalOpen(false)}\
+          onSave={setLiabilityCategories}
+          categories={liabilityCategories}
+          title="Liability Categories"
+        />
+        <CategoryEditorModal 
+          isOpen={isIncomeModalOpen}
+          onClose={() => setIsIncomeModalOpen(false)}
+          onSave={setIncomeCategories}
+          categories={incomeCategories}
+          title="Income Categories"
+        />
+        <CategoryEditorModal 
+          isOpen={isExpenseModalOpen}
+          onClose={() => setIsExpenseModalOpen(false)}
+          onSave={setExpenseCategories}
+          categories={expenseCategories}
+          title="Expense Categories"
+        />
       </div>
     </div>
   );

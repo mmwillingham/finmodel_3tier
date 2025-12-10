@@ -50,5 +50,7 @@ PGPASSWORD=iamhe123 podman exec -it finmodel-data psql -h 127.0.0.1 -p 5432 -U b
 # To delete database
 drop database finmodel
 
+Add to environment variable for api terminal:
+DATABASE_URL="postgresql://bolauder:iamhe123@127.0.0.1:5432/finmodel"
 
 
