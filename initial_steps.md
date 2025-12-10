@@ -655,7 +655,7 @@ cd ui
 # Install necessary JavaScript libraries
 npm install axios react-router-dom chart.js react-chartjs-2
 npm install recharts
-npm install
+npm install react-sortable-hoc
 cd ..
 ```
 

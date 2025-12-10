@@ -158,6 +158,8 @@ class AssetCreate(BaseModel):
     category: str
     value: float
     annual_increase_percent: float = 0.0
+    start_date: str | None = None  # New field
+    end_date: str | None = None    # New field
 
 class AssetUpdate(AssetCreate):
     pass
@@ -168,6 +170,8 @@ class AssetOut(BaseModel):
     category: str
     value: float
     annual_increase_percent: float
+    start_date: str | None = None  # New field
+    end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -178,6 +182,8 @@ class LiabilityCreate(BaseModel):
     category: str
     value: float
     annual_increase_percent: float = 0.0
+    start_date: str | None = None  # New field
+    end_date: str | None = None    # New field
 
 class LiabilityUpdate(LiabilityCreate):
     pass
@@ -188,4 +194,6 @@ class LiabilityOut(BaseModel):
     category: str
     value: float
     annual_increase_percent: float
+    start_date: str | None = None  # New field
+    end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)

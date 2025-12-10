@@ -1,9 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Import all main components (make sure these files exist!)
+// Import all main components
 import Header from './components/Header'; 
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
@@ -31,14 +31,12 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        <Route
-                            path="/my-projections"
-                            element={
-                                <ProtectedRoute>
-                                    <SidebarLayout />
-                                </ProtectedRoute>
-                            }
-                        />
+                        {/* Removed /my-projections route, as its functionality is replaced within SidebarLayout */}
+                        {/* <Route path="/my-projections" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} /> */}
+                        
+                        {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}
+                        <Route path="/my-projections" element={<Navigate to="/" replace />} />
+                        <Route path="/calculator" element={<Navigate to="/" replace />} />
                     </Routes>
                 </main>
             </AuthProvider>

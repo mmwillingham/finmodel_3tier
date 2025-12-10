@@ -53,4 +53,7 @@ drop database finmodel
 Add to environment variable for api terminal:
 DATABASE_URL="postgresql://bolauder:iamhe123@127.0.0.1:5432/finmodel"
 
+to turn paging off
+psql -P pager=off
 
+PGPASSWORD=iamhe123 podman exec -it finmodel-data psql -P pager=off -h 127.0.0.1 -p 5432 -U bolauder -d finmodel -c "\d cashflow_items"

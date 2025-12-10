@@ -81,6 +81,8 @@ class Asset(Base):
     category = Column(String, nullable=False)
     value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)
+    start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
+    end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -92,4 +94,7 @@ class Liability(Base):
     category = Column(String, nullable=False)
     value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)
+    start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
+    end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+

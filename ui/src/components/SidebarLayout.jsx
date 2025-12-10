@@ -9,13 +9,17 @@ import ProjectionsTable from "./ProjectionsTable";
 import CashFlowView from "./CashFlowView";
 import AssetView from "./AssetView";
 import LiabilityView from "./LiabilityView";
-import CashFlowProjection from "./CashFlowProjection";
+// import CashFlowProjection from "./CashFlowProjection"; // Removed as content is split
+import BalanceSheetProjection from "./BalanceSheetProjection"; // New import
+import CashFlowOverview from "./CashFlowOverview"; // New import
 import SettingsModal from "./SettingsModal";
 import "./SidebarLayout.css";
+import SettingsService from "../services/settings.service"; // Added for projectionYears
 
 export default function SidebarLayout() {
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("new-home"); // New default view
   const [cashFlowView, setCashFlowView] = useState(null);
+  // Keep projections state and related functions for now, might be needed by ProjectionDetail if it's kept as a sub-view
   const [projections, setProjections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProjectionId, setSelectedProjectionId] = useState(null);
@@ -24,104 +28,68 @@ export default function SidebarLayout() {
   const [expenseItems, setExpenseItems] = useState([]);
   const [assets, setAssets] = useState([]);
   const [liabilities, setLiabilities] = useState([]);
+  const [projectionYears, setProjectionYears] = useState(30); // Added for new components
 
-  const fetchProjections = async () => {
-    try {
-      setLoading(true);
-      const response = await ProjectionService.getProjections();
-      const items = (response.data || []).slice().sort((a, b) => {
-        const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return tb - ta;
-      });
-      setProjections(items);
-    } catch (err) {
-      console.error("Error fetching projections:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProjections();
-  }, []);
-
-  const handleProjectionCreated = async (projectionId) => {
-    await fetchProjections();
-    setEditingProjection(null);
-    setView('detail');
-    setSelectedProjectionId(projectionId);
-  };
-
-  const handleViewProjection = (projectionId) => {
-    setSelectedProjectionId(projectionId);
-    setView("detail");
-  };
-
-  const handleEdit = async (projection) => {
-    try {
-      setLoading(true);
-      const full = await ProjectionService.getProjectionDetails(projection.id);
-      setEditingProjection(full);
-      setView("calculator");
-    } catch (err) {
-      console.error("Error loading projection for edit:", err);
-      alert("Could not load projection details.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    const ok = window.confirm("Delete this projection?");
-    if (!ok) return;
-    try {
-      await ProjectionService.deleteProjection(id);
-      await fetchProjections();
-      setView("projections");
-    } catch (err) {
-      console.error("Error deleting projection:", err);
-      alert("Failed to delete projection.");
-    }
-  };
-
+  // Keep loading cashflow, assets, and liabilities as they are part of the new dashboard views
   useEffect(() => {
     const load = async () => {
       try {
-        const [inc, exp, ast, lib] = await Promise.all([
+        // if (!loading) setLoading(true); // Removed as initial loading state is now managed better
+        const [inc, exp, ast, lib, settingsRes] = await Promise.all([
           CashFlowService.list(true),
           CashFlowService.list(false),
           AssetService.list(),
           LiabilityService.list(),
+          SettingsService.getSettings(), // Fetch settings for projectionYears
         ]);
         setIncomeItems(inc.data || []);
         setExpenseItems(exp.data || []);
         setAssets(ast.data || []);
         setLiabilities(lib.data || []);
+        setProjectionYears(settingsRes.data.projection_years || 30); // Set projection years
       } catch (e) {
         console.error("Failed to load cashflow, assets, or liabilities", e);
+      } finally {
+        setLoading(false);
       }
     };
     load();
   }, []);
 
+  const formatCurrency = (v) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(v ?? 0);
+
   const refreshCashflow = async () => {
+    // Only fetch if not already in loading state
+    if (!loading) setLoading(true);
     const [inc, exp] = await Promise.all([
       CashFlowService.list(true),
       CashFlowService.list(false),
     ]);
     setIncomeItems(inc.data || []);
     setExpenseItems(exp.data || []);
+    setLoading(false);
   };
 
   const refreshAssets = async () => {
+    // Only fetch if not already in loading state
+    if (!loading) setLoading(true);
     const ast = await AssetService.list();
     setAssets(ast.data || []);
+    setLoading(false);
   };
 
   const refreshLiabilities = async () => {
+    // Only fetch if not already in loading state
+    if (!loading) setLoading(true);
     const lib = await LiabilityService.list();
     setLiabilities(lib.data || []);
+    setLoading(false);
   };
 
   return (
@@ -131,48 +99,52 @@ export default function SidebarLayout() {
           <section className="nav-section">
             <h3>Dashboard</h3>
             <button 
-              className={`nav-btn ${view === 'home' ? 'active' : ''}`} 
-              onClick={() => { setView('home'); setCashFlowView(null); }}
+              className={`nav-btn ${view === 'new-home' ? 'active' : ''}`} 
+              onClick={() => { setView('new-home'); setCashFlowView(null); }}
             >
               Home
+            </button>
+            
+            <button
+              className={`nav-btn ${view === 'balance-sheet-projection' ? 'active' : ''}`}
+              onClick={() => { setView('balance-sheet-projection'); setCashFlowView(null); }}
+            >
+              Balance Sheet Projections
+            </button>
+            
+            <button
+              className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); }}
+            >
+              Cash Flow Projections
             </button>
           </section>
 
           <section className="nav-section">
-            <h3>Balance Sheet</h3>
+            <h3>Items Management</h3>
             <button
               className={`nav-btn ${view === 'assets' ? 'active' : ''}`}
               onClick={() => { setView('assets'); setCashFlowView(null); }}
             >
-              Assets
+              Asset Items
             </button>
             <button
               className={`nav-btn ${view === 'liabilities' ? 'active' : ''}`}
               onClick={() => { setView('liabilities'); setCashFlowView(null); }}
             >
-              Liabilities
-            </button>
-          </section>
-
-          <section className="nav-section">
-            <h3>Cash Flow</h3>
-            <button
-              className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); }}
-            >
-              Cash Flow Projection
+              Liability Items
             </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
             >
-              Income
+              Income Items
             </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('expense'); }}
             >
-              Expenses
+              Expense Items
             </button>
           </section>
 
@@ -190,51 +162,47 @@ export default function SidebarLayout() {
 
       <main className="main-content">
         {loading && <div className="loading">Loading...</div>}
-        {!loading && view === "home" && (
-          <div className="dashboard">
-            <h2>Welcome to the Cash Flow Projection Tool</h2>
-            <p>Select a projection or create a new one to get started.</p>
+        
+        {!loading && view === "new-home" && (
+          <div className="dashboard-welcome">
+            <h2>Welcome to the Financial Projector!</h2>
+            <p>Use the navigation on the left to explore your financial data.</p>
           </div>
         )}
-        {!loading && view === "projections" && (
-          <div className="projections">
-            <h2>My Projections</h2>
-            <ProjectionsTable 
-              projections={projections} 
-              onViewProjection={handleViewProjection} 
-              onEdit={handleEdit} 
-              onDelete={handleDelete}
-            />
-          </div>
-        )}
-        {!loading && view === "calculator" && (
-          <div className="calculator">
-            <h2>{editingProjection ? "Edit Projection" : "New Projection"}</h2>
-            <Calculator 
-              editingProjection={editingProjection} 
-              onProjectionCreated={handleProjectionCreated}
-            />
-          </div>
-        )}
+
+        {/* Projection Detail might still be needed if accessed directly or via a new component */}
         {!loading && view === "detail" && selectedProjectionId && (
           <div className="projection-detail">
             <h2>Projection Detail</h2>
             <ProjectionDetail 
               projectionId={selectedProjectionId} 
-              onBack={() => setView("projections")}
+              onBack={() => setView("new-home")}
             />
           </div>
         )}
-        {!loading && view === "cashflow" && (
-          <div className="cashflow-view">
-            <CashFlowView 
-              type={cashFlowView}
+
+        {!loading && view === "balance-sheet-projection" && (
+          <div className="balance-sheet-projection-wrapper">
+            <BalanceSheetProjection 
+              assets={assets}
+              liabilities={liabilities}
+              projectionYears={projectionYears}
+              formatCurrency={formatCurrency}
+            />
+          </div>
+        )}
+
+        {!loading && view === "cashflow-projection" && (
+          <div className="cashflow-overview-wrapper">
+            <CashFlowOverview
               incomeItems={incomeItems}
               expenseItems={expenseItems}
-              refreshCashflow={refreshCashflow}
+              projectionYears={projectionYears}
+              formatCurrency={formatCurrency}
             />
           </div>
         )}
+
         {!loading && view === "assets" && (
           <div className="assets-view">
             <AssetView 
@@ -251,16 +219,23 @@ export default function SidebarLayout() {
             />
           </div>
         )}
-        {!loading && view === "cashflow-projection" && (
-          <div className="cashflow-projection-view">
-            <CashFlowProjection />
+
+        {!loading && view === "cashflow" && (
+          <div className="cashflow-view">
+            <CashFlowView 
+              type={cashFlowView}
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+              refreshCashflow={refreshCashflow}
+            />
           </div>
         )}
+
         {!loading && view === "settings" && (
           <div className="settings">
             <h2>Settings</h2>
             <SettingsModal 
-              onClose={() => setView('home')} 
+              onClose={() => setView('new-home')} 
               isOpen={true}
             />
           </div>

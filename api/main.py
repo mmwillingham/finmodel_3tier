@@ -406,6 +406,8 @@ def create_asset(
         category=payload.category,
         value=payload.value,
         annual_increase_percent=payload.annual_increase_percent,
+        start_date=payload.start_date,  # New field
+        end_date=payload.end_date      # New field
     )
     db.add(asset)
     db.commit()
@@ -429,6 +431,8 @@ def update_asset(
     asset.category = payload.category
     asset.value = payload.value
     asset.annual_increase_percent = payload.annual_increase_percent
+    asset.start_date = payload.start_date  # New field
+    asset.end_date = payload.end_date      # New field
     db.commit()
     db.refresh(asset)
     return asset
@@ -477,6 +481,8 @@ def create_liability(
         category=payload.category,
         value=payload.value,
         annual_increase_percent=payload.annual_increase_percent,
+        start_date=payload.start_date,  # New field
+        end_date=payload.end_date      # New field
     )
     db.add(liability)
     db.commit()
@@ -500,6 +506,8 @@ def update_liability(
     liability.category = payload.category
     liability.value = payload.value
     liability.annual_increase_percent = payload.annual_increase_percent
+    liability.start_date = payload.start_date  # New field
+    liability.end_date = payload.end_date      # New field
     db.commit()
     db.refresh(liability)
     return liability
@@ -519,3 +527,4 @@ def delete_liability(
     db.delete(liability)
     db.commit()
     return Response(status_code=204)
+

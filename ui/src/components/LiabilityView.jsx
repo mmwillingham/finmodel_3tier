@@ -10,6 +10,8 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
     category: "Other",
     value: "",
     annual_increase_percent: 0,
+    start_date: "", // New field
+    end_date: "",   // New field
   });
   const [editingId, setEditingId] = useState(null);
 
@@ -43,13 +45,15 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
       category: newItem.category,
       value: parseFloat(newItem.value),
       annual_increase_percent: parseFloat(newItem.annual_increase_percent || 0),
+      start_date: newItem.start_date || null, // Include new fields
+      end_date: newItem.end_date || null,     // Include new fields
     };
     if (editingId) {
       await LiabilityService.update(editingId, payload);
     } else {
       await LiabilityService.create(payload);
     }
-    setNewItem({ name: "", category: categories[0], value: "", annual_increase_percent: 0 });
+    setNewItem({ name: "", category: categories[0], value: "", annual_increase_percent: 0, start_date: "", end_date: "" });
     setEditingId(null);
     await refreshLiabilities();
   };
@@ -67,12 +71,14 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
       category: item.category,
       value: item.value.toString(),
       annual_increase_percent: item.annual_increase_percent || 0,
+      start_date: item.start_date || "", // Set new fields for editing
+      end_date: item.end_date || "",     // Set new fields for editing
     });
     setEditingId(item.id);
   };
 
   const cancelEdit = () => {
-    setNewItem({ name: "", category: categories[0], value: "", annual_increase_percent: 0 });
+    setNewItem({ name: "", category: categories[0], value: "", annual_increase_percent: 0, start_date: "", end_date: "" });
     setEditingId(null);
   };
 
@@ -123,6 +129,27 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
           />
         </div>
 
+        {/* New Start and End Date Fields */}
+        <div className="form-field">
+          <label htmlFor="start-date">Start Date</label>
+          <input
+            id="start-date"
+            type="date"
+            value={newItem.start_date}
+            onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
+          />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="end-date">End Date</label>
+          <input
+            id="end-date"
+            type="date"
+            value={newItem.end_date}
+            onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
+          />
+        </div>
+
         <div className="form-actions">
           <button onClick={save}>{editingId ? "Update" : "Add"}</button>
           {editingId && (
@@ -140,6 +167,8 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
             <th>Category</th>
             <th>Value</th>
             <th>Annual Increase %</th>
+            <th>Start Date</th>{/* New Table Header */}
+            <th>End Date</th>  {/* New Table Header */}
             <th>Actions</th>
           </tr>
         </thead>
@@ -150,6 +179,8 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
               <td>{item.category}</td>
               <td>{formatCurrency(item.value)}</td>
               <td>{item.annual_increase_percent}%</td>
+              <td>{item.start_date}</td>{/* New Table Data */}
+              <td>{item.end_date}</td>  {/* New Table Data */}
               <td>
                 <button onClick={() => startEdit(item)} className="edit-btn-small">
                   Edit
