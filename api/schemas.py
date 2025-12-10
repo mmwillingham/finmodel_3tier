@@ -200,3 +200,25 @@ class LiabilityOut(BaseModel):
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
 
+# --- CUSTOM CHART SCHEMAS ---
+
+class CustomChartBase(BaseModel):
+    name: str
+    chart_type: str
+    data_sources: str | None = None # Comma-separated string like "assets,liabilities"
+    series_configurations: str       # JSON string
+    x_axis_label: str | None = None
+    y_axis_label: str | None = None
+
+class CustomChartCreate(CustomChartBase):
+    pass
+
+class CustomChartUpdate(CustomChartBase):
+    pass
+
+class CustomChartOut(CustomChartBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)

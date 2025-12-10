@@ -10,6 +10,7 @@ import os # Keep os for getenv in config.py (if not using pydantic-settings, but
 
 # Internal Modules
 from . import models, schemas, database, auth, calculations
+from .routers import custom_charts
 from .config import settings # 🌟 NEW: Import the settings object
 
 # --- INITIALIZATION ---
@@ -17,6 +18,8 @@ from .config import settings # 🌟 NEW: Import the settings object
 database.Base.metadata.create_all(bind=database.engine) 
 
 app = FastAPI(title="Financial Projector API", version="1.0")
+
+app.include_router(custom_charts.router)
 
 # --- CONFIGURATION ---
 # Use the centralized setting

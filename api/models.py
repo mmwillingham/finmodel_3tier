@@ -99,3 +99,25 @@ class Liability(Base):
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+class CustomChart(Base):
+    """
+    SQLAlchemy Model for Custom Charts.
+    """
+    __tablename__ = "custom_charts"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, index=True, nullable=False)
+    chart_type = Column(String, nullable=False)  # e.g., 'line', 'bar', 'pie'
+    # data_sources could be a simple string or a more complex JSON structure
+    # For now, a string which can be a comma-separated list like "assets,liabilities"
+    data_sources = Column(String, nullable=True)
+    # series_configurations will store a JSON string with details for each chart series
+    # e.g., [{"data_type": "asset", "field": "value", "aggregation": "sum", "label": "Total Assets", "color": "#abc"}]
+    series_configurations = Column(String, nullable=False)
+    x_axis_label = Column(String, nullable=True)
+    y_axis_label = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    owner = relationship("User")
