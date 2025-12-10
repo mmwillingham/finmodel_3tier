@@ -155,8 +155,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       <h2>{type === 'income' ? 'Income' : 'Expenses'}</h2>
 
       <div className="add-item-form">
-        <select value={newItem.category || typeOptions[0]} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-          <option value="">Select Category</option>
+        <select value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
           {typeOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
         </select>
 
@@ -176,7 +175,27 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
         <input type="date" placeholder="Start Date" value={newItem.start_date} onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })} />
 
-        <input type="date" placeholder="End Date" value={newItem.end_date} onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })} />
+        <div className="form-field">
+          <label htmlFor="end-date-input">End Date</label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input 
+              id="end-date-input"
+              type="date" 
+              placeholder="End Date" 
+              value={newItem.end_date || ''} 
+              onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
+              disabled={!newItem.end_date}
+            />
+            <label style={{ whiteSpace: 'nowrap' }}>
+              <input
+                type="checkbox"
+                checked={!newItem.end_date}
+                onChange={(e) => setNewItem({ ...newItem, end_date: e.target.checked ? '' : new Date().toISOString().split('T')[0] })}
+              />
+              No end date
+            </label>
+          </div>
+        </div>
 
         {type === 'income' && (
           <div className="form-field">
@@ -266,7 +285,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
               <td>{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
               <td>{formatCurrency(item.yearly_value)}</td>
               <td>{item.start_date || '-'}</td>
-              <td>{item.end_date || '-'}</td>
+              <td>{item.end_date || 'No end date'}</td>
               {type === 'income' && <td>{item.annual_increase_percent}%</td>}
               {type === 'income' && <td>{item.taxable ? 'Yes' : 'No'}</td>}
               {type === 'expense' && <td>{item.inflation_percent}%</td>}

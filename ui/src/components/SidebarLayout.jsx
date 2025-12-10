@@ -139,29 +139,6 @@ export default function SidebarLayout() {
           </section>
 
           <section className="nav-section">
-            <h3>Projections</h3>
-            <button 
-              className={`nav-btn ${view === 'projections' ? 'active' : ''}`} 
-              onClick={() => { 
-                setView('projections'); 
-                setCashFlowView(null);
-              }}
-            >
-              My Projections
-            </button>
-            <button 
-              className={`nav-btn ${view === 'calculator' ? 'active' : ''}`} 
-              onClick={() => { 
-                setView('calculator'); 
-                setCashFlowView(null); 
-                setEditingProjection(null);
-              }}
-            >
-              New Projection
-            </button>
-          </section>
-
-          <section className="nav-section">
             <h3>Balance Sheet</h3>
             <button
               className={`nav-btn ${view === 'assets' ? 'active' : ''}`}

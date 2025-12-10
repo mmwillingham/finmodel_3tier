@@ -332,8 +332,16 @@ def get_settings(
             projection_years=30
         )
         db.add(settings)
-        db.commit()
-        db.refresh(settings)
+        try:
+            db.commit()
+            db.refresh(settings)
+        except Exception as e:
+            db.rollback()
+            # Another request may have created it, try to fetch again
+            settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
+            if not settings:
+                # If still not found, re-raise the original exception
+                raise e
     return settings
 
 @app.put("/settings", response_model=schemas.UserSettingsOut, tags=["settings"])
