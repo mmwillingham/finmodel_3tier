@@ -2,7 +2,20 @@
 
 .settings-form {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 15px;
+  grid-template-columns: 1fr 1fr; /* Two columns */
+  gap: 20px; /* Increased gap for better spacing */
   margin-bottom: 1.5rem;
+}
+
+.settings-form .setting-group {
+  display: flex;
+  flex-direction: column; /* Stack children vertically within the group */
+  gap: 10px; /* Gap between items in a group */
+}
+
+/* Ensure labels and inputs/category-displays are block-level within the group */
+.settings-form .setting-group > div {
+  display: flex; /* Use flex for label and input/category-display */
+  flex-direction: column; /* Stack label and input/display */
+  gap: 5px;
 }
