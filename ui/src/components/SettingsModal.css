@@ -59,6 +59,17 @@
   margin-bottom: 30px;
 }
 
+.settings-form h3 {
+  grid-column: 1 / -1; /* Make h3 span across both columns */
+  text-align: left; /* Align text to the left */
+  margin-top: 20px;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.4em;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
 .settings-form .setting-group {
   display: flex;
   flex-direction: column; /* Stack children vertically within the group */
@@ -75,6 +86,14 @@
   font-weight: 600;
   color: #555;
   font-size: 0.95em;
+}
+
+.settings-form .setting-toggle {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px; /* Add some space between the label and the checkbox */
 }
 
 .settings-form input[type="text"],
