@@ -84,92 +84,10 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
         {message && <div className="message">{message}</div>}
 
         <div className="settings-form">
-          {/* Inflation Rate & Projection Years */}
+          {/* General Section */}
+          <h3>General</h3>
           <div className="setting-group">
-            <div>
-              <label htmlFor="default-inflation">
-                Default Inflation Rate (%)
-              </label>
-              <input
-                id="default-inflation"
-                type="number"
-                step="0.1"
-                value={inflationPercent}
-                onChange={(e) => setInflationPercent(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="projection-years">
-                Number of Years to Project
-              </label>
-              <input
-                id="projection-years"
-                type="number"
-                value={projectionYears}
-                onChange={(e) => setProjectionYears(e.target.value)}
-                placeholder="30"
-              />
-            </div>
-            {/* New Toggle for Show Chart Totals */}
-            <div>
-              <label htmlFor="show-chart-totals">
-                Show Chart Totals
-              </label>
-              <input
-                id="show-chart-totals"
-                type="checkbox"
-                checked={showChartTotals}
-                onChange={(e) => setShowChartTotals(e.target.checked)}
-              />
-            </div>
-          </div>
-
-          {/* Asset Categories & Liability Categories */}
-          <div className="setting-group">
-            <div>
-              <label>Asset Categories</label>
-              <div className="category-display">
-                {assetCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsAssetModalOpen(true)}>Manage</button>
-              </div>
-            </div>
-            <div>
-              <label>Liability Categories</label>
-              <div className="category-display">
-                {liabilityCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsLiabilityModalOpen(true)}>Manage</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Income Categories & Expense Categories */}
-          <div className="setting-group">
-            <div>
-              <label>Income Categories</label>
-              <div className="category-display">
-                {incomeCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsIncomeModalOpen(true)}>Manage</button>
-              </div>
-            </div>
-            <div>
-              <label>Expense Categories</label>
-              <div className="category-display">
-                {expenseCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsExpenseModalOpen(true)}>Manage</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Person 1 Name & Person 2 Name */}
-          <div className="setting-group">
+            {/* Person 1 Name & Person 2 Name */}
             <div>
               <label htmlFor="person1-name">
                 Person 1 Name
@@ -193,6 +111,87 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
                 onChange={(e) => setPerson2Name(e.target.value)}
                 placeholder="Person 2"
               />
+            </div>
+            {/* Default Inflation Rate (%) */}
+            <div>
+              <label htmlFor="default-inflation">
+                Default Inflation Rate (%)
+              </label>
+              <input
+                id="default-inflation"
+                type="number"
+                step="0.1"
+                value={inflationPercent}
+                onChange={(e) => setInflationPercent(e.target.value)}
+              />
+            </div>
+            {/* Number of Years to Project */}
+            <div>
+              <label htmlFor="projection-years">
+                Number of Years to Project
+              </label>
+              <input
+                id="projection-years"
+                type="number"
+                value={projectionYears}
+                onChange={(e) => setProjectionYears(e.target.value)}
+                placeholder="30"
+              />
+            </div>
+            {/* Show Chart Totals */}
+            <div>
+              <label htmlFor="show-chart-totals">
+                Show Chart Totals
+              </label>
+              <input
+                id="show-chart-totals"
+                type="checkbox"
+                checked={showChartTotals}
+                onChange={(e) => setShowChartTotals(e.target.checked)}
+              />
+            </div>
+          </div>
+
+          {/* Categories Section */}
+          <h3>Categories</h3>
+          <div className="setting-group">
+            {/* Asset Categories & Liability Categories */}
+            <div>
+              <label>Asset Categories</label>
+              <div className="category-display">
+                {assetCategories.map((cat, index) => (
+                  <span key={index} className="category-tag">{cat}</span>
+                ))}
+                <button type="button" onClick={() => setIsAssetModalOpen(true)}>Manage</button>
+              </div>
+            </div>
+            <div>
+              <label>Liability Categories</label>
+              <div className="category-display">
+                {liabilityCategories.map((cat, index) => (
+                  <span key={index} className="category-tag">{cat}</span>
+                ))}
+                <button type="button" onClick={() => setIsLiabilityModalOpen(true)}>Manage</button>
+              </div>
+            </div>
+            {/* Income Categories & Expense Categories */}
+            <div>
+              <label>Income Categories</label>
+              <div className="category-display">
+                {incomeCategories.map((cat, index) => (
+                  <span key={index} className="category-tag">{cat}</span>
+                ))}
+                <button type="button" onClick={() => setIsIncomeModalOpen(true)}>Manage</button>
+              </div>
+            </div>
+            <div>
+              <label>Expense Categories</label>
+              <div className="category-display">
+                {expenseCategories.map((cat, index) => (
+                  <span key={index} className="category-tag">{cat}</span>
+                ))}
+                <button type="button" onClick={() => setIsExpenseModalOpen(true)}>Manage</button>
+              </div>
             </div>
           </div>
         </div>
