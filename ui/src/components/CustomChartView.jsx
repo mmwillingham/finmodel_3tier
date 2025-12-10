@@ -1,1 +1,240 @@
-import React, { useState, useEffect } from \'react\';\nimport { Line, Bar, Pie } from \'react-chartjs-2\';\nimport { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from \'chart.js\';\nimport CustomChartService from \'../services/customChart.service\';\nimport \'./CustomChartView.css\'; // We will create this CSS file\n\n// Register Chart.js components\nChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);\n\nexport default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack }) {\n  const [chartConfig, setChartConfig] = useState(null);\n  const [chartData, setChartData] = useState({ labels: [], datasets: [] });\n  const [loading, setLoading] = useState(true);\n  const [message, setMessage] = useState(\'\');\n  const currentYear = new Date().getFullYear();\n\n  useEffect(() => {\n    const fetchAndPrepareChart = async () => {\n      setLoading(true);\n      setMessage(\'\');\n      try {\n        const response = await CustomChartService.get(chartId);\n        const fetchedConfig = response.data;\n        setChartConfig(fetchedConfig);\n        prepareChartData(fetchedConfig);\n      } catch (error) {\n        console.error(\"Error fetching custom chart:\", error);\n        setMessage(\"Failed to load chart configuration.\");\n      } finally {\n        setLoading(false);\n      }\n    };\n\n    if (chartId) {\n      fetchAndPrepareChart();\n    }\n  }, [chartId, assets, liabilities, incomeItems, expenseItems, projectionYears]);\n\n  const prepareChartData = (fetchedConfig) => {\n    const labels = Array.from({ length: projectionYears + 1 }, (_, i) => currentYear + i);\n    const datasets = [];\n\n    let allData = {\n      assets: assets || [],\n      liabilities: liabilities || [],\n      income: incomeItems || [],\n      expenses: expenseItems || [],\n    };\n\n    try {\n      const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);\n\n      seriesConfigurations.forEach((series, index) => {\n        const sourceData = allData[series.data_type];\n        if (!sourceData) {\n          console.warn(`Data source \${series.data_type} not found.`);\n          return;\n        }\n\n        const dataValues = labels.map((year, yearIndex) => {\n          let aggregatedValue = 0;\n          sourceData.forEach(item => {\n            const itemStartDate = item.start_date ? new Date(item.start_date) : null;\n            const itemEndDate = item.end_date ? new Date(item.end_date) : null;\n\n            const isActive = \n              (!itemStartDate || year >= itemStartDate.getFullYear()) &&\n              (!itemEndDate || year <= itemEndDate.getFullYear());\n\n            if (isActive) {\n              // Handle different data types and fields\n              let value = item[series.field];\n              if (series.data_type === \'income\' || series.data_type === \'expenses\') {\n                // For cashflow items, yearly_value might be the base, then adjust for increase/inflation\n                const annualRate = (series.data_type === \'income\' ? item.annual_increase_percent : item.inflation_percent) / 100;\n                value = item.yearly_value * Math.pow(1 + annualRate, yearIndex); \n              } else if (series.data_type === \'assets\' || series.data_type === \'liabilities\') {\n                 const growthRate = item.annual_increase_percent / 100;\n                 value = item.value * Math.pow(1 + growthRate, yearIndex);\n              }\n\n              aggregatedValue += value || 0;\n            }\n          });\n          return aggregatedValue;\n        });\n\n        datasets.push({\n          label: series.label,\n          data: dataValues,\n          borderColor: series.color,\n          backgroundColor: series.color + \"40\", // Add some transparency\n          fill: false,\n          tension: 0.1,\n          // Specifics for chart types\n          ...(fetchedConfig.chart_type === \'bar\' && { backgroundColor: series.color }),\n          ...(fetchedConfig.chart_type === \'pie\' && { backgroundColor: series.color, borderColor: \'#fff\', borderWidth: 1 }),\n        });\n      });\n\n    } catch (e) {\n      console.error(\"Error parsing series configurations or preparing data:\", e);\n      setMessage(\"Error preparing chart data.\");\n      setChartData({ labels: [], datasets: [] });\n      return;\n    }\n\n    setChartData({ labels, datasets });\n  };\n\n  const getChartComponent = () => {\n    if (!chartConfig || chartData.datasets.length === 0) return null;\n\n    const options = {\n      responsive: true,\n      plugins: {\n        legend: {\n          position: \'top\',\n        },\n        title: {\n          display: true,\n          text: chartConfig.name,\n        },\n        tooltip: {\n          callbacks: {\n            label: function(context) {\n              let label = context.dataset.label || \'\';\n              if (label) {\n                label += \': \';\n              }\n              if (context.parsed.y !== null) {\n                label += formatCurrency(context.parsed.y);\n              } else if (context.parsed !== null) { // For pie charts, context.parsed is a single value\n                label += formatCurrency(context.parsed);\n              }\n              return label;\n            }\n          }\n        }\n      },\n      scales: {\n        x: {\n          title: {\n            display: !!chartConfig.x_axis_label,\n            text: chartConfig.x_axis_label,\n          },\n        },\n        y: {\n          beginAtZero: true,\n          title: {\n            display: !!chartConfig.y_axis_label,\n            text: chartConfig.y_axis_label,\n          },\n          ticks: {\n            callback: function(value) {\n              return formatCurrency(value);\n            }\n          }\n        },\n      },\n      ...(chartConfig.chart_type === \'pie\' && {\n        scales: { // No scales for pie chart\n          x: { display: false },\n          y: { display: false },\n        }\n      })\n    };\n\n    switch (chartConfig.chart_type) {\n      case \'line\':\n        return <Line data={chartData} options={options} />;\n      case \'bar\':\n        return <Bar data={chartData} options={options} />;\n      case \'pie\':\n        // For pie charts, labels should be the series labels directly\n        // And data should be a single array of aggregated values\n        const pieLabels = chartData.datasets.map(ds => ds.label);\n        const pieDataValues = chartData.datasets.map(ds => ds.data.reduce((sum, val) => sum + val, 0)); // Sum all values for pie\n        const pieBackgroundColors = chartData.datasets.map(ds => ds.backgroundColor);\n        const pieBorderColors = chartData.datasets.map(ds => ds.borderColor);\n\n        return <Pie \n          data={{\n            labels: pieLabels,\n            datasets: [{\n              data: pieDataValues,\n              backgroundColor: pieBackgroundColors,\n              borderColor: pieBorderColors,\n              borderWidth: 1,\n            }],\n          }}\n          options={{\n            responsive: true,\n            plugins: {\n              legend: { position: \'top\' },\n              title: { display: true, text: chartConfig.name },\n              tooltip: {\n                callbacks: {\n                  label: function(context) {\n                    let label = context.label || \'\';\n                    if (label) {\n                      label += \': \';\n                    }\n                    if (context.parsed !== null) {\n                      label += formatCurrency(context.parsed);\n                    }\n                    return label;\n                  }\n                }\n              }\n            },\n          }}\n        />;\n      default:\n        return <p>Unsupported chart type: {chartConfig.chart_type}</p>;\n    }\n  };\n\n  if (loading) {\n    return <div className=\"loading\">Loading chart...</div>;\n  }\n\n  if (message) {\n    return <div className=\"message error\">{message}</div>;\n  }\n\n  return (\n    <div className=\"custom-chart-view-container\">\n      <button onClick={onBack} className=\"back-btn\">← Back to Custom Charts</button>\n      <div className=\"chart-display-area\">\n        {getChartComponent()}\n      </div>\n    </div>\n  );\n}\n
+import React, { useState, useEffect, useCallback } from 'react';
+import { Line, Bar, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import CustomChartService from '../services/customChart.service';
+import './CustomChartView.css'; // We will create this CSS file
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
+
+export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack }) {
+  const [chartConfig, setChartConfig] = useState(null);
+  const [chartData, setChartData] = useState({ labels: [], datasets: [] });
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const currentYear = new Date().getFullYear();
+
+  const prepareChartData = useCallback((fetchedConfig) => {
+    const labels = Array.from({ length: projectionYears + 1 }, (_, i) => currentYear + i);
+    const datasets = [];
+
+    let allData = {
+      assets: assets || [],
+      liabilities: liabilities || [],
+      income: incomeItems || [],
+      expenses: expenseItems || [],
+    };
+
+    try {
+      const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
+
+      seriesConfigurations.forEach((series, index) => {
+        const sourceData = allData[series.data_type];
+        if (!sourceData) {
+          console.warn(`Data source ${series.data_type} not found.`);
+          return;
+        }
+
+        const dataValues = labels.map((year, yearIndex) => {
+          let aggregatedValue = 0;
+          sourceData.forEach(item => {
+            // Apply category filter if specified
+            if (series.category && item.category !== series.category) {
+              return;
+            }
+
+            const itemStartDate = item.start_date ? new Date(item.start_date) : null;
+            const itemEndDate = item.end_date ? new Date(item.end_date) : null;
+
+            const isActive = 
+              (!itemStartDate || year >= itemStartDate.getFullYear()) &&
+              (!itemEndDate || year <= itemEndDate.getFullYear());
+
+            if (isActive) {
+              // Handle different data types and fields
+              let value = item[series.field];
+              if (series.data_type === 'income' || series.data_type === 'expenses') {
+                // For cashflow items, yearly_value might be the base, then adjust for increase/inflation
+                const annualRate = (series.data_type === 'income' ? item.annual_increase_percent : item.inflation_percent) / 100;
+                value = item.yearly_value * Math.pow(1 + annualRate, yearIndex); 
+              } else if (series.data_type === 'assets' || series.data_type === 'liabilities') {
+                 const growthRate = item.annual_increase_percent / 100;
+                 value = item.value * Math.pow(1 + growthRate, yearIndex);
+              }
+
+              aggregatedValue += value || 0;
+            }
+          });
+          return aggregatedValue;
+        });
+
+        datasets.push({
+          label: series.label,
+          data: dataValues,
+          borderColor: series.color,
+          backgroundColor: series.color + "40", // Add some transparency
+          fill: false,
+          tension: 0.1,
+          // Specifics for chart types
+          ...(fetchedConfig.chart_type === 'bar' && { backgroundColor: series.color }),
+          ...(fetchedConfig.chart_type === 'pie' && { backgroundColor: series.color, borderColor: '#fff', borderWidth: 1 }),
+        });
+      });
+
+    } catch (e) {
+      console.error("Error parsing series configurations or preparing data:", e);
+      setMessage("Error preparing chart data.");
+      setChartData({ labels: [], datasets: [] });
+      return;
+    }
+
+    setChartData({ labels, datasets });
+  }, [assets, liabilities, incomeItems, expenseItems, projectionYears, currentYear]);
+
+  useEffect(() => {
+    const fetchAndPrepareChart = async () => {
+      setLoading(true);
+      setMessage('');
+      try {
+        const response = await CustomChartService.get(chartId);
+        const fetchedConfig = response.data;
+        setChartConfig(fetchedConfig);
+        prepareChartData(fetchedConfig); // Call the memoized function
+      } catch (error) {
+        console.error("Error fetching custom chart:", error);
+        setMessage("Failed to load chart configuration.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (chartId) {
+      fetchAndPrepareChart();
+    }
+  }, [chartId, prepareChartData]); // prepareChartData is a dependency
+
+  const getChartComponent = () => {
+    if (!chartConfig || chartData.datasets.length === 0) return null;
+
+    const options = {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        title: {
+          display: true,
+          text: chartConfig.name,
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += formatCurrency(context.parsed.y);
+              } else if (context.parsed !== null) { // For pie charts, context.parsed is a single value
+                label += formatCurrency(context.parsed);
+              }
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: !!chartConfig.x_axis_label,
+            text: chartConfig.x_axis_label,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          title: {
+            display: !!chartConfig.y_axis_label,
+            text: chartConfig.y_axis_label,
+          },
+          ticks: {
+            callback: function(value) {
+              return formatCurrency(value);
+            }
+          }
+        },
+      },
+      ...(chartConfig.chart_type === 'pie' && {
+        scales: { // No scales for pie chart
+          x: { display: false },
+          y: { display: false },
+        }
+      })
+    };
+
+    switch (chartConfig.chart_type) {
+      case 'line':
+        return <Line data={chartData} options={options} />;
+      case 'bar':
+        return <Bar data={chartData} options={options} />;
+      case 'pie':
+        // For pie charts, labels should be the series labels directly
+        // And data should be a single array of aggregated values
+        const pieLabels = chartData.datasets.map(ds => ds.label);
+        const pieDataValues = chartData.datasets.map(ds => ds.data.reduce((sum, val) => sum + val, 0)); // Sum all values for pie
+        const pieBackgroundColors = chartData.datasets.map(ds => ds.backgroundColor);
+        const pieBorderColors = chartData.datasets.map(ds => ds.borderColor);
+
+        return <Pie 
+          data={{
+            labels: pieLabels,
+            datasets: [{
+              data: pieDataValues,
+              backgroundColor: pieBackgroundColors,
+              borderColor: pieBorderColors,
+              borderWidth: 1,
+            }],
+          }}
+          options={{
+            responsive: true,
+            plugins: {
+              legend: { position: 'top' },
+              title: { display: true, text: chartConfig.name },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.label || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    if (context.parsed !== null) {
+                      label += formatCurrency(context.parsed);
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+          }}
+        />;
+      default:
+        return <p>Unsupported chart type: {chartConfig.chart_type}</p>;
+    }
+  };
+
+  if (loading) {
+    return <div className="loading">Loading chart...</div>;
+  }
+
+  if (message) {
+    return <div className="message error">{message}</div>;
+  }
+
+  return (
+    <div className="custom-chart-view-container">
+      <button onClick={onBack} className="back-btn">← Back to Custom Charts</button>
+      <div className="chart-display-area">
+        {getChartComponent()}
+      </div>
+    </div>
+  );
+}

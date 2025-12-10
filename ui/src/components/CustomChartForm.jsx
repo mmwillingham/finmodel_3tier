@@ -12,7 +12,20 @@ const getRandomColor = () => {
   return `hsl(${h}, 70%, 50%)`;
 };
 
-export default function CustomChartForm({ chartId, onChartSaved, onCancel, assets, liabilities, incomeItems, expenseItems, projectionYears }) {
+export default function CustomChartForm({
+  chartId,
+  onChartSaved,
+  onCancel,
+  assets,
+  liabilities,
+  incomeItems,
+  expenseItems,
+  projectionYears,
+  assetCategories,
+  liabilityCategories,
+  incomeCategories,
+  expenseCategories,
+}) {
   const [name, setName] = useState("");
   const [chartType, setChartType] = useState(chartTypes[0]);
   const [selectedDataSources, setSelectedDataSources] = useState([]);
@@ -32,7 +45,7 @@ export default function CustomChartForm({ chartId, onChartSaved, onCancel, asset
           setName(chart.name);
           setChartType(chart.chart_type);
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
-          setSeriesConfigurations(JSON.parse(chart.series_configurations));
+          setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ ...series, category: series.category || '' })));
           setXAxisLabel(chart.x_axis_label || "");
           setYAxisLabel(chart.y_axis_label || "");
         })
@@ -52,6 +65,16 @@ export default function CustomChartForm({ chartId, onChartSaved, onCancel, asset
     }
   }, [chartId]);
 
+  const getCategoryOptions = useCallback((dataType) => {
+    switch (dataType) {
+      case 'assets': return assetCategories;
+      case 'liabilities': return liabilityCategories;
+      case 'income': return incomeCategories;
+      case 'expenses': return expenseCategories;
+      default: return [];
+    }
+  }, [assetCategories, liabilityCategories, incomeCategories, expenseCategories]);
+
   const handleDataSourceChange = (e) => {
     const { value, checked } = e.target;
     if (checked) {
@@ -68,6 +91,7 @@ export default function CustomChartForm({ chartId, onChartSaved, onCancel, asset
       aggregation: "sum",
       label: "New Series",
       color: getRandomColor(),
+      category: "", // New category field
     }]);
   };
 
@@ -174,6 +198,22 @@ export default function CustomChartForm({ chartId, onChartSaved, onCancel, asset
                   ))}
                 </select>
               </div>
+
+              {/* Category dropdown, conditional based on data type */}
+              {(series.data_type === 'assets' || series.data_type === 'liabilities' || series.data_type === 'income' || series.data_type === 'expenses') && (
+                <div className="form-group">
+                  <label>Category:</label>
+                  <select
+                    value={series.category}
+                    onChange={(e) => handleSeriesChange(index, 'category', e.target.value)}
+                  >
+                    <option value="">All Categories</option>
+                    {getCategoryOptions(series.data_type).map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* TODO: Dynamically render fields based on selected data_type */}
               <div className="form-group">

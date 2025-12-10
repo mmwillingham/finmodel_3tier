@@ -28,6 +28,10 @@ export default function SidebarLayout() {
   const [expenseItems, setExpenseItems] = useState([]);
   const [assets, setAssets] = useState([]);
   const [liabilities, setLiabilities] = useState([]);
+  const [assetCategories, setAssetCategories] = useState([]); // New state for asset categories
+  const [liabilityCategories, setLiabilityCategories] = useState([]); // New state for liability categories
+  const [incomeCategories, setIncomeCategories] = useState([]); // New state for income categories
+  const [expenseCategories, setExpenseCategories] = useState([]); // New state for expense categories
   const [projectionYears, setProjectionYears] = useState(30); // Added for new components
   const [showChartTotals, setShowChartTotals] = useState(true); // New state for toggle
   const [customChartView, setCustomChartView] = useState(null); // New state for custom charts
@@ -55,18 +59,26 @@ export default function SidebarLayout() {
         LiabilityService.list(),
         SettingsService.getSettings(),
       ]);
+
       setIncomeItems(inc.data || []);
       setExpenseItems(exp.data || []);
       setAssets(ast.data || []);
       setLiabilities(lib.data || []);
       setProjectionYears(settingsRes.data.projection_years || 30);
       setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
+
+      // Extract unique categories
+      setAssetCategories([...new Set(ast.data.map(item => item.category))].filter(Boolean));
+      setLiabilityCategories([...new Set(lib.data.map(item => item.category))].filter(Boolean));
+      setIncomeCategories([...new Set(inc.data.map(item => item.category))].filter(Boolean));
+      setExpenseCategories([...new Set(exp.data.map(item => item.category))].filter(Boolean));
+
     } catch (e) {
       console.error("Failed to load initial data", e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []));
 
   // Keep loading cashflow, assets, and liabilities as they are part of the new dashboard views
   useEffect(() => {
@@ -333,6 +345,10 @@ export default function SidebarLayout() {
               incomeItems={incomeItems}
               expenseItems={expenseItems}
               projectionYears={projectionYears}
+              assetCategories={assetCategories}
+              liabilityCategories={liabilityCategories}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
             />
           </div>
         )}
