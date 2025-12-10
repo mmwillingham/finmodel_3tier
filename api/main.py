@@ -369,6 +369,8 @@ def update_settings(
         settings.person2_name = payload.person2_name
     if payload.projection_years is not None:
         settings.projection_years = payload.projection_years
+    if payload.show_chart_totals is not None:
+        settings.show_chart_totals = payload.show_chart_totals
     try:
         db.commit()
         db.refresh(settings)
