@@ -102,6 +102,11 @@ class CashFlowCreate(BaseModel):
     value: float
     annual_increase_percent: float = 0.0
     inflation_percent: float = 0.0
+    person: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    taxable: bool = False
+    tax_deductible: bool = False
 
 class CashFlowUpdate(CashFlowCreate):
     pass
@@ -115,13 +120,72 @@ class CashFlowOut(BaseModel):
     yearly_value: float
     annual_increase_percent: float
     inflation_percent: float
+    person: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    taxable: bool
+    tax_deductible: bool
     model_config = ConfigDict(from_attributes=True)
 
 class UserSettingsOut(BaseModel):
     id: int
     user_id: int
     default_inflation_percent: float
+    asset_categories: str | None = "Real Estate,Vehicles,Investments,Other"
+    liability_categories: str | None = "Mortgage,Car Loan,Credit Card,Student Loan,Other"
+    income_categories: str | None = "Salary,Bonus,Investment Income,Other"
+    expense_categories: str | None = "Housing,Transportation,Food,Healthcare,Entertainment,Other"
+    person1_name: str | None = "Person 1"
+    person2_name: str | None = "Person 2"
+    projection_years: int | None = 30
     model_config = ConfigDict(from_attributes=True)
 
 class UserSettingsUpdate(BaseModel):
     default_inflation_percent: float
+    asset_categories: str | None = None
+    liability_categories: str | None = None
+    income_categories: str | None = None
+    expense_categories: str | None = None
+    person1_name: str | None = None
+    person2_name: str | None = None
+    projection_years: int | None = None
+
+
+# --- ASSET SCHEMAS ---
+
+class AssetCreate(BaseModel):
+    name: str
+    category: str
+    value: float
+    annual_increase_percent: float = 0.0
+
+class AssetUpdate(AssetCreate):
+    pass
+
+class AssetOut(BaseModel):
+    id: int
+    name: str
+    category: str
+    value: float
+    annual_increase_percent: float
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- LIABILITY SCHEMAS ---
+
+class LiabilityCreate(BaseModel):
+    name: str
+    category: str
+    value: float
+    annual_increase_percent: float = 0.0
+
+class LiabilityUpdate(LiabilityCreate):
+    pass
+
+class LiabilityOut(BaseModel):
+    id: int
+    name: str
+    category: str
+    value: float
+    annual_increase_percent: float
+    model_config = ConfigDict(from_attributes=True)

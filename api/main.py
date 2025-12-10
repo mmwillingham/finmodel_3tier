@@ -258,6 +258,11 @@ def create_cashflow(
         yearly_value=yearly_value,
         annual_increase_percent=payload.annual_increase_percent,
         inflation_percent=payload.inflation_percent,
+        person=payload.person,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        taxable=payload.taxable,
+        tax_deductible=payload.tax_deductible,
     )
     db.add(item)
     db.commit()
@@ -284,6 +289,11 @@ def update_cashflow(
     item.yearly_value = yearly_value
     item.annual_increase_percent = payload.annual_increase_percent
     item.inflation_percent = payload.inflation_percent
+    item.person = payload.person
+    item.start_date = payload.start_date
+    item.end_date = payload.end_date
+    item.taxable = payload.taxable
+    item.tax_deductible = payload.tax_deductible
     db.commit()
     db.refresh(item)
     return item
@@ -310,7 +320,17 @@ def get_settings(
 ):
     settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
     if not settings:
-        settings = models.UserSettings(user_id=current_user.id, default_inflation_percent=2.0)
+        settings = models.UserSettings(
+            user_id=current_user.id,
+            default_inflation_percent=2.0,
+            asset_categories="Real Estate,Vehicles,Investments,Other",
+            liability_categories="Mortgage,Car Loan,Credit Card,Student Loan,Other",
+            income_categories="Salary,Bonus,Investment Income,Other",
+            expense_categories="Housing,Transportation,Food,Healthcare,Entertainment,Other",
+            person1_name="Person 1",
+            person2_name="Person 2",
+            projection_years=30
+        )
         db.add(settings)
         db.commit()
         db.refresh(settings)
@@ -327,6 +347,162 @@ def update_settings(
         settings = models.UserSettings(user_id=current_user.id)
         db.add(settings)
     settings.default_inflation_percent = payload.default_inflation_percent
+    if payload.asset_categories is not None:
+        settings.asset_categories = payload.asset_categories
+    if payload.liability_categories is not None:
+        settings.liability_categories = payload.liability_categories
+    if payload.income_categories is not None:
+        settings.income_categories = payload.income_categories
+    if payload.expense_categories is not None:
+        settings.expense_categories = payload.expense_categories
+    if payload.person1_name is not None:
+        settings.person1_name = payload.person1_name
+    if payload.person2_name is not None:
+        settings.person2_name = payload.person2_name
+    if payload.projection_years is not None:
+        settings.projection_years = payload.projection_years
     db.commit()
     db.refresh(settings)
     return settings
+
+
+# --- ASSET ENDPOINTS ---
+
+@app.get("/assets", response_model=List[schemas.AssetOut], tags=["assets"])
+def list_assets(
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    return (
+        db.query(models.Asset)
+        .filter(models.Asset.owner_id == current_user.id)
+        .order_by(models.Asset.id.desc())
+        .all()
+    )
+
+
+@app.post("/assets", response_model=schemas.AssetOut, status_code=201, tags=["assets"])
+def create_asset(
+    payload: schemas.AssetCreate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    asset = models.Asset(
+        owner_id=current_user.id,
+        name=payload.name,
+        category=payload.category,
+        value=payload.value,
+        annual_increase_percent=payload.annual_increase_percent,
+    )
+    db.add(asset)
+    db.commit()
+    db.refresh(asset)
+    return asset
+
+
+@app.put("/assets/{asset_id}", response_model=schemas.AssetOut, tags=["assets"])
+def update_asset(
+    asset_id: int,
+    payload: schemas.AssetUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    asset.name = payload.name
+    asset.category = payload.category
+    asset.value = payload.value
+    asset.annual_increase_percent = payload.annual_increase_percent
+    db.commit()
+    db.refresh(asset)
+    return asset
+
+
+@app.delete("/assets/{asset_id}", status_code=204, tags=["assets"])
+def delete_asset(
+    asset_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    db.delete(asset)
+    db.commit()
+    return Response(status_code=204)
+
+
+# --- LIABILITY ENDPOINTS ---
+
+@app.get("/liabilities", response_model=List[schemas.LiabilityOut], tags=["liabilities"])
+def list_liabilities(
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    return (
+        db.query(models.Liability)
+        .filter(models.Liability.owner_id == current_user.id)
+        .order_by(models.Liability.id.desc())
+        .all()
+    )
+
+
+@app.post("/liabilities", response_model=schemas.LiabilityOut, status_code=201, tags=["liabilities"])
+def create_liability(
+    payload: schemas.LiabilityCreate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    liability = models.Liability(
+        owner_id=current_user.id,
+        name=payload.name,
+        category=payload.category,
+        value=payload.value,
+        annual_increase_percent=payload.annual_increase_percent,
+    )
+    db.add(liability)
+    db.commit()
+    db.refresh(liability)
+    return liability
+
+
+@app.put("/liabilities/{liability_id}", response_model=schemas.LiabilityOut, tags=["liabilities"])
+def update_liability(
+    liability_id: int,
+    payload: schemas.LiabilityUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    liability = db.query(models.Liability).filter(models.Liability.id == liability_id).first()
+    if not liability:
+        raise HTTPException(status_code=404, detail="Liability not found")
+    if liability.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    liability.name = payload.name
+    liability.category = payload.category
+    liability.value = payload.value
+    liability.annual_increase_percent = payload.annual_increase_percent
+    db.commit()
+    db.refresh(liability)
+    return liability
+
+
+@app.delete("/liabilities/{liability_id}", status_code=204, tags=["liabilities"])
+def delete_liability(
+    liability_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    liability = db.query(models.Liability).filter(models.Liability.id == liability_id).first()
+    if not liability:
+        raise HTTPException(status_code=404, detail="Liability not found")
+    if liability.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    db.delete(liability)
+    db.commit()
+    return Response(status_code=204)

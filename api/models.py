@@ -49,6 +49,11 @@ class CashFlowItem(Base):
     yearly_value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)  # For income
     inflation_percent = Column(Float, default=0.0)  # For expenses
+    person = Column(String, nullable=True)  # Optional person name
+    start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
+    end_date = Column(String, nullable=True)  # End date as string (YYYY-MM-DD)
+    taxable = Column(Boolean, default=False)  # For income
+    tax_deductible = Column(Boolean, default=False)  # For expenses
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -57,5 +62,34 @@ class UserSettings(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     default_inflation_percent = Column(Float, default=2.0)
+    asset_categories = Column(String, default="Real Estate,Vehicles,Investments,Other")
+    liability_categories = Column(String, default="Mortgage,Car Loan,Credit Card,Student Loan,Other")
+    income_categories = Column(String, default="Salary,Bonus,Investment Income,Other")
+    expense_categories = Column(String, default="Housing,Transportation,Food,Healthcare,Entertainment,Other")
+    person1_name = Column(String, default="Person 1")
+    person2_name = Column(String, default="Person 2")
+    projection_years = Column(Integer, default=30)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class Asset(Base):
+    __tablename__ = "assets"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    value = Column(Float, nullable=False)
+    annual_increase_percent = Column(Float, default=0.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Liability(Base):
+    __tablename__ = "liabilities"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    value = Column(Float, nullable=False)
+    annual_increase_percent = Column(Float, default=0.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
