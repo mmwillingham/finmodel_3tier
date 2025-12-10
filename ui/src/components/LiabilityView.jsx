@@ -7,7 +7,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
   const [categories, setCategories] = useState([]);
   const [newItem, setNewItem] = useState({
     name: "",
-    category: "",
+    category: "Other",
     value: "",
     annual_increase_percent: 0,
   });
@@ -91,10 +91,9 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
         />
 
         <select
-          value={newItem.category || categories[0]}
+          value={newItem.category}
           onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
         >
-          <option value="">Select Category</option>
           {categories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
