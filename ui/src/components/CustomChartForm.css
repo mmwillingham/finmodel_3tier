@@ -1,0 +1,149 @@
+/* CustomChartForm.css */
+
+.custom-chart-form-container {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 700px;
+  margin: 20px auto;
+}
+
+.custom-chart-form-container h3 {
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.custom-chart-form-container .message {
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  text-align: center;
+}
+
+.custom-chart-form-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.custom-chart-form-container .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-chart-form-container label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.95em;
+}
+
+.custom-chart-form-container input[type="text"],
+.custom-chart-form-container input[type="number"],
+.custom-chart-form-container select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+}
+
+.custom-chart-form-container input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.custom-chart-form-container .checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.custom-chart-form-container .checkbox-group label {
+  font-weight: normal;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.custom-chart-form-container h4 {
+  margin-top: 30px;
+  margin-bottom: 15px;
+  color: #444;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.custom-chart-form-container .series-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.custom-chart-form-container .series-item {
+  border: 1px solid #e0e0e0;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  align-items: end; /* Align buttons/inputs at the bottom */
+}
+
+.custom-chart-form-container .series-item .form-group {
+  margin-bottom: 0;
+}
+
+.custom-chart-form-container .series-item button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin-top: 10px; /* Space from other form elements */
+}
+
+.custom-chart-form-container .series-item button:hover {
+  background-color: #c82333;
+}
+
+.custom-chart-form-container .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.custom-chart-form-container .modal-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.custom-chart-form-container .modal-actions button[type="submit"] {
+  background-color: #007bff;
+  color: white;
+}
+
+.custom-chart-form-container .modal-actions button[type="submit"]:hover {
+  background-color: #0056b3;
+}
+
+.custom-chart-form-container .modal-actions button[type="button"] {
+  background-color: #6c757d;
+  color: white;
+}
+
+.custom-chart-form-container .modal-actions button[type="button"]:hover {
+  background-color: #545b62;
+}

@@ -12,6 +12,10 @@ import CashFlowOverview from "./CashFlowOverview"; // New import
 import SettingsModal from "./SettingsModal";
 import "./SidebarLayout.css";
 import SettingsService from "../services/settings.service"; // Added for projectionYears
+import CustomChartService from "../services/customChart.service";
+import CustomChartList from "./CustomChartList"; // Placeholder
+import CustomChartForm from "./CustomChartForm";
+import CustomChartView from "./CustomChartView";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("new-home"); // New default view
@@ -26,6 +30,9 @@ export default function SidebarLayout() {
   const [liabilities, setLiabilities] = useState([]);
   const [projectionYears, setProjectionYears] = useState(30); // Added for new components
   const [showChartTotals, setShowChartTotals] = useState(true); // New state for toggle
+  const [customChartView, setCustomChartView] = useState(null); // New state for custom charts
+  const [selectedChartId, setSelectedChartId] = useState(null); // State to hold the ID of the chart being edited
+  const [chartToViewId, setChartToViewId] = useState(null); // State to hold the ID of the chart being viewed
 
   // Function to refresh settings from the backend
   const refreshSettings = useCallback(async () => {
@@ -37,6 +44,29 @@ export default function SidebarLayout() {
       console.error("Failed to refresh settings", e);
     }
   }, []); // useCallback with empty dependency array means it's memoized and won't change on re-renders
+
+  const refreshAllData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [inc, exp, ast, lib, settingsRes] = await Promise.all([
+        CashFlowService.list(true),
+        CashFlowService.list(false),
+        AssetService.list(),
+        LiabilityService.list(),
+        SettingsService.getSettings(),
+      ]);
+      setIncomeItems(inc.data || []);
+      setExpenseItems(exp.data || []);
+      setAssets(ast.data || []);
+      setLiabilities(lib.data || []);
+      setProjectionYears(settingsRes.data.projection_years || 30);
+      setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
+    } catch (e) {
+      console.error("Failed to load initial data", e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Keep loading cashflow, assets, and liabilities as they are part of the new dashboard views
   useEffect(() => {
@@ -63,7 +93,7 @@ export default function SidebarLayout() {
       }
     };
     load();
-  }, [refreshSettings]); // Added refreshSettings to dependencies, as it is a useCallback
+  }, [refreshSettings, refreshAllData]); // Added refreshAllData to dependencies
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {
@@ -100,6 +130,24 @@ export default function SidebarLayout() {
     setLiabilities(lib.data || []);
     setLoading(false);
   };
+
+  const handleEditChart = useCallback((chartId) => {
+    setView('custom-charts');
+    setCustomChartView('edit');
+    setSelectedChartId(chartId);
+  }, []);
+
+  const handleCreateNewChart = useCallback(() => {
+    setView('custom-charts');
+    setCustomChartView('create');
+    setSelectedChartId(null); // Clear selected chart when creating new
+  }, []);
+
+  const handleViewChart = useCallback((chartId) => {
+    setView('custom-charts');
+    setCustomChartView('view');
+    setChartToViewId(chartId);
+  }, []);
 
   return (
     <div className="sidebar-layout">
@@ -164,6 +212,22 @@ export default function SidebarLayout() {
               onClick={() => setView('settings')}
             >
               General Settings
+            </button>
+          </section>
+
+          <section className="nav-section">
+            <h3>Custom Charts</h3>
+            <button 
+              className={`nav-btn ${view === 'custom-charts' && customChartView === 'list' ? 'active' : ''}`} 
+              onClick={() => { setView('custom-charts'); setCustomChartView('list'); }}
+            >
+              View All Charts
+            </button>
+            <button 
+              className={`nav-btn ${view === 'custom-charts' && customChartView === 'create' ? 'active' : ''}`} 
+              onClick={() => { setView('custom-charts'); setCustomChartView('create'); }}
+            >
+              Create New Chart
             </button>
           </section>
         </nav>
@@ -248,6 +312,42 @@ export default function SidebarLayout() {
               onClose={() => setView('new-home')} 
               isOpen={true}
               onSettingsSaved={refreshSettings} // Pass the new function here
+            />
+          </div>
+        )}
+
+        {!loading && view === "custom-charts" && customChartView === "list" && (
+          <div className="custom-charts-list">
+            <CustomChartList onEditChart={handleEditChart} onCreateNewChart={handleCreateNewChart} onViewChart={handleViewChart} />
+          </div>
+        )}
+
+        {!loading && view === "custom-charts" && (customChartView === "create" || customChartView === "edit") && (
+          <div className="custom-charts-form">
+            <CustomChartForm 
+              chartId={selectedChartId} 
+              onChartSaved={() => { setView('custom-charts'); setCustomChartView('list'); refreshAllData(); }}
+              onCancel={() => { setView('custom-charts'); setCustomChartView('list'); }}
+              assets={assets}
+              liabilities={liabilities}
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+              projectionYears={projectionYears}
+            />
+          </div>
+        )}
+
+        {!loading && view === "custom-charts" && customChartView === "view" && chartToViewId && (
+          <div className="custom-charts-view">
+            <CustomChartView 
+              chartId={chartToViewId}
+              assets={assets}
+              liabilities={liabilities}
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+              projectionYears={projectionYears}
+              formatCurrency={formatCurrency}
+              onBack={() => { setView('custom-charts'); setCustomChartView('list'); setChartToViewId(null); }}
             />
           </div>
         )}
