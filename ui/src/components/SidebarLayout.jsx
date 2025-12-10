@@ -9,6 +9,7 @@ import ProjectionsTable from "./ProjectionsTable";
 import CashFlowView from "./CashFlowView";
 import AssetView from "./AssetView";
 import LiabilityView from "./LiabilityView";
+import CashFlowProjection from "./CashFlowProjection";
 import SettingsModal from "./SettingsModal";
 import "./SidebarLayout.css";
 
@@ -179,6 +180,12 @@ export default function SidebarLayout() {
           <section className="nav-section">
             <h3>Cash Flow</h3>
             <button
+              className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); }}
+            >
+              Cash Flow Projection
+            </button>
+            <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
             >
@@ -265,6 +272,11 @@ export default function SidebarLayout() {
               liabilities={liabilities}
               refreshLiabilities={refreshLiabilities}
             />
+          </div>
+        )}
+        {!loading && view === "cashflow-projection" && (
+          <div className="cashflow-projection-view">
+            <CashFlowProjection />
           </div>
         )}
         {!loading && view === "settings" && (
