@@ -146,8 +146,8 @@ export default function SidebarLayout() {
               Income
             </button>
             <button
-              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expenses' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow'); setCashFlowView('expenses'); }}
+              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow'); setCashFlowView('expense'); }}
             >
               Expenses
             </button>
@@ -204,10 +204,11 @@ export default function SidebarLayout() {
         )}
         {!loading && view === "cashflow" && (
           <div className="cashflow-view">
-            <h2>Cash Flow {cashFlowView === 'income' ? "Income" : "Expenses"}</h2>
             <CashFlowView 
-              items={cashFlowView === 'income' ? incomeItems : expenseItems} 
-              onRefresh={refreshCashflow}
+              type={cashFlowView}
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+              refreshCashflow={refreshCashflow}
             />
           </div>
         )}
