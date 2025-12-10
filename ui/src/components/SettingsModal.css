@@ -1,21 +1,19 @@
 
-
-.settings-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Two columns */
-  gap: 20px; /* Increased gap for better spacing */
-  margin-bottom: 1.5rem;
+.settings-form .category-display {
+  position: relative; /* For positioning the modal */
 }
 
-.settings-form .setting-group {
-  display: flex;
-  flex-direction: column; /* Stack children vertically within the group */
-  gap: 10px; /* Gap between items in a group */
-}
-
-/* Ensure labels and inputs/category-displays are block-level within the group */
-.settings-form .setting-group > div {
-  display: flex; /* Use flex for label and input/category-display */
-  flex-direction: column; /* Stack label and input/display */
-  gap: 5px;
+.category-editor-modal {
+  position: absolute;
+  top: 0; /* Align with the top of the category-display */
+  right: 0; /* Align with the right of the category-display */
+  z-index: 1000; /* Ensure it's above other content */
+  background-color: white; /* Give it a background */
+  border: 1px solid #ccc; /* Add a border */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  padding: 15px; /* Internal padding */
+  width: 400px; /* Adjust width as needed */
+  max-height: 80vh; /* Max height for scrollable content */
+  overflow-y: auto; /* Enable scrolling if content is too long */
 }
