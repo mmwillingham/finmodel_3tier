@@ -173,7 +173,7 @@ export default function SettingsModal({ isOpen, onClose }) {
         />
         <CategoryEditorModal 
           isOpen={isLiabilityModalOpen}
-          onClose={() => setIsLiabilityModalOpen(false)}\
+          onClose={() => setIsLiabilityModalOpen(false)}
           onSave={setLiabilityCategories}
           categories={liabilityCategories}
           title="Liability Categories"
