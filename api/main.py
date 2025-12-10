@@ -335,12 +335,13 @@ def get_settings(
         try:
             db.commit()
             db.refresh(settings)
-        except Exception:
+        except Exception as e:
             db.rollback()
             # Another request may have created it, try to fetch again
             settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
             if not settings:
-                raise
+                # If still not found, re-raise the original exception
+                raise e
     return settings
 
 @app.put("/settings", response_model=schemas.UserSettingsOut, tags=["settings"])

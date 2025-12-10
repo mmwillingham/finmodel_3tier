@@ -19,7 +19,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
     inflation_percent: 2.0,
     person: '',
     start_date: '',
-    end_date: 'none',
+    end_date: '',
     taxable: false,
     tax_deductible: false,
   });
@@ -78,7 +78,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       inflation_percent: type === 'expense' ? parseFloat(newItem.inflation_percent || defaultInflation) : 0,
       person: newItem.person || null,
       start_date: newItem.start_date || null,
-      end_date: (newItem.end_date && newItem.end_date !== 'none') ? newItem.end_date : null,
+      end_date: newItem.end_date || null,
       taxable: type === 'income' ? newItem.taxable : false,
       tax_deductible: type === 'expense' ? newItem.tax_deductible : false,
     };
@@ -96,7 +96,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       inflation_percent: defaultInflation,
       person: '',
       start_date: '',
-      end_date: 'none',
+      end_date: '',
       taxable: false,
       tax_deductible: false,
     });
@@ -124,7 +124,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       inflation_percent: item.inflation_percent || defaultInflation,
       person: item.person || '',
       start_date: item.start_date || '',
-      end_date: item.end_date ? item.end_date : 'none',
+      end_date: item.end_date || '',
       taxable: item.taxable || false,
       tax_deductible: item.tax_deductible || false,
     });
@@ -141,7 +141,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       inflation_percent: defaultInflation,
       person: '',
       start_date: '',
-      end_date: 'none',
+      end_date: '',
       taxable: false,
       tax_deductible: false,
     });
@@ -182,15 +182,15 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
               id="end-date-input"
               type="date" 
               placeholder="End Date" 
-              value={newItem.end_date} 
+              value={newItem.end_date || ''} 
               onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
-              disabled={newItem.end_date === 'none'}
+              disabled={!newItem.end_date}
             />
             <label style={{ whiteSpace: 'nowrap' }}>
               <input
                 type="checkbox"
-                checked={newItem.end_date === 'none'}
-                onChange={(e) => setNewItem({ ...newItem, end_date: e.target.checked ? 'none' : '' })}
+                checked={!newItem.end_date}
+                onChange={(e) => setNewItem({ ...newItem, end_date: e.target.checked ? '' : new Date().toISOString().split('T')[0] })}
               />
               No end date
             </label>
