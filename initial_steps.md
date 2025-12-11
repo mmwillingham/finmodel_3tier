@@ -656,6 +656,9 @@ cd ui
 npm install axios react-router-dom chart.js react-chartjs-2
 npm install recharts
 npm install react-sortable-hoc
+npm install react-chartjs-2 chart.js jspdf html2canvas
+npm install
+npm audit fix --force
 cd ..
 ```
 
