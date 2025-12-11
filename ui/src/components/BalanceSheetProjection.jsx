@@ -1,9 +1,11 @@
 import React, { useRef } from "react";
+import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 
 export default function BalanceSheetProjection({ assets, liabilities, projectionYears, formatCurrency, showChartTotals }) {
+  const { currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const overallChartRef = useRef(null);
   const overallTableRef = useRef(null);
@@ -98,7 +100,8 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
         position: "top",
       },
       title: {
-        display: false,
+        display: true,
+        text: `Financial Project - Overall Financial Snapshot${currentUser ? ` by ${currentUser.username}` : ''}`,
       },
     },
     scales: {
@@ -282,11 +285,11 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
 
       {/* Individual Asset Projections Chart */}
       <h3 style={{ marginTop: "50px" }}>Individual Asset Projections</h3>
-      <div className="chart-actions">
-        <button onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</button>
-        <button onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</button>
-      </div>
       <div style={{ marginBottom: "30px" }}>
+        <div className="chart-actions">
+          <button onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</button>
+          <button onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</button>
+        </div>
         <Line 
           ref={individualAssetChartRef}
           data={{
@@ -310,7 +313,16 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
               }] : []),
             ],
           }}
-          options={chartOptions}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              title: {
+                ...chartOptions.plugins.title,
+                text: `Financial Project - Individual Asset Projections${currentUser ? ` by ${currentUser.username}` : ''}`,
+              },
+            },
+          }}
         />
       </div>
 
@@ -352,13 +364,11 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
         <h3 style={{ marginTop: "50px" }}>Individual Liability Projections</h3>
       )}
       {liabilities.length > 0 && (
-        <div className="chart-actions">
-          <button onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</button>
-          <button onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</button>
-        </div>
-      )}
-      {liabilities.length > 0 && (
         <div style={{ marginBottom: "30px" }}>
+          <div className="chart-actions">
+            <button onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</button>
+            <button onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</button>
+          </div>
           <Line 
             ref={individualLiabilityChartRef}
             data={{
@@ -371,7 +381,16 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
                 fill: false,
               })),
             }}
-            options={chartOptions}
+            options={{
+              ...chartOptions,
+              plugins: {
+                ...chartOptions.plugins,
+                title: {
+                  ...chartOptions.plugins.title,
+                  text: `Financial Project - Individual Liability Projections${currentUser ? ` by ${currentUser.username}` : ''}`,
+                },
+              },
+            }}
           />
         </div>
       )}

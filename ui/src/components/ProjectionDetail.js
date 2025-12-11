@@ -11,7 +11,10 @@ import {
     Legend,
 } from 'chart.js';
 import ProjectionService from '../services/projection.service';
+import { useAuth } from '../context/AuthContext';
 import './ProjectionDetail.css';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Register Chart.js components
 ChartJS.register(
@@ -134,14 +137,14 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
       });
       csvRows.push(values.join(','));
     });
-    return csvRows.join('\n');
+    return csvRows.join('\\n');
   };
 
   const handleDownloadYearByYearCsv = (filename) => {
     if (data.length > 0) {
       const headers = ['Year', 'StartingValue', 'Total_Contribution', 'Total_Growth', 'Total_Value'];
       const formattedData = data.map((item, idx) => ({
-        Year: currentYear + idx,
+        Year: getCurrentYear() + idx,
         StartingValue: item.StartingValue,
         Total_Contribution: item.Total_Contribution,
         Total_Growth: item.Total_Growth,
@@ -162,7 +165,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     if (accountDetails.length > 0 && accountNames.length > 0) {
       const headers = ['Year', ...accountNames, 'Total_Value'];
       const formattedData = accountDetails.map((item, idx) => {
-        const row = { Year: currentYear + idx };
+        const row = { Year: getCurrentYear() + idx };
         accountNames.forEach(name => {
           row[name] = item[name];
         });
@@ -185,10 +188,10 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
   if (!projection) return <p>No projection found.</p>;
 
   const accountNames = getAccountNames();
-  const currentYear = getCurrentYear();
+  // const currentYear = getCurrentYear(); // Removed redeclaration
 
   // Prepare chart data
-  const chartLabels = data.map((_, idx) => currentYear + idx);
+  const chartLabels = data.map((_, idx) => getCurrentYear() + idx);
   const chartDatasets = accountNames.map((name, idx) => ({
     label: name,
     data: accountDetails.map(year => year[name]),
@@ -201,7 +204,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     responsive: true,
     plugins: {
       legend: { position: 'top' },
-      title: { display: true, text: `${projection.name} - Growth Over Time` },
+      title: { display: true, text: `Financial Project - ${projection.name} - Growth Over Time${currentUser ? ` by ${currentUser.username}` : ''}` },
     },
     scales: {
       y: {
@@ -234,11 +237,19 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
 
       <h3>Growth Chart</h3>
       <div className="chart-container">
-        <Line data={{ labels: chartLabels, datasets: chartDatasets }} options={chartOptions} />
+        <div className="chart-actions">
+          <button onClick={handleDownloadChartPng}>Download PNG</button>
+          <button onClick={handleDownloadChartPdf}>Download PDF</button>
+        </div>
+        <Line ref={chartRef} data={{ labels: chartLabels, datasets: chartDatasets }} options={chartOptions} />
       </div>
 
       <h3>Year-by-Year Breakdown</h3>
-      <table className="projection-table">
+      <div className="table-actions">
+        <button onClick={() => handleDownloadTablePdf(yearByYearTableRef, `${projection.name}_Year_by_Year_Table`)}>Download PDF</button>
+        <button onClick={() => handleDownloadYearByYearCsv(`${projection.name}_Year_by_Year_Table`)}>Download CSV</button>
+      </div>
+      <table ref={yearByYearTableRef} className="projection-table">
         <thead>
           <tr>
             <th>Year</th>
@@ -251,7 +262,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         <tbody>
           {data.map((year, idx) => (
             <tr key={idx}>
-              <td>{currentYear + idx}</td>
+              <td>{getCurrentYear() + idx}</td>
               <td>{formatCurrency(year.StartingValue)}</td>
               <td>{formatCurrency(year.Total_Contribution)}</td>
               <td>{formatCurrency(year.Total_Growth)}</td>
@@ -262,7 +273,11 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
       </table>
 
       <h3>Account Details</h3>
-      <table className="projection-table">
+      <div className="table-actions">
+        <button onClick={() => handleDownloadTablePdf(accountDetailsTableRef, `${projection.name}_Account_Details_Table`)}>Download PDF</button>
+        <button onClick={() => handleDownloadAccountDetailsCsv(`${projection.name}_Account_Details_Table`)}>Download CSV</button>
+      </div>
+      <table ref={accountDetailsTableRef} className="projection-table">
         <thead>
           <tr>
             <th>Year</th>
@@ -275,7 +290,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         <tbody>
           {accountDetails.map((year, idx) => (
             <tr key={idx}>
-              <td>{currentYear + idx}</td>
+              <td>{getCurrentYear() + idx}</td>
               {accountNames.map(name => (
                 <td key={name}>{formatCurrency(year[name])}</td>
               ))}
@@ -283,13 +298,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
-  );
-};
-
-export default ProjectionDetail;
->
       </table>
     </div>
   );

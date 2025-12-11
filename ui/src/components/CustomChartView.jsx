@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
@@ -9,10 +10,12 @@ import './CustomChartView.css'; // We will create this CSS file
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack }) {
+  const { currentUser } = useAuth();
   const [chartConfig, setChartConfig] = useState(null);
   const [chartData, setChartData] = useState({ labels: [], datasets: [] });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const chartRef = useRef(null);
   const currentYear = new Date().getFullYear();
 
   const prepareChartData = useCallback((fetchedConfig) => {
@@ -125,7 +128,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         },
         title: {
           display: true,
-          text: chartConfig.name,
+          text: `Financial Project - ${chartConfig.name}${currentUser ? ` by ${currentUser.username}` : ''}`,
         },
         tooltip: {
           callbacks: {
@@ -200,7 +203,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             responsive: true,
             plugins: {
               legend: { position: 'top' },
-              title: { display: true, text: chartConfig.name },
+              title: { display: true, text: `Financial Project - ${chartConfig.name}${currentUser ? ` by ${currentUser.username}` : ''}` },
               tooltip: {
                 callbacks: {
                   label: function(context) {

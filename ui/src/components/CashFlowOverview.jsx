@@ -1,9 +1,11 @@
 import React, { useRef } from "react";
+import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 
 export default function CashFlowOverview({ incomeItems, expenseItems, projectionYears, formatCurrency }) {
+  const { currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
   const tableRef = useRef(null);
@@ -70,7 +72,8 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         position: "top",
       },
       title: {
-        display: false,
+        display: true,
+        text: `Financial Project - Income & Expense Projection${currentUser ? ` by ${currentUser.username}` : ''}`,
       },
     },
     scales: {
