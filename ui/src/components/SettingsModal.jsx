@@ -35,6 +35,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
     'WI', 'WY'
   ];
   const [message, setMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('application'); // New state for tabs
 
   useEffect(() => {
     if (isOpen) {
@@ -112,221 +113,254 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
 
         {message && <div className="message">{message}</div>}
 
+        <div className="settings-tabs">
+          <button
+            className={activeTab === 'application' ? 'active' : ''}
+            onClick={() => setActiveTab('application')}
+          >
+            Application
+          </button>
+          <button
+            className={activeTab === 'profile' ? 'active' : ''}
+            onClick={() => setActiveTab('profile')}
+          >
+            Profile
+          </button>
+          <button
+            className={activeTab === 'categories' ? 'active' : ''}
+            onClick={() => setActiveTab('categories')}
+          >
+            Categories
+          </button>
+        </div>
+
         <div className="settings-form">
-          {/* Application Settings Section */}
-          <h3>Application Settings</h3>
-          <div className="setting-group">
-            {/* Default Inflation Rate (%) */}
-            <div>
-              <label htmlFor="default-inflation">
-                Default Inflation Rate (%)
-              </label>
-              <input
-                id="default-inflation"
-                type="number"
-                step="0.1"
-                value={inflationPercent}
-                onChange={(e) => setInflationPercent(e.target.value)}
-              />
+          {activeTab === 'application' && (
+            <div className="tab-content">
+              {/* Application Settings Section */}
+              <h3>Application</h3>
+              <div className="setting-group">
+                {/* Default Inflation Rate (%) */}
+                <div>
+                  <label htmlFor="default-inflation">
+                    Default Inflation Rate (%)
+                  </label>
+                  <input
+                    id="default-inflation"
+                    type="number"
+                    step="0.1"
+                    value={inflationPercent}
+                    onChange={(e) => setInflationPercent(e.target.value)}
+                  />
+                </div>
+                {/* Number of Years to Project */}
+                <div>
+                  <label htmlFor="projection-years">
+                    Number of Years to Project
+                  </label>
+                  <input
+                    id="projection-years"
+                    type="number"
+                    value={projectionYears}
+                    onChange={(e) => setProjectionYears(e.target.value)}
+                    placeholder="30"
+                  />
+                </div>
+                {/* Show Chart Totals */}
+                <div>
+                  <label htmlFor="show-chart-totals">
+                    Show Chart Totals
+                  </label>
+                  <input
+                    id="show-chart-totals"
+                    type="checkbox"
+                    checked={showChartTotals}
+                    onChange={(e) => setShowChartTotals(e.target.checked)}
+                  />
+                </div>
+              </div>
             </div>
-            {/* Number of Years to Project */}
-            <div>
-              <label htmlFor="projection-years">
-                Number of Years to Project
-              </label>
-              <input
-                id="projection-years"
-                type="number"
-                value={projectionYears}
-                onChange={(e) => setProjectionYears(e.target.value)}
-                placeholder="30"
-              />
-            </div>
-            {/* Show Chart Totals */}
-            <div>
-              <label htmlFor="show-chart-totals">
-                Show Chart Totals
-              </label>
-              <input
-                id="show-chart-totals"
-                type="checkbox"
-                checked={showChartTotals}
-                onChange={(e) => setShowChartTotals(e.target.checked)}
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Profile Section */}
-          <h3>Profile</h3>
-          <div className="setting-group">
-            {/* First Name & Last Name */}
-            <div>
-              <label htmlFor="person1-first-name">
-                First Name
-              </label>
-              <input
-                id="person1-first-name"
-                type="text"
-                value={person1FirstName}
-                onChange={(e) => setPerson1FirstName(e.target.value)}
-                placeholder="First Name"
-              />
+          {activeTab === 'profile' && (
+            <div className="tab-content">
+              {/* Profile Section */}
+              <h3>Profile</h3>
+              <div className="setting-group">
+                {/* First Name & Last Name */}
+                <div>
+                  <label htmlFor="person1-first-name">
+                    First Name
+                  </label>
+                  <input
+                    id="person1-first-name"
+                    type="text"
+                    value={person1FirstName}
+                    onChange={(e) => setPerson1FirstName(e.target.value)}
+                    placeholder="First Name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="person1-last-name">
+                    Last Name
+                  </label>
+                  <input
+                    id="person1-last-name"
+                    type="text"
+                    value={person1LastName}
+                    onChange={(e) => setPerson1LastName(e.target.value)}
+                    placeholder="Last Name"
+                  />
+                </div>
+                {/* Spouse First Name & Spouse Last Name */}
+                <div>
+                  <label htmlFor="person2-first-name">
+                    Spouse First Name
+                  </label>
+                  <input
+                    id="person2-first-name"
+                    type="text"
+                    value={person2FirstName}
+                    onChange={(e) => setPerson2FirstName(e.target.value)}
+                    placeholder="Spouse First Name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="person2-last-name">
+                    Spouse Last Name
+                  </label>
+                  <input
+                    id="person2-last-name"
+                    type="text"
+                    value={person2LastName}
+                    onChange={(e) => setPerson2LastName(e.target.value)}
+                    placeholder="Spouse Last Name"
+                  />
+                </div>
+                {/* Address */}
+                <div>
+                  <label htmlFor="address">
+                    Address
+                  </label>
+                  <input
+                    id="address"
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Address"
+                  />
+                </div>
+                {/* City */}
+                <div>
+                  <label htmlFor="city">
+                    City
+                  </label>
+                  <input
+                    id="city"
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City"
+                  />
+                </div>
+                {/* State */}
+                <div>
+                  <label htmlFor="state">
+                    State
+                  </label>
+                  <select
+                    id="state"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                  >
+                    <option value="">Select State</option>
+                    {states.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* Zip Code */}
+                <div>
+                  <label htmlFor="zip-code">
+                    Zip Code
+                  </label>
+                  <input
+                    id="zip-code"
+                    type="text"
+                    value={zipCode}
+                    onChange={(e) => setZipCode(e.target.value)}
+                    placeholder="Zip Code"
+                  />
+                </div>
+                {/* Email Address */}
+                <div>
+                  <label htmlFor="email">
+                    Email Address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email Address"
+                  />
+                </div>
+                {/* Change Password Button */}
+                <div>
+                  <button type="button" className="change-password-btn">Change Password</button>
+                </div>
+              </div>
             </div>
-            <div>
-              <label htmlFor="person1-last-name">
-                Last Name
-              </label>
-              <input
-                id="person1-last-name"
-                type="text"
-                value={person1LastName}
-                onChange={(e) => setPerson1LastName(e.target.value)}
-                placeholder="Last Name"
-              />
-            </div>
-            {/* Spouse First Name & Spouse Last Name */}
-            <div>
-              <label htmlFor="person2-first-name">
-                Spouse First Name
-              </label>
-              <input
-                id="person2-first-name"
-                type="text"
-                value={person2FirstName}
-                onChange={(e) => setPerson2FirstName(e.target.value)}
-                placeholder="Spouse First Name"
-              />
-            </div>
-            <div>
-              <label htmlFor="person2-last-name">
-                Spouse Last Name
-              </label>
-              <input
-                id="person2-last-name"
-                type="text"
-                value={person2LastName}
-                onChange={(e) => setPerson2LastName(e.target.value)}
-                placeholder="Spouse Last Name"
-              />
-            </div>
-            {/* Address */}
-            <div>
-              <label htmlFor="address">
-                Address
-              </label>
-              <input
-                id="address"
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Address"
-              />
-            </div>
-            {/* City */}
-            <div>
-              <label htmlFor="city">
-                City
-              </label>
-              <input
-                id="city"
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-              />
-            </div>
-            {/* State */}
-            <div>
-              <label htmlFor="state">
-                State
-              </label>
-              <select
-                id="state"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-              >
-                <option value="">Select State</option>
-                {states.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* Zip Code */}
-            <div>
-              <label htmlFor="zip-code">
-                Zip Code
-              </label>
-              <input
-                id="zip-code"
-                type="text"
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value)}
-                placeholder="Zip Code"
-              />
-            </div>
-            {/* Email Address */}
-            <div>
-              <label htmlFor="email">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email Address"
-              />
-            </div>
-            {/* Change Password Button */}
-            <div>
-              <button type="button" className="change-password-btn">Change Password</button>
-            </div>
-          </div>
+          )}
 
-          {/* Categories Section */}
-          <h3>Categories</h3>
-          <div className="setting-group">
-            {/* Asset Categories & Liability Categories */}
-            <div>
-              <label>Asset Categories</label>
-              <div className="category-display">
-                {assetCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsAssetModalOpen(true)}>Manage</button>
+          {activeTab === 'categories' && (
+            <div className="tab-content">
+              {/* Categories Section */}
+              <h3>Categories</h3>
+              <div className="setting-group">
+                {/* Asset Categories & Liability Categories */}
+                <div>
+                  <label>Asset Categories</label>
+                  <div className="category-display">
+                    {assetCategories.map((cat, index) => (
+                      <span key={index} className="category-tag">{cat}</span>
+                    ))}
+                    <button type="button" onClick={() => setIsAssetModalOpen(true)}>Manage</button>
+                  </div>
+                </div>
+                <div>
+                  <label>Liability Categories</label>
+                  <div className="category-display">
+                    {liabilityCategories.map((cat, index) => (
+                      <span key={index} className="category-tag">{cat}</span>
+                    ))}
+                    <button type="button" onClick={() => setIsLiabilityModalOpen(true)}>Manage</button>
+                  </div>
+                </div>
+                {/* Income Categories & Expense Categories */}
+                <div>
+                  <label>Income Categories</label>
+                  <div className="category-display">
+                    {incomeCategories.map((cat, index) => (
+                      <span key={index} className="category-tag">{cat}</span>
+                    ))}
+                    <button type="button" onClick={() => setIsIncomeModalOpen(true)}>Manage</button>
+                  </div>
+                </div>
+                <div>
+                  <label>Expense Categories</label>
+                  <div className="category-display">
+                    {expenseCategories.map((cat, index) => (
+                      <span key={index} className="category-tag">{cat}</span>
+                    ))}
+                    <button type="button" onClick={() => setIsExpenseModalOpen(true)}>Manage</button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <label>Liability Categories</label>
-              <div className="category-display">
-                {liabilityCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsLiabilityModalOpen(true)}>Manage</button>
-              </div>
-            </div>
-            {/* Income Categories & Expense Categories */}
-            <div>
-              <label>Income Categories</label>
-              <div className="category-display">
-                {incomeCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsIncomeModalOpen(true)}>Manage</button>
-              </div>
-            </div>
-            <div>
-              <label>Expense Categories</label>
-              <div className="category-display">
-                {expenseCategories.map((cat, index) => (
-                  <span key={index} className="category-tag">{cat}</span>
-                ))}
-                <button type="button" onClick={() => setIsExpenseModalOpen(true)}>Manage</button>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="modal-actions">

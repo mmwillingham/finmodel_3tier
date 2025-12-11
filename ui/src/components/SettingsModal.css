@@ -52,11 +52,44 @@
   border: 1px solid #f5c6cb;
 }
 
+.settings-tabs {
+  display: flex;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.settings-tabs button {
+  padding: 10px 20px;
+  border: none;
+  background-color: transparent;
+  font-size: 1em;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.3s, border-bottom 0.3s;
+  border-bottom: 2px solid transparent;
+}
+
+.settings-tabs button.active {
+  color: #007bff;
+  border-bottom: 2px solid #007bff;
+}
+
+.settings-tabs button:hover:not(.active) {
+  color: #333;
+}
+
 .settings-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Two columns */
-  gap: 25px; /* Increased gap for better spacing between groups */
+  /* Removed grid-template-columns here, as tab content handles its own layout */
+  /* display: grid; */
+  /* gap: 25px; */
   margin-bottom: 30px;
+}
+
+.tab-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two columns for content within active tab */
+  gap: 25px;
 }
 
 .settings-form h3 {
