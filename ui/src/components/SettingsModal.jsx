@@ -15,10 +15,25 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
-  const [person1Name, setPerson1Name] = useState("");
-  const [person2Name, setPerson2Name] = useState("");
+  const [person1FirstName, setPerson1FirstName] = useState("");
+  const [person1LastName, setPerson1LastName] = useState("");
+  const [person2FirstName, setPerson2FirstName] = useState("");
+  const [person2LastName, setPerson2LastName] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [email, setEmail] = useState("");
   const [projectionYears, setProjectionYears] = useState(30);
   const [showChartTotals, setShowChartTotals] = useState(true); // New state for toggle
+
+  const states = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID',
+    'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS',
+    'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK',
+    'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV',
+    'WI', 'WY'
+  ];
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -36,8 +51,15 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
       setLiabilityCategories(res.data.liability_categories ? res.data.liability_categories.split(',') : []);
       setIncomeCategories(res.data.income_categories ? res.data.income_categories.split(',') : []);
       setExpenseCategories(res.data.expense_categories ? res.data.expense_categories.split(',') : []);
-      setPerson1Name(res.data.person1_name || "");
-      setPerson2Name(res.data.person2_name || "");
+      setPerson1FirstName(res.data.person1_first_name || "");
+      setPerson1LastName(res.data.person1_last_name || "");
+      setPerson2FirstName(res.data.person2_first_name || "");
+      setPerson2LastName(res.data.person2_last_name || "");
+      setAddress(res.data.address || "");
+      setCity(res.data.city || "");
+      setState(res.data.state || "");
+      setZipCode(res.data.zip_code || "");
+      setEmail(res.data.email || "");
       setProjectionYears(res.data.projection_years || 30);
       setShowChartTotals(res.data.show_chart_totals ?? true); // Read new setting
     } catch (e) {
@@ -53,8 +75,15 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
         liability_categories: liabilityCategories.join(','),
         income_categories: incomeCategories.join(','),
         expense_categories: expenseCategories.join(','),
-        person1_name: person1Name,
-        person2_name: person2Name,
+        person1_first_name: person1FirstName,
+        person1_last_name: person1LastName,
+        person2_first_name: person2FirstName,
+        person2_last_name: person2LastName,
+        address: address,
+        city: city,
+        state: state,
+        zip_code: zipCode,
+        email: email,
         projection_years: parseInt(projectionYears),
         show_chart_totals: showChartTotals, // Save new setting
       });
@@ -84,34 +113,9 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
         {message && <div className="message">{message}</div>}
 
         <div className="settings-form">
-          {/* General Section */}
-          <h3>General</h3>
+          {/* Application Settings Section */}
+          <h3>Application Settings</h3>
           <div className="setting-group">
-            {/* Person 1 Name & Person 2 Name */}
-            <div>
-              <label htmlFor="person1-name">
-                Person 1 Name
-              </label>
-              <input
-                id="person1-name"
-                type="text"
-                value={person1Name}
-                onChange={(e) => setPerson1Name(e.target.value)}
-                placeholder="Person 1"
-              />
-            </div>
-            <div>
-              <label htmlFor="person2-name">
-                Person 2 Name
-              </label>
-              <input
-                id="person2-name"
-                type="text"
-                value={person2Name}
-                onChange={(e) => setPerson2Name(e.target.value)}
-                placeholder="Person 2"
-              />
-            </div>
             {/* Default Inflation Rate (%) */}
             <div>
               <label htmlFor="default-inflation">
@@ -149,6 +153,135 @@ export default function SettingsModal({ isOpen, onClose, onSettingsSaved }) {
                 checked={showChartTotals}
                 onChange={(e) => setShowChartTotals(e.target.checked)}
               />
+            </div>
+          </div>
+
+          {/* Profile Section */}
+          <h3>Profile</h3>
+          <div className="setting-group">
+            {/* First Name & Last Name */}
+            <div>
+              <label htmlFor="person1-first-name">
+                First Name
+              </label>
+              <input
+                id="person1-first-name"
+                type="text"
+                value={person1FirstName}
+                onChange={(e) => setPerson1FirstName(e.target.value)}
+                placeholder="First Name"
+              />
+            </div>
+            <div>
+              <label htmlFor="person1-last-name">
+                Last Name
+              </label>
+              <input
+                id="person1-last-name"
+                type="text"
+                value={person1LastName}
+                onChange={(e) => setPerson1LastName(e.target.value)}
+                placeholder="Last Name"
+              />
+            </div>
+            {/* Spouse First Name & Spouse Last Name */}
+            <div>
+              <label htmlFor="person2-first-name">
+                Spouse First Name
+              </label>
+              <input
+                id="person2-first-name"
+                type="text"
+                value={person2FirstName}
+                onChange={(e) => setPerson2FirstName(e.target.value)}
+                placeholder="Spouse First Name"
+              />
+            </div>
+            <div>
+              <label htmlFor="person2-last-name">
+                Spouse Last Name
+              </label>
+              <input
+                id="person2-last-name"
+                type="text"
+                value={person2LastName}
+                onChange={(e) => setPerson2LastName(e.target.value)}
+                placeholder="Spouse Last Name"
+              />
+            </div>
+            {/* Address */}
+            <div>
+              <label htmlFor="address">
+                Address
+              </label>
+              <input
+                id="address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Address"
+              />
+            </div>
+            {/* City */}
+            <div>
+              <label htmlFor="city">
+                City
+              </label>
+              <input
+                id="city"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+              />
+            </div>
+            {/* State */}
+            <div>
+              <label htmlFor="state">
+                State
+              </label>
+              <select
+                id="state"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+              >
+                <option value="">Select State</option>
+                {states.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Zip Code */}
+            <div>
+              <label htmlFor="zip-code">
+                Zip Code
+              </label>
+              <input
+                id="zip-code"
+                type="text"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                placeholder="Zip Code"
+              />
+            </div>
+            {/* Email Address */}
+            <div>
+              <label htmlFor="email">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email Address"
+              />
+            </div>
+            {/* Change Password Button */}
+            <div>
+              <button type="button" className="change-password-btn">Change Password</button>
             </div>
           </div>
 

@@ -106,11 +106,42 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.settings-form input[type="email"],
+.settings-form input[type="date"],
+.settings-form select {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1em;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
 .settings-form input[type="text"]:focus,
-.settings-form input[type="number"]:focus {
+.settings-form input[type="number"]:focus,
+.settings-form input[type="email"]:focus,
+.settings-form input[type="date"]:focus,
+.settings-form select:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
   outline: none;
+}
+
+.settings-form .change-password-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  align-self: flex-start; /* Align button to the start of its column */
+}
+
+.settings-form .change-password-btn:hover {
+  background-color: #0056b3;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
 }
 
 .settings-form .category-display {
