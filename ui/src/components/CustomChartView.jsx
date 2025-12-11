@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Line, Bar, Pie } from 'react-chartjs-2';
+import { jsPDF } from 'jspdf';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
 import CustomChartService from '../services/customChart.service';
 import './CustomChartView.css'; // We will create this CSS file
@@ -173,9 +174,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
     switch (chartConfig.chart_type) {
       case 'line':
-        return <Line data={chartData} options={options} />;
+        return <Line ref={chartRef} data={chartData} options={options} />;
       case 'bar':
-        return <Bar data={chartData} options={options} />;
+        return <Bar ref={chartRef} data={chartData} options={options} />;
       case 'pie':
         // For pie charts, labels should be the series labels directly
         // And data should be a single array of aggregated values
@@ -185,6 +186,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const pieBorderColors = chartData.datasets.map(ds => ds.borderColor);
 
         return <Pie 
+          ref={chartRef}
           data={{
             labels: pieLabels,
             datasets: [{
@@ -221,6 +223,34 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
   };
 
+  const handleDownloadPng = () => {
+    if (chartRef.current) {
+      const link = document.createElement('a');
+      link.download = `${chartConfig.name.replace(/\s/g, '_') || 'chart'}.png`;
+      link.href = chartRef.current.toBase64Image('image/png', 1);
+      link.click();
+    } else {
+      console.error("Chart ref is not available for PNG download.");
+      setMessage("Error: Chart not ready for download.");
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (chartRef.current) {
+      const chartImage = chartRef.current.toBase64Image('image/png', 1);
+      const pdf = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape
+      const imgProps = pdf.getImageProperties(chartImage);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(chartImage, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${chartConfig.name.replace(/\s/g, '_') || 'chart'}.pdf`);
+    } else {
+      console.error("Chart ref is not available for PDF download.");
+      setMessage("Error: Chart not ready for download.");
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading chart...</div>;
   }
@@ -232,6 +262,10 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   return (
     <div className="custom-chart-view-container">
       <button onClick={onBack} className="back-btn">← Back to Custom Charts</button>
+      <div className="chart-actions">
+        <button onClick={handleDownloadPng} className="download-btn">Download PNG</button>
+        <button onClick={handleDownloadPdf} className="download-btn">Download PDF</button>
+      </div>
       <div className="chart-display-area">
         {getChartComponent()}
       </div>

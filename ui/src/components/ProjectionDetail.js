@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -33,6 +33,9 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
   const [error, setError] = useState(null);
   const [data, setData] = useState([]);
   const [accountDetails, setAccountDetails] = useState([]);
+  const chartRef = useRef(null);
+  const yearByYearTableRef = useRef(null);
+  const accountDetailsTableRef = useRef(null);
 
   useEffect(() => {
     if (!id) {
@@ -74,6 +77,108 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
 
   const getCurrentYear = () => new Date().getFullYear();
+
+  const handleDownloadChartPng = () => {
+    if (chartRef.current) {
+      const link = document.createElement('a');
+      link.download = `${projection.name.replace(/\s/g, '_') || 'projection'}_chart.png`;
+      link.href = chartRef.current.toBase64Image('image/png', 1);
+      link.click();
+    } else {
+      console.error("Chart ref is not available for PNG download.");
+    }
+  };
+
+  const handleDownloadChartPdf = () => {
+    if (chartRef.current) {
+      const chartImage = chartRef.current.toBase64Image('image/png', 1);
+      const pdf = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape
+      const imgProps = pdf.getImageProperties(chartImage);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(chartImage, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${projection.name.replace(/\s/g, '_') || 'projection'}_chart.pdf`);
+    } else {
+      console.error("Chart ref is not available for PDF download.");
+    }
+  };
+
+  const handleDownloadTablePdf = async (tableRef, filename) => {
+    if (tableRef.current) {
+      const canvas = await html2canvas(tableRef.current);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
+    } else {
+      console.error("Table ref is not available for PDF download.");
+    }
+  };
+
+  const convertToCsv = (dataArray, headers, valueFormatter) => {
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    dataArray.forEach(row => {
+      const values = headers.map(header => {
+        let value = row[header] || '';
+        if (typeof value === 'number' && valueFormatter) {
+          return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
+        }
+        return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes for CSV
+      });
+      csvRows.push(values.join(','));
+    });
+    return csvRows.join('\n');
+  };
+
+  const handleDownloadYearByYearCsv = (filename) => {
+    if (data.length > 0) {
+      const headers = ['Year', 'StartingValue', 'Total_Contribution', 'Total_Growth', 'Total_Value'];
+      const formattedData = data.map((item, idx) => ({
+        Year: currentYear + idx,
+        StartingValue: item.StartingValue,
+        Total_Contribution: item.Total_Contribution,
+        Total_Growth: item.Total_Growth,
+        Total_Value: item.Total_Value,
+      }));
+      const csvString = convertToCsv(formattedData, headers, formatCurrency);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename.replace(/\s/g, '_')}.csv`;
+      link.click();
+    } else {
+      console.warn("No data available for Year-by-Year CSV download.");
+    }
+  };
+
+  const handleDownloadAccountDetailsCsv = (filename) => {
+    if (accountDetails.length > 0 && accountNames.length > 0) {
+      const headers = ['Year', ...accountNames, 'Total_Value'];
+      const formattedData = accountDetails.map((item, idx) => {
+        const row = { Year: currentYear + idx };
+        accountNames.forEach(name => {
+          row[name] = item[name];
+        });
+        row.Total_Value = item.Total_Value;
+        return row;
+      });
+      const csvString = convertToCsv(formattedData, headers, formatCurrency);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename.replace(/\s/g, '_')}.csv`;
+      link.click();
+    } else {
+      console.warn("No data available for Account Details CSV download.");
+    }
+  };
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="error">{error}</p>;
@@ -178,6 +283,13 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
             </tr>
           ))}
         </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default ProjectionDetail;
+>
       </table>
     </div>
   );

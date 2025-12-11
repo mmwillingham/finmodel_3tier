@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import AssetService from "../services/asset.service";
 import SettingsService from "../services/settings.service";
 import "./CashFlowView.css";
@@ -14,6 +16,7 @@ export default function AssetView({ assets, refreshAssets }) {
     end_date: "",   // New field
   });
   const [editingId, setEditingId] = useState(null);
+  const tableRef = useRef(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -83,6 +86,62 @@ export default function AssetView({ assets, refreshAssets }) {
   };
 
   const total = assets.reduce((sum, item) => sum + (item.value || 0), 0);
+
+  // Download functions
+  const handleDownloadTablePdf = async (tableRef, filename) => {
+    if (tableRef.current) {
+      const canvas = await html2canvas(tableRef.current);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
+    } else {
+      console.error("Table ref is not available for PDF download.");
+    }
+  };
+
+  const convertToCsv = (dataArray, headers, valueFormatter) => {
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    dataArray.forEach(row => {
+      const values = headers.map(header => {
+        let value = row[header] || '';
+        if (typeof value === 'number' && valueFormatter) {
+          return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
+        }
+        return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes for CSV
+      });
+      csvRows.push(values.join(','));
+    });
+    return csvRows.join('\n');
+  };
+
+  const handleDownloadAssetsCsv = (filename) => {
+    if (assets.length > 0) {
+      const headers = ['Name', 'Category', 'Value', 'Annual Increase %', 'Start Date', 'End Date'];
+      const formattedData = assets.map(asset => ({
+        Name: asset.name,
+        Category: asset.category,
+        Value: asset.value,
+        'Annual Increase %': asset.annual_increase_percent,
+        'Start Date': asset.start_date,
+        'End Date': asset.end_date,
+      }));
+      const csvString = convertToCsv(formattedData, headers, formatCurrency);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename.replace(/\s/g, '_')}.csv`;
+      link.click();
+    } else {
+      console.warn("No data available for Assets CSV download.");
+    }
+  };
 
   return (
     <div className="cashflow-container">
@@ -160,7 +219,11 @@ export default function AssetView({ assets, refreshAssets }) {
         </div>
       </div>
 
-      <table className="cashflow-table">
+      <div className="table-actions">
+        <button onClick={() => handleDownloadTablePdf(tableRef, "Assets_Table")}>Download PDF</button>
+        <button onClick={() => handleDownloadAssetsCsv("Assets_Table")}>Download CSV</button>
+      </div>
+      <table ref={tableRef} className="cashflow-table">
         <thead>
           <tr>
             <th>Name</th>

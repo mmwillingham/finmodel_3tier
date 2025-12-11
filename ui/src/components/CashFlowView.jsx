@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import CashFlowService from "../services/cashflow.service";
 import SettingsService from "../services/settings.service";
 import "./CashFlowView.css";
@@ -24,6 +26,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
     tax_deductible: false,
   });
   const [editingId, setEditingId] = useState(null);
+  const tableRef = useRef(null);
 
   useEffect(() => {
     const loadDefaults = async () => {
@@ -150,6 +153,80 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
   const total = items.reduce((sum, item) => sum + (item.yearly_value || 0), 0);
 
+  // Download functions
+  const handleDownloadTablePdf = async (tableRef, filename) => {
+    if (tableRef.current) {
+      const canvas = await html2canvas(tableRef.current);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
+    } else {
+      console.error("Table ref is not available for PDF download.");
+    }
+  };
+
+  const convertToCsv = (dataArray, headers, valueFormatter) => {
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    dataArray.forEach(row => {
+      const values = headers.map(header => {
+        let value = row[header] || '';
+        if (typeof value === 'number' && valueFormatter) {
+          return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
+        }
+        return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes for CSV
+      });
+      csvRows.push(values.join(','));
+    });
+    return csvRows.join('\n');
+  };
+
+  const handleDownloadCashFlowTableCsv = (filename) => {
+    if (items.length > 0) {
+      let headers = ['Category', 'Description', 'Person', 'Frequency', 'Yearly Value', 'Start Date', 'End Date'];
+      if (type === 'income') {
+        headers = [...headers, 'Annual Increase %', 'Taxable'];
+      } else if (type === 'expense') {
+        headers = [...headers, 'Inflation %', 'Tax Deductible'];
+      }
+
+      const formattedData = items.map(item => {
+        const row = {
+          Category: item.category,
+          Description: item.description,
+          Person: item.person || '-',
+          Frequency: item.frequency === 'monthly' ? 'Monthly' : 'Yearly',
+          'Yearly Value': item.yearly_value,
+          'Start Date': item.start_date || '-',
+          'End Date': item.end_date || 'No end date',
+        };
+        if (type === 'income') {
+          row['Annual Increase %'] = item.annual_increase_percent;
+          row.Taxable = item.taxable ? 'Yes' : 'No';
+        } else if (type === 'expense') {
+          row['Inflation %'] = item.inflation_percent;
+          row['Tax Deductible'] = item.tax_deductible ? 'Yes' : 'No';
+        }
+        return row;
+      });
+
+      const csvString = convertToCsv(formattedData, headers, formatCurrency);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename.replace(/\s/g, '_')}.csv`;
+      link.click();
+    } else {
+      console.warn(`No ${type} items available for CSV download.`);
+    }
+  };
+
   return (
     <div className="cashflow-container">
       <h2>{type === 'income' ? 'Income' : 'Expenses'}</h2>
@@ -259,7 +336,11 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         </div>
       </div>
 
-      <table className="cashflow-table">
+      <div className="table-actions">
+        <button onClick={() => handleDownloadTablePdf(tableRef, `${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download PDF</button>
+        <button onClick={() => handleDownloadCashFlowTableCsv(`${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download CSV</button>
+      </div>
+      <table ref={tableRef} className="cashflow-table">
         <thead>
           <tr>
             <th>Category</th>
