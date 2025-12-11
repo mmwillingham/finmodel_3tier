@@ -135,8 +135,15 @@ class UserSettingsOut(BaseModel):
     liability_categories: str | None = "Mortgage,Car Loan,Credit Card,Student Loan,Other"
     income_categories: str | None = "Salary,Bonus,Investment Income,Other"
     expense_categories: str | None = "Housing,Transportation,Food,Healthcare,Entertainment,Other"
-    person1_name: str | None = "Person 1"
-    person2_name: str | None = "Person 2"
+    person1_first_name: str | None = "Person 1"
+    person1_last_name: str | None = ""
+    person2_first_name: str | None = "Person 2"
+    person2_last_name: str | None = ""
+    address: str | None = ""
+    city: str | None = ""
+    state: str | None = ""
+    zip_code: str | None = ""
+    email: str | None = ""
     projection_years: int | None = 30
     show_chart_totals: bool | None = True # New field
     model_config = ConfigDict(from_attributes=True)
@@ -147,8 +154,15 @@ class UserSettingsUpdate(BaseModel):
     liability_categories: str | None = None
     income_categories: str | None = None
     expense_categories: str | None = None
-    person1_name: str | None = None
-    person2_name: str | None = None
+    person1_first_name: str | None = None
+    person1_last_name: str | None = None
+    person2_first_name: str | None = None
+    person2_last_name: str | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip_code: str | None = None
+    email: str | None = None
     projection_years: int | None = None
     show_chart_totals: bool | None = True # New field
 

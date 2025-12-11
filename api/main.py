@@ -330,8 +330,15 @@ def get_settings(
             liability_categories="Mortgage,Car Loan,Credit Card,Student Loan,Other",
             income_categories="Salary,Bonus,Investment Income,Other",
             expense_categories="Housing,Transportation,Food,Healthcare,Entertainment,Other",
-            person1_name="Person 1",
-            person2_name="Person 2",
+            person1_first_name="Person 1",
+            person1_last_name="",
+            person2_first_name="Person 2",
+            person2_last_name="",
+            address="",
+            city="",
+            state="",
+            zip_code="",
+            email="",
             projection_years=30
         )
         db.add(settings)
@@ -366,10 +373,24 @@ def update_settings(
         settings.income_categories = payload.income_categories
     if payload.expense_categories is not None:
         settings.expense_categories = payload.expense_categories
-    if payload.person1_name is not None:
-        settings.person1_name = payload.person1_name
-    if payload.person2_name is not None:
-        settings.person2_name = payload.person2_name
+    if payload.person1_first_name is not None:
+        settings.person1_first_name = payload.person1_first_name
+    if payload.person1_last_name is not None:
+        settings.person1_last_name = payload.person1_last_name
+    if payload.person2_first_name is not None:
+        settings.person2_first_name = payload.person2_first_name
+    if payload.person2_last_name is not None:
+        settings.person2_last_name = payload.person2_last_name
+    if payload.address is not None:
+        settings.address = payload.address
+    if payload.city is not None:
+        settings.city = payload.city
+    if payload.state is not None:
+        settings.state = payload.state
+    if payload.zip_code is not None:
+        settings.zip_code = payload.zip_code
+    if payload.email is not None:
+        settings.email = payload.email
     if payload.projection_years is not None:
         settings.projection_years = payload.projection_years
     if payload.show_chart_totals is not None:
