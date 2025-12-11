@@ -90,7 +90,8 @@ export default function CustomChartForm({
       data_type: defaultDataType,
       field: "value", // Default field, will need to be dynamic later
       aggregation: "sum",
-      label: "New Series",
+      label: "", // Initialize with empty string, user will fill this
+
       color: getRandomColor(),
       category: "", // New category field
     }]);

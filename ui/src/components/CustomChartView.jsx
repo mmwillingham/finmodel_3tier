@@ -17,10 +17,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const [message, setMessage] = useState('');
   const chartRef = useRef(null);
   const currentYear = new Date().getFullYear();
+  const [showChartTotals, setShowChartTotals] = useState(true); // State for individual chart totals
 
   const prepareChartData = useCallback((fetchedConfig) => {
     const labels = Array.from({ length: projectionYears + 1 }, (_, i) => currentYear + i);
-    const datasets = [];
+    let datasets = []; // Changed to let to allow modification
 
     let allData = {
       assets: assets || [],
@@ -85,15 +86,43 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         });
       });
 
+      // Calculate and add Total line if showChartTotals is true
+      if (showChartTotals && (fetchedConfig.chart_type === 'line' || fetchedConfig.chart_type === 'bar')) {
+        const totalDataValues = labels.map((_, yearIndex) => {
+          let sum = 0;
+          datasets.forEach(dataset => {
+            sum += dataset.data[yearIndex] || 0;
+          });
+          return sum;
+        });
+
+        datasets.push({
+          label: 'Total',
+          data: totalDataValues,
+          borderColor: '#000000', // Black color for total line
+          backgroundColor: '#000000', // Black color for total line
+          fill: false,
+          tension: 0.1,
+          borderWidth: 3, // Thicker line for total
+          pointRadius: 4,
+          pointBackgroundColor: '#000000',
+          pointBorderColor: '#ffffff',
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: '#000000',
+          pointHoverBorderColor: '#ffffff',
+          borderDash: [5, 5], // Dashed line for total
+        });
+      }
+
     } catch (e) {
       console.error("Error parsing series configurations or preparing data:", e);
       setMessage("Error preparing chart data.");
-      setChartData({ labels: [], datasets: [] });
+      datasets = []; // Ensure datasets is empty on error
       return;
     }
 
     setChartData({ labels, datasets });
-  }, [assets, liabilities, incomeItems, expenseItems, projectionYears, currentYear]);
+  }, [assets, liabilities, incomeItems, expenseItems, projectionYears, currentYear, showChartTotals]); // Added showChartTotals dependency
 
   useEffect(() => {
     const fetchAndPrepareChart = async () => {
@@ -145,7 +174,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
               return label;
             }
           }
-        }
+        },
       },
       scales: {
         x: {
@@ -171,6 +200,24 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         scales: { // No scales for pie chart
           x: { display: false },
           y: { display: false },
+        },
+        plugins: { // Re-configure plugins for pie charts specifically
+          legend: { position: 'top' },
+          title: { display: true, text: `Financial Project - ${chartConfig.name}${currentUser ? ` by ${currentUser.username}` : ''}` },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (context.parsed !== null) {
+                  label += formatCurrency(context.parsed);
+                }
+                return label;
+              }
+            }
+          },
         }
       })
     };
@@ -181,8 +228,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       case 'bar':
         return <Bar ref={chartRef} data={chartData} options={options} />;
       case 'pie':
-        // For pie charts, labels should be the series labels directly
-        // And data should be a single array of aggregated values
+        // For pie charts, we don't have a "sum of lines" concept, as it's a single point in time aggregate.
+        // The `showChartTotals` will not apply to pie charts in this context.
         const pieLabels = chartData.datasets.map(ds => ds.label);
         const pieDataValues = chartData.datasets.map(ds => ds.data.reduce((sum, val) => sum + val, 0)); // Sum all values for pie
         const pieBackgroundColors = chartData.datasets.map(ds => ds.backgroundColor);
@@ -199,27 +246,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
               borderWidth: 1,
             }],
           }}
-          options={{
-            responsive: true,
-            plugins: {
-              legend: { position: 'top' },
-              title: { display: true, text: `Financial Project - ${chartConfig.name}${currentUser ? ` by ${currentUser.username}` : ''}` },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    let label = context.label || '';
-                    if (label) {
-                      label += ': ';
-                    }
-                    if (context.parsed !== null) {
-                      label += formatCurrency(context.parsed);
-                    }
-                    return label;
-                  }
-                }
-              }
-            },
-          }}
+          options={options} // Use the consolidated options object
         />;
       default:
         return <p>Unsupported chart type: {chartConfig.chart_type}</p>;
@@ -268,6 +295,14 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       <div className="chart-actions">
         <button onClick={handleDownloadPng} className="download-btn">Download PNG</button>
         <button onClick={handleDownloadPdf} className="download-btn">Download PDF</button>
+        <label className="show-totals-toggle">
+          <input
+            type="checkbox"
+            checked={showChartTotals}
+            onChange={(e) => setShowChartTotals(e.target.checked)}
+          />
+          Show Chart Totals
+        </label>
       </div>
       <div className="chart-display-area">
         {getChartComponent()}
