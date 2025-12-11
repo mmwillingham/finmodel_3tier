@@ -56,9 +56,9 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
               <h4>{chart.name}</h4>
               <p>Type: {chart.chart_type}</p>
               <div className="chart-card-actions">
-                <button onClick={() => onViewChart(chart.id)}>View</button>
-                <button onClick={() => onEditChart(chart.id)}>Edit</button>
-                <button onClick={() => handleDelete(chart.id)}>Delete</button>
+                <button onClick={(e) => { e.stopPropagation(); onViewChart(chart.id); }}>View</button>
+                <button onClick={(e) => { e.stopPropagation(); onEditChart(chart.id); }}>Edit</button>
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(chart.id); }}>Delete</button>
               </div>
             </div>
           ))}

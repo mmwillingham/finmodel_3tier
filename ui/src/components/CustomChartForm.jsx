@@ -8,8 +8,18 @@ const aggregationOptions = ["sum", "average", "count"];
 
 // Helper to generate a random color
 const getRandomColor = () => {
-  const h = Math.floor(Math.random() * 360);
-  return `hsl(${h}, 70%, 50%)`;
+  const randomHex = Math.floor(Math.random() * 16777215).toString(16);
+  return "#" + ("000000" + randomHex).slice(-6);
+};
+
+const getCategoryOptions = (dataType, assetCategories, liabilityCategories, incomeCategories, expenseCategories) => {
+  switch (dataType) {
+    case 'assets': return assetCategories;
+    case 'liabilities': return liabilityCategories;
+    case 'income': return incomeCategories;
+    case 'expenses': return expenseCategories;
+    default: return [];
+  }
 };
 
 export default function CustomChartForm({
@@ -28,7 +38,7 @@ export default function CustomChartForm({
 }) {
   const [name, setName] = useState("");
   const [chartType, setChartType] = useState(chartTypes[0]);
-  const [selectedDataSources, setSelectedDataSources] = useState([]);
+  const [selectedDataSources, setSelectedDataSources] = useState(dataSourcesOptions); // Initialize with all options selected
   const [seriesConfigurations, setSeriesConfigurations] = useState([]);
   const [xAxisLabel, setXAxisLabel] = useState("Year");
   const [yAxisLabel, setYAxisLabel] = useState("Value");
@@ -55,25 +65,15 @@ export default function CustomChartForm({
         })
         .finally(() => setLoading(false));
     } else {
-      // Reset form for new chart
+      // Reset form for new chart, ensure all data sources are selected by default
       setName("");
       setChartType(chartTypes[0]);
-      setSelectedDataSources([]);
+      setSelectedDataSources(dataSourcesOptions); // Ensure all are selected for new charts
       setSeriesConfigurations([]);
       setXAxisLabel("Year");
       setYAxisLabel("Value");
     }
   }, [chartId]);
-
-  const getCategoryOptions = useCallback((dataType) => {
-    switch (dataType) {
-      case 'assets': return assetCategories;
-      case 'liabilities': return liabilityCategories;
-      case 'income': return incomeCategories;
-      case 'expenses': return expenseCategories;
-      default: return [];
-    }
-  }, [assetCategories, liabilityCategories, incomeCategories, expenseCategories]);
 
   const handleDataSourceChange = (e) => {
     const { value, checked } = e.target;
@@ -85,8 +85,9 @@ export default function CustomChartForm({
   };
 
   const handleAddSeries = () => {
+    const defaultDataType = selectedDataSources.length > 0 ? selectedDataSources[0] : dataSourcesOptions[0];
     setSeriesConfigurations(prev => [...prev, {
-      data_type: dataSourcesOptions[0],
+      data_type: defaultDataType,
       field: "value", // Default field, will need to be dynamic later
       aggregation: "sum",
       label: "New Series",
@@ -98,6 +99,10 @@ export default function CustomChartForm({
   const handleSeriesChange = (index, field, value) => {
     const newSeries = [...seriesConfigurations];
     newSeries[index][field] = value;
+    // Reset category if data_type changes
+    if (field === 'data_type') {
+      newSeries[index].category = '';
+    }
     setSeriesConfigurations(newSeries);
   };
 
@@ -185,77 +190,88 @@ export default function CustomChartForm({
         <h4>Series Configuration</h4>
         <button type="button" onClick={handleAddSeries}>Add Series</button>
         <div className="series-list">
-          {seriesConfigurations.map((series, index) => (
-            <div key={index} className="series-item">
-              <div className="form-group">
-                <label>Data Type:</label>
-                <select
-                  value={series.data_type}
-                  onChange={(e) => handleSeriesChange(index, 'data_type', e.target.value)}
-                >
-                  {selectedDataSources.map(source => (
-                    <option key={source} value={source}>{source.charAt(0).toUpperCase() + source.slice(1)}</option>
-                  ))}
-                </select>
-              </div>
+          {seriesConfigurations.map((series, index) => {
+            const currentSeriesDataType = series.data_type;
+            const options = getCategoryOptions(currentSeriesDataType, assetCategories, liabilityCategories, incomeCategories, expenseCategories);
 
-              {/* Category dropdown, conditional based on data type */}
-              {(series.data_type === 'assets' || series.data_type === 'liabilities' || series.data_type === 'income' || series.data_type === 'expenses') && (
+            return (
+              <div key={index} className="series-item">
                 <div className="form-group">
-                  <label>Category:</label>
+                  <label>Data Type:</label>
                   <select
-                    value={series.category}
-                    onChange={(e) => handleSeriesChange(index, 'category', e.target.value)}
+                    value={series.data_type}
+                    onChange={(e) => handleSeriesChange(index, 'data_type', e.target.value)}
                   >
-                    <option value="">All Categories</option>
-                    {getCategoryOptions(series.data_type).map(category => (
-                      <option key={category} value={category}>{category}</option>
+                    {selectedDataSources.map(source => (
+                      <option key={source} value={source}>{source.charAt(0).toUpperCase() + source.slice(1)}</option>
                     ))}
                   </select>
                 </div>
-              )}
 
-              {/* TODO: Dynamically render fields based on selected data_type */}
-              <div className="form-group">
-                <label>Field:</label>
-                <input
-                  type="text"
-                  value={series.field}
-                  onChange={(e) => handleSeriesChange(index, 'field', e.target.value)}
-                />
+                {/* Category dropdown, conditional based on data type */}
+                {(currentSeriesDataType === 'assets' || currentSeriesDataType === 'liabilities' || currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && (
+                  <div className="form-group">
+                    <label>Category:</label>
+                    <select
+                      value={series.category}
+                      onChange={(e) => handleSeriesChange(index, 'category', e.target.value)}
+                    >
+                      {options.length > 0 ? (
+                        <>
+                          <option value="">All Categories</option>
+                          {options.map(category => (
+                            <option key={category} value={category}>{category}</option>
+                          ))}
+                        </>
+                      ) : (
+                        <option value="" disabled>No categories available</option>
+                      )}
+                    </select>
+                  </div>
+                )}
+
+                {/* TODO: Dynamically render fields based on selected data_type */}
+                <div className="form-group">
+                  <label>Field:</label>
+                  <input
+                    type="text"
+                    value={series.field}
+                    onChange={(e) => handleSeriesChange(index, 'field', e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Aggregation:</label>
+                  <select
+                    value={series.aggregation}
+                    onChange={(e) => handleSeriesChange(index, 'aggregation', e.target.value)}
+                  >
+                    {aggregationOptions.map(agg => <option key={agg} value={agg}>{agg}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Label:</label>
+                  <input
+                    type="text"
+                    value={series.label}
+                    onChange={(e) => handleSeriesChange(index, 'label', e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Color:</label>
+                  <input
+                    type="color"
+                    value={series.color}
+                    onChange={(e) => handleSeriesChange(index, 'color', e.target.value)}
+                  />
+                </div>
+
+                <button type="button" onClick={() => handleRemoveSeries(index)}>Remove</button>
               </div>
-
-              <div className="form-group">
-                <label>Aggregation:</label>
-                <select
-                  value={series.aggregation}
-                  onChange={(e) => handleSeriesChange(index, 'aggregation', e.target.value)}
-                >
-                  {aggregationOptions.map(agg => <option key={agg} value={agg}>{agg}</option>)}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Label:</label>
-                <input
-                  type="text"
-                  value={series.label}
-                  onChange={(e) => handleSeriesChange(index, 'label', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Color:</label>
-                <input
-                  type="color"
-                  value={series.color}
-                  onChange={(e) => handleSeriesChange(index, 'color', e.target.value)}
-                />
-              </div>
-
-              <button type="button" onClick={() => handleRemoveSeries(index)}>Remove</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="form-group">

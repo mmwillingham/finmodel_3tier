@@ -6,39 +6,34 @@ import ProjectionDetail from "./ProjectionDetail";
 import CashFlowView from "./CashFlowView";
 import AssetView from "./AssetView";
 import LiabilityView from "./LiabilityView";
-// import CashFlowProjection from "./CashFlowProjection"; // Removed as content is split
-import BalanceSheetProjection from "./BalanceSheetProjection"; // New import
-import CashFlowOverview from "./CashFlowOverview"; // New import
+import BalanceSheetProjection from "./BalanceSheetProjection";
+import CashFlowOverview from "./CashFlowOverview";
 import SettingsModal from "./SettingsModal";
 import "./SidebarLayout.css";
-import SettingsService from "../services/settings.service"; // Added for projectionYears
-import CustomChartService from "../services/customChart.service";
-import CustomChartList from "./CustomChartList"; // Placeholder
+import SettingsService from "../services/settings.service";
+import CustomChartList from "./CustomChartList";
 import CustomChartForm from "./CustomChartForm";
 import CustomChartView from "./CustomChartView";
 
 export default function SidebarLayout() {
-  const [view, setView] = useState("new-home"); // New default view
+  const [view, setView] = useState("new-home");
   const [cashFlowView, setCashFlowView] = useState(null);
-  // Keep projections state and related functions for now, might be needed by ProjectionDetail if it's kept as a sub-view
   const [loading, setLoading] = useState(true);
-// eslint-disable-next-line no-unused-vars
-  const [selectedProjectionId, setSelectedProjectionId] = useState(null);
+  const [selectedProjectionId] = useState(null);
   const [incomeItems, setIncomeItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
   const [assets, setAssets] = useState([]);
   const [liabilities, setLiabilities] = useState([]);
-  const [assetCategories, setAssetCategories] = useState([]); // New state for asset categories
-  const [liabilityCategories, setLiabilityCategories] = useState([]); // New state for liability categories
-  const [incomeCategories, setIncomeCategories] = useState([]); // New state for income categories
-  const [expenseCategories, setExpenseCategories] = useState([]); // New state for expense categories
-  const [projectionYears, setProjectionYears] = useState(30); // Added for new components
-  const [showChartTotals, setShowChartTotals] = useState(true); // New state for toggle
-  const [customChartView, setCustomChartView] = useState(null); // New state for custom charts
-  const [selectedChartId, setSelectedChartId] = useState(null); // State to hold the ID of the chart being edited
-  const [chartToViewId, setChartToViewId] = useState(null); // State to hold the ID of the chart being viewed
+  const [assetCategories, setAssetCategories] = useState([]);
+  const [liabilityCategories, setLiabilityCategories] = useState([]);
+  const [incomeCategories, setIncomeCategories] = useState([]);
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [projectionYears, setProjectionYears] = useState(30);
+  const [showChartTotals, setShowChartTotals] = useState(true);
+  const [customChartView, setCustomChartView] = useState(null);
+  const [selectedChartId, setSelectedChartId] = useState(null);
+  const [chartToViewId, setChartToViewId] = useState(null);
 
-  // Function to refresh settings from the backend
   const refreshSettings = useCallback(async () => {
     try {
       const settingsRes = await SettingsService.getSettings();
@@ -47,7 +42,7 @@ export default function SidebarLayout() {
     } catch (e) {
       console.error("Failed to refresh settings", e);
     }
-  }, []); // useCallback with empty dependency array means it's memoized and won't change on re-renders
+  }, []);
 
   const refreshAllData = useCallback(async () => {
     setLoading(true);
@@ -67,37 +62,53 @@ export default function SidebarLayout() {
       setProjectionYears(settingsRes.data.projection_years || 30);
       setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
 
-      // Extract unique categories
-      setAssetCategories([...new Set(ast.data.map(item => item.category))].filter(Boolean));
-      setLiabilityCategories([...new Set(lib.data.map(item => item.category))].filter(Boolean));
-      setIncomeCategories([...new Set(inc.data.map(item => item.category))].filter(Boolean));
-      setExpenseCategories([...new Set(exp.data.map(item => item.category))].filter(Boolean));
+      const uniqueAssetCategories = [...new Set(ast.data.map(item => item.category))].filter(Boolean);
+      setAssetCategories(uniqueAssetCategories);
+      
+      const uniqueLiabilityCategories = [...new Set(lib.data.map(item => item.category || ''))];
+      setLiabilityCategories(uniqueLiabilityCategories);
+      
+      const uniqueIncomeCategories = [...new Set(inc.data.map(item => item.category))].filter(Boolean);
+      setIncomeCategories(uniqueIncomeCategories);
+      
+      const uniqueExpenseCategories = [...new Set(exp.data.map(item => item.category))].filter(Boolean);
+      setExpenseCategories(uniqueExpenseCategories);
 
     } catch (e) {
       console.error("Failed to load initial data", e);
     } finally {
       setLoading(false);
     }
-  }, []));
+  }, []);
 
-  // Keep loading cashflow, assets, and liabilities as they are part of the new dashboard views
   useEffect(() => {
     const load = async () => {
       try {
-        // if (!loading) setLoading(true); // Removed as initial loading state is now managed better
         const [inc, exp, ast, lib, settingsRes] = await Promise.all([
           CashFlowService.list(true),
           CashFlowService.list(false),
           AssetService.list(),
           LiabilityService.list(),
-          SettingsService.getSettings(), // Fetch settings for projectionYears
+          SettingsService.getSettings(),
         ]);
         setIncomeItems(inc.data || []);
         setExpenseItems(exp.data || []);
         setAssets(ast.data || []);
         setLiabilities(lib.data || []);
-        setProjectionYears(settingsRes.data.projection_years || 30); // Set projection years
-        setShowChartTotals(settingsRes.data.show_chart_totals ?? true); // Fetch new setting
+        setProjectionYears(settingsRes.data.projection_years || 30);
+        setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
+
+        const uniqueAssetCategories = [...new Set(ast.data.map(item => item.category))].filter(Boolean);
+        setAssetCategories(uniqueAssetCategories);
+        
+        const uniqueLiabilityCategories = [...new Set(lib.data.map(item => item.category || ''))];
+        setLiabilityCategories(uniqueLiabilityCategories);
+        
+        const uniqueIncomeCategories = [...new Set(inc.data.map(item => item.category))].filter(Boolean);
+        setIncomeCategories(uniqueIncomeCategories);
+        
+        const uniqueExpenseCategories = [...new Set(exp.data.map(item => item.category))].filter(Boolean);
+        setExpenseCategories(uniqueExpenseCategories);
       } catch (e) {
         console.error("Failed to load cashflow, assets, or liabilities", e);
       } finally {
@@ -105,7 +116,7 @@ export default function SidebarLayout() {
       }
     };
     load();
-  }, [refreshSettings, refreshAllData]); // Added refreshAllData to dependencies
+  }, [refreshSettings, refreshAllData]);
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {
@@ -116,7 +127,6 @@ export default function SidebarLayout() {
     }).format(v ?? 0);
 
   const refreshCashflow = async () => {
-    // Only fetch if not already in loading state
     if (!loading) setLoading(true);
     const [inc, exp] = await Promise.all([
       CashFlowService.list(true),
@@ -128,7 +138,6 @@ export default function SidebarLayout() {
   };
 
   const refreshAssets = async () => {
-    // Only fetch if not already in loading state
     if (!loading) setLoading(true);
     const ast = await AssetService.list();
     setAssets(ast.data || []);
@@ -136,7 +145,6 @@ export default function SidebarLayout() {
   };
 
   const refreshLiabilities = async () => {
-    // Only fetch if not already in loading state
     if (!loading) setLoading(true);
     const lib = await LiabilityService.list();
     setLiabilities(lib.data || []);
@@ -152,7 +160,7 @@ export default function SidebarLayout() {
   const handleCreateNewChart = useCallback(() => {
     setView('custom-charts');
     setCustomChartView('create');
-    setSelectedChartId(null); // Clear selected chart when creating new
+    setSelectedChartId(null);
   }, []);
 
   const handleViewChart = useCallback((chartId) => {
@@ -273,7 +281,7 @@ export default function SidebarLayout() {
               liabilities={liabilities}
               projectionYears={projectionYears}
               formatCurrency={formatCurrency}
-              showChartTotals={showChartTotals} // Pass new prop
+              showChartTotals={showChartTotals}
             />
           </div>
         )}
@@ -323,7 +331,7 @@ export default function SidebarLayout() {
             <SettingsModal 
               onClose={() => setView('new-home')} 
               isOpen={true}
-              onSettingsSaved={refreshSettings} // Pass the new function here
+              onSettingsSaved={refreshSettings}
             />
           </div>
         )}
@@ -334,23 +342,27 @@ export default function SidebarLayout() {
           </div>
         )}
 
-        {!loading && view === "custom-charts" && (customChartView === "create" || customChartView === "edit") && (
-          <div className="custom-charts-form">
-            <CustomChartForm 
-              chartId={selectedChartId} 
-              onChartSaved={() => { setView('custom-charts'); setCustomChartView('list'); refreshAllData(); }}
-              onCancel={() => { setView('custom-charts'); setCustomChartView('list'); }}
-              assets={assets}
-              liabilities={liabilities}
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              projectionYears={projectionYears}
-              assetCategories={assetCategories}
-              liabilityCategories={liabilityCategories}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
-            />
-          </div>
+        {!loading && view === "custom-charts" && (customChartView === "create" || customChartView === "edit") && 
+          assetCategories.length > 0 && 
+          liabilityCategories.length > 0 && 
+          incomeCategories.length > 0 && 
+          expenseCategories.length > 0 && (
+            <div className="custom-charts-form">
+              <CustomChartForm 
+                chartId={selectedChartId} 
+                onChartSaved={() => { setView('custom-charts'); setCustomChartView('list'); refreshAllData(); }}
+                onCancel={() => { setView('custom-charts'); setCustomChartView('list'); }}
+                assets={assets}
+                liabilities={liabilities}
+                incomeItems={incomeItems}
+                expenseItems={expenseItems}
+                projectionYears={projectionYears}
+                assetCategories={assetCategories}
+                liabilityCategories={liabilityCategories}
+                incomeCategories={incomeCategories}
+                expenseCategories={expenseCategories}
+              />
+            </div>
         )}
 
         {!loading && view === "custom-charts" && customChartView === "view" && chartToViewId && (

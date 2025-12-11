@@ -61,6 +61,7 @@
 
 .settings-form h3 {
   grid-column: 1 / -1; /* Make h3 span across both columns */
+  width: 100%;
   text-align: left; /* Align text to the left */
   margin-top: 20px;
   margin-bottom: 15px;

@@ -24,4 +24,5 @@ class CustomChartService {
   }
 }
 
-export default new CustomChartService();
+const customChartService = new CustomChartService();
+export default customChartService;
