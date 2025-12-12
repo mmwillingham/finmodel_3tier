@@ -18,3 +18,7 @@ __pycache__/
 
 # Add api/.env to gitignore
 api/.env
+
+# Explicitly ignore api/node_modules/ and finmodel.db
+api/node_modules/
+finmodel.db
