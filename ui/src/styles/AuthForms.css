@@ -9,13 +9,21 @@
     background-color: #f4f7f6; /* Consistent with app background */
 }
 
-.auth-form {
+.auth-form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center items horizontally within the container */
     background-color: #fff;
     padding: 40px;
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 400px; /* Max width for a clean form */
+    gap: 15px; /* Spacing between elements */
+}
+
+.auth-form {
+    width: 100%; /* Ensure form takes full width of its container */
     display: flex;
     flex-direction: column;
     gap: 15px;

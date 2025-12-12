@@ -76,51 +76,53 @@ const LoginPage = () => {
 
     return (
         <div className="auth-container">
-            <h2>Log In</h2>
-            <form onSubmit={handleSubmit} className="auth-form">
-                {error && <p className="error-message">{error}</p>}
+            <div className="auth-form-container"> {/* NEW wrapper for vertical stacking */}
+                <h2>Log In</h2>
+                <form onSubmit={handleSubmit} className="auth-form">
+                    {error && <p className="error-message">{error}</p>}
 
-                <div className="form-group">
-                    <label htmlFor="email">Email Address</label>
-                    <input
-                        type="email"
-                        id="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                </div>
+                    <div className="form-group">
+                        <label htmlFor="email">Email Address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            disabled={loading}
+                        />
+                    </div>
 
-                <div className="form-group">
-                    <label htmlFor="password">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                </div>
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            disabled={loading}
+                        />
+                    </div>
 
-                <button type="submit" disabled={loading} className="submit-button">
-                    {loading ? 'Logging In...' : 'Log In'}
-                </button>
-                <button 
-                    type="button" 
-                    onClick={() => window.location.href = 'http://localhost:8000/auth/google'} 
-                    disabled={loading} 
-                    className="google-signin-button">
-                    Sign in with Google
-                </button>
-            </form>
-            <p className="auth-switch">
-                <a href="#" onClick={() => setIsForgotPasswordModalOpen(true)}>Forgot Password?</a>
-            </p>
-            <p className="auth-switch">
-                Don't have an account? <Link to="/signup">Sign Up here</Link>
-            </p>
+                    <button type="submit" disabled={loading} className="submit-button">
+                        {loading ? 'Logging In...' : 'Log In'}
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => window.location.href = 'http://localhost:8000/auth/google'} 
+                        disabled={loading} 
+                        className="google-signin-button">
+                        Sign in with Google
+                    </button>
+                </form>
+                <p className="auth-switch">
+                    <a href="#" onClick={() => setIsForgotPasswordModalOpen(true)}>Forgot Password?</a>
+                </p>
+                <p className="auth-switch">
+                    Don't have an account? <Link to="/signup">Sign Up here</Link>
+                </p>
+            </div>
 
             <ForgotPasswordModal
                 isOpen={isForgotPasswordModalOpen}

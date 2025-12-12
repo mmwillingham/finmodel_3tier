@@ -1,54 +1,20 @@
-# Python bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
+.venv/
+virtualenv/
 venv/
-ENV/
-env/
-.venv
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
 .DS_Store
-Thumbs.db
 
-# Node.js
-node_modules/
-npm-debug.log
-yarn-error.log
-package-lock.json
+financial_projector_api/venv/
+financial_projector_ui/node_modules/
+financial_projector_ui/build/
 
-# React build
-ui/build/
+# IDE-specific ignore for VS Code
+.vscode/
 
-# Database files
-*.db
-*.db.backup
-*.db-journal
+# Python specific ignores
+__pycache__/
+*.pyc
+*.log
+
+# Add api/.env to gitignore
+api/.env
