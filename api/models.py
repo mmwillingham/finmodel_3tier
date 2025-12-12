@@ -16,6 +16,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_confirmed = Column(Boolean, default=False) # NEW FIELD
     is_admin = Column(Boolean, default=False) # NEW FIELD
+    google_id = Column(String, unique=True, index=True, nullable=True) # NEW FIELD for Google OAuth
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner")
     # Relationship to PasswordResetToken: one user can have many reset tokens (though we'll only allow one active)

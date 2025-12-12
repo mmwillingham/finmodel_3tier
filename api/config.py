@@ -8,6 +8,10 @@ load_dotenv()
 # Note: You may need to install pydantic-settings: pip install pydantic-settings
 
 class Settings(BaseSettings):
+    # Google OAuth Settings
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET")
+
     # This automatically reads SECRET_KEY from the environment
     # SECRET_KEY is used for JWT encoding/decoding.
     SECRET_KEY: str = os.getenv("SECRET_KEY", "INSECURE_FALLBACK_KEY") 

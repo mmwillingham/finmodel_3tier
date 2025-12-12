@@ -109,3 +109,28 @@
 .auth-switch a:hover {
     text-decoration: underline;
 }
+
+.google-signin-button {
+    background-color: #4285F4; /* Google blue */
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-top: 5px; /* Less margin than first button */
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.google-signin-button:hover:not(:disabled) {
+    background-color: #357ae8;
+}
+
+.google-signin-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}

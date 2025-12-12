@@ -23,7 +23,7 @@ const AuthService = {
 
             if (response.data.access_token) {
                 // Save the token to local storage for persistence
-                localStorage.setItem("user_token", response.data.access_token);
+                AuthService.setToken(response.data.access_token);
                 // After successful login, fetch user details
                 const userDetails = await AuthService.getCurrentUser();
                 return { token: response.data.access_token, user: userDetails };
@@ -78,6 +78,13 @@ const AuthService = {
      */
     getToken() {
         return localStorage.getItem("user_token");
+    },
+
+    /**
+     * Sets the token in local storage.
+     */
+    setToken(token) {
+        localStorage.setItem("user_token", token);
     },
 
     /**

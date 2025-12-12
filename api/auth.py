@@ -84,6 +84,41 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     # Convert models.User object to the Pydantic schema for consistency
     return schemas.UserOut.model_validate(user)
 
+def authenticate_or_create_google_user(db: Session, google_id: str, email: str):
+    user = db.query(models.User).filter(models.User.google_id == google_id).first()
+    if user:
+        # User found by google_id, return them
+        return user
+
+    # If not found by google_id, check by email
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if user:
+        if not user.google_id:
+            # Existing email user, link google_id
+            user.google_id = google_id
+            user.is_confirmed = True # Confirm email if logging in via Google
+            db.commit()
+            db.refresh(user)
+        return user
+    
+    # If no user found by google_id or email, create a new one
+    # For Google OAuth users, we don't have a password in our system.
+    # Create a dummy/unusable hashed password if your schema requires it, or make it nullable.
+    # For now, we'll create an unusable one.
+    dummy_hashed_password = get_password_hash(secrets.token_urlsafe(32)) # Generate a random, strong dummy password
+
+    new_user = models.User(
+        email=email,
+        hashed_password=dummy_hashed_password,
+        is_active=True,
+        is_confirmed=True, # Google users are considered confirmed
+        google_id=google_id,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
 def get_current_active_user(current_user: schemas.UserOut = Depends(get_current_user)):
     # This is a placeholder for checking activation status if needed
     # if not current_user.is_active: 

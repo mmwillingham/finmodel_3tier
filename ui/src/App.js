@@ -10,6 +10,7 @@ import SignupPage from './components/SignupPage';
 import SidebarLayout from './components/SidebarLayout';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import EmailConfirmationPage from './components/EmailConfirmationPage';
+import GoogleAuthCallback from './components/GoogleAuthCallback'; // NEW: Import GoogleAuthCallback
 
 // Import Modals and their state management
 import SettingsModal, { useCategoryModalStates } from './components/SettingsModal';
@@ -40,6 +41,7 @@ function App() {
                         <Route path="/signup" element={<SignupPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/confirm-email" element={<EmailConfirmationPage />} />
+                        <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
 
                         {/* Protected Routes (Require JWT) */}
                         <Route

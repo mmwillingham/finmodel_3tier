@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
 import ForgotPasswordModal from './ForgotPasswordModal';
@@ -13,6 +13,16 @@ const LoginPage = () => {
     const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false); // New state
 
     const navigate = useNavigate();
+    const location = useLocation(); // NEW: Get location object
+
+    // NEW: Check for error message from navigation state
+    React.useEffect(() => {
+        if (location.state && location.state.error) {
+            setError(location.state.error);
+            // Clear the error from state so it doesn't persist on refresh
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location, navigate]);
     // Get the login function from the global authentication context
     const { login, currentUser, logout } = useAuth(); // Destructure currentUser and logout
 
@@ -96,6 +106,13 @@ const LoginPage = () => {
 
                 <button type="submit" disabled={loading} className="submit-button">
                     {loading ? 'Logging In...' : 'Log In'}
+                </button>
+                <button 
+                    type="button" 
+                    onClick={() => window.location.href = 'http://localhost:8000/auth/google'} 
+                    disabled={loading} 
+                    className="google-signin-button">
+                    Sign in with Google
                 </button>
             </form>
             <p className="auth-switch">

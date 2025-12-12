@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
 from typing import List
+from starlette.responses import RedirectResponse
+from .utils import google_oauth # NEW: Import google_oauth
 from jose import jwt, JWTError
 import json
 import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
@@ -48,7 +50,47 @@ app.add_middleware(
 
 # --- 2. Define the Token Scheme ---
 # NOTE: If tokenUrl is not defined in auth.py, it should be here.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+@app.get("/auth/google", tags=["oauth"], summary="Initiate Google OAuth login")
+async def google_login():
+    return RedirectResponse(url=google_oauth.get_google_auth_url())
+
+@app.get("/auth/google/callback", tags=["oauth"], summary="Handle Google OAuth callback")
+async def google_callback(code: str, db: Session = Depends(database.get_db)):
+    try:
+        # Exchange authorization code for tokens
+        token_response = await google_oauth.get_google_oauth_token(code)
+        access_token = token_response["access_token"]
+
+        # Fetch user info from Google
+        user_info = await google_oauth.get_google_user_info(access_token)
+        google_id = user_info["id"]
+        email = user_info["email"]
+        
+        # Authenticate or create user in our DB
+        user = auth.authenticate_or_create_google_user(db, google_id, email)
+
+        # Generate our own JWT for the authenticated user
+        our_access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        our_access_token = auth.create_access_token(
+            data={"sub": str(user.id)}, expires_delta=our_access_token_expires
+        )
+
+        # Redirect to frontend with our token
+        # Frontend will store this token and log in
+        redirect_url = f"http://localhost:3000/auth/google/callback?token={our_access_token}"
+        return RedirectResponse(url=redirect_url)
+
+    except HTTPException as e:
+        # Pass through explicit HTTPExceptions
+        raise e
+    except Exception as e:
+        print(f"Google OAuth callback error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Google OAuth failed: {e}"
+        )
 
 # --- AUTHENTICATION ROUTES ---
 
