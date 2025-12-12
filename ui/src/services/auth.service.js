@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // IMPORTANT: This must match your FastAPI server address/port
-const API_URL = "http://localhost:8000/"; 
+const API_URL = "/api/";
 
 const AuthService = {
     /**
