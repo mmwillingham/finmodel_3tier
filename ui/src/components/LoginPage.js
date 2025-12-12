@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
-import ForgotPasswordModal from './ForgotPasswordModal'; // New import
+import ForgotPasswordModal from './ForgotPasswordModal';
+import '../styles/AuthForms.css'; // Import new styling
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');

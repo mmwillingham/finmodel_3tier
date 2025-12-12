@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
+import '../styles/AuthForms.css'; // Import new styling
 
 const SignupPage = () => {
     const [email, setEmail] = useState('');

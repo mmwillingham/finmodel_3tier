@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import SettingsService from '../services/settings.service';
-import AuthService from '../services/auth.service'; // NEW: Import AuthService
-import { useAuth } from '../context/AuthContext'; // NEW: Import useAuth
+import AuthService from '../services/auth.service';
+import { useAuth } from '../context/AuthContext';
 
 import './SettingsModal.css';
-import CategoryEditorModal from './CategoryEditorModal'; // NEW: Import CategoryEditorModal
+import CategoryEditorModal from './CategoryEditorModal';
 
-// We will export these separately to be managed by a parent component (e.g., MainLayout)
 export const useCategoryModalStates = () => {
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
@@ -27,14 +26,13 @@ export default function SettingsModal({
   isOpen,
   onClose,
   onSettingsSaved,
-  // Props for controlling nested modals (visibility)
   isAssetModalOpen, setIsAssetModalOpen,
   isLiabilityModalOpen, setIsLiabilityModalOpen,
   isIncomeModalOpen, setIsIncomeModalOpen,
   isExpenseModalOpen, setIsExpenseModalOpen,
   isChangePasswordModalOpen, setIsChangePasswordModalOpen,
 }) {
-  const { currentUser } = useAuth(); // NEW: Get currentUser
+  const { currentUser } = useAuth();
   const [inflationPercent, setInflationPercent] = useState(2.0);
   const [assetCategoriesState, setAssetCategoriesState] = useState([]);
   const [liabilityCategoriesState, setLiabilityCategoriesState] = useState([]);
@@ -63,7 +61,6 @@ export default function SettingsModal({
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('application');
 
-  // NEW: State for Admin tab
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [adminMessage, setAdminMessage] = useState('');
@@ -84,16 +81,22 @@ export default function SettingsModal({
       setCity(res.data.city || "");
       setState(res.data.state || "");
       setZipCode(res.data.zip_code || "");
-      setEmail(res.data.email || "");
+      
+      // Prioritize currentUser.email, then saved settings email, then empty string
+      console.log('Debug - currentUser.email (from AuthContext):', currentUser?.email);
+      console.log('Debug - res.data.email (from DB Settings):', res.data.email);
+      setEmail(currentUser?.email || res.data.email || "");
+      console.log('Debug - Email state after setEmail:', email);
+
       setProjectionYears(res.data.projection_years || 30);
       setShowChartTotals(res.data.show_chart_totals ?? true);
     } catch (e) {
       console.error('Failed to load settings', e);
     }
-  }, []);
+  }, [currentUser]); // Added currentUser as a dependency
 
   const fetchUsers = useCallback(async () => {
-    if (!currentUser || !currentUser.is_admin) return; // Only fetch if admin
+    if (!currentUser || !currentUser.is_admin) return;
 
     setLoadingUsers(true);
     setAdminMessage('');
@@ -139,7 +142,7 @@ export default function SettingsModal({
         city: city,
         state: state,
         zip_code: zipCode,
-        email: email,
+        email: email, // This will save the currently displayed email
         projection_years: parseInt(projectionYears),
         show_chart_totals: showChartTotals,
       });
@@ -167,7 +170,7 @@ export default function SettingsModal({
     try {
       await AuthService.deleteUser(userId);
       setAdminMessage(`User ${userEmail} deleted successfully.`);
-      fetchUsers(); // Refresh the list of users
+      fetchUsers();
     } catch (error) {
       console.error("Failed to delete user:", error);
       setAdminMessage(`Failed to delete user ${userEmail}: ${error.response?.data?.detail || error.message}`);
@@ -185,7 +188,7 @@ export default function SettingsModal({
     try {
       await AuthService.setUserAdminStatus(userId, isAdmin);
       setAdminMessage(`User ${userEmail} ${isAdmin ? 'made' : 'admin status revoked for'} successfully.`);
-      fetchUsers(); // Refresh the list of users
+      fetchUsers();
     } catch (error) {
       console.error("Failed to update admin status:", error);
       setAdminMessage(`Failed to update admin status for user ${userEmail}: ${error.response?.data?.detail || error.message}`);
@@ -197,7 +200,7 @@ export default function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div> {/* Outer wrapper div */}
+    <div>
       <div className="settings-modal-overlay" onClick={onClose}>
         <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
           <h2>Settings</h2>
@@ -236,7 +239,6 @@ export default function SettingsModal({
           <div className="settings-form">
             {activeTab === 'application' && (
               <div className="tab-content">
-                {/* Application Settings Section */}
                 <h3>Application</h3>
                 <div className="setting-group">
                   <div>
@@ -280,7 +282,6 @@ export default function SettingsModal({
 
             {activeTab === 'profile' && (
               <div className="tab-content profile">
-                {/* Profile Section */}
                 <h3>Profile</h3>
                 <div className="setting-group">
                   <div>
@@ -405,7 +406,6 @@ export default function SettingsModal({
 
             {activeTab === 'categories' && (
               <div className="tab-content">
-                {/* Categories Section */}
                 <h3>Categories</h3>
                 <div className="setting-group category-settings-group">
                   <div className="category-section-item">
@@ -465,7 +465,6 @@ export default function SettingsModal({
               </div>
             )}
 
-            {/* NEW: Admin Tab Content */}
             {activeTab === 'admin' && currentUser && currentUser.is_admin && (
               <div className="tab-content admin-tab-content">
                 <h3>User Management</h3>
@@ -511,11 +510,10 @@ export default function SettingsModal({
             <button onClick={onClose}>Cancel</button>
           </div>
 
-        </div>{/* End settings-modal */}
+        </div>
 
-      </div>{/* End settings-modal-overlay */}
+      </div>
 
-      {/* Category Editor Modals - Now managed by SettingsModal internally */}
       <CategoryEditorModal
           isOpen={isAssetModalOpen}
           onClose={() => setIsAssetModalOpen(false)}
@@ -545,6 +543,6 @@ export default function SettingsModal({
           title="Expense Categories"
       />
 
-    </div> // End outer wrapper div
+    </div>
   );
 }
