@@ -1,379 +1,343 @@
 /* SettingsModal.css */
 
 .settings-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Main settings modal overlay - lower than category editor */
 }
 
 .settings-modal {
-  background-color: #ffffff;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  max-width: 800px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative; /* For z-index stacking if needed */
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh; /* Limit height to viewport height */
+    overflow-y: auto; /* Enable scrolling for long content */
+    position: relative;
+    z-index: 1001; /* Main settings modal content - lower than category editor */
+    color: #333;
 }
 
 .settings-modal h2 {
-  font-size: 1.8em;
-  color: #333;
-  margin-bottom: 25px;
-  text-align: center;
+    font-size: 2em;
+    color: #282c34;
+    margin-bottom: 20px;
+    text-align: center;
 }
 
 .settings-modal .message {
-  padding: 12px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: bold;
-}
-
-.settings-modal .message.success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.settings-modal .message.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    border: 1px solid #c3e6cb;
 }
 
 .settings-tabs {
-  display: flex;
-  border-bottom: 2px solid #e0e0e0;
-  margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #eee;
 }
 
 .settings-tabs button {
-  padding: 10px 20px;
-  border: none;
-  background-color: transparent;
-  font-size: 1em;
-  font-weight: 600;
-  color: #666;
-  cursor: pointer;
-  transition: color 0.3s, border-bottom 0.3s;
-  border-bottom: 2px solid transparent;
+    background-color: transparent;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.1em;
+    cursor: pointer;
+    color: #555;
+    transition: color 0.3s ease, border-bottom 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.settings-tabs button:hover {
+    color: #007bff;
 }
 
 .settings-tabs button.active {
-  color: #007bff;
-  border-bottom: 2px solid #007bff;
-}
-
-.settings-tabs button:hover:not(.active) {
-  color: #333;
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+    font-weight: bold;
 }
 
 .settings-form {
-  /* Removed grid-template-columns here, as tab content handles its own layout */
-  /* display: grid; */
-  /* gap: 25px; */
-  margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-.tab-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Two columns for content within active tab */
-  gap: 25px;
+.settings-form .tab-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.settings-form .tab-content > div {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Application Tab - Checkbox Alignment */
+.settings-form .tab-content .setting-group > div.checkbox-group {
+    flex-direction: row; /* For horizontal alignment of label and checkbox */
+    align-items: center;
+    gap: 10px; /* Space between checkbox and label */
+}
+
+.settings-form .tab-content .setting-group > div.checkbox-group label {
+    margin-bottom: 0; /* Remove bottom margin for labels in checkbox group */
+}
+
+/* Profile Tab - horizontal alignment for label and input and prevent wrapping */
+.settings-form .tab-content.profile .setting-group > div {
+    flex-direction: row; /* Align label and input horizontally */
+    align-items: center; /* Vertically center them */
+    gap: 15px; /* Space between label and input */
+    justify-content: space-between; /* Push label to left, input to right */
+    flex-wrap: nowrap; /* Prevent wrapping */
+}
+
+.settings-form .tab-content.profile .setting-group > div label {
+    white-space: nowrap; /* Prevent label text from wrapping */
+    margin-bottom: 0; /* Remove bottom margin for labels in horizontal layout */
+    flex-shrink: 0; /* Prevent label from shrinking */
+}
+
+.settings-form .tab-content.profile .setting-group > div input,
+.settings-form .tab-content.profile .setting-group > div select {
+    flex-grow: 1; /* Allow input/select to take remaining space */
+    max-width: 250px; /* Limit input width to prevent excessive growth */
 }
 
 .settings-form h3 {
-  grid-column: 1 / -1; /* Make h3 span across both columns */
-  width: 100%;
-  text-align: left; /* Align text to the left */
-  margin-top: 20px;
-  margin-bottom: 15px;
-  color: #333;
-  font-size: 1.4em;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 5px;
+    grid-column: 1 / -1;
+    font-size: 1.4em;
+    color: #282c34;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
 }
 
-.settings-form .setting-group {
-  display: flex;
-  flex-direction: column; /* Stack children vertically within the group */
-  gap: 20px; /* Gap between individual setting items in a group */
+.setting-group > div {
+    display: flex;
+    flex-direction: column;
 }
 
-.settings-form .setting-group > div {
-  display: flex;
-  flex-direction: column;
-  gap: 8px; /* Gap between label and input/category-display */
+.setting-group label {
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #444;
 }
 
-.settings-form .setting-group > div:has(input#show-chart-totals) {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
+.setting-group input[type="number"],
+.setting-group input[type="text"],
+.setting-group input[type="email"],
+.setting-group select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+    width: 100%; /* Ensure inputs take full width */
+    box-sizing: border-box; /* Include padding in width */
 }
 
-
-.settings-form label {
-  font-weight: 600;
-  color: #555;
-  font-size: 0.95em;
+.setting-group input[type="checkbox"] {
+    margin-top: 10px;
+    width: auto;
 }
 
-.settings-form input[type="text"],
-.settings-form input[type="number"] {
-  padding: 12px 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1em;
-  transition: border-color 0.2s, box-shadow 0.2s;
+/* Categories Tab Specific Styles - Updated for new structure */
+.category-settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Space between different category sections */
 }
 
-.settings-form input[type="email"],
-.settings-form input[type="date"],
-.settings-form select {
-  padding: 12px 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1em;
-  transition: border-color 0.2s, box-shadow 0.2s;
+.category-section-item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between header and tags */
 }
 
-.settings-form input[type="text"]:focus,
-.settings-form input[type="number"]:focus,
-.settings-form input[type="email"]:focus,
-.settings-form input[type="date"]:focus,
-.settings-form select:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-  outline: none;
+.category-header {
+    display: flex;
+    justify-content: space-between; /* Pushes label left, button right */
+    align-items: center;
 }
 
-.settings-form .change-password-btn {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1em;
-  font-weight: 600;
-  transition: background-color 0.2s, box-shadow 0.2s;
-  align-self: flex-start; /* Align button to the start of its column */
+.category-header label {
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 0; /* Override default label margin */
 }
 
-.settings-form .change-password-btn:hover {
-  background-color: #0056b3;
-  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+.category-tags-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Space between category tags */
 }
 
-.settings-form .category-display {
-  position: relative; /* For positioning the modal */
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  min-height: 40px; /* Ensure visibility even if empty */
-  align-items: center;
-  background-color: #f8f9fa;
+.category-tag {
+    background-color: #e9ecef;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9em;
 }
 
-.settings-modal .category-tag {
-  background-color: #e9ecef;
-  color: #495057;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85em;
-  font-weight: 500;
+.category-header button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
 }
 
-.settings-modal button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1em;
-  font-weight: 600;
-  transition: background-color 0.2s, box-shadow 0.2s;
+.category-header button:hover {
+    background-color: #5a6268;
 }
 
-.settings-modal .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 30px;
+.no-categories-text {
+    font-style: italic;
+    color: #6c757d;
+    font-size: 0.9em;
 }
 
-.settings-modal .modal-actions button:first-child {
-  background-color: #007bff;
-  color: white;
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
 }
 
-.settings-modal .modal-actions button:first-child:hover {
-  background-color: #0056b3;
-  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+.modal-actions button {
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.settings-modal .modal-actions button:last-child {
-  background-color: #6c757d;
-  color: white;
+.modal-actions button:first-child {
+    background-color: #28a745;
+    color: white;
+    border: 1px solid #28a745;
 }
 
-.settings-modal .modal-actions button:last-child:hover {
-  background-color: #545b62;
-  box-shadow: 0 4px 10px rgba(108, 117, 125, 0.3);
+.modal-actions button:first-child:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
 }
 
-/* Category Editor Modal Specific Styles (now positioned absolutely) */
-.category-editor-modal {
-  position: absolute;
-  top: 0; /* Align with the top of the category-display's parent */
-  left: 50%; /* Center horizontally initially, then adjust with transform */
-  transform: translateX(-50%); /* Adjust to true center */
-  z-index: 1001; /* Ensure it's above the main settings modal overlay */
-  background-color: #fefefe; /* Lighter background for the inner modal */
-  border: 1px solid #a0a0a0; /* Slightly stronger border */
-  border-radius: 10px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-  padding: 25px;
-  width: 450px; /* Slightly wider for better content display */
-  max-height: 85vh;
-  overflow-y: auto;
-
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.modal-actions button:last-child {
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #ced4da;
 }
 
-.category-editor-modal h3 {
-  font-size: 1.5em;
-  color: #333;
-  margin-bottom: 15px;
-  text-align: center;
+.modal-actions button:last-child:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
 }
 
-.category-editor-modal .category-list {
-  margin-top: 0;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  max-height: 220px;
-  overflow-y: auto;
-  padding: 10px;
-  background-color: #fdfdfd;
+.change-password-btn {
+    background-color: #007bff; /* Bootstrap primary blue */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
 }
 
-.category-editor-modal .category-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
+.change-password-btn:hover {
+    background-color: #0056b3;
 }
 
-.category-editor-modal .category-item:last-child {
-  border-bottom: none;
+/* Admin Tab Specific Styles */
+.admin-tab-content h3 {
+    margin-bottom: 20px;
 }
 
-.category-editor-modal .category-item span {
-  flex-grow: 1;
-  cursor: pointer;
-  padding: 4px;
-  margin-right: 10px;
-  color: #444;
+.admin-tab-content .loading {
+    text-align: center;
+    font-style: italic;
+    color: #6c757d;
 }
 
-.category-editor-modal .category-item span:hover {
-  background-color: #eef;
-  border-radius: 4px;
+.admin-tab-content .user-list ul {
+    list-style: none;
+    padding: 0;
 }
 
-.category-editor-modal .category-item input[type="text"] {
-  flex-grow: 1;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  margin-right: 10px;
+.admin-tab-content .user-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 5px;
 }
 
-.category-editor-modal .category-item button {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: 0.85em;
-  margin-left: 5px;
+.admin-tab-content .user-list li span {
+    font-weight: 500;
+    color: #333;
 }
 
-.category-editor-modal .category-item button:hover {
-  background-color: #c82333;
+.admin-tab-content .user-list li button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
 }
 
-.category-editor-modal .add-category-form {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
+.admin-tab-content .delete-user-btn {
+    background-color: #dc3545;
+    color: white;
 }
 
-.category-editor-modal .add-category-form input {
-  flex-grow: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+.admin-tab-content .delete-user-btn:hover {
+    background-color: #c82333;
 }
 
-.category-editor-modal .add-category-form button {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 15px;
-  cursor: pointer;
+.admin-tab-content .set-admin-status-btn {
+    background-color: #007bff; /* Blue for make admin */
+    color: white;
 }
 
-.category-editor-modal .add-category-form button:hover {
-  background-color: #218838;
+.admin-tab-content .set-admin-status-btn:hover {
+    background-color: #0056b3;
 }
 
-.category-editor-modal .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.category-editor-modal .modal-actions button {
-  padding: 8px 15px;
-  font-size: 0.95em;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .settings-form {
-    grid-template-columns: 1fr;
-  }
-
-  .settings-modal {
-    padding: 20px;
-  }
-
-  .category-editor-modal {
-    width: 90%;
-    right: 5%; /* Adjust for centering */
-    left: auto;
-    transform: none;
-  }
+.admin-badge {
+    background-color: #ffc107; /* Yellow background */
+    color: #343a40; /* Dark text */
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 10px;
 }

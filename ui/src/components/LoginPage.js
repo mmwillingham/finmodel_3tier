@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
+import ForgotPasswordModal from './ForgotPasswordModal'; // New import
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false); // New state
 
     const navigate = useNavigate();
     // Get the login function from the global authentication context
-    const { login } = useAuth();
+    const { login, currentUser, logout } = useAuth(); // Destructure currentUser and logout
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,7 +33,15 @@ const LoginPage = () => {
 
             // 2. If the API call succeeds (200 OK), update the global authentication state
             //    The login() function will retrieve and verify the token.
-            await login(); 
+            await login();
+
+            // Check if the user's email is confirmed
+            if (currentUser && !currentUser.is_confirmed) {
+                logout(); // Log out the user to clear the token
+                setError("Your email address has not been confirmed. Please check your inbox for a confirmation link.");
+                setLoading(false);
+                return;
+            }
             
             // 3. Redirect the user to the main application page
             navigate('/');
@@ -88,8 +98,16 @@ const LoginPage = () => {
                 </button>
             </form>
             <p className="auth-switch">
+                <a href="#" onClick={() => setIsForgotPasswordModalOpen(true)}>Forgot Password?</a>
+            </p>
+            <p className="auth-switch">
                 Don't have an account? <Link to="/signup">Sign Up here</Link>
             </p>
+
+            <ForgotPasswordModal
+                isOpen={isForgotPasswordModalOpen}
+                onClose={() => setIsForgotPasswordModalOpen(false)}
+            />
         </div>
     );
 };

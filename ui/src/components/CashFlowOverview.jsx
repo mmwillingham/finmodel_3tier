@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 
 export default function CashFlowOverview({ incomeItems, expenseItems, projectionYears, formatCurrency }) {
-  const { currentUser } = useAuth();
+  const { currentUser, userSettings } = useAuth();
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
   const tableRef = useRef(null);
@@ -44,24 +44,24 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   const cashFlowChartData = {
     labels: cashFlowProjection.years.map(year => currentYear + year), // Adjust labels to current year
     datasets: [
-      {
+    {
         label: "Income",
         data: cashFlowProjection.incomeValues,
         borderColor: "rgb(75, 192, 75)",
         backgroundColor: "rgba(75, 192, 75, 0.2)",
-      },
-      {
+    },
+    {
         label: "Expenses",
         data: cashFlowProjection.expenseValues,
         borderColor: "rgb(255, 99, 99)",
         backgroundColor: "rgba(255, 99, 99, 0.2)",
-      },
-      {
+    },
+    {
         label: "Surplus",
         data: cashFlowProjection.surplus,
         borderColor: "rgb(153, 102, 255)",
         backgroundColor: "rgba(153, 102, 255, 0.2)",
-      },
+    },
     ],
   };
 
@@ -73,7 +73,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
       },
       title: {
         display: true,
-        text: `Financial Project - Income & Expense Projection${currentUser ? ` by ${currentUser.username}` : ''}`,
+        text: `Financial Project - Income & Expense Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
     },
     scales: {
@@ -193,7 +193,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         <tbody>
           {displayYears.map((year) => (
             <tr key={year}>
-              <td>{currentYear + year}</td> {/* Adjust table year to current year */}
+              <td>{currentYear + year}</td>
               <td>{formatCurrency(cashFlowProjection.incomeValues[year])}</td>
               <td>{formatCurrency(cashFlowProjection.expenseValues[year])}</td>
               <td>{formatCurrency(cashFlowProjection.surplus[year])}</td>

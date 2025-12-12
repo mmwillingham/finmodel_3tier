@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+import re
 from typing import List, Optional, Any
 from datetime import datetime
 
@@ -8,17 +9,67 @@ class UserBase(BaseModel):
     email: str
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=8)
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Za-z]', v):
+            raise ValueError('Password must contain at least one letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        return v
 
 class UserOut(BaseModel):
     id: int
     email: str
     created_at: datetime
+    is_confirmed: bool = False # NEW FIELD
+    is_admin: bool = False # NEW FIELD
     model_config = ConfigDict(from_attributes=True)
 
 class TokenData(BaseModel):
     """Schema for the data payload extracted from the JWT."""
     email: Optional[str] = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Za-z]', v):
+            raise ValueError('New password must contain at least one letter')
+        if not re.search(r'\d', v):
+            raise ValueError('New password must contain at least one number')
+        return v
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Za-z]', v):
+            raise ValueError('New password must contain at least one letter')
+        if not re.search(r'\d', v):
+            raise ValueError('New password must contain at least one number')
+        return v
+
+class EmailConfirmation(BaseModel):
+    token: str
+
+class UserAdminStatusUpdate(BaseModel):
+    is_admin: bool
+
+class CategoryUsageCheck(BaseModel):
+    category_name: str
+    category_type: str # e.g., 'asset', 'liability', 'income', 'expense'
 
 # --- CALCULATION INPUT SCHEMAS ---
 

@@ -11,6 +11,7 @@ import os # Keep os for getenv in config.py (if not using pydantic-settings, but
 # Internal Modules
 from . import models, schemas, database, auth, calculations
 from .routers import custom_charts
+from .utils.email import send_email
 from .config import settings # 🌟 NEW: Import the settings object
 
 # --- INITIALIZATION ---
@@ -65,6 +66,14 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # NEW: Check if the user's email is confirmed
+    if not user.is_confirmed:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Please confirm your email address before logging in.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     # Create the access token using a function from your 'auth' module
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
@@ -95,16 +104,21 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
             detail="Email already registered"
         )
         
-    # 2. Hash the password
-    # 🚨 NOTE: You need a utility function to hash the password here (e.g., in auth.py)
-    # Assuming auth.get_password_hash(password) exists:
-    hashed_password = auth.get_password_hash(user.password)
+    try:
+        # 2. Hash the password
+        hashed_password = auth.get_password_hash(user.password)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Password did not meet requirements: {e}"
+        )
     
     # 3. Create the database model instance
     db_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
-        is_active=True # Default to active
+        is_active=True,
+        is_confirmed=False # New users are unconfirmed by default
     )
     
     # 4. Save to DB
@@ -112,8 +126,214 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     db.commit()
     db.refresh(db_user)
     
-    # The response_model handles converting the model to schemas.UserOut
+    # Send confirmation email
+    confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
+    confirmation_link = f"http://localhost:3000/confirm-email?token={confirmation_token}"
+    print(f"Email confirmation link: {confirmation_link}")
+    send_email(
+        to_email=db_user.email,
+        subject="Financial Projector - Confirm Your Email",
+        body=f"""Hello {db_user.email},
+
+Thank you for registering with Financial Projector!
+
+Please click the link below to confirm your email address:
+{confirmation_link}
+
+This link will expire in 24 hours.
+
+Best regards,
+The Financial Projector Team"""
+    )
+    
     return db_user
+
+@app.delete("/admin/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["admin"])
+def delete_user_by_admin(
+    user_id: int,
+    db: Session = Depends(database.get_db),
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
+):
+    """
+    Allows an admin user to delete another user and all their associated data.
+    """
+    if user_id == current_admin_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin user cannot delete their own account.")
+
+    user_to_delete = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if not user_to_delete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    db.delete(user_to_delete)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.get("/admin/users", response_model=List[schemas.UserOut], tags=["admin"])
+def list_all_manageable_users(
+    db: Session = Depends(database.get_db),
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
+):
+    """
+    Allows an admin user to retrieve a list of all other users.
+    """
+    users = db.query(models.User).filter(models.User.id != current_admin_user.id).all()
+    return [schemas.UserOut.model_validate(user) for user in users]
+
+@app.put("/admin/users/{user_id}/set-admin-status", response_model=schemas.UserOut, tags=["admin"])
+def set_user_admin_status(
+    user_id: int,
+    status_update: schemas.UserAdminStatusUpdate,
+    db: Session = Depends(database.get_db),
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
+):
+    """
+    Allows an admin user to change another user's admin status.
+    """
+    if user_id == current_admin_user.id and not status_update.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin user cannot revoke their own admin status."
+        )
+
+    user_to_update = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user_to_update:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    user_to_update.is_admin = status_update.is_admin
+    db.commit()
+    db.refresh(user_to_update)
+    return user_to_update
+
+@app.post("/categories/check-usage", response_model=bool, tags=["categories"])
+def check_category_usage(
+    category_check: schemas.CategoryUsageCheck,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """
+    Checks if a category is currently in use by any assets, liabilities, or cash flow items.
+    """
+    category_name = category_check.category_name
+    category_type = category_check.category_type.lower()
+    user_id = current_user.id
+
+    is_in_use = False
+
+    if category_type == "asset":
+        asset_count = db.query(models.Asset).filter(
+            models.Asset.owner_id == user_id,
+            models.Asset.category == category_name
+        ).count()
+        if asset_count > 0:
+            is_in_use = True
+    elif category_type == "liability":
+        liability_count = db.query(models.Liability).filter(
+            models.Liability.owner_id == user_id,
+            models.Liability.category == category_name
+        ).count()
+        if liability_count > 0:
+            is_in_use = True
+    elif category_type == "income":
+        cashflow_income_count = db.query(models.CashFlowItem).filter(
+            models.CashFlowItem.owner_id == user_id,
+            models.CashFlowItem.category == category_name,
+            models.CashFlowItem.is_income == True
+        ).count()
+        if cashflow_income_count > 0:
+            is_in_use = True
+    elif category_type == "expense":
+        cashflow_expense_count = db.query(models.CashFlowItem).filter(
+            models.CashFlowItem.owner_id == user_id,
+            models.CashFlowItem.category == category_name,
+            models.CashFlowItem.is_income == False
+        ).count()
+        if cashflow_expense_count > 0:
+            is_in_use = True
+
+    return is_in_use
+
+@app.put("/users/me/password", response_model=schemas.UserOut, tags=["users"])
+def change_password(
+    payload: schemas.ChangePasswordRequest,
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    """Allows an authenticated user to change their password."""
+    updated_user = auth.change_user_password(
+        db=db,
+        user_id=current_user.id,
+        current_password=payload.current_password,
+        new_password=payload.new_password
+    )
+    return updated_user
+
+@app.post("/forgot-password", status_code=status.HTTP_200_OK, tags=["auth"])
+def forgot_password(
+    payload: schemas.PasswordResetRequest,
+    db: Session = Depends(database.get_db)
+):
+    """Handles the request to initiate a password reset. Sends a reset email if the user exists."""
+    # In a real application, you would send an email with a reset token here.
+    # For now, we'll just acknowledge the request.
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
+    if user:
+        token = auth.create_password_reset_token(db, user.id)
+        reset_link = f"http://localhost:3000/reset-password?token={token}"
+        print(f"Password reset link: {reset_link}")
+        send_email(
+            to_email=user.email,
+            subject="Financial Projector - Password Reset Request",
+            body=f"""Hello,
+
+You have requested a password reset for your Financial Projector account.
+
+Please use the following link to reset your password: {reset_link}
+
+This link will expire in 1 hour.
+
+If you did not request a password reset, please ignore this email.
+
+Best regards,
+The Financial Projector Team"""
+        )
+    
+    # Always return a generic success message to prevent email enumeration
+    return {"message": "If an account with that email exists, a password reset link has been sent."}
+
+@app.post("/reset-password", response_model=schemas.UserOut, tags=["auth"])
+def reset_password(
+    payload: schemas.PasswordReset,
+    db: Session = Depends(database.get_db)
+):
+    """Resets the user's password using a valid reset token."""
+    try:
+        updated_user = auth.reset_user_password(
+            db=db,
+            token=payload.token,
+            new_password=payload.new_password
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"New password did not meet requirements: {e}"
+        )
+    except HTTPException as e:
+        raise e # Re-raise HTTP exceptions like "Invalid or expired token."
+    return updated_user
+
+@app.post("/verify-email", response_model=schemas.UserOut, tags=["auth"])
+def verify_email(
+    payload: schemas.EmailConfirmation,
+    db: Session = Depends(database.get_db)
+):
+    """Verifies a user's email address using a confirmation token."""
+    try:
+        confirmed_user = auth.verify_email_confirmation_token(db, payload.token)
+    except HTTPException as e:
+        raise e # Re-raise HTTP exceptions like "Invalid or expired confirmation token."
+    return confirmed_user
 
 @app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED)
 def create_projection(
@@ -121,7 +341,8 @@ def create_projection(
     user: schemas.UserOut = Depends(auth.get_current_user), 
     db: Session = Depends(database.get_db)
 ):
-    """Creates a new projection, runs the calculation, and saves the results to the database."""
+    """
+    Creates a new projection, runs the calculation, and saves the results to the database."""
     try:
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
@@ -158,7 +379,8 @@ def get_projection_details(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Retrieves a single projection if the user is the owner."""
+    """
+    Retrieves a single projection if the user is the owner."""
     
     projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
     
@@ -175,7 +397,8 @@ def list_projections(
     db: Session = Depends(database.get_db), 
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Lists all projections owned by the current user."""
+    """
+    Lists all projections owned by the current user."""
     
     projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
     
@@ -188,7 +411,8 @@ def update_projection(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Updates an existing projection if user is the owner."""
+    """
+    Updates an existing projection if user is the owner."""
     projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
     
     if not projection:
@@ -221,7 +445,8 @@ def delete_projection(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Delete a projection if the current user is the owner."""
+    """
+    Delete a projection if the current user is the owner."""
     projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
     if not projection:
         raise HTTPException(status_code=404, detail="Projection not found.")
@@ -553,4 +778,3 @@ def delete_liability(
     db.delete(liability)
     db.commit()
     return Response(status_code=204)
-

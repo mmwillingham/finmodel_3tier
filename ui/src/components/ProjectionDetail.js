@@ -36,7 +36,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
   const [error, setError] = useState(null);
   const [data, setData] = useState([]);
   const [accountDetails, setAccountDetails] = useState([]);
-  const { currentUser } = useAuth();
+  const { currentUser, userSettings } = useAuth();
   const chartRef = useRef(null);
   const yearByYearTableRef = useRef(null);
   const accountDetailsTableRef = useRef(null);
@@ -205,7 +205,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     responsive: true,
     plugins: {
       legend: { position: 'top' },
-      title: { display: true, text: `Financial Project - ${projection.name} - Growth Over Time${currentUser ? ` by ${currentUser.username}` : ''}` },
+      title: { display: true, text: `Financial Project - ${projection.name} - Growth Over Time${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}` },
     },
     scales: {
       y: {

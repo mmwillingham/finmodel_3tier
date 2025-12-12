@@ -14,8 +14,41 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_active = Column(Boolean, default=True)
+    is_confirmed = Column(Boolean, default=False) # NEW FIELD
+    is_admin = Column(Boolean, default=False) # NEW FIELD
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner")
+    # Relationship to PasswordResetToken: one user can have many reset tokens (though we'll only allow one active)
+    password_reset_tokens = relationship("PasswordResetToken", back_populates="user_owner")
+    # Relationship to EmailConfirmationToken: one user can have many confirmation tokens
+    email_confirmation_tokens = relationship("EmailConfirmationToken", back_populates="user_owner") # NEW RELATIONSHIP
+
+class PasswordResetToken(Base):
+    """
+    SQLAlchemy Model for Password Reset Tokens.
+    """
+    __tablename__ = "password_reset_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token = Column(String, unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user_owner = relationship("User", back_populates="password_reset_tokens")
+
+
+class EmailConfirmationToken(Base):
+    """
+    SQLAlchemy Model for Email Confirmation Tokens.
+    """
+    __tablename__ = "email_confirmation_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token = Column(String, unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user_owner = relationship("User", back_populates="email_confirmation_tokens")
 
 
 class Projection(Base):

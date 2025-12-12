@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 
 export default function BalanceSheetProjection({ assets, liabilities, projectionYears, formatCurrency, showChartTotals }) {
-  const { currentUser } = useAuth();
+  const { currentUser, userSettings } = useAuth();
   const currentYear = new Date().getFullYear();
   const overallChartRef = useRef(null);
   const overallTableRef = useRef(null);
@@ -101,7 +101,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
       },
       title: {
         display: true,
-        text: `Financial Project - Overall Financial Snapshot${currentUser ? ` by ${currentUser.username}` : ''}`,
+        text: `Financial Project - Overall Financial Snapshot${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
     },
     scales: {
@@ -319,7 +319,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
               ...chartOptions.plugins,
               title: {
                 ...chartOptions.plugins.title,
-                text: `Financial Project - Individual Asset Projections${currentUser ? ` by ${currentUser.username}` : ''}`,
+                text: `Financial Project - Individual Asset Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
               },
             },
           }}
@@ -387,7 +387,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
                 ...chartOptions.plugins,
                 title: {
                   ...chartOptions.plugins.title,
-                  text: `Financial Project - Individual Liability Projections${currentUser ? ` by ${currentUser.username}` : ''}`,
+                  text: `Financial Project - Individual Liability Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
                 },
               },
             }}

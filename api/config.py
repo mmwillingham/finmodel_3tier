@@ -18,5 +18,13 @@ class Settings(BaseSettings):
     # Expiration time for access tokens.
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 
 
+    # Email settings
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD")
+    MAIL_FROM: str = os.getenv("MAIL_FROM")
+    MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER")
+    
+
 # Instantiate the settings object once to be imported everywhere
 settings = Settings()

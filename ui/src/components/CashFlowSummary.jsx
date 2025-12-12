@@ -11,6 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 import SettingsService from '../services/settings.service';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
 import './CashFlowSummary.css';
 
 ChartJS.register(
@@ -24,6 +25,7 @@ ChartJS.register(
 );
 
 export default function CashFlowSummary({ incomeItems, expenseItems }) {
+  const { userSettings } = useAuth(); // Get userSettings from context
   const [years, setYears] = useState(10);
   const [defaultInflation, setDefaultInflation] = useState(2.0);
 
@@ -124,7 +126,7 @@ export default function CashFlowSummary({ incomeItems, expenseItems }) {
       },
       title: {
         display: true,
-        text: 'Cash Flow Projection',
+        text: `Financial Project - Cash Flow Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
         font: { size: 13 },
       },
     },

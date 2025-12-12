@@ -225,15 +225,6 @@ export default function SidebarLayout() {
             </button>
           </section>
 
-          <section className="nav-section">
-            <h3>Settings</h3>
-            <button 
-              className={`nav-btn ${view === 'settings' ? 'active' : ''}`} 
-              onClick={() => setView('settings')}
-            >
-              General Settings
-            </button>
-          </section>
 
           <section className="nav-section">
             <h3>Custom Charts</h3>

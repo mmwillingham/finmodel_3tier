@@ -1,11 +1,13 @@
 # api/auth.py
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+import secrets # New import for token generation
+import string # New import for token generation
 
 from . import models, schemas, database
 from .config import settings # 🌟 NEW: Import settings from the central config file
@@ -87,3 +89,106 @@ def get_current_active_user(current_user: schemas.UserOut = Depends(get_current_
     # if not current_user.is_active: 
     #     raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+async def get_current_admin_user(current_user: schemas.UserOut = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    return current_user
+
+def change_user_password(db: Session, user_id: int, current_password: str, new_password: str):
+    user = get_user(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect current password")
+    
+    hashed_new_password = get_password_hash(new_password)
+    user.hashed_password = hashed_new_password
+    db.commit()
+    db.refresh(user)
+    return user
+
+def generate_random_token(length: int = 32) -> str:
+    charset = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(charset) for i in range(length))
+
+def create_password_reset_token(db: Session, user_id: int) -> str:
+    # Invalidate any existing tokens for this user
+    db.query(models.PasswordResetToken).filter(models.PasswordResetToken.user_id == user_id).delete()
+    db.commit()
+
+    token_value = generate_random_token()
+    expires_at = datetime.utcnow() + timedelta(hours=1) # Token valid for 1 hour
+
+    db_token = models.PasswordResetToken(
+        user_id=user_id,
+        token=token_value,
+        expires_at=expires_at
+    )
+    db.add(db_token)
+    db.commit()
+    db.refresh(db_token)
+    return token_value
+
+def reset_user_password(db: Session, token: str, new_password: str):
+    db_token = db.query(models.PasswordResetToken).filter(models.PasswordResetToken.token == token).first()
+
+    if not db_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token.")
+
+    if db_token.expires_at < datetime.now(timezone.utc):
+        db.delete(db_token)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token.")
+    
+    user = get_user(db, db_token.user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    hashed_new_password = get_password_hash(new_password)
+    user.hashed_password = hashed_new_password
+    user.is_confirmed = True # NEW: Confirm email upon successful password reset
+    db.delete(db_token) # Invalidate the token after use
+    db.commit()
+    db.refresh(user)
+    return user
+
+def create_email_confirmation_token(db: Session, user_id: int) -> str:
+    # Invalidate any existing confirmation tokens for this user
+    db.query(models.EmailConfirmationToken).filter(models.EmailConfirmationToken.user_id == user_id).delete()
+    db.commit()
+
+    token_value = generate_random_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24) # Token valid for 24 hours
+
+    db_token = models.EmailConfirmationToken(
+        user_id=user_id,
+        token=token_value,
+        expires_at=expires_at
+    )
+    db.add(db_token)
+    db.commit()
+    db.refresh(db_token)
+    return token_value
+
+def verify_email_confirmation_token(db: Session, token: str):
+    db_token = db.query(models.EmailConfirmationToken).filter(models.EmailConfirmationToken.token == token).first()
+
+    if not db_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired confirmation token.")
+
+    if db_token.expires_at < datetime.now(timezone.utc):
+        db.delete(db_token)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired confirmation token.")
+    
+    user = get_user(db, db_token.user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User associated with token not found.")
+
+    user.is_confirmed = True
+    db.delete(db_token) # Invalidate the token after use
+    db.commit()
+    db.refresh(user)
+    return user
