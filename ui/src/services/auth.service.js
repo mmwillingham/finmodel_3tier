@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // IMPORTANT: This must match your FastAPI server address/port
-const API_URL = "/api/";
+const API_URL = "https://finmodel-backend-service-526419047208.us-east1.run.app/";
 
 const AuthService = {
     /**

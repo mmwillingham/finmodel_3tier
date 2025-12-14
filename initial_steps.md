@@ -60,6 +60,8 @@ pip uninstall passlib bcrypt scrypt -y
 pip install passlib scrypt
 pip install fastapi[all] # This includes starlette, which handles middleware
 pip install python-dotenv
+pip install httpx
+pip install google-auth
 
 
 
@@ -657,8 +659,10 @@ npm install axios react-router-dom chart.js react-chartjs-2
 npm install recharts
 npm install react-sortable-hoc
 npm install react-chartjs-2 chart.js jspdf html2canvas
-npm install
 npm audit fix --force
+npm install chartjs-plugin-datalabels
+npm install
+
 cd ..
 ```
 

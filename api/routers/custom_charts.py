@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List
 import json
 
-from .. import schemas, models
-from ..database import get_db
-from ..auth import get_current_user
+import schemas
+import models
+from database import get_db
+from auth import get_current_user
 
 router = APIRouter(
     prefix="/custom_charts",

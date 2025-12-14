@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List
 
-from ..config import settings
+from config import settings
 
 def send_email(
     to_email: str,

@@ -7,7 +7,7 @@ services:
       dockerfile: ./api/Dockerfile
     container_name: finmodel_backend
     ports:
-      - "8000:8000"
+      - "8000:8080"
     environment:
       # Connect to your existing PostgreSQL container/instance on the host machine
           DATABASE_URL: postgresql://bolauder:iamhe123@host.containers.internal:5432/finmodel
@@ -19,8 +19,6 @@ services:
           MAIL_SERVER: ${MAIL_SERVER}
           GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
           GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
-
   frontend:
     build:
       context: .

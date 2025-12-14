@@ -9,8 +9,10 @@ from fastapi.security import OAuth2PasswordBearer
 import secrets # New import for token generation
 import string # New import for token generation
 
-from . import models, schemas, database
-from .config import settings # 🌟 NEW: Import settings from the central config file
+import models
+import schemas
+import database
+from config import settings # 🌟 NEW: Import settings from the central config file
 
 from passlib.context import CryptContext
 # Define the context
@@ -172,7 +174,7 @@ def reset_user_password(db: Session, token: str, new_password: str):
     if not db_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token.")
 
-    if db_token.expires_at < datetime.now(timezone.utc):
+    if db_token.expires_at < datetime.utcnow():
         db.delete(db_token)
         db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token.")
@@ -195,7 +197,7 @@ def create_email_confirmation_token(db: Session, user_id: int) -> str:
     db.commit()
 
     token_value = generate_random_token()
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24) # Token valid for 24 hours
+    expires_at = datetime.utcnow() + timedelta(hours=24) # Token valid for 24 hours
 
     db_token = models.EmailConfirmationToken(
         user_id=user_id,
@@ -213,7 +215,7 @@ def verify_email_confirmation_token(db: Session, token: str):
     if not db_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired confirmation token.")
 
-    if db_token.expires_at < datetime.now(timezone.utc):
+    if db_token.expires_at < datetime.utcnow():
         db.delete(db_token)
         db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired confirmation token.")

@@ -3,7 +3,7 @@
 import pandas as pd
 from typing import List
 # Note: Assuming schemas and the ProjectionRequest model are accessible here
-from .schemas import ProjectionRequest 
+from schemas import ProjectionRequest 
 
 # api/calculations.py
 

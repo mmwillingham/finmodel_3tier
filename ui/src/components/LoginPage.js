@@ -110,7 +110,7 @@ const LoginPage = () => {
                     </button>
                     <button 
                         type="button" 
-                        onClick={() => window.location.href = 'http://localhost:8000/auth/google'} 
+                        onClick={() => window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`} 
                         disabled={loading} 
                         className="google-signin-button">
                         Sign in with Google

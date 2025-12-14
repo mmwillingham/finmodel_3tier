@@ -1,22 +1,21 @@
 import httpx
 from urllib.parse import urlencode
-from ..config import settings
+from config import settings
 
 GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USER_INFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
-# NOTE: Ensure that the REDIRECT_URI configured in Google Cloud Console matches this.
-# For local development, this is typically http://localhost:8000/auth/google/callback
-REDIRECT_URI = "http://localhost:8000/auth/google/callback"
-
 def get_google_auth_url():
     """
     Generates the Google OAuth authorization URL.
     """
+    # Ensure REDIRECT_URI is constructed here to use the dynamically loaded PUBLIC_BACKEND_URL
+    redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback"
+
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid profile email",
         "access_type": "offline", # To get refresh tokens
@@ -28,6 +27,7 @@ async def get_google_oauth_token(code: str):
     """
     Exchanges the authorization code for an access token.
     """
+    redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback" # Re-declare for scope to ensure it's evaluated here
     async with httpx.AsyncClient() as client:
         response = await client.post(
             GOOGLE_TOKEN_URL,
@@ -35,7 +35,7 @@ async def get_google_oauth_token(code: str):
                 "client_id": settings.GOOGLE_CLIENT_ID,
                 "client_secret": settings.GOOGLE_CLIENT_SECRET,
                 "code": code,
-                "redirect_uri": REDIRECT_URI,
+                "redirect_uri": redirect_uri,
                 "grant_type": "authorization_code",
             },
             headers={

@@ -5,24 +5,36 @@ from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
 from typing import List
 from starlette.responses import RedirectResponse
-from .utils import google_oauth # NEW: Import google_oauth
+from utils import google_oauth # NEW: Import google_oauth
 from jose import jwt, JWTError
 import json
 import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
 
 # Internal Modules
-from . import models, schemas, database, auth, calculations
-from .routers import custom_charts
-from .utils.email import send_email
-from .config import settings # 🌟 NEW: Import the settings object
+import models
+import schemas
+import database
+import auth
+import calculations
+from routers import custom_charts
+from utils.email import send_email
+from config import settings # 🌟 NEW: Import the settings object
 
 # --- INITIALIZATION ---
 # Create database tables if they don't exist
 database.Base.metadata.create_all(bind=database.engine) 
 
-app = FastAPI(title="Financial Projector API", version="1.0")
+app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, servers=[{"url": settings.PUBLIC_BACKEND_URL}])
 
 app.include_router(custom_charts.router)
+
+@app.get("/")
+async def root():
+    return {"message": "Financial Projector API is running!"}
+
+@app.get("/debug-env", tags=["debug"])
+async def debug_environment():
+    return dict(os.environ)
 
 # --- CONFIGURATION ---
 # Use the centralized setting
@@ -30,8 +42,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
 origins = [
-    "http://localhost:3000",  # Your React dev server
-    "http://127.0.0.1:3000",
+    settings.FRONTEND_URL, # NEW: Allow requests from the deployed frontend
 ]
 
 app.add_middleware(
@@ -79,7 +90,7 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
 
         # Redirect to frontend with our token
         # Frontend will store this token and log in
-        redirect_url = f"http://localhost:3000/auth/google/callback?token={our_access_token}"
+        redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
         return RedirectResponse(url=redirect_url)
 
     except HTTPException as e:
@@ -170,7 +181,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     
     # Send confirmation email
     confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
-    confirmation_link = f"http://localhost:3000/confirm-email?token={confirmation_token}"
+    confirmation_link = f"{settings.FRONTEND_URL}/confirm-email?token={confirmation_token}"
     print(f"Email confirmation link: {confirmation_link}")
     send_email(
         to_email=db_user.email,
@@ -322,7 +333,7 @@ def forgot_password(
     user = db.query(models.User).filter(models.User.email == payload.email).first()
     if user:
         token = auth.create_password_reset_token(db, user.id)
-        reset_link = f"http://localhost:3000/reset-password?token={token}"
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
         print(f"Password reset link: {reset_link}")
         send_email(
             to_email=user.email,
@@ -336,6 +347,8 @@ Please use the following link to reset your password: {reset_link}
 This link will expire in 1 hour.
 
 If you did not request a password reset, please ignore this email.
+
+This is why I put the new password reset link in a variable. I need the front end url from settings.py
 
 Best regards,
 The Financial Projector Team"""
@@ -812,11 +825,82 @@ def delete_liability(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    liability = db.query(models.Liability).filter(models.Liability.id == liability_id).first()
-    if not liability:
-        raise HTTPException(status_code=404, detail="Liability not found")
-    if liability.owner_id != current_user.id:
+    item = db.query(models.Liability).filter(models.Liability.id == liability_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if item.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
-    db.delete(liability)
+    db.delete(item)
     db.commit()
     return Response(status_code=204)
+
+# --- Custom Chart Endpoints ---
+
+@app.post("/custom_charts", response_model=schemas.CustomChartOut, status_code=status.HTTP_201_CREATED, tags=["custom_charts"])
+def create_custom_chart(
+    payload: schemas.CustomChartCreate,
+    user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    chart_data_json = json.dumps(payload.chart_data)
+    db_chart = models.CustomChart(
+        owner_id=user.id,
+        chart_name=payload.chart_name,
+        chart_type=payload.chart_type,
+        chart_data=chart_data_json,
+    )
+    db.add(db_chart)
+    db.commit()
+    db.refresh(db_chart)
+    return db_chart
+
+@app.get("/custom_charts", response_model=List[schemas.CustomChartOut], tags=["custom_charts"])
+def list_custom_charts(
+    user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    charts = db.query(models.CustomChart).filter(models.CustomChart.user_id == user.id).all()
+    return charts
+
+@app.get("/custom_charts/{chart_id}", response_model=schemas.CustomChartOut, tags=["custom_charts"])
+def get_custom_chart(
+    chart_id: int,
+    user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.owner_id == user.id).first()
+    if not chart:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
+    return chart
+
+@app.put("/custom_charts/{chart_id}", response_model=schemas.CustomChartOut, tags=["custom_charts"])
+def update_custom_chart(
+    chart_id: int,
+    payload: schemas.CustomChartUpdate,
+    user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.owner_id == user.id).first()
+    if not chart:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
+    
+    chart.chart_name = payload.chart_name
+    chart.chart_type = payload.chart_type
+    chart.chart_data = json.dumps(payload.chart_data)
+    db.commit()
+    db.refresh(chart)
+    return chart
+
+@app.delete("/custom_charts/{chart_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["custom_charts"])
+def delete_custom_chart(
+    chart_id: int,
+    user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.owner_id == user.id).first()
+    if not chart:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
+    
+    db.delete(chart)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
