@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     MAIL_FROM: str | None = os.getenv("MAIL_FROM", "")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
     MAIL_SERVER: str | None = os.getenv("MAIL_SERVER", "")
+    CORS_ORIGINS_REGEX: str = os.getenv("CORS_ORIGINS_REGEX", "INJECT_CORS_ORIGINS_REGEX_HERE")
     
 
     # Method to generate DATABASE_URL after validation

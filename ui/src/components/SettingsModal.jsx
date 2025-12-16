@@ -41,8 +41,12 @@ export default function SettingsModal({
 
   const [person1FirstName, setPerson1FirstName] = useState("");
   const [person1LastName, setPerson1LastName] = useState("");
+  const [person1Birthdate, setPerson1Birthdate] = useState("");
+  const [person1CellPhone, setPerson1CellPhone] = useState("");
   const [person2FirstName, setPerson2FirstName] = useState("");
   const [person2LastName, setPerson2LastName] = useState("");
+  const [person2Birthdate, setPerson2Birthdate] = useState("");
+  const [person2CellPhone, setPerson2CellPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -75,8 +79,12 @@ export default function SettingsModal({
       setExpenseCategoriesState(res.data.expense_categories ? res.data.expense_categories.split(',') : []);
       setPerson1FirstName(res.data.person1_first_name || "");
       setPerson1LastName(res.data.person1_last_name || "");
+      setPerson1Birthdate(res.data.person1_birthdate || "");
+      setPerson1CellPhone(res.data.person1_cell_phone || "");
       setPerson2FirstName(res.data.person2_first_name || "");
       setPerson2LastName(res.data.person2_last_name || "");
+      setPerson2Birthdate(res.data.person2_birthdate || "");
+      setPerson2CellPhone(res.data.person2_cell_phone || "");
       setAddress(res.data.address || "");
       setCity(res.data.city || "");
       setState(res.data.state || "");
@@ -136,8 +144,12 @@ export default function SettingsModal({
         expense_categories: expenseCategoriesState.join(','),
         person1_first_name: person1FirstName,
         person1_last_name: person1LastName,
+        person1_birthdate: person1Birthdate || null,
+        person1_cell_phone: person1CellPhone || null,
         person2_first_name: person2FirstName,
         person2_last_name: person2LastName,
+        person2_birthdate: person2Birthdate || null,
+        person2_cell_phone: person2CellPhone || null,
         address: address,
         city: city,
         state: state,
@@ -309,6 +321,29 @@ export default function SettingsModal({
                     />
                   </div>
                   <div>
+                    <label htmlFor="person1-birthdate">
+                      Date of Birth
+                    </label>
+                    <input
+                      id="person1-birthdate"
+                      type="date"
+                      value={person1Birthdate}
+                      onChange={(e) => setPerson1Birthdate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="person1-cell-phone">
+                      Cell Phone
+                    </label>
+                    <input
+                      id="person1-cell-phone"
+                      type="tel"
+                      value={person1CellPhone}
+                      onChange={(e) => setPerson1CellPhone(e.target.value)}
+                      placeholder="(XXX) XXX-XXXX"
+                    />
+                  </div>
+                  <div>
                     <label htmlFor="person2-first-name">
                       Spouse First Name
                     </label>
@@ -330,6 +365,29 @@ export default function SettingsModal({
                       value={person2LastName}
                       onChange={(e) => setPerson2LastName(e.target.value)}
                       placeholder="Spouse Last Name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="person2-birthdate">
+                      Spouse Date of Birth
+                    </label>
+                    <input
+                      id="person2-birthdate"
+                      type="date"
+                      value={person2Birthdate}
+                      onChange={(e) => setPerson2Birthdate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="person2-cell-phone">
+                      Spouse Cell Phone
+                    </label>
+                    <input
+                      id="person2-cell-phone"
+                      type="tel"
+                      value={person2CellPhone}
+                      onChange={(e) => setPerson2CellPhone(e.target.value)}
+                      placeholder="(XXX) XXX-XXXX"
                     />
                   </div>
                   <div>

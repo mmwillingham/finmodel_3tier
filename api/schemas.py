@@ -79,7 +79,8 @@ class AccountSchema(BaseModel):
     type: str
     initial_balance: float
     monthly_contribution: float
-    annual_rate_percent: float # NOTE: Must be a float
+    annual_increase_percent: float # NOTE: Must be a float
+    annual_change_type: str = "increase"
 
 class ProjectionRequest(BaseModel):
     """
@@ -188,8 +189,12 @@ class UserSettingsOut(BaseModel):
     expense_categories: str | None = "Housing,Transportation,Food,Healthcare,Entertainment,Other"
     person1_first_name: str | None = "Person 1"
     person1_last_name: str | None = ""
+    person1_birthdate: str | None = None
+    person1_cell_phone: str | None = None
     person2_first_name: str | None = "Person 2"
     person2_last_name: str | None = ""
+    person2_birthdate: str | None = None
+    person2_cell_phone: str | None = None
     address: str | None = ""
     city: str | None = ""
     state: str | None = ""
@@ -207,8 +212,12 @@ class UserSettingsUpdate(BaseModel):
     expense_categories: str | None = None
     person1_first_name: str | None = None
     person1_last_name: str | None = None
+    person1_birthdate: str | None = None
+    person1_cell_phone: str | None = None
     person2_first_name: str | None = None
     person2_last_name: str | None = None
+    person2_birthdate: str | None = None
+    person2_cell_phone: str | None = None
     address: str | None = None
     city: str | None = None
     state: str | None = None
@@ -225,6 +234,7 @@ class AssetCreate(BaseModel):
     category: str
     value: float
     annual_increase_percent: float = 0.0
+    annual_change_type: str = "increase" # New field
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
 
@@ -237,6 +247,7 @@ class AssetOut(BaseModel):
     category: str
     value: float
     annual_increase_percent: float
+    annual_change_type: str # New field
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
@@ -249,6 +260,7 @@ class LiabilityCreate(BaseModel):
     category: str
     value: float
     annual_increase_percent: float = 0.0
+    annual_change_type: str = "increase" # New field
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
 
@@ -261,6 +273,7 @@ class LiabilityOut(BaseModel):
     category: str
     value: float
     annual_increase_percent: float
+    annual_change_type: str # New field
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
@@ -270,6 +283,7 @@ class LiabilityOut(BaseModel):
 class CustomChartBase(BaseModel):
     name: str
     chart_type: str
+    display_type: str = "chart" # New field for chart/table display options
     data_sources: str | None = None # Comma-separated string like "assets,liabilities"
     series_configurations: str       # JSON string
     x_axis_label: str | None = None
@@ -286,4 +300,5 @@ class CustomChartOut(CustomChartBase):
     user_id: int
     created_at: datetime
     updated_at: datetime | None = None
+    display_type: str # Inherited from CustomChartBase but explicitly listed for clarity
     model_config = ConfigDict(from_attributes=True)

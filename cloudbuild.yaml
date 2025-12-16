@@ -1,0 +1,146 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Frontend Image'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+      - '.'
+    dir: 'ui'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Frontend Image'
+    args:
+      - 'push'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Frontend Service'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'finmodel-frontend-service'
+      - '--image'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+      - '--region'
+      - 'us-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Backend Image'
+    args:
+      - 'build'
+      - '--no-cache'
+      - '--pull'
+      - '-t'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA'
+      - '.'
+    dir: 'api'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Backend Image'
+    args:
+      - 'push'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Remove old secret env vars'
+    args:
+      - 'run'
+      - 'services'
+      - 'update'
+      - 'finmodel-backend-service'
+      - '--region'
+      - 'us-east1'
+      - '--remove-env-vars=SECRET_KEY,DB_PASSWORD,GOOGLE_CLIENT_SECRET,MAIL_PASSWORD,GOOGLE_CLIENT_ID'
+    allowFailure: true
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Backend Service'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'finmodel-backend-service'
+      - '--image'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--update-env-vars=DB_USER=dbadmin'
+      - '--update-env-vars=DB_NAME=finmodel1'
+      - '--update-env-vars=CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+      - '--update-env-vars=MAIL_USERNAME=martin.willingham@gmail.com'
+      - '--update-env-vars=MAIL_FROM=no_reply@gmail.com'
+      - '--update-env-vars=MAIL_PORT=587'
+      - '--update-env-vars=MAIL_SERVER=smtp.gmail.com'
+      - '--update-env-vars=FRONTEND_URL=https://finmodel-frontend-service-526419047208.us-east1.run.app'
+      - '--update-env-vars=PUBLIC_BACKEND_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
+      - '--update-env-vars=MAIL_TLS=True'
+      - '--update-env-vars=MAIL_SSL=False'
+      - '--update-env-vars=USE_CREDENTIALS=True'
+      - '--update-env-vars=VALIDATE_CERTS=True'
+      - '--add-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance' # NEW: Enable Cloud SQL Proxy in Cloud Run
+      - '--set-secrets=SECRET_KEY=_SECRET_KEY:1'
+      - '--set-secrets=DB_PASSWORD=_DB_PASSWORD:1'
+      - '--set-secrets=GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2'
+      - '--set-secrets=GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2'
+      - '--set-secrets=MAIL_PASSWORD=_MAIL_PASSWORD:1'
+    secretEnv:
+      - '_DB_PASSWORD'
+      - '_GOOGLE_CLIENT_SECRET'
+      - '_GOOGLE_CLIENT_ID'
+      - '_MAIL_PASSWORD'
+      - '_SECRET_KEY'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Start Cloud SQL Proxy (Docker)'
+    args:
+      - 'run'
+      - '-d'
+      - '--network=cloudbuild'
+      - '--name=cloudsql-proxy-service'
+      - 'gcr.io/cloudsql-docker/gce-proxy:latest'
+      - '/cloud_sql_proxy'
+      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432'
+    waitFor: ['-']
+
+  - name: 'python:3.9'
+    id: 'Run Alembic Migrations'
+    dir: 'api'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        python3 -m pip install -r requirements.txt
+        /usr/local/bin/alembic upgrade head
+    env:
+      - 'DB_USER=dbadmin'
+      - 'DB_NAME=finmodel1'
+      - 'DB_HOST=cloudsql-proxy-service'
+      - 'DB_PORT=5432'
+      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+      - 'DB_PASSWORD=${_DB_PASSWORD}'
+    secretEnv:
+      - '_DB_PASSWORD'
+    waitFor: ['Start Cloud SQL Proxy (Docker)']
+
+options:
+  default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
+
+availableSecrets:
+  secretManager:
+    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
+      env: '_DB_PASSWORD'
+    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
+      env: '_GOOGLE_CLIENT_SECRET'
+    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_ID/versions/2'
+      env: '_GOOGLE_CLIENT_ID'
+    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
+      env: '_MAIL_PASSWORD'
+    - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
+      env: '_SECRET_KEY'

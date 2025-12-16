@@ -38,6 +38,7 @@ export default function CustomChartForm({
 }) {
   const [name, setName] = useState("");
   const [chartType, setChartType] = useState(chartTypes[0]);
+  const [displayType, setDisplayType] = useState("chart"); // New state for display type
   const [selectedDataSources, setSelectedDataSources] = useState(dataSourcesOptions); // Initialize with all options selected
   const [seriesConfigurations, setSeriesConfigurations] = useState([]);
   const [xAxisLabel, setXAxisLabel] = useState("Year");
@@ -54,6 +55,7 @@ export default function CustomChartForm({
           const chart = response.data;
           setName(chart.name);
           setChartType(chart.chart_type);
+          setDisplayType(chart.display_type || "chart"); // Set display type from fetched config
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
           setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ ...series, category: series.category || '' })));
           setXAxisLabel(chart.x_axis_label || "");
@@ -68,6 +70,7 @@ export default function CustomChartForm({
       // Reset form for new chart, ensure all data sources are selected by default
       setName("");
       setChartType(chartTypes[0]);
+      setDisplayType("chart"); // Reset for new chart
       setSelectedDataSources(dataSourcesOptions); // Ensure all are selected for new charts
       setSeriesConfigurations([]);
       setXAxisLabel("Year");
@@ -119,6 +122,7 @@ export default function CustomChartForm({
     const chartData = {
       name,
       chart_type: chartType,
+      display_type: displayType, // Include new display type
       data_sources: selectedDataSources.join(','),
       series_configurations: JSON.stringify(seriesConfigurations),
       x_axis_label: xAxisLabel,
@@ -168,6 +172,20 @@ export default function CustomChartForm({
             required
           >
             {chartTypes.map(type => <option key={type} value={type}>{type}</option>)}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="display-type">Display Type:</label>
+          <select
+            id="display-type"
+            value={displayType}
+            onChange={(e) => setDisplayType(e.target.value)}
+            required
+          >
+            <option value="chart">Chart Only</option>
+            <option value="table">Table Only</option>
+            <option value="both">Both Chart and Table</option>
           </select>
         </div>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas'; // Added import for html2canvas
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
 import CustomChartService from '../services/customChart.service';
 import './CustomChartView.css'; // We will create this CSS file
@@ -16,8 +17,10 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const chartRef = useRef(null);
+  const tableRef = useRef(null); // New ref for the table
   const currentYear = new Date().getFullYear();
   const [showChartTotals, setShowChartTotals] = useState(true); // State for individual chart totals
+  const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type
 
   const prepareChartData = useCallback((fetchedConfig) => {
     const labels = Array.from({ length: projectionYears + 1 }, (_, i) => currentYear + i);
@@ -63,7 +66,10 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                 const annualRate = (series.data_type === 'income' ? item.annual_increase_percent : item.inflation_percent) / 100;
                 value = item.yearly_value * Math.pow(1 + annualRate, yearIndex); 
               } else if (series.data_type === 'assets' || series.data_type === 'liabilities') {
-                 const growthRate = item.annual_increase_percent / 100;
+                 let growthRate = item.annual_increase_percent / 100;
+                 if (item.annual_change_type === "decrease") {
+                     growthRate = -growthRate;
+                 }
                  value = item.value * Math.pow(1 + growthRate, yearIndex);
               }
 
@@ -132,6 +138,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const response = await CustomChartService.get(chartId);
         const fetchedConfig = response.data;
         setChartConfig(fetchedConfig);
+        setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
         prepareChartData(fetchedConfig); // Call the memoized function
       } catch (error) {
         console.error("Error fetching custom chart:", error);
@@ -253,6 +260,31 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
   };
 
+  const handleDownloadCsv = (filename) => {
+    if (chartData.datasets.length === 0) {
+      console.warn("No data available for CSV download.");
+      return;
+    }
+
+    const headerRow = ["Year", ...chartData.datasets.map(d => d.label)];
+    const csvRows = [headerRow.join(',')];
+
+    chartData.labels.forEach((year, yearIndex) => {
+      const row = [year];
+      chartData.datasets.forEach(dataset => {
+        row.push(dataset.data[yearIndex]);
+      });
+      csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename.replace(/\s/g, '_')}.csv`;
+    link.click();
+  };
+
   const handleDownloadPng = () => {
     if (chartRef.current) {
       const link = document.createElement('a');
@@ -265,19 +297,21 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
   };
 
-  const handleDownloadPdf = () => {
-    if (chartRef.current) {
-      const chartImage = chartRef.current.toBase64Image('image/png', 1);
+  const handleDownloadPdf = async (ref, filename) => {
+    if (ref.current) {
+      const element = ref.current.canvas ? ref.current.canvas : ref.current; // For Chart.js, ref.current is the chart instance, for table it's the DOM element
+      const canvas = await html2canvas(element);
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape
-      const imgProps = pdf.getImageProperties(chartImage);
+      const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-      pdf.addImage(chartImage, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${chartConfig.name.replace(/\s/g, '_') || 'chart'}.pdf`);
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Chart ref is not available for PDF download.");
-      setMessage("Error: Chart not ready for download.");
+      console.error("Ref is not available for PDF download.");
+      setMessage("Error: Element not ready for download.");
     }
   };
 
@@ -291,10 +325,14 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
   return (
     <div className="custom-chart-view-container">
-      <button onClick={onBack} className="back-btn">← Back to Custom Charts</button>
+      <button onClick={onBack} className="back-btn">← Back to Custom Charts and Tables</button>
       <div className="chart-actions">
-        <button onClick={handleDownloadPng} className="download-btn">Download PNG</button>
-        <button onClick={handleDownloadPdf} className="download-btn">Download PDF</button>
+        {(currentDisplayType === "chart" || currentDisplayType === "both") && (
+          <>
+            <button onClick={handleDownloadPng} className="download-btn">Download Chart PNG</button>
+            <button onClick={() => handleDownloadPdf(chartRef, `${chartConfig.name}_Chart`)} className="download-btn">Download Chart PDF</button>
+          </>
+        )}
         <label className="show-totals-toggle">
           <input
             type="checkbox"
@@ -305,7 +343,42 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         </label>
       </div>
       <div className="chart-display-area">
-        {getChartComponent()}
+        {(currentDisplayType === "chart" || currentDisplayType === "both") && (
+          <div className="chart-container">
+            {getChartComponent()}
+          </div>
+        )}
+
+        {(currentDisplayType === "table" || currentDisplayType === "both") && chartData.datasets.length > 0 && (
+          <div className="table-container">
+            <h3>Year-by-Year Breakdown</h3>
+            <table ref={tableRef} className="custom-chart-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  {chartData.datasets.map(dataset => (
+                    <th key={dataset.label}>{dataset.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {chartData.labels.map((year, yearIndex) => (
+                  <tr key={year}>
+                    <td>{year}</td>
+                    {chartData.datasets.map(dataset => (
+                      <td key={`${year}-${dataset.label}`}>{formatCurrency(dataset.data[yearIndex])}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {/* Download buttons for table */}
+            <div className="table-actions">
+              <button onClick={() => handleDownloadPdf(tableRef, `${chartConfig.name}_Table`)} className="download-btn">Download Table PDF</button>
+              <button onClick={() => handleDownloadCsv(`${chartConfig.name}_Table`)} className="download-btn">Download Table CSV</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

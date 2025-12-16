@@ -250,28 +250,26 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           <option value="yearly">Yearly</option>
         </select>
 
-        <input type="date" placeholder="Start Date" value={newItem.start_date} onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })} />
+        <div className="form-field">
+          <label htmlFor="start-date-input">Start Date</label>
+          <input
+            id="start-date-input"
+            type="date"
+            placeholder="Start Date"
+            value={newItem.start_date}
+            onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
+          />
+        </div>
 
         <div className="form-field">
           <label htmlFor="end-date-input">End Date</label>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <input 
-              id="end-date-input"
-              type="date" 
-              placeholder="End Date" 
-              value={newItem.end_date || ''} 
-              onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
-              disabled={!newItem.end_date}
-            />
-            <label style={{ whiteSpace: 'nowrap' }}>
-              <input
-                type="checkbox"
-                checked={!newItem.end_date}
-                onChange={(e) => setNewItem({ ...newItem, end_date: e.target.checked ? '' : new Date().toISOString().split('T')[0] })}
-              />
-              No end date
-            </label>
-          </div>
+          <input 
+            id="end-date-input"
+            type="date" 
+            placeholder="End Date" 
+            value={newItem.end_date || ''} 
+            onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
+          />
         </div>
 
         {type === 'income' && (

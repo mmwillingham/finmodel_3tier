@@ -16,14 +16,26 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Remove build dependencies to slim down the image
 RUN apt-get remove -y build-essential libpq-dev
 
+# Set static environment variables directly in the Docker image
+ENV DB_USER=dbadmin
+ENV DB_NAME=finmodel1
+ENV CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance
+ENV MAIL_USERNAME=martin.willingham@gmail.com
+ENV MAIL_FROM=no_reply@gmail.com
+ENV MAIL_PORT=587
+ENV MAIL_SERVER=smtp.gmail.com
+ENV FRONTEND_URL=https://finmodel-frontend-service-526419047208.us-east1.run.app
+ENV PUBLIC_BACKEND_URL=https://finmodel-backend-service-526419047208.us-east1.run.app
+ENV MAIL_TLS=True
+ENV MAIL_SSL=False
+ENV USE_CREDENTIALS=True
+ENV VALIDATE_CERTS=True
+# Allow all origins for now, to be refined later if needed
+ENV CORS_ORIGINS_REGEX=.*
+
 # Copy the rest of the application code
 COPY . /app/api
 
-# Command to run the FastAPI application with Uvicorn
-CMD ["/bin/bash", "-c", "\
-    echo 'DEBUG: Alembic current revision:' && alembic current && \
-    echo 'DEBUG: Alembic history:' && alembic history && \
-    echo 'DEBUG: Running alembic upgrade head again...' && alembic upgrade head && \
-    echo 'DEBUG: Alembic upgrade head completed. Starting Uvicorn...' && \
-    uvicorn main:app --host 0.0.0.0 --port $PORT \
-"]
+# Command to run the FastAPI application with Uvicorn (Alembic handled in Cloud Build step)
+# Explicitly pass the PORT environment variable using bash -c
+CMD ["bash", "-c", "uvicorn main:app --host 0.0.0.0 --port \"$PORT\""]

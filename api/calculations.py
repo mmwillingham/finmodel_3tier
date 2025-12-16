@@ -48,18 +48,29 @@ def calculate_projection(years: int, accounts: list) -> dict:
             current_balance = account_balances[account.name]
             
             # --- CALCULATE GROWTH ---
-            rate = account.annual_rate_percent / 100.0
-            annual_contribution = account.monthly_contribution * 12
-            total_contribution += annual_contribution
-            year_total_contributions += annual_contribution
+            # Determine the effective rate based on annual_change_type
+            rate_from_schema = getattr(account, 'annual_increase_percent') / 100.0
+            change_type = getattr(account, 'annual_change_type', 'increase')
+            
+            effective_rate = rate_from_schema
+            if change_type == "decrease":
+                effective_rate = -effective_rate
+            
+            # Adjust annual_contribution for liabilities: contributions decrease the balance
+            adjusted_annual_contribution = account.monthly_contribution * 12
+            if account.type == "liability":
+                adjusted_annual_contribution = -adjusted_annual_contribution # Contributions reduce liabilities
+
+            total_contribution += adjusted_annual_contribution
+            year_total_contributions += adjusted_annual_contribution
             
             # Simple compounded growth
-            growth_on_balance = current_balance * rate 
-            growth_on_contributions = annual_contribution * rate * 0.5 
+            growth_on_balance = current_balance * effective_rate 
+            growth_on_contributions = adjusted_annual_contribution * effective_rate * 0.5 
             year_total_growth += growth_on_balance + growth_on_contributions
             
             # Update balance and add account value to record
-            new_balance = current_balance + annual_contribution + growth_on_balance + growth_on_contributions
+            new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
             account_balances[account.name] = new_balance
             yearly_record[f"{account.name}_Value"] = new_balance
             current_year_total_value += new_balance

@@ -12,6 +12,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
     category: "Other",
     value: "",
     annual_increase_percent: 0,
+    annual_change_type: "increase",
     start_date: "", // New field
     end_date: "",   // New field
   });
@@ -48,6 +49,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
       category: newItem.category,
       value: parseFloat(newItem.value),
       annual_increase_percent: parseFloat(newItem.annual_increase_percent || 0),
+      annual_change_type: newItem.annual_change_type,
       start_date: newItem.start_date || null, // Include new fields
       end_date: newItem.end_date || null,     // Include new fields
     };
@@ -74,6 +76,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
       category: item.category,
       value: item.value.toString(),
       annual_increase_percent: item.annual_increase_percent || 0,
+      annual_change_type: item.annual_change_type || "increase",
       start_date: item.start_date || "", // Set new fields for editing
       end_date: item.end_date || "",     // Set new fields for editing
     });
@@ -81,7 +84,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
   };
 
   const cancelEdit = () => {
-    setNewItem({ name: "", category: categories[0], value: "", annual_increase_percent: 0, start_date: "", end_date: "" });
+    setNewItem({ name: "", category: categories[0], value: "", annual_increase_percent: 0, annual_change_type: "increase", start_date: "", end_date: "" });
     setEditingId(null);
   };
 
@@ -123,12 +126,13 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
 
   const handleDownloadLiabilitiesCsv = (filename) => {
     if (liabilities.length > 0) {
-      const headers = ['Name', 'Category', 'Value', 'Annual Increase %', 'Start Date', 'End Date'];
+      const headers = ['Name', 'Category', 'Value', 'Percent', 'Annual Change', 'Start Date', 'End Date'];
       const formattedData = liabilities.map(liability => ({
         Name: liability.name,
         Category: liability.category,
         Value: liability.value,
-        'Annual Increase %': liability.annual_increase_percent,
+        'Percent': liability.annual_increase_percent,
+        'Annual Change': liability.annual_change_type,
         'Start Date': liability.start_date,
         'End Date': liability.end_date,
       }));
@@ -175,17 +179,27 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
         />
 
         <div className="form-field">
-          <label htmlFor="annual-increase">Annual Increase %</label>
+          <label htmlFor="annual-change-percent">Percent</label>
           <input
-            id="annual-increase"
+            id="annual-change-percent"
             type="number"
             step="0.1"
-            placeholder="Annual Increase %"
+            placeholder="Percent"
             value={newItem.annual_increase_percent}
-            onChange={(e) =>
-              setNewItem({ ...newItem, annual_increase_percent: e.target.value })
-            }
+            onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
           />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="annual-change-type">Annual Change</label>
+          <select
+            id="annual-change-type"
+            value={newItem.annual_change_type}
+            onChange={(e) => setNewItem({ ...newItem, annual_change_type: e.target.value })}
+          >
+            <option value="increase">Increase</option>
+            <option value="decrease">Decrease</option>
+          </select>
         </div>
 
         {/* New Start and End Date Fields */}
@@ -229,9 +243,10 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
             <th>Name</th>
             <th>Category</th>
             <th>Value</th>
-            <th>Annual Increase %</th>
-            <th>Start Date</th>{/* New Table Header */}
-            <th>End Date</th>  {/* New Table Header */}
+            <th>Annual Change</th>
+            <th>Percent</th>
+            <th>Start Date</th>
+            <th>End Date</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -241,9 +256,10 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
               <td>{item.name}</td>
               <td>{item.category}</td>
               <td>{formatCurrency(item.value)}</td>
+              <td>{item.annual_change_type}</td>
               <td>{item.annual_increase_percent}%</td>
-              <td>{item.start_date}</td>{/* New Table Data */}
-              <td>{item.end_date}</td>  {/* New Table Data */}
+              <td>{item.start_date}</td>
+              <td>{item.end_date}</td>
               <td>
                 <button onClick={() => startEdit(item)} className="edit-btn-small">
                   Edit

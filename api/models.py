@@ -102,8 +102,12 @@ class UserSettings(Base):
     expense_categories = Column(String, default="Housing,Transportation,Food,Healthcare,Entertainment,Other")
     person1_first_name = Column(String, default="Person 1")
     person1_last_name = Column(String, default="")
+    person1_birthdate = Column(String, default="") # New field for person 1's birthdate
+    person1_cell_phone = Column(String, default="") # New field for person 1's cell phone
     person2_first_name = Column(String, default="Person 2")
     person2_last_name = Column(String, default="")
+    person2_birthdate = Column(String, default="") # New field for person 2's birthdate
+    person2_cell_phone = Column(String, default="") # New field for person 2's cell phone
     address = Column(String, default="")
     city = Column(String, default="")
     state = Column(String, default="")
@@ -123,6 +127,7 @@ class Asset(Base):
     category = Column(String, nullable=False)
     value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)
+    annual_change_type = Column(String, default="increase") # New field
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -136,6 +141,7 @@ class Liability(Base):
     category = Column(String, nullable=False)
     value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)
+    annual_change_type = Column(String, default="increase") # New field
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -150,6 +156,7 @@ class CustomChart(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, index=True, nullable=False)
     chart_type = Column(String, nullable=False)  # e.g., 'line', 'bar', 'pie'
+    display_type = Column(String, default="chart", nullable=False) # New field for chart/table display
     # data_sources could be a simple string or a more complex JSON structure
     # For now, a string which can be a comma-separated list like "assets,liabilities"
     data_sources = Column(String, nullable=True)

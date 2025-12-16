@@ -126,7 +126,7 @@ export default function SidebarLayout() {
       maximumFractionDigits: 0,
     }).format(v ?? 0);
 
-  const refreshCashflow = async () => {
+    const refreshCashflow = async () => {
     if (!loading) setLoading(true);
     const [inc, exp] = await Promise.all([
       CashFlowService.list(true),
@@ -134,6 +134,13 @@ export default function SidebarLayout() {
     ]);
     setIncomeItems(inc.data || []);
     setExpenseItems(exp.data || []);
+    
+    const uniqueIncomeCategories = [...new Set((inc.data || []).map(item => item.category))].filter(Boolean);
+    setIncomeCategories(uniqueIncomeCategories);
+    
+    const uniqueExpenseCategories = [...new Set((exp.data || []).map(item => item.category))].filter(Boolean);
+    setExpenseCategories(uniqueExpenseCategories);
+
     setLoading(false);
   };
 
@@ -141,6 +148,10 @@ export default function SidebarLayout() {
     if (!loading) setLoading(true);
     const ast = await AssetService.list();
     setAssets(ast.data || []);
+    
+    const uniqueAssetCategories = [...new Set((ast.data || []).map(item => item.category))].filter(Boolean);
+    setAssetCategories(uniqueAssetCategories);
+    
     setLoading(false);
   };
 
@@ -148,6 +159,10 @@ export default function SidebarLayout() {
     if (!loading) setLoading(true);
     const lib = await LiabilityService.list();
     setLiabilities(lib.data || []);
+    
+    const uniqueLiabilityCategories = [...new Set((lib.data || []).map(item => item.category || ''))];
+    setLiabilityCategories(uniqueLiabilityCategories);
+    
     setLoading(false);
   };
 
@@ -215,7 +230,7 @@ export default function SidebarLayout() {
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
             >
-              Income Items
+              Income
             </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
@@ -227,7 +242,7 @@ export default function SidebarLayout() {
 
 
           <section className="nav-section">
-            <h3>Custom Charts</h3>
+            <h3>Custom Charts and Tables</h3>
             <button 
               className={`nav-btn ${view === 'custom-charts' && customChartView === 'list' ? 'active' : ''}`} 
               onClick={() => { setView('custom-charts'); setCustomChartView('list'); }}
@@ -333,27 +348,23 @@ export default function SidebarLayout() {
           </div>
         )}
 
-        {!loading && view === "custom-charts" && (customChartView === "create" || customChartView === "edit") && 
-          assetCategories.length > 0 && 
-          liabilityCategories.length > 0 && 
-          incomeCategories.length > 0 && 
-          expenseCategories.length > 0 && (
-            <div className="custom-charts-form">
-              <CustomChartForm 
-                chartId={selectedChartId} 
-                onChartSaved={() => { setView('custom-charts'); setCustomChartView('list'); refreshAllData(); }}
-                onCancel={() => { setView('custom-charts'); setCustomChartView('list'); }}
-                assets={assets}
-                liabilities={liabilities}
-                incomeItems={incomeItems}
-                expenseItems={expenseItems}
-                projectionYears={projectionYears}
-                assetCategories={assetCategories}
-                liabilityCategories={liabilityCategories}
-                incomeCategories={incomeCategories}
-                expenseCategories={expenseCategories}
-              />
-            </div>
+        {!loading && view === "custom-charts" && (customChartView === "create" || customChartView === "edit") && (
+          <div className="custom-charts-form">
+            <CustomChartForm 
+              chartId={selectedChartId} 
+              onChartSaved={() => { setView('custom-charts'); setCustomChartView('list'); refreshAllData(); }}
+              onCancel={() => { setView('custom-charts'); setCustomChartView('list'); }}
+              assets={assets}
+              liabilities={liabilities}
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+              projectionYears={projectionYears}
+              assetCategories={assetCategories}
+              liabilityCategories={liabilityCategories}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+            />
+          </div>
         )}
 
         {!loading && view === "custom-charts" && customChartView === "view" && chartToViewId && (

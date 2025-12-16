@@ -31,7 +31,7 @@ passlib
 pydantic
 pg8000 # NEW: PostgreSQL driver for Cloud SQL Connector
 alembic # NEW: For database migrations
-
+asyncpg # NEW: Async PostgreSQL driver
 pydantic-core
 pydantic-settings
 PyJWT

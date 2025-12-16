@@ -1,6 +1,6 @@
 # api/auth.py
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
@@ -34,9 +34,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         
     to_encode.update({"exp": expire})
     
@@ -48,9 +48,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     )
     return encoded_jwt
 
-def get_user(db: Session, user_id: int):
-    # Retrieve user from the database
-    return db.query(models.User).filter(models.User.id == user_id).first()
+def get_user(db: Session, user_id: str):
+    # Retrieve user from the database, casting user_id to int
+    return db.query(models.User).filter(models.User.id == int(user_id)).first()
 
 def authenticate_user(db: Session, username: str, password: str):
     # This is where you would lookup the user and verify the password hash
@@ -118,6 +118,7 @@ def authenticate_or_create_google_user(db: Session, google_id: str, email: str):
     )
     db.add(new_user)
     db.commit()
+    print(f"DEBUG (auth.py): User committed successfully: {new_user.email}") # NEW DEBUG PRINT
     db.refresh(new_user)
     return new_user
 
@@ -156,7 +157,7 @@ def create_password_reset_token(db: Session, user_id: int) -> str:
     db.commit()
 
     token_value = generate_random_token()
-    expires_at = datetime.utcnow() + timedelta(hours=1) # Token valid for 1 hour
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1) # Token valid for 1 hour
 
     db_token = models.PasswordResetToken(
         user_id=user_id,
@@ -174,7 +175,7 @@ def reset_user_password(db: Session, token: str, new_password: str):
     if not db_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token.")
 
-    if db_token.expires_at < datetime.utcnow():
+    if db_token.expires_at < datetime.now(timezone.utc):
         db.delete(db_token)
         db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token.")
@@ -197,7 +198,7 @@ def create_email_confirmation_token(db: Session, user_id: int) -> str:
     db.commit()
 
     token_value = generate_random_token()
-    expires_at = datetime.utcnow() + timedelta(hours=24) # Token valid for 24 hours
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24) # Token valid for 24 hours
 
     db_token = models.EmailConfirmationToken(
         user_id=user_id,
@@ -215,7 +216,7 @@ def verify_email_confirmation_token(db: Session, token: str):
     if not db_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired confirmation token.")
 
-    if db_token.expires_at < datetime.utcnow():
+    if db_token.expires_at < datetime.now(timezone.utc):
         db.delete(db_token)
         db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired confirmation token.")

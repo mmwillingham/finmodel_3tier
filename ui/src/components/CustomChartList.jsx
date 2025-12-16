@@ -43,7 +43,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
 
   return (
     <div className="custom-chart-list-container">
-      <h3>Your Custom Charts</h3>
+      <h3>Your Custom Charts and Tables</h3>
       {message && <div className="message">{message}</div>}
       <button className="create-chart-btn" onClick={onCreateNewChart}>Create New Chart</button>
 

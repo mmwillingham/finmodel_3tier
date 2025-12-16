@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import timedelta, datetime
 from typing import List
 from starlette.responses import RedirectResponse
-from utils import google_oauth # NEW: Import google_oauth
+from utils import google_oauth
 from jose import jwt, JWTError
 import json
 import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
@@ -21,8 +22,7 @@ from utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
 
 # --- INITIALIZATION ---
-# Create database tables if they don't exist
-database.Base.metadata.create_all(bind=database.engine) 
+# REMOVED: database.Base.metadata.create_all(bind=database.engine) # Alembic handles migrations
 
 app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, servers=[{"url": settings.PUBLIC_BACKEND_URL}])
 
@@ -91,13 +91,14 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
         # Redirect to frontend with our token
         # Frontend will store this token and log in
         redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
+        print(f"DEBUG (main.py): Redirecting to: {redirect_url}") # NEW DEBUG PRINT
         return RedirectResponse(url=redirect_url)
 
     except HTTPException as e:
         # Pass through explicit HTTPExceptions
         raise e
     except Exception as e:
-        print(f"Google OAuth callback error: {e}")
+        print(f"ERROR (main.py) in google_callback: {e}") # Modified ERROR print
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Google OAuth failed: {e}"
@@ -140,6 +141,19 @@ def read_users_me(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     return current_user
+
+@app.get("/debug/users", response_model=list[schemas.UserOut], summary="Debug: Get all users from DB")
+def debug_get_all_users(db: Session = Depends(database.get_db)):
+    print("DEBUG (main.py): Fetching all users from database via /debug/users endpoint.")
+    users = db.query(models.User).all()
+    print(f"DEBUG (main.py): Found {len(users)} users.")
+    return users
+
+@app.get("/debug/db-info", summary="Debug: Get current database info")
+def debug_db_info(db: Session = Depends(database.get_db)):
+    result = db.execute(text("SELECT current_database();")).scalar_one()
+    print(f"DEBUG (main.py): Current database from /debug/db-info: {result}")
+    return {"current_database": result}
 
 @app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
@@ -220,7 +234,6 @@ def delete_user_by_admin(
 
     db.delete(user_to_delete)
     db.commit()
-
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.get("/admin/users", response_model=List[schemas.UserOut], tags=["admin"])
@@ -352,7 +365,7 @@ This is why I put the new password reset link in a variable. I need the front en
 
 Best regards,
 The Financial Projector Team"""
-        )
+    )
     
     # Always return a generic success message to prevent email enumeration
     return {"message": "If an account with that email exists, a password reset link has been sent."}
@@ -487,7 +500,7 @@ def update_projection(
     projection.total_contributed = result["total_contributed"]
     projection.total_growth = result["total_growth"]
     projection.data_json = result["data_json"]
-    projection.accounts_json = json.dumps([acc.model_dump() for acc in req.accounts])
+    projection.accounts_json = json.dumps([acc.model_dump() for acc in req.accounts]),
     projection.timestamp = datetime.utcnow()
     
     db.commit()
@@ -657,10 +670,18 @@ def update_settings(
         settings.person1_first_name = payload.person1_first_name
     if payload.person1_last_name is not None:
         settings.person1_last_name = payload.person1_last_name
+    if payload.person1_birthdate is not None:
+        settings.person1_birthdate = payload.person1_birthdate
+    if payload.person1_cell_phone is not None:
+        settings.person1_cell_phone = payload.person1_cell_phone
     if payload.person2_first_name is not None:
         settings.person2_first_name = payload.person2_first_name
     if payload.person2_last_name is not None:
         settings.person2_last_name = payload.person2_last_name
+    if payload.person2_birthdate is not None:
+        settings.person2_birthdate = payload.person2_birthdate
+    if payload.person2_cell_phone is not None:
+        settings.person2_cell_phone = payload.person2_cell_phone
     if payload.address is not None:
         settings.address = payload.address
     if payload.city is not None:
@@ -712,6 +733,7 @@ def create_asset(
         category=payload.category,
         value=payload.value,
         annual_increase_percent=payload.annual_increase_percent,
+        annual_change_type=payload.annual_change_type, # New field
         start_date=payload.start_date,  # New field
         end_date=payload.end_date      # New field
     )
@@ -737,6 +759,7 @@ def update_asset(
     asset.category = payload.category
     asset.value = payload.value
     asset.annual_increase_percent = payload.annual_increase_percent
+    asset.annual_change_type = payload.annual_change_type # New field
     asset.start_date = payload.start_date  # New field
     asset.end_date = payload.end_date      # New field
     db.commit()
@@ -787,6 +810,7 @@ def create_liability(
         category=payload.category,
         value=payload.value,
         annual_increase_percent=payload.annual_increase_percent,
+        annual_change_type=payload.annual_change_type, # New field
         start_date=payload.start_date,  # New field
         end_date=payload.end_date      # New field
     )
@@ -812,6 +836,7 @@ def update_liability(
     liability.category = payload.category
     liability.value = payload.value
     liability.annual_increase_percent = payload.annual_increase_percent
+    liability.annual_change_type = payload.annual_change_type # New field
     liability.start_date = payload.start_date  # New field
     liability.end_date = payload.end_date      # New field
     db.commit()
@@ -842,12 +867,14 @@ def create_custom_chart(
     user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    chart_data_json = json.dumps(payload.chart_data)
     db_chart = models.CustomChart(
-        owner_id=user.id,
-        chart_name=payload.chart_name,
+        user_id=user.id,
+        name=payload.name,
         chart_type=payload.chart_type,
-        chart_data=chart_data_json,
+        data_sources=payload.data_sources,
+        series_configurations=payload.series_configurations,
+        x_axis_label=payload.x_axis_label,
+        y_axis_label=payload.y_axis_label,
     )
     db.add(db_chart)
     db.commit()
