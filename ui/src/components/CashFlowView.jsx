@@ -43,15 +43,23 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         
         // Load person names
         const persons = [
-          res.data.person1_name || "Person 1",
-          res.data.person2_name || "Person 2"
-        ];
-        setPersonOptions(persons);
+          res.data.person1_first_name ? res.data.person1_first_name : null,
+          res.data.person2_first_name ? res.data.person2_first_name : null,
+        ].filter(Boolean);
+
+        // Add a "Neither" option only if there are actual person names to choose from.
+        // If no names are set, we might default to no person being selected.
+        if (persons.length > 0) {
+          setPersonOptions(["Neither", ...persons]);
+        } else {
+          setPersonOptions(["Neither"]); // Still offer 'Neither' if no names are set
+        }
         
         setNewItem(prev => ({ 
           ...prev, 
           category: categories[0],
-          inflation_percent: inflation 
+          inflation_percent: inflation,
+          person: (persons.length > 0) ? persons[0] : "Neither" // Default to first person or Neither
         }));
       } catch (e) {
         console.error("Failed to load settings", e);
@@ -238,8 +246,8 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
         <input type="text" placeholder="Description (Name)" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} />
 
-        <select value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value })}>
-          <option value="">Optional: Select Person</option>
+        <select value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Neither" ? "" : e.target.value })}>
+          <option value="">Select Person</option>
           {personOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
         </select>
 
