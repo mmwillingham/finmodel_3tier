@@ -30,9 +30,9 @@
 }
 
 .auth-container h2 {
-    font-size: 2em;
+    font-size: 1.8em; /* Slightly smaller heading */
     color: #282c34;
-    margin-bottom: 25px;
+    margin-bottom: 20px; /* Reduced margin */
     text-align: center;
 }
 
@@ -52,10 +52,10 @@
 .auth-form input[type="email"],
 .auth-form input[type="password"],
 .auth-form input[type="text"] {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1em;
+    padding: 8px 10px; /* Streamlined padding */
+    border: 1px solid #ccc; /* Lighter border color */
+    border-radius: 4px; /* Consistent border-radius */
+    font-size: 0.95em; /* Consistent font size */
     width: 100%; /* Ensure inputs take full width */
     box-sizing: border-box; /* Include padding in width */
 }
@@ -64,11 +64,11 @@
     background-color: #007bff; /* Primary blue */
     color: white;
     border: none;
-    padding: 12px 20px;
-    border-radius: 5px;
+    padding: 8px 16px; /* Streamlined padding */
+    border-radius: 4px; /* Slightly softer border-radius */
     cursor: pointer;
-    font-size: 1.1em;
-    font-weight: bold;
+    font-size: 0.95em; /* Slightly smaller font */
+    font-weight: 600; /* Slightly less bold */
     margin-top: 15px; /* Space above button */
     transition: background-color 0.2s ease;
 }
@@ -104,7 +104,7 @@
 .auth-switch {
     text-align: center;
     margin-top: 20px;
-    font-size: 0.95em;
+    font-size: 0.9em; /* Slightly smaller */
     color: #555;
 }
 
@@ -122,11 +122,11 @@
     background-color: #4285F4; /* Google blue */
     color: white;
     border: none;
-    padding: 12px 20px;
-    border-radius: 5px;
+    padding: 8px 16px; /* Streamlined padding */
+    border-radius: 4px; /* Slightly softer border-radius */
     cursor: pointer;
-    font-size: 1.1em;
-    font-weight: bold;
+    font-size: 0.95em; /* Slightly smaller font */
+    font-weight: 600; /* Slightly less bold */
     margin-top: 5px; /* Less margin than first button */
     transition: background-color 0.2s ease;
     display: flex;
