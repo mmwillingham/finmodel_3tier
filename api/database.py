@@ -1,9 +1,12 @@
 import os
+from functools import lru_cache # NEW: Import lru_cache
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from typing import Any, Generator
 
+# --- Database URL Construction (Cached for Performance) ---
+@lru_cache(maxsize=1) # Cache the result of this function to avoid repeated computation
 def get_database_url() -> str:
     """Constructs and returns a synchronous database URL (e.g., with pg8000) based on environment variables.
     Prioritizes DATABASE_URL if provided as a single environment variable.
@@ -27,8 +30,10 @@ def get_database_url() -> str:
                 f"?unix_sock=/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
             )
         else:
-            local_db_host = os.getenv("LOCAL_DB_HOST", "127.0.0.1")
-            local_db_port = os.getenv("LOCAL_DB_PORT", "5432")
+            # Fallback for local development or direct connection
+            # Use DB_HOST and DB_PORT from config.py's environment variable logic
+            local_db_host = os.getenv("DB_HOST", "localhost")
+            local_db_port = os.getenv("DB_PORT", "5432")
             database_url = (
                 f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
             )
@@ -39,6 +44,39 @@ def get_database_url() -> str:
     print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {database_url}")
     return database_url
 
+@lru_cache(maxsize=1) # Cache the result of this function to ensure a single engine instance
+def get_engine_instance():
+    """Creates and returns a SQLAlchemy Engine with connection pooling configured."""
+    DATABASE_URL = get_database_url()
+    return create_engine(
+        DATABASE_URL,
+        pool_size=10,        # NEW: Number of connections to keep open in the pool
+        max_overflow=20,     # NEW: Maximum number of connections to allow beyond pool_size
+        pool_timeout=30,     # NEW: Number of seconds to wait before giving up on getting a connection from the pool
+        pool_recycle=1800,   # NEW: Recycle connections after 30 minutes (1800 seconds) to prevent stale connections
+        # Add other engine specific configs as needed
+    )
+
+# Instantiate the engine once at startup
+engine = get_engine_instance()
+
+# Create a SessionLocal class that will be used to create new session instances
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db() -> Generator[Session, None, None]:
+    """Dependency that provides a new SQLAlchemy session for each request."""
+    db = SessionLocal() # Create a new session from the pre-configured SessionLocal factory
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Note: The async database URL part is not used by the current FastAPI app for ORM operations, 
+# but kept for potential future async database needs or Alembic specific async configurations.
+# Ensure it also uses caching if it were to be actively used in a hot path.
+@lru_cache(maxsize=1) # Cache the result of this function if it were to be used frequently
 def get_async_database_url() -> str:
     """Constructs and returns an asynchronous database URL (e.g., with asyncpg) based on environment variables.
     Prioritizes DATABASE_URL if provided as a single environment variable.
@@ -53,17 +91,22 @@ def get_async_database_url() -> str:
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
 
         if not all([db_user, db_password, db_name, cloud_sql_connection_name]):
+            # This logic branch is typically for Cloud Run where CLOUD_SQL_CONNECTION_NAME is expected
             raise ValueError("Missing one or more database environment variables for async URL (DB_USER, DB_PASSWORD, DB_NAME, CLOUD_SQL_CONNECTION_NAME)")
 
         if cloud_sql_connection_name:
-            db_host = os.getenv("DB_HOST", "127.0.0.1")
-            db_port = os.getenv("DB_PORT", "5432")
+            # When CLOUD_SQL_CONNECTION_NAME is set, we assume a Cloud SQL environment.
+            # For async connections, we connect via TCP to the proxy, which itself connects to the Unix socket.
+            # Or, if running directly in Cloud Run, it connects to the internal IP of the database.
+            db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to localhost if running proxy with TCP on 127.0.0.1
+            db_port = os.getenv("DB_PORT", "5432") # Default to 5432
             database_url = (
                 f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
             )
         else:
-            local_db_host = os.getenv("LOCAL_DB_HOST", "127.0.0.1")
-            local_db_port = os.getenv("LOCAL_DB_PORT", "5432")
+            # Fallback for local development with a direct local PostgreSQL connection
+            local_db_host = os.getenv("DB_HOST", "localhost")
+            local_db_port = os.getenv("DB_PORT", "5432")
             database_url = (
                 f"postgresql+asyncpg://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
             )
@@ -71,20 +114,3 @@ def get_async_database_url() -> str:
         raise ValueError("ASYNC DATABASE_URL could not be determined from environment variables.")
     print(f"DEBUG (database.py): Constructed ASYNC SQLALCHEMY_DATABASE_URL: {database_url}")
     return database_url
-
-
-def get_engine():
-    return create_engine(get_database_url())
-
-def get_session_local():
-    return sessionmaker(autocommit=False, autoflush=False, bind=get_engine())
-
-Base = declarative_base()
-
-def get_db() -> Generator[Session, None, None]:
-    SessionLocal = get_session_local()
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

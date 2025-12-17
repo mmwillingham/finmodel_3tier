@@ -53,3 +53,4 @@ uvloop
 watchfiles
 websockets
 wrapt
+locust

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Response, status
+from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -156,7 +156,7 @@ def debug_db_info(db: Session = Depends(database.get_db)):
     return {"current_database": result}
 
 @app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
-def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()): # NEW: Add BackgroundTasks
     """
     Registers a new user in the database.
     """
@@ -193,11 +193,11 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     db.commit()
     db.refresh(db_user)
     
-    # Send confirmation email
+    # Send confirmation email in the background
     confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
     confirmation_link = f"{settings.FRONTEND_URL}/confirm-email?token={confirmation_token}"
     print(f"Email confirmation link: {confirmation_link}")
-    send_email(
+    background_tasks.add_task(send_email, 
         to_email=db_user.email,
         subject="Financial Projector - Confirm Your Email",
         body=f"""Hello {db_user.email},

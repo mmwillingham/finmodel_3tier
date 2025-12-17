@@ -130,6 +130,7 @@ steps:
     waitFor: ['Start Cloud SQL Proxy (Docker)']
 
 options:
+  # Force Cloud Build re-evaluation of secrets
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
 
 availableSecrets:

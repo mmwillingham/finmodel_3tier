@@ -2,8 +2,10 @@
 html, body {
     margin: 0;
     padding: 0;
-    font-family: 'Arial', sans-serif;
-    background-color: #f4f7f6; /* Light gray background */
+    font-family: 'Inter', sans-serif; /* A more modern, cleaner font */
+    font-size: 15px; /* Slightly smaller base font */
+    line-height: 1.5; /* Improved line spacing */
+    background-color: #f8f9fa; /* Lighter background */
     color: #333;
 }
 
@@ -22,10 +24,10 @@ button {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 8px 16px; /* Reduced padding */
+    border-radius: 4px; /* Slightly softer border-radius */
     cursor: pointer;
-    font-size: 1em;
+    font-size: 0.95em; /* Slightly smaller font */
     transition: background-color 0.2s ease;
 }
 
@@ -44,10 +46,10 @@ input[type="password"],
 input[type="number"],
 select {
     width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
+    padding: 8px 10px; /* Reduced padding */
+    margin-top: 4px;
+    margin-bottom: 12px; /* Reduced margin */
+    border: 1px solid #ccc; /* Lighter border color */
     border-radius: 4px;
     box-sizing: border-box;
 }
