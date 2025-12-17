@@ -3,6 +3,7 @@ steps:
     id: 'Build Frontend Image'
     args:
       - 'build'
+      - '--no-cache' # NEW: Force no-cache for frontend build
       - '-t'
       - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
       - '.'
