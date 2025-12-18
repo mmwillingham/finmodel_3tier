@@ -247,7 +247,6 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         <input type="text" placeholder="Description (Name)" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} />
 
         <select value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Neither" ? "" : e.target.value })}>
-          <option value="">Select Person</option>
           {personOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
         </select>
 
