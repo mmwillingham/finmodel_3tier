@@ -9,8 +9,8 @@
 
 .main-content .add-item-form {
   display: grid;
-  /* Adjusting grid to 3 columns, allowing date fields to span 2, and others 1 */
-  grid-template-columns: repeat(3, minmax(180px, 1fr)); 
+  /* Adjusted grid to explicitly have 4 columns to better control layout */
+  grid-template-columns: repeat(4, minmax(150px, 1fr)); 
   gap: 0.8rem !important;
   margin-bottom: 1.5rem !important;
   padding: 1rem !important;
