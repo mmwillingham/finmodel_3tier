@@ -332,3 +332,4 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
               />
               Tax Deductible
             </label>
+          </div>
