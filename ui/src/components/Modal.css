@@ -13,25 +13,23 @@
 
 .modal-content {
   background: white;
-  padding: 1.5rem;
+  padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-width: 700px; /* Max width for the modal content */
-  max-height: 90vh; /* Max height to prevent overflow on smaller screens */
-  overflow-y: auto; /* Enable scrolling if content exceeds max-height */
+  min-width: 300px;
+  max-width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   position: relative;
-  display: flex;
-  flex-direction: column;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 1.5rem;
   border-bottom: 1px solid #eee;
   padding-bottom: 1rem;
-  margin-bottom: 1rem;
 }
 
 .modal-header h2 {
@@ -45,11 +43,17 @@
   border: none;
   font-size: 1.8rem;
   cursor: pointer;
-  color: #666;
+  color: #555;
   padding: 0.2rem 0.5rem;
-  line-height: 1;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
 .modal-close-button:hover {
-  color: #333;
+  background-color: #f0f0f0;
+}
+
+.modal-body {
+  /* Specific styling for forms within the modal will be in their own CSS */
+  padding-top: 1rem;
 }

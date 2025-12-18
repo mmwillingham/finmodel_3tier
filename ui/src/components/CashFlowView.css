@@ -5,148 +5,34 @@
 
 .main-content .cashflow-container h2 {
   /* Already set inline in JSX for highest priority */
-}
-
-.main-content .add-item-form {
-  display: grid;
-  /* Explicitly defining 5 columns with flexible units for better control */
-  grid-template-columns: repeat(5, minmax(100px, 1fr)); 
-  gap: 0.8rem !important;
+  font-size: 1.5rem !important;
   margin-bottom: 1.5rem !important;
-  padding: 1rem !important;
-  background: #f9f9f9 !important;
-  border-radius: 4px !important;
 }
 
-.main-content .add-item-form .form-field {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0.2rem !important;
-  /* Ensure form-fields don't stretch too wide */
-  max-width: 100%;
+/* Removed old add-item-form styles as it's now in a modal */
+/* .main-content .add-item-form { ... } */
+
+.add-new-item-section {
+  margin-bottom: 1.5rem;
+  text-align: left;
 }
 
-.main-content .add-item-form .form-field label {
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  color: #555 !important; /* Ensure label color is visible */
-  white-space: nowrap !important; /* Prevent label text from wrapping */
-  display: block !important; /* Ensure labels are always displayed */
+.add-new-item-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #0b57d0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background-color 0.2s ease;
 }
 
-.main-content .add-item-form select,
-.main-content .add-item-form input[type="text"],
-.main-content .add-item-form input[type="number"],
-.main-content .add-item-form input[type="date"] {
-  padding: 0.6rem !important;
-  border: 1px solid #ddd !important;
-  border-radius: 4px !important;
-  font-size: 0.95rem !important;
-  width: auto !important; /* Allow inputs/selects to size naturally within grid */
-  max-width: 100% !important; /* Ensure they don't overflow their grid cell */
-  flex-shrink: 1 !important; /* Allow inputs/selects to shrink */
+.add-new-item-button:hover {
+  background-color: #084399;
 }
 
-/* Adjusting specific fields to fit better in the 5-column grid */
-.main-content .add-item-form .form-field:nth-child(1), /* Description */
-.main-content .add-item-form .form-field:nth-child(2), /* Category */
-.main-content .add-item-form .form-field:nth-child(3), /* Person */
-.main-content .add-item-form .form-field:nth-child(4), /* Value */
-.main-content .add-item-form .form-field:nth-child(5)  /* Frequency */
-{
-  grid-column: span 1; /* Each takes 1 column */
-}
-
-/* Date fields group should occupy 2 columns */
-.main-content .add-item-form .date-field-group {
-  display: flex !important;
-  gap: 0.8rem !important; /* Gap between start and end date fields */
-  flex-wrap: nowrap; /* Prevent date fields from wrapping */
-  grid-column: span 2; /* Make date field group span two columns */
-  align-items: flex-end; /* Align inputs at the bottom */
-}
-
-.main-content .add-item-form .date-field {
-  flex: 1 1 0 !important; /* Allow date fields to grow and shrink equally */
-  display: flex !important; /* Ensure content inside date-field is flexible */
-  flex-direction: column !important;
-  gap: 0.2rem !important;
-}
-
-/* Specific styling for date inputs to ensure proper width */
-#start-date-input, #end-date-input {
-  min-width: 120px !important; 
-  max-width: 150px !important; /* Limit max-width to prevent them from being too long */
-  width: auto !important; 
-  box-sizing: border-box !important; 
-}
-
-/* Annual Increase % and Taxable/Tax Deductible fields */
-/* Assuming these come after the date fields and should be on the same row */
-.main-content .add-item-form .form-field:has(#annual-increase),
-.main-content .add-item-form .form-field:has(#inflation-percent) {
-  grid-column: span 1; /* Occupy 1 column */
-  align-self: flex-end; /* Align with the bottom of date inputs */
-}
-
-.main-content .add-item-form .form-field:has(#taxable),
-.main-content .add-item-form .form-field:has(#tax-deductible) {
-  grid-column: span 1; /* Occupy 1 column */
-  align-self: flex-end; /* Align with the bottom of date inputs */
-  justify-content: flex-end; /* Push checkbox to the right */
-  flex-direction: row !important; /* Place checkbox next to label */
-  align-items: center !important;
-}
-
-.main-content .add-item-form .form-field label input[type="checkbox"] {
-  margin-right: 0.5rem; /* Space between checkbox and label text */
-}
-
-.main-content .form-actions {
-  display: flex !important;
-  gap: 0.5rem !important;
-  align-items: center; /* Align buttons nicely */
-  grid-column: 1 / -1; /* Make form-actions span all columns */
-  margin-top: 1rem !important; /* Add space above the buttons */
-  justify-content: flex-end; /* Push the Add button to the right */
-}
-
-/* Styling for the Add/Update button */
-#add-cashflow-item-button {
-  padding: 0.6rem 1.2rem !important;
-  background-color: #0b57d0 !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 4px !important;
-  cursor: pointer !important;
-  font-weight: 500 !important;
-  white-space: nowrap !important;
-  font-size: 0.9rem !important;
-  width: auto !important; 
-  flex-shrink: 0 !important; 
-}
-
-#add-cashflow-item-button:hover {
-  background-color: #084399 !important;
-}
-
-.main-content .add-item-form .cancel-btn {
-  background-color: #666 !important;
-  padding: 0.6rem 1.2rem !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 4px !important;
-  cursor: pointer !important;
-  font-weight: 500 !important;
-  white-space: nowrap !important;
-  font-size: 0.9rem !important;
-  width: auto !important;
-  flex-shrink: 0 !important;
-}
-
-.main-content .add-item-form .cancel-btn:hover {
-  background-color: #444 !important;
-}
 
 .main-content .cashflow-table {
   width: 100% !important;

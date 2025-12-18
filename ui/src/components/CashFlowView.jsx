@@ -14,9 +14,6 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
   const tableRef = useRef(null);
 
-  // Removed all useState, useEffect (except loadDefaults portion), save, cancelEdit related to the inline form.
-  // The state management and form logic are now in CashFlowFormModal.jsx.
-
   const formatCurrency = (v) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
 
