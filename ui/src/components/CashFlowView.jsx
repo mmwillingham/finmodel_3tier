@@ -362,9 +362,9 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
               {type === 'income' && <td className="cashflow-table-cell">{item.taxable ? 'Yes' : 'No'}</td>}
               {type === 'expense' && <td className="cashflow-table-cell">{item.inflation_percent}%</td>}
               {type === 'expense' && <td className="cashflow-table-cell">{item.tax_deductible ? 'Yes' : 'No'}</td>}
-              <td>
-                <button onClick={() => startEdit(item)} className="edit-btn-small">Edit</button>
-                <button onClick={() => remove(item.id)} className="delete-btn-small">Delete</button>
+              <td className="action-buttons-cell">
+                <button onClick={() => startEdit(item)} className="edit-icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
+                <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
               </td>
             </tr>
           ))}

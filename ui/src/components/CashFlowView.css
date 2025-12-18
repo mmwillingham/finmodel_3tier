@@ -9,7 +9,8 @@
 
 .main-content .add-item-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  /* Adjusted grid to allow more aggressive shrinking */
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); 
   gap: 0.8rem !important;
   margin-bottom: 1.5rem !important;
   padding: 1rem !important;
@@ -23,7 +24,8 @@
   border: 1px solid #ddd !important;
   border-radius: 4px !important;
   font-size: 0.95rem !important;
-  width: auto !important;
+  width: auto !important; /* Allow inputs/selects to size naturally */
+  flex-shrink: 1 !important; /* Allow inputs/selects to shrink */
 }
 
 .main-content .form-field {
@@ -48,9 +50,10 @@
 .main-content .form-actions {
   display: flex !important;
   gap: 0.5rem !important;
+  align-items: center; /* Align buttons nicely */
 }
 
-/* Highly specific rule for the Add button */
+/* Styling for the Add/Update button */
 #add-cashflow-item-button {
   padding: 0.6rem 1.2rem !important;
   background-color: #0b57d0 !important;
@@ -61,15 +64,26 @@
   font-weight: 500 !important;
   white-space: nowrap !important;
   font-size: 0.9rem !important;
-  width: auto !important;
+  width: auto !important; /* Allow button to size naturally */
+  flex-shrink: 0 !important; /* Prevent button from shrinking too much */
 }
 
-.main-content .add-item-form button:hover {
+#add-cashflow-item-button:hover {
   background-color: #084399 !important;
 }
 
 .main-content .add-item-form .cancel-btn {
   background-color: #666 !important;
+  padding: 0.6rem 1.2rem !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  font-size: 0.9rem !important;
+  width: auto !important;
+  flex-shrink: 0 !important;
 }
 
 .main-content .add-item-form .cancel-btn:hover {
@@ -81,6 +95,14 @@
   border-collapse: collapse !important;
   margin-bottom: 1.5rem !important;
   table-layout: fixed !important;
+}
+
+/* Styling for the action buttons cell */
+.main-content .cashflow-table .action-buttons-cell {
+  display: flex !important;
+  gap: 0.5rem !important; /* Space between icon buttons */
+  align-items: center !important;
+  justify-content: flex-start !important; /* Align buttons to the left */
 }
 
 /* Highly specific rule for table cells */
@@ -103,31 +125,33 @@
   vertical-align: middle !important;
 }
 
-.main-content .cashflow-table td button {
-  padding: 0.4rem 0.8rem !important;
+/* Styling for icon buttons */
+.edit-icon-btn,
+.delete-icon-btn {
+  background: none !important; /* Remove default button background */
   border: none !important;
-  border-radius: 4px !important;
+  padding: 0.3rem !important; /* Smaller padding for icon buttons */
   cursor: pointer !important;
-  font-size: 0.8rem !important;
-  margin-right: 0.4rem !important;
+  font-size: 1.1rem !important; /* Size of the icon */
+  color: #0b57d0 !important; /* Edit icon color */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important; /* Small border-radius */
+  transition: background-color 0.2s ease !important;
+  line-height: 1 !important; /* Prevent extra space around icon */
 }
 
-.main-content .edit-btn-small {
-  background-color: #0b57d0 !important;
-  color: white !important;
+.delete-icon-btn {
+  color: #c62828 !important; /* Delete icon color */
 }
 
-.main-content .edit-btn-small:hover {
-  background-color: #084399 !important;
+.edit-icon-btn:hover {
+  background-color: #e0f0ff !important; /* Light hover background */
 }
 
-.main-content .delete-btn-small {
-  background-color: #c62828 !important;
-  color: white !important;
-}
-
-.main-content .delete-btn-small:hover {
-  background-color: #a81f1f !important;
+.delete-icon-btn:hover {
+  background-color: #ffe0e0 !important; /* Light red hover background */
 }
 
 .main-content .total {
