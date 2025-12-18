@@ -18,7 +18,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
     value: '', 
     frequency: 'yearly',
     annual_increase_percent: 0,
-    inflation_percent: 2.0,
+    inflation_percent: 0, // No default inflation on init, will be set from settings later if applicable
     person: '',
     start_date: '',
     end_date: '',
@@ -57,9 +57,9 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         
         setNewItem(prev => ({ 
           ...prev, 
-          category: categories[0],
+          category: '', // No default category on load
           inflation_percent: inflation,
-          person: (persons.length > 0) ? persons[0] : "Family" // Default to first person or Family
+          person: (persons.length > 0) ? persons[0] : "" // No default person, or first if exists
         }));
       } catch (e) {
         console.error("Failed to load settings", e);
@@ -68,7 +68,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           : ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
         setTypeOptions(defaultCategories);
         setPersonOptions(["Person 1", "Person 2"]);
-        setNewItem(prev => ({ ...prev, category: defaultCategories[0] }));
+        setNewItem(prev => ({ ...prev, category: '' })); // No default category on error
       }
     };
     loadDefaults();
@@ -99,12 +99,12 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       await CashFlowService.create(payload);
     }
     setNewItem({ 
-      category: typeOptions[0], 
+      category: '', 
       description: '', 
       value: '', 
       frequency: 'yearly', 
       annual_increase_percent: 0, 
-      inflation_percent: defaultInflation,
+      inflation_percent: 0, // No default inflation on reset
       person: '',
       start_date: '',
       end_date: '',
@@ -144,12 +144,12 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
   const cancelEdit = () => {
     setNewItem({ 
-      category: typeOptions[0], 
+      category: '', 
       description: '', 
       value: '', 
       frequency: 'yearly', 
       annual_increase_percent: 0, 
-      inflation_percent: defaultInflation,
+      inflation_percent: 0, // No default inflation on cancel
       person: '',
       start_date: '',
       end_date: '',
@@ -240,13 +240,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>{type === 'income' ? 'Income' : 'Expenses'}</h2>
 
       <div className="add-item-form">
-        <div className="form-field">
-          <label htmlFor="category-select">Category</label>
-          <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-            {typeOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
-          </select>
-        </div>
-
+        {/* Description first, then Category */}
         <div className="form-field">
           <label htmlFor="description-input">Description (Name)</label>
           <input
@@ -256,6 +250,13 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
             value={newItem.description}
             onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
           />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="category-select">Category</label>
+          <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
+            {typeOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
+          </select>
         </div>
 
         <div className="form-field">
@@ -285,26 +286,28 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           </select>
         </div>
 
-        <div className="form-field">
-          <label htmlFor="start-date-input">Start Date</label>
-          <input
-            id="start-date-input"
-            type="date"
-            placeholder="Start Date"
-            value={newItem.start_date}
-            onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
-          />
-        </div>
+        <div className="form-field date-field-group">
+          <div className="date-field">
+            <label htmlFor="start-date-input">Start Date</label>
+            <input
+              id="start-date-input"
+              type="date"
+              placeholder="Start Date"
+              value={newItem.start_date}
+              onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
+            />
+          </div>
 
-        <div className="form-field">
-          <label htmlFor="end-date-input">End Date</label>
-          <input 
-            id="end-date-input"
-            type="date" 
-            placeholder="End Date" 
-            value={newItem.end_date || ''} 
-            onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
-          />
+          <div className="date-field">
+            <label htmlFor="end-date-input">End Date</label>
+            <input 
+              id="end-date-input"
+              type="date" 
+              placeholder="End Date" 
+              value={newItem.end_date || ''} 
+              onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
+            />
+          </div>
         </div>
 
         {type === 'income' && (

@@ -10,6 +10,7 @@
 .main-content .add-item-form {
   display: grid;
   /* Using a more flexible but constrained grid for better responsiveness */
+  /* Adjusting minmax values to allow more aggressive shrinking and prevent items from being too wide */
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
   gap: 0.8rem !important;
   margin-bottom: 1.5rem !important;
@@ -45,9 +46,22 @@
   flex-shrink: 1 !important; /* Allow inputs/selects to shrink */
 }
 
+/* Styling for the date field group to add a gap */
+.main-content .add-item-form .date-field-group {
+  display: flex !important;
+  gap: 0.8rem !important; /* Gap between start and end date fields */
+}
+
+.main-content .add-item-form .date-field {
+  flex: 1 !important; /* Distribute space evenly within the date field group */
+  display: flex !important; /* Ensure content inside date-field is flexible */
+  flex-direction: column !important;
+  gap: 0.2rem !important;
+}
+
 /* Specific styling for date inputs to ensure proper width */
 #start-date-input, #end-date-input {
-  min-width: 140px !important; /* Ensure enough space for date picker and text */
+  min-width: 130px !important; /* Ensure enough space for date picker and text */
   width: auto !important; /* Auto width within min-width constraint */
 }
 
@@ -98,7 +112,7 @@
   width: 100% !important;
   border-collapse: collapse !important;
   margin-bottom: 1.5rem !important;
-  table-layout: fixed !important;
+  table-layout: fixed !important; /* Ensure consistent column width */
 }
 
 /* Styling for the action buttons cell */
@@ -107,39 +121,34 @@
   gap: 0.5rem !important; /* Space between icon buttons */
   align-items: center !important;
   justify-content: flex-start !important; /* Align buttons to the left */
-  /* The border-bottom for the entire row is handled by td/th rules below */
+  vertical-align: middle !important; /* Ensure vertical alignment */
 }
 
-/* Highly specific rule for table cells */
-.main-content .cashflow-table .cashflow-table-cell {
+/* Apply border to table rows instead of individual cells for continuous lines */
+.main-content .cashflow-table tr {
+  border-bottom: 1px solid #ddd !important;
+}
+
+/* Remove individual cell borders to prevent double borders */
+.main-content .cashflow-table th,
+.main-content .cashflow-table td {
+  border-bottom: none !important; 
   padding: 0.5rem !important;
   text-align: left !important;
-  border-bottom: 1px solid #ddd !important;
   font-size: 0.85rem !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  vertical-align: middle !important; /* Ensure vertical alignment */
 }
 
 .main-content .cashflow-table th {
   background-color: #f5f5f5 !important;
   font-weight: 600 !important;
-  border-bottom: 1px solid #ddd !important; /* Ensure th has bottom border */
 }
 
-.main-content .cashflow-table td {
-  vertical-align: middle !important;
-  border-bottom: 1px solid #ddd !important; /* Ensure td has bottom border */
-}
-
-/* Re-target the buttons within td specifically to ensure they get their styling */
-.main-content .cashflow-table td button {
-  padding: 0.4rem 0.8rem !important;
-  border: none !important;
-  border-radius: 4px !important;
-  cursor: pointer !important;
-  font-size: 0.8rem !important;
-  margin-right: 0.4rem !important;
+/* Highly specific rule for table cells to ensure text wrapping and overflow handling */
+.main-content .cashflow-table .cashflow-table-cell {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 /* Styling for icon buttons */
