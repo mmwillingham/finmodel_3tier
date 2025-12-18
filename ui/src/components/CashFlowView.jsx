@@ -309,20 +309,6 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
         {type === 'expense' && (
           <div className="form-field">
-            <label htmlFor="inflation">Inflation %</label>
-            <input
-              id="inflation"
-              type="number"
-              step="0.1"
-              placeholder="Inflation %"
-              value={newItem.inflation_percent}
-              onChange={(e) => setNewItem({ ...newItem, inflation_percent: e.target.value })}
-            />
-          </div>
-        )}
-
-        {type === 'expense' && (
-          <div className="form-field">
             <label htmlFor="tax-deductible">
               <input
                 id="tax-deductible"
