@@ -3,131 +3,137 @@
   max-width: 1000px;
 }
 
-.cashflow-container h2 {
+.main-content .cashflow-container h2 {
   margin-bottom: 1.5rem !important; /* Reduced margin */
   font-size: 1.5rem !important; /* Reduced font size */
 }
 
-.add-item-form {
+.main-content .add-item-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.8rem; /* Reduced gap */
-  margin-bottom: 1.5rem; /* Reduced margin */
-  padding: 1rem; /* Reduced padding */
-  background: #f9f9f9;
-  border-radius: 4px;
+  gap: 0.8rem !important; /* Reduced gap */
+  margin-bottom: 1.5rem !important; /* Reduced margin */
+  padding: 1rem !important; /* Reduced padding */
+  background: #f9f9f9 !important;
+  border-radius: 4px !important;
 }
 
-.add-item-form select,
-.add-item-form input {
-  padding: 0.6rem; /* Reduced padding */
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.95rem; /* Reduced font size */
+.main-content .add-item-form select,
+.main-content .add-item-form input {
+  padding: 0.6rem !important; /* Reduced padding */
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  font-size: 0.95rem !important; /* Reduced font size */
+  width: auto !important; /* Allow inputs to size naturally within grid */
 }
 
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem; /* Reduced gap */
+.main-content .form-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.2rem !important; /* Reduced gap */
 }
 
-.form-field label {
-  font-size: 0.8rem; /* Reduced font size */
-  font-weight: 500;
-  color: #555;
+.main-content .form-field label {
+  font-size: 0.8rem !important; /* Reduced font size */
+  font-weight: 500 !important;
+  color: #555 !important;
 }
 
-.form-field input {
-  padding: 0.4rem; /* Reduced padding */
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem; /* Reduced font size */
+.main-content .form-field input {
+  padding: 0.4rem !important; /* Reduced padding */
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  font-size: 0.9rem !important; /* Reduced font size */
 }
 
-.form-actions {
-  display: flex;
-  gap: 0.5rem;
+.main-content .form-actions {
+  display: flex !important;
+  gap: 0.5rem !important;
 }
 
-.add-item-form button {
-  padding: 0.6rem 1.2rem; /* Reduced padding */
-  background-color: #0b57d0;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  white-space: nowrap;
-  font-size: 0.9rem; /* Reduced font size */
+.main-content .add-item-form button {
+  padding: 0.6rem 1.2rem !important; /* Reduced padding */
+  background-color: #0b57d0 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  font-size: 0.9rem !important; /* Reduced font size */
+  width: auto !important; /* Allow button to size naturally */
 }
 
-.add-item-form button:hover {
-  background-color: #084399;
+.main-content .add-item-form button:hover {
+  background-color: #084399 !important;
 }
 
-.add-item-form .cancel-btn {
-  background-color: #666;
+.main-content .add-item-form .cancel-btn {
+  background-color: #666 !important;
 }
 
-.add-item-form .cancel-btn:hover {
-  background-color: #444;
+.main-content .add-item-form .cancel-btn:hover {
+  background-color: #444 !important;
 }
 
-.cashflow-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1.5rem; /* Reduced margin */
+.main-content .cashflow-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin-bottom: 1.5rem !important; /* Reduced margin */
+  table-layout: fixed !important; /* Fix table layout for consistent column width */
 }
 
-.cashflow-table th,
-.cashflow-table td {
-  padding: 0.5rem; /* Reduced padding */
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-  font-size: 0.85rem; /* Reduced font size */
+.main-content .cashflow-table th,
+.main-content .cashflow-table td {
+  padding: 0.5rem !important; /* Reduced padding */
+  text-align: left !important;
+  border-bottom: 1px solid #ddd !important;
+  font-size: 0.85rem !important; /* Reduced font size */
+  white-space: nowrap !important; /* Prevent wrapping */
+  overflow: hidden !important; /* Hide overflowing content */
+  text-overflow: ellipsis !important; /* Add ellipsis for hidden content */
 }
 
-.cashflow-table th {
-  background-color: #f5f5f5;
-  font-weight: 600;
+.main-content .cashflow-table th {
+  background-color: #f5f5f5 !important;
+  font-weight: 600 !important;
 }
 
-.cashflow-table td {
-  vertical-align: middle;
+.main-content .cashflow-table td {
+  vertical-align: middle !important;
 }
 
-.cashflow-table td button {
-  padding: 0.4rem 0.8rem; /* Reduced padding */
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem; /* Reduced font size */
-  margin-right: 0.4rem; /* Reduced margin */
+.main-content .cashflow-table td button {
+  padding: 0.4rem 0.8rem !important; /* Reduced padding */
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 0.8rem !important; /* Reduced font size */
+  margin-right: 0.4rem !important; /* Reduced margin */
 }
 
-.edit-btn-small {
-  background-color: #0b57d0;
-  color: white;
+.main-content .edit-btn-small {
+  background-color: #0b57d0 !important;
+  color: white !important;
 }
 
-.edit-btn-small:hover {
-  background-color: #084399;
+.main-content .edit-btn-small:hover {
+  background-color: #084399 !important;
 }
 
-.delete-btn-small {
-  background-color: #c62828;
-  color: white;
+.main-content .delete-btn-small {
+  background-color: #c62828 !important;
+  color: white !important;
 }
 
-.delete-btn-small:hover {
-  background-color: #a81f1f;
+.main-content .delete-btn-small:hover {
+  background-color: #a81f1f !important;
 }
 
-.total {
-  font-size: 1.1rem; /* Slightly reduced font size */
-  padding: 0.8rem; /* Reduced padding */
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  text-align: right;
+.main-content .total {
+  font-size: 1.1rem !important; /* Slightly reduced font size */
+  padding: 0.8rem !important; /* Reduced padding */
+  background-color: #f5f5f5 !important;
+  border-radius: 4px !important;
+  text-align: right !important;
 }
