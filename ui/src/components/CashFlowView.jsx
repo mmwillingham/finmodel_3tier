@@ -240,22 +240,50 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>{type === 'income' ? 'Income' : 'Expenses'}</h2>
 
       <div className="add-item-form">
-        <select value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-          {typeOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
-        </select>
+        <div className="form-field">
+          <label htmlFor="category-select">Category</label>
+          <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
+            {typeOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
+          </select>
+        </div>
 
-        <input type="text" placeholder="Description (Name)" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} />
+        <div className="form-field">
+          <label htmlFor="description-input">Description (Name)</label>
+          <input
+            id="description-input"
+            type="text"
+            placeholder="Description (Name)"
+            value={newItem.description}
+            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+          />
+        </div>
 
-        <select value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Family" ? "" : e.target.value })}>
-          {personOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
-        </select>
+        <div className="form-field">
+          <label htmlFor="person-select">Person</label>
+          <select id="person-select" value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Family" ? "" : e.target.value })}>
+            {personOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
+          </select>
+        </div>
 
-        <input type="number" placeholder="Value" value={newItem.value} onFocus={(e) => e.target.select()} onChange={(e) => setNewItem({ ...newItem, value: e.target.value })} />
+        <div className="form-field">
+          <label htmlFor="value-input">Value</label>
+          <input
+            id="value-input"
+            type="number"
+            placeholder="Value"
+            value={newItem.value}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
+          />
+        </div>
 
-        <select value={newItem.frequency} onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })}>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
+        <div className="form-field">
+          <label htmlFor="frequency-select">Frequency</label>
+          <select id="frequency-select" value={newItem.frequency} onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })}>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
 
         <div className="form-field">
           <label htmlFor="start-date-input">Start Date</label>
