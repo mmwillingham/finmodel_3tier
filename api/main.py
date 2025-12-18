@@ -43,6 +43,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
 origins = [
     settings.FRONTEND_URL, # NEW: Allow requests from the deployed frontend
+    "http://localhost:3000", # Allow requests from your local development server
+    "https://finmodel-backend-service-526419047208.us-east1.run.app" # Allow the backend itself
 ]
 
 app.add_middleware(
