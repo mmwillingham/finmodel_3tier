@@ -9,8 +9,8 @@
 
 .main-content .add-item-form {
   display: grid;
-  /* More flexible grid to allow items to be closer, with a smaller minimum width */
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+  /* Explicitly defining 5 columns with flexible units for better control */
+  grid-template-columns: repeat(5, minmax(100px, 1fr)); 
   gap: 0.8rem !important;
   margin-bottom: 1.5rem !important;
   padding: 1rem !important;
@@ -22,6 +22,8 @@
   display: flex !important;
   flex-direction: column !important;
   gap: 0.2rem !important;
+  /* Ensure form-fields don't stretch too wide */
+  max-width: 100%;
 }
 
 .main-content .add-item-form .form-field label {
@@ -45,12 +47,21 @@
   flex-shrink: 1 !important; /* Allow inputs/selects to shrink */
 }
 
-/* Styling for the date field group to add a gap */
+/* Adjusting specific fields to fit better in the 5-column grid */
+.main-content .add-item-form .form-field:nth-child(1), /* Description */
+.main-content .add-item-form .form-field:nth-child(2), /* Category */
+.main-content .add-item-form .form-field:nth-child(3), /* Person */
+.main-content .add-item-form .form-field:nth-child(4), /* Value */
+.main-content .add-item-form .form-field:nth-child(5)  /* Frequency */
+{
+  grid-column: span 1; /* Each takes 1 column */
+}
+
+/* Date fields group should occupy 2 columns */
 .main-content .add-item-form .date-field-group {
   display: flex !important;
   gap: 0.8rem !important; /* Gap between start and end date fields */
   flex-wrap: nowrap; /* Prevent date fields from wrapping */
-  /* Allow this group to span multiple columns naturally or define explicit span if needed */
   grid-column: span 2; /* Make date field group span two columns */
   align-items: flex-end; /* Align inputs at the bottom */
 }
@@ -64,13 +75,29 @@
 
 /* Specific styling for date inputs to ensure proper width */
 #start-date-input, #end-date-input {
-  min-width: 120px !important; /* Slightly smaller min-width for date pickers */
+  min-width: 120px !important; 
   max-width: 150px !important; /* Limit max-width to prevent them from being too long */
-  width: auto !important; /* Auto width within min/max constraints */
-  box-sizing: border-box !important; /* Include padding and border in width */
+  width: auto !important; 
+  box-sizing: border-box !important; 
 }
 
-/* Adjusting checkbox container to ensure it aligns well */
+/* Annual Increase % and Taxable/Tax Deductible fields */
+/* Assuming these come after the date fields and should be on the same row */
+.main-content .add-item-form .form-field:has(#annual-increase),
+.main-content .add-item-form .form-field:has(#inflation-percent) {
+  grid-column: span 1; /* Occupy 1 column */
+  align-self: flex-end; /* Align with the bottom of date inputs */
+}
+
+.main-content .add-item-form .form-field:has(#taxable),
+.main-content .add-item-form .form-field:has(#tax-deductible) {
+  grid-column: span 1; /* Occupy 1 column */
+  align-self: flex-end; /* Align with the bottom of date inputs */
+  justify-content: flex-end; /* Push checkbox to the right */
+  flex-direction: row !important; /* Place checkbox next to label */
+  align-items: center !important;
+}
+
 .main-content .add-item-form .form-field label input[type="checkbox"] {
   margin-right: 0.5rem; /* Space between checkbox and label text */
 }
@@ -81,6 +108,7 @@
   align-items: center; /* Align buttons nicely */
   grid-column: 1 / -1; /* Make form-actions span all columns */
   margin-top: 1rem !important; /* Add space above the buttons */
+  justify-content: flex-end; /* Push the Add button to the right */
 }
 
 /* Styling for the Add/Update button */
@@ -94,8 +122,8 @@
   font-weight: 500 !important;
   white-space: nowrap !important;
   font-size: 0.9rem !important;
-  width: auto !important; /* Allow button to size naturally */
-  flex-shrink: 0 !important; /* Prevent button from shrinking too much */
+  width: auto !important; 
+  flex-shrink: 0 !important; 
 }
 
 #add-cashflow-item-button:hover {
@@ -124,16 +152,16 @@
   width: 100% !important;
   border-collapse: collapse !important;
   margin-bottom: 1.5rem !important;
-  table-layout: fixed !important; /* Ensure consistent column width */
+  table-layout: fixed !important; 
 }
 
 /* Styling for the action buttons cell */
 .main-content .cashflow-table .action-buttons-cell {
   display: flex !important;
-  gap: 0.5rem !important; /* Space between icon buttons */
+  gap: 0.5rem !important;
   align-items: center !important;
-  justify-content: flex-start !important; /* Align buttons to the left */
-  vertical-align: middle !important; /* Ensure vertical alignment */
+  justify-content: flex-start !important;
+  vertical-align: middle !important; 
 }
 
 /* Apply border to table rows instead of individual cells for continuous lines */
@@ -148,7 +176,7 @@
   padding: 0.5rem !important;
   text-align: left !important;
   font-size: 0.85rem !important;
-  vertical-align: middle !important; /* Ensure vertical alignment */
+  vertical-align: middle !important; 
 }
 
 .main-content .cashflow-table th {
@@ -166,30 +194,30 @@
 /* Styling for icon buttons */
 .edit-icon-btn,
 .delete-icon-btn {
-  background: none !important; /* Remove default button background */
+  background: none !important;
   border: none !important;
-  padding: 0.3rem !important; /* Smaller padding for icon buttons */
+  padding: 0.3rem !important;
   cursor: pointer !important;
-  font-size: 1.1rem !important; /* Size of the icon */
-  color: #0b57d0 !important; /* Edit icon color */
+  font-size: 1.1rem !important;
+  color: #0b57d0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 4px !important; /* Small border-radius */
+  border-radius: 4px !important;
   transition: background-color 0.2s ease !important;
-  line-height: 1 !important; /* Prevent extra space around icon */
+  line-height: 1 !important;
 }
 
 .delete-icon-btn {
-  color: #c62828 !important; /* Delete icon color */
+  color: #c62828 !important;
 }
 
 .edit-icon-btn:hover {
-  background-color: #e0f0ff !important; /* Light hover background */
+  background-color: #e0f0ff !important;
 }
 
 .delete-icon-btn:hover {
-  background-color: #ffe0e0 !important; /* Light red hover background */
+  background-color: #ffe0e0 !important;
 }
 
 .main-content .total {
