@@ -1,7 +1,7 @@
 .cashflow-form-modal-content .add-item-form {
   display: grid;
-  /* Explicitly defining 3 columns with flexible units for better control within the modal */
-  grid-template-columns: repeat(3, minmax(120px, 1fr)); 
+  /* Re-evaluating grid to be more robust for compactness and date field alignment */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Adjusted min-width for better fit */
   gap: 0.8rem;
 }
 
@@ -27,23 +27,23 @@
   padding: 0.6rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.9rem; /* Slightly reduced font size for inputs/selects in modal */
+  font-size: 0.85rem; /* Further reduced font size for inputs/selects in modal */
   width: auto; 
   max-width: 100%;
   flex-shrink: 1;
 }
 
-/* Date fields group should occupy 2 columns */
+/* Date fields group should span two columns */
 .cashflow-form-modal-content .add-item-form .date-field-group {
   display: flex;
   gap: 0.8rem;
   flex-wrap: nowrap;
-  grid-column: span 2; 
+  grid-column: span 2; /* Explicitly ensure it spans two columns */
   align-items: flex-end;
 }
 
 .cashflow-form-modal-content .add-item-form .date-field {
-  flex: 1 1 0;
+  flex: 1; /* Make date fields truly share space equally */
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -58,8 +58,7 @@
   box-sizing: border-box; 
 }
 
-/* Annual Increase % and Taxable/Tax Deductible fields */
-/* Assuming these come after the date fields and should be on the same row */
+/* Conditional fields should occupy 1 column */
 .cashflow-form-modal-content .add-item-form .form-field:has(#annual-increase),
 .cashflow-form-modal-content .add-item-form .form-field:has(#inflation-percent) {
   grid-column: span 1;
@@ -98,7 +97,7 @@
   cursor: pointer;
   font-weight: 500;
   white-space: nowrap;
-  font-size: 0.9rem; /* Consistent font size for buttons */
+  font-size: 0.9rem; 
   width: auto; 
   flex-shrink: 0; 
 }
