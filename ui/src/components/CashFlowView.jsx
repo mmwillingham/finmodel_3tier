@@ -137,7 +137,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       start_date: item.start_date || '',
       end_date: item.end_date || '',
       taxable: item.taxable || false,
-      tax_deductible: item.tax_deductible || false,
+      tax_deductible: false,
     });
     setEditingId(item.id);
   };
@@ -333,3 +333,61 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
               Tax Deductible
             </label>
           </div>
+        )}
+
+        <div className="form-actions">
+          <button onClick={save}>{editingId ? 'Update' : 'Add'}</button>
+          {editingId && <button onClick={cancelEdit} className="cancel-btn">Cancel</button>}
+        </div>
+      </div>
+
+      <div className="table-actions">
+        <button onClick={() => handleDownloadTablePdf(tableRef, `${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download PDF</button>
+        <button onClick={() => handleDownloadCashFlowTableCsv(`${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download CSV</button>
+      </div>
+      <table ref={tableRef} className="cashflow-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Person</th>
+            <th>Frequency</th>
+            <th>Yearly Value</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            {type === 'income' && <th>Annual Increase %</th>}
+            {type === 'income' && <th>Taxable</th>}
+            {type === 'expense' && <th>Inflation %</th>}
+            {type === 'expense' && <th>Tax Deductible</th>}
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map(item => (
+            <tr key={item.id}>
+              <td>{item.category}</td>
+              <td>{item.description}</td>
+              <td>{item.person || '-'}</td>
+              <td>{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
+              <td>{formatCurrency(item.yearly_value)}</td>
+              <td>{item.start_date || '-'}</td>
+              <td>{item.end_date || 'No end date'}</td>
+              {type === 'income' && <td>{item.annual_increase_percent}%</td>}
+              {type === 'income' && <td>{item.taxable ? 'Yes' : 'No'}</td>}
+              {type === 'expense' && <td>{item.inflation_percent}%</td>}
+              {type === 'expense' && <td>{item.tax_deductible ? 'Yes' : 'No'}</td>}
+              <td>
+                <button onClick={() => startEdit(item)} className="edit-btn-small">Edit</button>
+                <button onClick={() => remove(item.id)} className="delete-btn-small">Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="total">
+        <strong>Total {type === 'income' ? 'Income' : 'Expenses'} (Yearly): {formatCurrency(total)}</strong>
+      </div>
+    </div>
+  );
+}
