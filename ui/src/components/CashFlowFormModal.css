@@ -1,8 +1,9 @@
 .cashflow-form-modal-content .add-item-form {
   display: grid;
-  /* Re-evaluating grid to be more robust for compactness and date field alignment */
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Adjusted min-width for better fit */
+  /* Explicitly defining 3 columns with flexible units for better control within the modal */
+  grid-template-columns: repeat(3, minmax(150px, 1fr)); /* Adjusted to 3 explicit columns */
   gap: 0.8rem;
+  align-items: flex-start; /* Align all items to the top of their grid cells */
 }
 
 .cashflow-form-modal-content .add-item-form .form-field {
@@ -27,7 +28,7 @@
   padding: 0.6rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.85rem; /* Further reduced font size for inputs/selects in modal */
+  font-size: 0.85rem; /* Consistent font size */
   width: auto; 
   max-width: 100%;
   flex-shrink: 1;
@@ -39,7 +40,7 @@
   gap: 0.8rem;
   flex-wrap: nowrap;
   grid-column: span 2; /* Explicitly ensure it spans two columns */
-  align-items: flex-end;
+  /* Removed align-items: flex-end to inherit parent's align-items: flex-start */
 }
 
 .cashflow-form-modal-content .add-item-form .date-field {
@@ -62,14 +63,14 @@
 .cashflow-form-modal-content .add-item-form .form-field:has(#annual-increase),
 .cashflow-form-modal-content .add-item-form .form-field:has(#inflation-percent) {
   grid-column: span 1;
-  align-self: flex-end;
+  align-self: flex-start; /* Align with other fields */
 }
 
 .cashflow-form-modal-content .add-item-form .form-field:has(#taxable),
 .cashflow-form-modal-content .add-item-form .form-field:has(#tax-deductible) {
   grid-column: span 1;
-  align-self: flex-end;
-  justify-content: flex-end;
+  align-self: flex-start; /* Align with other fields */
+  justify-content: flex-start; /* Align checkbox to the left */
   flex-direction: row; 
   align-items: center;
 }
