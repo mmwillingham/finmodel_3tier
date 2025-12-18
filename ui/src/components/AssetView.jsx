@@ -117,7 +117,7 @@ export default function AssetView({ assets, refreshAssets }) {
         let value = row[header] || '';
         if (typeof value === 'number' && valueFormatter) {
           return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
-        }asd
+        }
         return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes for CSV
       });
       csvRows.push(values.join(','));
