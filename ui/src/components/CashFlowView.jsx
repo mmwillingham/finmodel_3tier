@@ -331,4 +331,4 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
                 onChange={(e) => setNewItem({ ...newItem, tax_deductible: e.target.checked })}
               />
               Tax Deductible
-            </p>  
+            </label>  
