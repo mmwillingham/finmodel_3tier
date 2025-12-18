@@ -47,19 +47,19 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           res.data.person2_first_name ? res.data.person2_first_name : null,
         ].filter(Boolean);
 
-        // Add a "Neither" option only if there are actual person names to choose from.
+        // Add a "Family" option only if there are actual person names to choose from.
         // If no names are set, we might default to no person being selected.
         if (persons.length > 0) {
-          setPersonOptions(["Neither", ...persons]);
+          setPersonOptions(["Family", ...persons]);
         } else {
-          setPersonOptions(["Neither"]); // Still offer 'Neither' if no names are set
+          setPersonOptions(["Family"]); // Still offer 'Family' if no names are set
         }
         
         setNewItem(prev => ({ 
           ...prev, 
           category: categories[0],
           inflation_percent: inflation,
-          person: (persons.length > 0) ? persons[0] : "Neither" // Default to first person or Neither
+          person: (persons.length > 0) ? persons[0] : "Family" // Default to first person or Family
         }));
       } catch (e) {
         console.error("Failed to load settings", e);
@@ -107,7 +107,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       inflation_percent: defaultInflation,
       person: '',
       start_date: '',
-      end_date: '',
+      110|      end_date: '',
       taxable: false,
       tax_deductible: false,
     });
@@ -246,7 +246,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
         <input type="text" placeholder="Description (Name)" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} />
 
-        <select value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Neither" ? "" : e.target.value })}>
+        <select value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Family" ? "" : e.target.value })}>
           {personOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
         </select>
 
@@ -331,63 +331,4 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
                 onChange={(e) => setNewItem({ ...newItem, tax_deductible: e.target.checked })}
               />
               Tax Deductible
-            </label>
-          </div>
-        )}
-
-        <div className="form-actions">
-          <button onClick={save}>{editingId ? 'Update' : 'Add'}</button>
-          {editingId && <button onClick={cancelEdit} className="cancel-btn">Cancel</button>}
-        </div>
-      </div>
-
-      <div className="table-actions">
-        <button onClick={() => handleDownloadTablePdf(tableRef, `${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download PDF</button>
-        <button onClick={() => handleDownloadCashFlowTableCsv(`${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download CSV</button>
-      </div>
-      <table ref={tableRef} className="cashflow-table">
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Description</th>
-            <th>Person</th>
-            <th>Frequency</th>
-            <th>Yearly Value</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            {type === 'income' && <th>Annual Increase %</th>}
-            {type === 'income' && <th>Taxable</th>}
-            {type === 'expense' && <th>Inflation %</th>}
-            {type === 'expense' && <th>Tax Deductible</th>}
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(item => (
-            <tr key={item.id}>
-              <td>{item.category}</td>
-              <td>{item.description}</td>
-              <td>{item.person || '-'}</td>
-              <td>{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
-              <td>{formatCurrency(item.yearly_value)}</td>
-              <td>{item.start_date || '-'}</td>
-              <td>{item.end_date || 'No end date'}</td>
-              {type === 'income' && <td>{item.annual_increase_percent}%</td>}
-              {type === 'income' && <td>{item.taxable ? 'Yes' : 'No'}</td>}
-              {type === 'expense' && <td>{item.inflation_percent}%</td>}
-              {type === 'expense' && <td>{item.tax_deductible ? 'Yes' : 'No'}</td>}
-              <td>
-                <button onClick={() => startEdit(item)} className="edit-btn-small">Edit</button>
-                <button onClick={() => remove(item.id)} className="delete-btn-small">Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="total">
-        <strong>Total {type === 'income' ? 'Income' : 'Expenses'} (Yearly): {formatCurrency(total)}</strong>
-      </div>
-    </div>
-  );
-}
+            </p>  
