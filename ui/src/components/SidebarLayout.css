@@ -1,8 +1,10 @@
 .sidebar-layout {
   display: flex;
   height: 100vh;
+  margin-top: 60px; /* Account for fixed header height */
   background: var(--bg, #f6f7fb);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  overflow-x: hidden; /* Prevent horizontal scrollbar due to off-screen content */
 }
 
 .sidebar {
