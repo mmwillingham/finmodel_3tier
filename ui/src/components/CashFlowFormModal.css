@@ -27,7 +27,7 @@
   padding: 0.6rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.95rem;
+  font-size: 0.9rem; /* Slightly reduced font size for inputs/selects in modal */
   width: auto; 
   max-width: 100%;
   flex-shrink: 1;
@@ -98,7 +98,7 @@
   cursor: pointer;
   font-weight: 500;
   white-space: nowrap;
-  font-size: 0.9rem;
+  font-size: 0.9rem; /* Consistent font size for buttons */
   width: auto; 
   flex-shrink: 0; 
 }
