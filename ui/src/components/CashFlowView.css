@@ -9,8 +9,8 @@
 
 .main-content .add-item-form {
   display: grid;
-  /* Adjusted grid to allow more aggressive shrinking and prevent items from being too wide */
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+  /* Using a more flexible but constrained grid for better responsiveness */
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
   gap: 0.8rem !important;
   margin-bottom: 1.5rem !important;
   padding: 1rem !important;
@@ -18,42 +18,37 @@
   border-radius: 4px !important;
 }
 
-.main-content .add-item-form select,
-.main-content .add-item-form input[type="text"],
-.main-content .add-item-form input[type="number"] {
-  padding: 0.6rem !important;
-  border: 1px solid #ddd !important;
-  border-radius: 4px !important;
-  font-size: 0.95rem !important;
-  width: auto !important; /* Allow inputs/selects to size naturally within grid */
-  flex-shrink: 1 !important; /* Allow inputs/selects to shrink */
-}
-
-/* Specific styling for date inputs to ensure proper width */
-#start-date-input, #end-date-input {
-  min-width: 130px !important; /* Ensure enough space for date picker */
-  width: auto !important;
-  flex-shrink: 1 !important;
-}
-
-.main-content .form-field {
+.main-content .add-item-form .form-field {
   display: flex !important;
   flex-direction: column !important;
   gap: 0.2rem !important;
 }
 
-.main-content .form-field label {
+.main-content .add-item-form .form-field label {
   font-size: 0.8rem !important;
   font-weight: 500 !important;
-  color: #555 !important;
+  color: #555 !important; /* Ensure label color is visible */
   white-space: nowrap !important; /* Prevent label text from wrapping */
+  display: block !important; /* Ensure labels are always displayed */
 }
 
-.main-content .form-field input {
-  padding: 0.4rem !important;
+.main-content .add-item-form select,
+.main-content .add-item-form input[type="text"],
+.main-content .add-item-form input[type="number"],
+.main-content .add-item-form input[type="date"] {
+  padding: 0.6rem !important;
   border: 1px solid #ddd !important;
   border-radius: 4px !important;
-  font-size: 0.9rem !important;
+  font-size: 0.95rem !important;
+  width: auto !important; /* Allow inputs/selects to size naturally within grid */
+  max-width: 100% !important; /* Ensure they don't overflow their grid cell */
+  flex-shrink: 1 !important; /* Allow inputs/selects to shrink */
+}
+
+/* Specific styling for date inputs to ensure proper width */
+#start-date-input, #end-date-input {
+  min-width: 140px !important; /* Ensure enough space for date picker and text */
+  width: auto !important; /* Auto width within min-width constraint */
 }
 
 .main-content .form-actions {
@@ -112,7 +107,7 @@
   gap: 0.5rem !important; /* Space between icon buttons */
   align-items: center !important;
   justify-content: flex-start !important; /* Align buttons to the left */
-  border-bottom: 1px solid #ddd !important; /* Ensure border extends under actions */
+  /* The border-bottom for the entire row is handled by td/th rules below */
 }
 
 /* Highly specific rule for table cells */
@@ -129,10 +124,22 @@
 .main-content .cashflow-table th {
   background-color: #f5f5f5 !important;
   font-weight: 600 !important;
+  border-bottom: 1px solid #ddd !important; /* Ensure th has bottom border */
 }
 
 .main-content .cashflow-table td {
   vertical-align: middle !important;
+  border-bottom: 1px solid #ddd !important; /* Ensure td has bottom border */
+}
+
+/* Re-target the buttons within td specifically to ensure they get their styling */
+.main-content .cashflow-table td button {
+  padding: 0.4rem 0.8rem !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 0.8rem !important;
+  margin-right: 0.4rem !important;
 }
 
 /* Styling for icon buttons */
