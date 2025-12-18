@@ -10,7 +10,7 @@ import SignupPage from './components/SignupPage';
 import SidebarLayout from './components/SidebarLayout';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import EmailConfirmationPage from './components/EmailConfirmationPage';
-import GoogleAuthCallback from './components/GoogleAuthCallback'; // NEW: Import GoogleAuthCallback
+import GoogleAuthCallback from './components/GoogleAuthCallback'; // NEW: Import GoogleAuthCallback // Trigger rebuild
 
 // Import Modals and their state management
 import SettingsModal, { useCategoryModalStates } from './components/SettingsModal';
