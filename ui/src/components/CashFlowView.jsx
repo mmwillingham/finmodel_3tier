@@ -107,7 +107,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       inflation_percent: defaultInflation,
       person: '',
       start_date: '',
-      110|      end_date: '',
+      end_date: '',
       taxable: false,
       tax_deductible: false,
     });
