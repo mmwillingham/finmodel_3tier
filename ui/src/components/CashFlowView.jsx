@@ -16,10 +16,10 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
     category: '', 
     description: '', 
     value: '', 
-    frequency: 'yearly',
+    frequency: '', // Default to empty for no initial selection
     annual_increase_percent: 0,
-    inflation_percent: 0, // No default inflation on init, will be set from settings later if applicable
-    person: '',
+    inflation_percent: 0, // Default to 0, not defaultInflation
+    person: '', // Default to empty for no initial selection
     start_date: '',
     end_date: '',
     taxable: false,
@@ -47,19 +47,21 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           res.data.person2_first_name ? res.data.person2_first_name : null,
         ].filter(Boolean);
 
-        // Add a "Family" option only if there are actual person names to choose from.
-        // If no names are set, we might default to no person being selected.
+        // Add an empty option and "Family"
+        let newPersonOptions = [""]; // Empty option for no default selection
         if (persons.length > 0) {
-          setPersonOptions(["Family", ...persons]);
+          newPersonOptions.push("Family", ...persons);
         } else {
-          setPersonOptions(["Family"]); // Still offer 'Family' if no names are set
+          newPersonOptions.push("Family"); // Still offer 'Family' if no names are set
         }
+        setPersonOptions(newPersonOptions);
         
         setNewItem(prev => ({ 
           ...prev, 
-          category: '', // No default category on load
+          category: '', // Ensure category is empty on load
           inflation_percent: inflation,
-          person: (persons.length > 0) ? persons[0] : "" // No default person, or first if exists
+          person: '', // Ensure person is empty on load
+          frequency: '' // Ensure frequency is empty on load
         }));
       } catch (e) {
         console.error("Failed to load settings", e);
@@ -67,8 +69,8 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           ? ["Salary", "Bonus", "Investment Income", "Other"]
           : ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
         setTypeOptions(defaultCategories);
-        setPersonOptions(["Person 1", "Person 2"]);
-        setNewItem(prev => ({ ...prev, category: '' })); // No default category on error
+        setPersonOptions(["", "Person 1", "Person 2"]); // Add empty option for error case too
+        setNewItem(prev => ({ ...prev, category: '', person: '', frequency: '' })); // Ensure empty defaults on error
       }
     };
     loadDefaults();
@@ -83,7 +85,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       is_income: type === 'income',
       category: newItem.category,
       description: newItem.description,
-      frequency: newItem.frequency,
+      frequency: newItem.frequency || 'yearly', // Fallback if empty
       value: parseFloat(newItem.value),
       annual_increase_percent: type === 'income' ? parseFloat(newItem.annual_increase_percent || 0) : 0,
       inflation_percent: type === 'expense' ? parseFloat(newItem.inflation_percent || defaultInflation) : 0,
@@ -102,10 +104,10 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       category: '', 
       description: '', 
       value: '', 
-      frequency: 'yearly', 
+      frequency: '', // Reset to empty
       annual_increase_percent: 0, 
-      inflation_percent: 0, // No default inflation on reset
-      person: '',
+      inflation_percent: 0, // Reset to 0
+      person: '', // Reset to empty
       start_date: '',
       end_date: '',
       taxable: false,
@@ -147,10 +149,10 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       category: '', 
       description: '', 
       value: '', 
-      frequency: 'yearly', 
+      frequency: '', // Reset to empty
       annual_increase_percent: 0, 
-      inflation_percent: 0, // No default inflation on cancel
-      person: '',
+      inflation_percent: 0, // Reset to 0
+      person: '', // Reset to empty
       start_date: '',
       end_date: '',
       taxable: false,
@@ -255,6 +257,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         <div className="form-field">
           <label htmlFor="category-select">Category</label>
           <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
+            <option value="">Select Category</option> {/* Added empty option */}
             {typeOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
           </select>
         </div>
@@ -262,6 +265,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         <div className="form-field">
           <label htmlFor="person-select">Person</label>
           <select id="person-select" value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Family" ? "" : e.target.value })}>
+            <option value="">Select Person</option> {/* Added empty option */}
             {personOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
           </select>
         </div>
@@ -281,6 +285,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         <div className="form-field">
           <label htmlFor="frequency-select">Frequency</label>
           <select id="frequency-select" value={newItem.frequency} onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })}>
+            <option value="">Select Frequency</option> {/* Added empty option */}
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
           </select>
@@ -335,6 +340,21 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
               />
               Taxable
             </label>
+          </div>
+        )}
+        
+        {/* Inflation % field for expenses */}
+        {type === 'expense' && (
+          <div className="form-field">
+            <label htmlFor="inflation-percent">Inflation %</label>
+            <input
+              id="inflation-percent"
+              type="number"
+              step="0.1"
+              placeholder="Inflation %"
+              value={newItem.inflation_percent}
+              onChange={(e) => setNewItem({ ...newItem, inflation_percent: e.target.value })}
+            />
           </div>
         )}
 

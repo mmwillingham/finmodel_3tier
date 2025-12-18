@@ -9,10 +9,8 @@
 
 .main-content .add-item-form {
   display: grid;
-  /* Using a more flexible but constrained grid for better responsiveness */
-  /* Adjusted grid to allow more aggressive shrinking and prevent items from being too wide */
-  /* Attempting to force 4 columns for better consistency, with flexible sizing */
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  /* Using a more explicit grid to prevent overlap and control sizing */
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* More space for each input, allow up to 180px width */
   gap: 0.8rem !important;
   margin-bottom: 1.5rem !important;
   padding: 1rem !important;
@@ -51,8 +49,7 @@
 .main-content .add-item-form .date-field-group {
   display: flex !important;
   gap: 0.8rem !important; /* Gap between start and end date fields */
-  /* Ensure date fields do not take up too much space and flow well within the grid */
-  flex-wrap: wrap; /* Allow date fields to wrap if space is too constrained */
+  flex-wrap: nowrap; /* Prevent date fields from wrapping */
 }
 
 .main-content .add-item-form .date-field {
@@ -73,9 +70,8 @@
   display: flex !important;
   gap: 0.5rem !important;
   align-items: center; /* Align buttons nicely */
-  /* Ensure form-actions takes up its own grid cell and aligns properly */
-  grid-column: span 1; /* Allow it to take one column in the grid */
-  justify-self: start; /* Align to the start of its grid cell */
+  grid-column: 1 / -1; /* Make form-actions span all columns */
+  margin-top: 1rem !important; /* Add space above the buttons */
 }
 
 /* Styling for the Add/Update button */
