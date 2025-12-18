@@ -47,8 +47,8 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           res.data.person2_first_name ? res.data.person2_first_name : null,
         ].filter(Boolean);
 
-        // Add an empty option and "Family"
-        let newPersonOptions = [""]; // Empty option for no default selection
+        // Create person options: start with 'Select Person', then 'Family', then actual persons
+        let newPersonOptions = ["Select Person"]; 
         if (persons.length > 0) {
           newPersonOptions.push("Family", ...persons);
         } else {
@@ -69,7 +69,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           ? ["Salary", "Bonus", "Investment Income", "Other"]
           : ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
         setTypeOptions(defaultCategories);
-        setPersonOptions(["", "Person 1", "Person 2"]); // Add empty option for error case too
+        setPersonOptions(["Select Person", "Person 1", "Person 2"]); // Add default options for error case too
         setNewItem(prev => ({ ...prev, category: '', person: '', frequency: '' })); // Ensure empty defaults on error
       }
     };
@@ -89,7 +89,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       value: parseFloat(newItem.value),
       annual_increase_percent: type === 'income' ? parseFloat(newItem.annual_increase_percent || 0) : 0,
       inflation_percent: type === 'expense' ? parseFloat(newItem.inflation_percent || defaultInflation) : 0,
-      person: newItem.person || null,
+      person: newItem.person === "Select Person" || newItem.person === "Family" ? null : newItem.person || null,
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
       taxable: type === 'income' ? newItem.taxable : false,
@@ -204,7 +204,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         headers = [...headers, 'Annual Increase %', 'Taxable'];
       } else if (type === 'expense') {
         headers = [...headers, 'Inflation %', 'Tax Deductible'];
-      }
+      }z
 
       const formattedData = items.map(item => {
         const row = {
@@ -264,8 +264,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
         <div className="form-field">
           <label htmlFor="person-select">Person</label>
-          <select id="person-select" value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Family" ? "" : e.target.value })}>
-            <option value="">Select Person</option> {/* Added empty option */}
+          <select id="person-select" value={newItem.person || ''} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Select Person" ? "" : e.target.value === "Family" ? "" : e.target.value })}>
             {personOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
           </select>
         </div>
