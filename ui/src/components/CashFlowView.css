@@ -4,46 +4,45 @@
 }
 
 .main-content .cashflow-container h2 {
-  margin-bottom: 1.5rem !important; /* Reduced margin */
-  font-size: 1.5rem !important; /* Reduced font size */
+  /* Already set inline in JSX for highest priority */
 }
 
 .main-content .add-item-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.8rem !important; /* Reduced gap */
-  margin-bottom: 1.5rem !important; /* Reduced margin */
-  padding: 1rem !important; /* Reduced padding */
+  gap: 0.8rem !important;
+  margin-bottom: 1.5rem !important;
+  padding: 1rem !important;
   background: #f9f9f9 !important;
   border-radius: 4px !important;
 }
 
 .main-content .add-item-form select,
 .main-content .add-item-form input {
-  padding: 0.6rem !important; /* Reduced padding */
+  padding: 0.6rem !important;
   border: 1px solid #ddd !important;
   border-radius: 4px !important;
-  font-size: 0.95rem !important; /* Reduced font size */
-  width: auto !important; /* Allow inputs to size naturally within grid */
+  font-size: 0.95rem !important;
+  width: auto !important;
 }
 
 .main-content .form-field {
   display: flex !important;
   flex-direction: column !important;
-  gap: 0.2rem !important; /* Reduced gap */
+  gap: 0.2rem !important;
 }
 
 .main-content .form-field label {
-  font-size: 0.8rem !important; /* Reduced font size */
+  font-size: 0.8rem !important;
   font-weight: 500 !important;
   color: #555 !important;
 }
 
 .main-content .form-field input {
-  padding: 0.4rem !important; /* Reduced padding */
+  padding: 0.4rem !important;
   border: 1px solid #ddd !important;
   border-radius: 4px !important;
-  font-size: 0.9rem !important; /* Reduced font size */
+  font-size: 0.9rem !important;
 }
 
 .main-content .form-actions {
@@ -51,8 +50,9 @@
   gap: 0.5rem !important;
 }
 
-.main-content .add-item-form button {
-  padding: 0.6rem 1.2rem !important; /* Reduced padding */
+/* Highly specific rule for the Add button */
+#add-cashflow-item-button {
+  padding: 0.6rem 1.2rem !important;
   background-color: #0b57d0 !important;
   color: white !important;
   border: none !important;
@@ -60,8 +60,8 @@
   cursor: pointer !important;
   font-weight: 500 !important;
   white-space: nowrap !important;
-  font-size: 0.9rem !important; /* Reduced font size */
-  width: auto !important; /* Allow button to size naturally */
+  font-size: 0.9rem !important;
+  width: auto !important;
 }
 
 .main-content .add-item-form button:hover {
@@ -79,19 +79,19 @@
 .main-content .cashflow-table {
   width: 100% !important;
   border-collapse: collapse !important;
-  margin-bottom: 1.5rem !important; /* Reduced margin */
-  table-layout: fixed !important; /* Fix table layout for consistent column width */
+  margin-bottom: 1.5rem !important;
+  table-layout: fixed !important;
 }
 
-.main-content .cashflow-table th,
-.main-content .cashflow-table td {
-  padding: 0.5rem !important; /* Reduced padding */
+/* Highly specific rule for table cells */
+.main-content .cashflow-table .cashflow-table-cell {
+  padding: 0.5rem !important;
   text-align: left !important;
   border-bottom: 1px solid #ddd !important;
-  font-size: 0.85rem !important; /* Reduced font size */
-  white-space: nowrap !important; /* Prevent wrapping */
-  overflow: hidden !important; /* Hide overflowing content */
-  text-overflow: ellipsis !important; /* Add ellipsis for hidden content */
+  font-size: 0.85rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .main-content .cashflow-table th {
@@ -104,12 +104,12 @@
 }
 
 .main-content .cashflow-table td button {
-  padding: 0.4rem 0.8rem !important; /* Reduced padding */
+  padding: 0.4rem 0.8rem !important;
   border: none !important;
   border-radius: 4px !important;
   cursor: pointer !important;
-  font-size: 0.8rem !important; /* Reduced font size */
-  margin-right: 0.4rem !important; /* Reduced margin */
+  font-size: 0.8rem !important;
+  margin-right: 0.4rem !important;
 }
 
 .main-content .edit-btn-small {
@@ -131,8 +131,8 @@
 }
 
 .main-content .total {
-  font-size: 1.1rem !important; /* Slightly reduced font size */
-  padding: 0.8rem !important; /* Reduced padding */
+  font-size: 1.1rem !important;
+  padding: 0.8rem !important;
   background-color: #f5f5f5 !important;
   border-radius: 4px !important;
   text-align: right !important;

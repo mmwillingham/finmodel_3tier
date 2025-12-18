@@ -237,7 +237,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
   return (
     <div className="cashflow-container">
-      <h2>{type === 'income' ? 'Income' : 'Expenses'}</h2>
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>{type === 'income' ? 'Income' : 'Expenses'}</h2>
 
       <div className="add-item-form">
         <select value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
@@ -322,7 +322,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         )}
 
         <div className="form-actions">
-          <button onClick={save}>{editingId ? 'Update' : 'Add'}</button>
+          <button onClick={save} id="add-cashflow-item-button">{editingId ? 'Update' : 'Add'}</button>
           {editingId && <button onClick={cancelEdit} className="cancel-btn">Cancel</button>}
         </div>
       </div>
@@ -334,34 +334,34 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       <table ref={tableRef} className="cashflow-table">
         <thead>
           <tr>
-            <th>Category</th>
-            <th>Description</th>
-            <th>Person</th>
-            <th>Frequency</th>
-            <th>Yearly Value</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            {type === 'income' && <th>Annual Increase %</th>}
-            {type === 'income' && <th>Taxable</th>}
-            {type === 'expense' && <th>Inflation %</th>}
-            {type === 'expense' && <th>Tax Deductible</th>}
-            <th>Actions</th>
+            <th className="cashflow-table-cell">Category</th>
+            <th className="cashflow-table-cell">Description</th>
+            <th className="cashflow-table-cell">Person</th>
+            <th className="cashflow-table-cell">Frequency</th>
+            <th className="cashflow-table-cell">Yearly Value</th>
+            <th className="cashflow-table-cell">Start Date</th>
+            <th className="cashflow-table-cell">End Date</th>
+            {type === 'income' && <th className="cashflow-table-cell">Annual Increase %</th>}
+            {type === 'income' && <th className="cashflow-table-cell">Taxable</th>}
+            {type === 'expense' && <th className="cashflow-table-cell">Inflation %</th>}
+            {type === 'expense' && <th className="cashflow-table-cell">Tax Deductible</th>}
+            <th className="cashflow-table-cell">Actions</th>
           </tr>
         </thead>
         <tbody>
           {items.map(item => (
             <tr key={item.id}>
-              <td>{item.category}</td>
-              <td>{item.description}</td>
-              <td>{item.person || '-'}</td>
-              <td>{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
-              <td>{formatCurrency(item.yearly_value)}</td>
-              <td>{item.start_date || '-'}</td>
-              <td>{item.end_date || 'No end date'}</td>
-              {type === 'income' && <td>{item.annual_increase_percent}%</td>}
-              {type === 'income' && <td>{item.taxable ? 'Yes' : 'No'}</td>}
-              {type === 'expense' && <td>{item.inflation_percent}%</td>}
-              {type === 'expense' && <td>{item.tax_deductible ? 'Yes' : 'No'}</td>}
+              <td className="cashflow-table-cell">{item.category}</td>
+              <td className="cashflow-table-cell">{item.description}</td>
+              <td className="cashflow-table-cell">{item.person || '-'}</td>
+              <td className="cashflow-table-cell">{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
+              <td className="cashflow-table-cell">{formatCurrency(item.yearly_value)}</td>
+              <td className="cashflow-table-cell">{item.start_date || '-'}</td>
+              <td className="cashflow-table-cell">{item.end_date || 'No end date'}</td>
+              {type === 'income' && <td className="cashflow-table-cell">{item.annual_increase_percent}%</td>}
+              {type === 'income' && <td className="cashflow-table-cell">{item.taxable ? 'Yes' : 'No'}</td>}
+              {type === 'expense' && <td className="cashflow-table-cell">{item.inflation_percent}%</td>}
+              {type === 'expense' && <td className="cashflow-table-cell">{item.tax_deductible ? 'Yes' : 'No'}</td>}
               <td>
                 <button onClick={() => startEdit(item)} className="edit-btn-small">Edit</button>
                 <button onClick={() => remove(item.id)} className="delete-btn-small">Delete</button>
