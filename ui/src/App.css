@@ -2,6 +2,7 @@
 html, body {
     margin: 0;
     padding: 0;
+    overflow-x: hidden; /* Hide horizontal overflow */
     font-family: 'Inter', sans-serif; /* A more modern, cleaner font */
     font-size: 15px; /* Slightly smaller base font */
     line-height: 1.5; /* Improved line spacing */
@@ -12,7 +13,7 @@ html, body {
 
 /* Main container to account for fixed header */
 .container {
-    padding-top: 60px; /* Adjust based on header height */
+    padding-top: 70px; /* Adjust based on header height */
     padding-left: 20px; /* Adjust for potential sidebar if it's still there */
     padding-right: 20px;
     max-width: 1200px;

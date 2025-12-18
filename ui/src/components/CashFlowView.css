@@ -4,8 +4,8 @@
 }
 
 .cashflow-container h2 {
-  margin-bottom: 1.5rem; /* Reduced margin */
-  font-size: 1.5rem; /* Reduced font size */
+  margin-bottom: 1.5rem !important; /* Reduced margin */
+  font-size: 1.5rem !important; /* Reduced font size */
 }
 
 .add-item-form {
