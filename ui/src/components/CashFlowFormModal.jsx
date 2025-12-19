@@ -49,8 +49,6 @@ export default function CashFlowFormModal({
         let newPersonOptions = ["Select Person"];
         if (persons.length > 0) {
           newPersonOptions.push("Family", ...persons);
-        } else {
-          newPersonOptions.push("Family");
         }
         setPersonOptions(newPersonOptions);
 
@@ -85,7 +83,7 @@ export default function CashFlowFormModal({
             person: "",
             start_date: "",
             end_date: "",
-            taxable: false,
+            taxable: true, // Default to true for new income items
             tax_deductible: false,
           }));
         }
@@ -144,64 +142,95 @@ export default function CashFlowFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.description}` : `Add New ${type === 'income' ? 'Income' : 'Expense'} Item`}>
       <div className="cashflow-form-modal-content">
         <div className="add-item-form">
-          {/* Description first, then Category */}
-          <div className="form-field">
-            <label htmlFor="description-input">Description (Name)</label>
-            <input
-              id="description-input"
-              type="text"
-              placeholder="Description (Name)"
-              value={newItem.description}
-              onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-            />
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Person, Description, Category, Value, Frequency */} 
+            <div className="form-field">
+              <label htmlFor="person-select">Person</label>
+              <select id="person-select" value={newItem.person || ""} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Select Person" ? "" : e.target.value === "Family" ? "" : e.target.value })}> 
+                {personOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="description-input">Description (Name)</label>
+              <input
+                id="description-input"
+                type="text"
+                placeholder="Description (Name)"
+                value={newItem.description}
+                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="category-select">Category</label>
+              <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}> 
+                <option value="">Select Category</option>
+                {typeOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="value-input">Value</label>
+              <input
+                id="value-input"
+                type="number"
+                placeholder="Value"
+                value={newItem.value}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="frequency-select">Frequency</label>
+              <select id="frequency-select" value={newItem.frequency} onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })}> 
+                <option value="">Select Frequency</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
           </div>
 
-          <div className="form-field">
-            <label htmlFor="category-select">Category</label>
-            <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-              <option value="">Select Category</option>
-              {typeOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 1fr)' }}> {/* Second row: Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
+            {type === "income" && (
+              <div className="form-field">
+                <label htmlFor="annual-increase">Annual Increase %</label>
+                <input
+                  id="annual-increase"
+                  type="number"
+                  step="0.1"
+                  placeholder="Annual Increase %"
+                  value={newItem.annual_increase_percent}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
+                />
+              </div>
+            )}
 
-          <div className="form-field">
-            <label htmlFor="person-select">Person</label>
-            <select id="person-select" value={newItem.person || ""} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Select Person" ? "" : e.target.value === "Family" ? "" : e.target.value })}> 
-              {personOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
+            {type === "expense" && (
+              <div className="form-field">
+                <label htmlFor="inflation-percent">Inflation %</label>
+                <input
+                  id="inflation-percent"
+                  type="number"
+                  step="0.1"
+                  placeholder="Inflation %"
+                  value={newItem.inflation_percent}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, inflation_percent: e.target.value })}
+                />
+              </div>
+            )}
 
-          <div className="form-field">
-            <label htmlFor="value-input">Value</label>
-            <input
-              id="value-input"
-              type="number"
-              placeholder="Value"
-              value={newItem.value}
-              onFocus={(e) => e.target.select()}
-              onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
-            />
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="frequency-select">Frequency</label>
-            <select id="frequency-select" value={newItem.frequency} onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })}>
-              <option value="">Select Frequency</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </div>
-
-          <div className="form-field date-field-group">
-            <div className="date-field">
+            <div className="form-field">
               <label htmlFor="start-date-input">Start Date</label>
               <input
                 id="start-date-input"
@@ -212,7 +241,7 @@ export default function CashFlowFormModal({
               />
             </div>
 
-            <div className="date-field">
+            <div className="form-field"> 
               <label htmlFor="end-date-input">End Date</label>
               <input
                 id="end-date-input"
@@ -222,64 +251,28 @@ export default function CashFlowFormModal({
                 onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
               />
             </div>
+
+            {(type === "income" || type === "expense") && (
+              <div className="form-field"> {/* Taxable / Tax Deductible integrated into the second row */} 
+                <label htmlFor={type === "income" ? "taxable-select" : "tax-deductible-select"}>
+                  {type === "income" ? "Taxable" : "Tax Deductible"}
+                </label>
+                <select
+                  id={type === "income" ? "taxable-select" : "tax-deductible-select"}
+                  value={type === "income" ? (newItem.taxable ? "Yes" : "No") : (newItem.tax_deductible ? "Yes" : "No")}
+                  onChange={(e) =>
+                    setNewItem({
+                      ...newItem,
+                      [type === "income" ? "taxable" : "tax_deductible"]: e.target.value === "Yes",
+                    })
+                  }
+                >
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+            )}
           </div>
-
-          {type === "income" && (
-            <div className="form-field">
-              <label htmlFor="annual-increase">Annual Increase %</label>
-              <input
-                id="annual-increase"
-                type="number"
-                step="0.1"
-                placeholder="Annual Increase %"
-                value={newItem.annual_increase_percent}
-                onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
-              />
-            </div>
-          )}
-
-          {type === "income" && (
-            <div className="form-field">
-              <label htmlFor="taxable">
-                <input
-                  id="taxable"
-                  type="checkbox"
-                  checked={newItem.taxable}
-                  onChange={(e) => setNewItem({ ...newItem, taxable: e.target.checked })}
-                />
-                Taxable
-              </label>
-            </div>
-          )}
-
-          {/* Inflation % field for expenses */}
-          {type === "expense" && (
-            <div className="form-field">
-              <label htmlFor="inflation-percent">Inflation %</label>
-              <input
-                id="inflation-percent"
-                type="number"
-                step="0.1"
-                placeholder="Inflation %"
-                value={newItem.inflation_percent}
-                onChange={(e) => setNewItem({ ...newItem, inflation_percent: e.target.value })}
-              />
-            </div>
-          )}
-
-          {type === "expense" && (
-            <div className="form-field">
-              <label htmlFor="tax-deductible">
-                <input
-                  id="tax-deductible"
-                  type="checkbox"
-                  checked={newItem.tax_deductible}
-                  onChange={(e) => setNewItem({ ...newItem, tax_deductible: e.target.checked })}
-                />
-                Tax Deductible
-              </label>
-            </div>
-          )}
 
           <div className="form-actions">
             <button onClick={save} id="add-cashflow-item-button">

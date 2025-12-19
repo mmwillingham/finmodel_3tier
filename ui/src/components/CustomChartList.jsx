@@ -45,7 +45,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
     <div className="custom-chart-list-container">
       <h3>Your Custom Charts and Tables</h3>
       {message && <div className="message">{message}</div>}
-      <button className="create-chart-btn" onClick={onCreateNewChart}>Create New Chart</button>
+      <button className="create-chart-btn" onClick={onCreateNewChart}>Create New Charts and Tables</button>
 
       {charts.length === 0 ? (
         <p>You haven't created any custom charts yet.</p>
@@ -53,12 +53,13 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
         <div className="chart-cards-container">
           {charts.map((chart) => (
             <div key={chart.id} className="chart-card" onClick={() => onViewChart(chart.id)}>
-              <h4>{chart.name}</h4>
-              <p>Type: {chart.chart_type}</p>
-              <div className="chart-card-actions">
-                <button onClick={(e) => { e.stopPropagation(); onViewChart(chart.id); }}>View</button>
-                <button onClick={(e) => { e.stopPropagation(); onEditChart(chart.id); }}>Edit</button>
-                <button onClick={(e) => { e.stopPropagation(); handleDelete(chart.id); }}>Delete</button>
+              <div className="chart-card-header">
+                <h4>{chart.name}</h4>
+                <div className="chart-card-actions">
+                  <button onClick={(e) => { e.stopPropagation(); onViewChart(chart.id); }} className="icon-btn" title="View"><span role="img" aria-label="view">🔍</span></button>
+                  <button onClick={(e) => { e.stopPropagation(); onEditChart(chart.id); }} className="icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(chart.id); }} className="icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
+                </div>
               </div>
             </div>
           ))}

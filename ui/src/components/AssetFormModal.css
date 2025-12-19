@@ -1,11 +1,11 @@
-.cashflow-form-modal-content {
+.asset-form-modal-content {
   width: 1580px; /* Adjusted width for the form wrapper to fit new modal width */
   box-sizing: border-box;
   min-height: fit-content; /* Ensure container expands to fit content */
   padding-bottom: 50px; /* Increased padding at the bottom to ensure space for buttons */
 }
 
-.cashflow-form-modal-content .add-item-form {
+.asset-form-modal-content .add-item-form {
   display: flex !important; /* FORCE flex display to override rogue inline grid */
   flex-direction: column !important; /* FORCE column direction */
   gap: 2rem; /* Increased Vertical spacing between the rows and the checkbox/buttons */
@@ -14,7 +14,7 @@
   align-items: flex-start; /* Align children (form-rows) to the start */
 }
 
-.cashflow-form-modal-content .form-row {
+.asset-form-modal-content .form-row {
   display: grid;
   /* grid-template-columns is now controlled by inline style in JSX - removed from here */
   gap: 40px; /* Increased horizontal spacing between fields within a row */
@@ -23,7 +23,7 @@
   width: 100%; /* Ensure rows take full width */
 }
 
-.cashflow-form-modal-content .add-item-form .form-field {
+.asset-form-modal-content .add-item-form .form-field {
   display: flex; /* Re-enable flex to stack label and input */
   flex-direction: column; /* Stack label and input vertically */
   padding: 1rem; /* Increased padding to form fields */
@@ -37,7 +37,7 @@
   box-sizing: border-box;
 }
 
-.cashflow-form-modal-content .add-item-form .form-field label {
+.asset-form-modal-content .add-item-form .form-field label {
   font-size: 1.1rem; /* Increased font size for labels */
   min-height: 1.5rem; /* Minimum height for labels */
   font-weight: 500;
@@ -54,10 +54,10 @@
   box-sizing: border-box;
 }
 
-.cashflow-form-modal-content .add-item-form select,
-.cashflow-form-modal-content .add-item-form input[type="text"],
-.cashflow-form-modal-content .add-item-form input[type="number"],
-.cashflow-form-modal-content .add-item-form input[type="date"] {
+.asset-form-modal-content .add-item-form select,
+.asset-form-modal-content .add-item-form input[type="text"],
+.asset-form-modal-content .add-item-form input[type="number"],
+.asset-form-modal-content .add-item-form input[type="date"] {
   padding: 0.8rem; /* Increased padding */
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -74,7 +74,7 @@
   text-overflow: clip; /* Clip text that overflows, but content should be visible */
 }
 
-.cashflow-form-modal-content .form-actions {
+.asset-form-modal-content .form-actions {
   display: flex;
   gap: 1rem; /* Slightly reduced gap between buttons for a more compact look */
   align-items: center;
@@ -88,7 +88,7 @@
 }
 
 /* Explicit button styling (ID specific for max specificity) */
-.cashflow-form-modal-content #add-cashflow-item-button {
+.asset-form-modal-content #add-asset-item-button {
   width: 150px;
   min-width: 150px; /* Added to enforce size */
   max-width: 150px; /* Added to enforce size */
@@ -108,11 +108,11 @@
   box-sizing: border-box;
 }
 
-.cashflow-form-modal-content #add-cashflow-item-button:hover {
+.asset-form-modal-content #add-asset-item-button:hover {
   background-color: #084399;
 }
 
-.cashflow-form-modal-content .cancel-btn {
+.asset-form-modal-content .cancel-btn {
   width: 150px;
   min-width: 150px; /* Added to enforce size */
   max-width: 150px; /* Added to enforce size */
@@ -132,6 +132,6 @@
   box-sizing: border-box;
 }
 
-.cashflow-form-modal-content .cancel-btn:hover {
+.asset-form-modal-content .cancel-btn:hover {
   background-color: #444;
 }

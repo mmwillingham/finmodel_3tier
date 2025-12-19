@@ -13,14 +13,17 @@
 
 .modal-content {
   background: white;
-  padding: 2rem;
+  padding: 0; /* No padding here, handled by header/body */
   border-radius: 8px;
-  min-width: 300px;
-  max-width: 80%;
-  max-height: 80%;
+  width: 1600px; /* Increased width for the modal content */
+  max-width: none; /* Override any max-width constraints */
+  max-height: 95%; /* Increased max-height for the modal */
+  min-height: fit-content; /* Ensure modal expands to fit content */
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   position: relative;
+  border: none; /* Removed temporary debug border */
+  box-sizing: border-box; 
 }
 
 .modal-header {
@@ -30,6 +33,7 @@
   margin-bottom: 1.5rem;
   border-bottom: 1px solid #eee;
   padding-bottom: 1rem;
+  padding: 1rem; /* Reduced padding for header only to 1rem */
 }
 
 .modal-header h2 {
@@ -54,6 +58,6 @@
 }
 
 .modal-body {
-  /* Specific styling for forms within the modal will be in their own CSS */
   padding-top: 1rem;
+  padding: 1rem; /* Reduced padding for modal body to 1rem */
 }

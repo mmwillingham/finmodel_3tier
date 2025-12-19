@@ -17,7 +17,6 @@ code {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   padding: 1rem 2rem;
-  position: relative;
 }
 
 .app-header nav {
@@ -26,7 +25,6 @@ code {
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  position: relative;
 }
 
 .app-header .logo {
