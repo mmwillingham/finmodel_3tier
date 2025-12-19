@@ -297,6 +297,11 @@ class CustomChartBase(BaseModel):
     series_configurations: str       # JSON string
     x_axis_label: str | None = None
     y_axis_label: str | None = None
+    # New fields for storing calculated projection results
+    data_json: str | None = None
+    final_value: float | None = None
+    total_contributed: float | None = None
+    total_growth: float | None = None
 
 class CustomChartCreate(CustomChartBase):
     pass
@@ -309,5 +314,9 @@ class CustomChartOut(CustomChartBase):
     user_id: int
     created_at: datetime
     updated_at: datetime | None = None
-    display_type: str # Inherited from CustomChartBase but explicitly listed for clarity
+    # These are inherited from CustomChartBase but explicitly listed for clarity
+    data_json: str | None = None
+    final_value: float | None = None
+    total_contributed: float | None = None
+    total_growth: float | None = None
     model_config = ConfigDict(from_attributes=True)

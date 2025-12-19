@@ -170,6 +170,13 @@ class CustomChart(Base):
     series_configurations = Column(String, nullable=False)
     x_axis_label = Column(String, nullable=True)
     y_axis_label = Column(String, nullable=True)
+    
+    # New fields for storing calculated projection results
+    data_json = Column(String, nullable=True) # To store the yearly results
+    final_value = Column(Float, nullable=True)
+    total_contributed = Column(Float, nullable=True)
+    total_growth = Column(Float, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
