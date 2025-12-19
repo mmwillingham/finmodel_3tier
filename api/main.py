@@ -413,6 +413,7 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
+    print(f"DEBUG (main.py): Entering create_projection endpoint for user {user.id}. Calling calculate_projection.")
     try:
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
@@ -493,6 +494,7 @@ def update_projection(
     if projection.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this projection.")
     
+    print(f"DEBUG (main.py): Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.")
     result = calculations.calculate_projection(
         years=req.years,
         accounts=req.accounts,
