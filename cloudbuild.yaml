@@ -100,13 +100,13 @@ steps:
 
   - name: 'gcr.io/cloud-sql-proxy/cloud-sql-proxy:latest' # Use Cloud SQL Proxy v2
     id: 'Start Cloud SQL Proxy for Migrations'
-    entrypoint: '/cloud-sql-proxy' # Use the new entrypoint for v2
+    entrypoint: 'bash'
     args:
-      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432'
-      - '-p=5432' # Specify port explicitly for v2
-      - '--port=5432' # Specify port again for good measure with v2
-      - '--debug' # Add debug logging to proxy
-      - '&' # Run in background
+      - '-c'
+      - |
+        gcloud auth configure-docker # Configure Docker for GCR/Artifact Registry authentication
+        /cloud-sql-proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 --port=5432 --debug &
+        sleep 5 # Give proxy a moment to start
     waitFor: ['Deploy Backend Service']
 
   - name: 'python:3.9'
