@@ -18,8 +18,14 @@ FROM python:3.11-slim-bookworm
 # Set the working directory inside the container
 WORKDIR /app/api
 
-# Copy the pre-built wheel files from the builder stage
-COPY --from=builder /wheels /usr/local/lib/python3.11/site-packages/
+# Copy the requirements.txt to the runtime stage
+COPY requirements.txt .
+
+# Copy the pre-built wheel files from the builder stage to a cache location
+COPY --from=builder /wheels /wheels_cache/
+
+# Install dependencies from the local wheel cache. This will create executables like uvicorn.
+RUN pip install --no-cache-dir --no-index --find-links=/wheels_cache/ -r requirements.txt
 
 # Copy the rest of the application code
 COPY . /app/api
