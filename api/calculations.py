@@ -20,6 +20,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     all_liabilities = db.query(models.Liability).filter(models.Liability.owner_id == owner_id).all()
     all_cashflow_items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == owner_id).all()
 
+    print(f"DEBUG: Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
+
     # Create lookup dictionaries for quick access
     assets_by_id = {asset.id: asset for asset in all_assets}
     liabilities_by_id = {liability.id: liability for liability in all_liabilities}
@@ -41,6 +43,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Convert to dictionary for easy lookup and modification
     cashflow_by_id = {item["id"]: item for item in processed_cashflow_items}
 
+    print(f"DEBUG: Initial processed cashflow items: {json.dumps(processed_cashflow_items, indent=2)}")
+
     # 2. Iteratively resolve dynamic CashFlowItems
     # This loop will ensure that items dependent on other cashflow items are calculated
     # in the correct order. It will continue until no more items can be resolved in a pass.
@@ -50,39 +54,52 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     current_pass = 0
     while resolved_count != 0 and current_pass < max_passes:
         resolved_count = 0
+        print(f"DEBUG: Starting pass {current_pass + 1} for dynamic item resolution.")
         for item_dict in processed_cashflow_items:
             if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
+                print(f"DEBUG: Processing dynamic item: {item_dict['description']} (ID: {item_dict['id']})")
+                
                 # If yearly_value is already calculated, skip
                 if item_dict["yearly_value"] != 0.0:
+                    print(f"DEBUG: Item {item_dict['description']} already resolved with yearly_value: {item_dict['yearly_value']}")
                     continue
 
                 linked_value = 0.0
                 linked_item_resolved = False
 
-                if item_dict["linked_item_type"] == 'asset' and item_dict["linked_item_id"] in assets_by_id:
-                    linked_value = assets_by_id[item_dict["linked_item_id"]].value
+                linked_item_type = item_dict["linked_item_type"]
+                linked_item_id = item_dict["linked_item_id"]
+
+                if linked_item_type == 'asset' and linked_item_id in assets_by_id:
+                    linked_value = assets_by_id[linked_item_id].value
                     linked_item_resolved = True
-                elif item_dict["linked_item_type"] == 'liability' and item_dict["linked_item_id"] in liabilities_by_id:
-                    linked_value = liabilities_by_id[item_dict["linked_item_id"]].value
+                elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
+                    linked_value = liabilities_by_id[linked_item_id].value
                     linked_item_resolved = True
-                elif item_dict["linked_item_type"] == 'income' and item_dict["linked_item_id"] in cashflow_by_id:
+                elif linked_item_type == 'income' and linked_item_id in cashflow_by_id:
                     # Check if the linked cashflow item's yearly_value is already resolved
-                    linked_cf_item = cashflow_by_id.get(item_dict["linked_item_id"])
+                    linked_cf_item = cashflow_by_id.get(linked_item_id)
                     if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
-                elif item_dict["linked_item_type"] == 'expense' and item_dict["linked_item_id"] in cashflow_by_id:
+                elif linked_item_type == 'expense' and linked_item_id in cashflow_by_id:
                     # Check if the linked cashflow item's yearly_value is already resolved
-                    linked_cf_item = cashflow_by_id.get(item_dict["linked_item_id"])
+                    linked_cf_item = cashflow_by_id.get(linked_item_id)
                     if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
                 
+                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
+
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
                     resolved_count += 1
+                    print(f"DEBUG: Item {item_dict['description']} (ID: {item_dict['id']}) resolved. New yearly_value: {item_dict['yearly_value']}")
         current_pass += 1
+        print(f"DEBUG: Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
         
+    print(f"DEBUG: Final processed cashflow items after iterative resolution: {json.dumps(processed_cashflow_items, indent=2)}")
+
     # After resolution, convert CashFlowItems to an account-like structure for projection
     final_cashflow_accounts = []
     for item_dict in processed_cashflow_items:
@@ -96,6 +113,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "id": item_dict["id"], # Keep original ID for potential future lookup
         })
     
+    print(f"DEBUG: Final cashflow accounts for projection: {json.dumps(final_cashflow_accounts, indent=2)}")
+
     # Combine original accounts with processed cash flow items
     # Ensure 'accounts' passed in are already Pydantic models or similar dicts
     # Convert incoming Pydantic AccountSchema objects to dicts for mutable list
@@ -109,6 +128,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         if cf_acc["name"] not in existing_account_names:
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
+
+    print(f"DEBUG: Combined accounts for main projection loop: {json.dumps(combined_accounts, indent=2)}")
 
     # Initialize separate running balances for each account
     account_balances = {
