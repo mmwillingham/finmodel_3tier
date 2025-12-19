@@ -117,7 +117,7 @@ const LoginPage = () => {
                     </button>
                 </form>
                 <p className="auth-switch">
-                    <a href="#" onClick={() => setIsForgotPasswordModalOpen(true)}>Forgot Password?</a>
+                    <button type="button" onClick={() => setIsForgotPasswordModalOpen(true)} className="link-button">Forgot Password?</button>
                 </p>
                 <p className="auth-switch">
                     Don't have an account? <Link to="/signup">Sign Up here</Link>

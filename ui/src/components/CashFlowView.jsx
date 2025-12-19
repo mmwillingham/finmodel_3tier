@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import CashFlowService from "../services/cashflow.service";
-import SettingsService from "../services/settings.service";
 import CashFlowFormModal from "./CashFlowFormModal"; // Import the new modal form
 import "./CashFlowView.css";
 

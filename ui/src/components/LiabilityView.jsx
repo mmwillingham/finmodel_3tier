@@ -1,30 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import LiabilityService from "../services/liability.service";
-import SettingsService from "../services/settings.service";
 import LiabilityFormModal from "./LiabilityFormModal"; // Import the new LiabilityFormModal
 import "./LiabilityView.css"; // Use a dedicated CSS file for LiabilityView
 
 export default function LiabilityView({ liabilities, refreshLiabilities }) {
-  const [categories, setCategories] = useState([]);
   const [showLiabilityModal, setShowLiabilityModal] = useState(false); // State to control modal visibility
   const [selectedLiability, setSelectedLiability] = useState(null); // State to hold liability being edited
   const tableRef = useRef(null);
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const res = await SettingsService.getSettings();
-        const cats = res.data.liability_categories?.split(",") || ["Other"];
-        setCategories(cats);
-      } catch (e) {
-        console.error("Failed to load settings", e);
-        setCategories(["Other"]);
-      }
-    };
-    loadSettings();
-  }, []);
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {

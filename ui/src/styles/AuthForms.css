@@ -1,144 +1,124 @@
-/* ui/src/styles/AuthForms.css */
-
 .auth-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: calc(100vh - 60px); /* Adjust for fixed header */
-    padding: 20px;
-    background-color: #f4f7f6; /* Consistent with app background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f2f5;
 }
 
 .auth-form-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Center items horizontally within the container */
-    background-color: #fff;
-    padding: 40px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px; /* Max width for a clean form */
-    gap: 15px; /* Spacing between elements */
+  background-color: #ffffff;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  display: flex; /* Added for vertical stacking */
+  flex-direction: column; /* Added for vertical stacking */
+  gap: 20px; /* Spacing between sections */
+}
+
+.auth-form-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 2rem;
 }
 
 .auth-form {
-    width: 100%; /* Ensure form takes full width of its container */
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.auth-container h2 {
-    font-size: 1.8em; /* Slightly smaller heading */
-    color: #282c34;
-    margin-bottom: 20px; /* Reduced margin */
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 5px; /* Adjust spacing */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .form-group label {
-    font-weight: 600;
-    color: #444;
-    margin-bottom: 5px;
+  font-size: 1rem;
+  color: #555;
+  font-weight: 500;
 }
 
-/* Inputs will inherit from App.css, but we can refine if needed */
-.auth-form input[type="email"],
-.auth-form input[type="password"],
-.auth-form input[type="text"] {
-    padding: 8px 10px; /* Streamlined padding */
-    border: 1px solid #ccc; /* Lighter border color */
-    border-radius: 4px; /* Consistent border-radius */
-    font-size: 0.95em; /* Consistent font size */
-    width: 100%; /* Ensure inputs take full width */
-    box-sizing: border-box; /* Include padding in width */
-}
-
-.submit-button {
-    background-color: #007bff; /* Primary blue */
-    color: white;
-    border: none;
-    padding: 8px 16px; /* Streamlined padding */
-    border-radius: 4px; /* Slightly softer border-radius */
-    cursor: pointer;
-    font-size: 0.95em; /* Slightly smaller font */
-    font-weight: 600; /* Slightly less bold */
-    margin-top: 15px; /* Space above button */
-    transition: background-color 0.2s ease;
-}
-
-.submit-button:hover:not(:disabled) {
-    background-color: #0056b3;
-}
-
-.submit-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-.error-message, .success-message {
-    padding: 10px;
-    border-radius: 5px;
-    text-align: center;
-    margin-bottom: 15px;
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="text"] {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .error-message {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+  color: #e74c3c;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
-.success-message {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+.submit-button,
+.google-signin-button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: bold;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
 }
 
-.auth-switch {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 0.9em; /* Slightly smaller */
-    color: #555;
+.submit-button {
+  background-color: #0b57d0;
+  color: white;
 }
 
-.auth-switch a {
-    color: #007bff;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.auth-switch a:hover {
-    text-decoration: underline;
+.submit-button:hover {
+  background-color: #084399;
 }
 
 .google-signin-button {
-    background-color: #4285F4; /* Google blue */
-    color: white;
-    border: none;
-    padding: 8px 16px; /* Streamlined padding */
-    border-radius: 4px; /* Slightly softer border-radius */
-    cursor: pointer;
-    font-size: 0.95em; /* Slightly smaller font */
-    font-weight: 600; /* Slightly less bold */
-    margin-top: 5px; /* Less margin than first button */
-    transition: background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  background-color: #4285f4; /* Google brand blue */
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
-.google-signin-button:hover:not(:disabled) {
-    background-color: #357ae8;
+.google-signin-button:hover {
+  background-color: #357ae8;
 }
 
-.google-signin-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
+.google-signin-button img {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-switch {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.auth-switch a, .link-button {
+  color: #0b57d0; /* Match primary button color */
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit; /* Inherit font size from parent p tag */
+  font-family: inherit; /* Inherit font family from parent p tag */
+  margin-left: 5px; /* Adjust spacing if needed */
+}
+
+.auth-switch a:hover, .link-button:hover {
+  text-decoration: underline;
 }

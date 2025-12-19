@@ -1,30 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import AssetService from "../services/asset.service";
-import SettingsService from "../services/settings.service";
 import AssetFormModal from "./AssetFormModal"; // Import the new AssetFormModal
 import "./AssetView.css";
 
 export default function AssetView({ assets, refreshAssets }) {
-  const [categories, setCategories] = useState([]);
   const [showAssetModal, setShowAssetModal] = useState(false); // State to control modal visibility
   const [selectedAsset, setSelectedAsset] = useState(null); // State to hold asset being edited
   const tableRef = useRef(null);
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const res = await SettingsService.getSettings();
-        const cats = res.data.asset_categories?.split(",") || [];
-        setCategories(cats);
-      } catch (e) {
-        console.error("Failed to load settings", e);
-        setCategories([]);
-      }
-    };
-    loadSettings();
-  }, []);
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {

@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 
 export default function BalanceSheetProjection({ assets, liabilities, projectionYears, formatCurrency, showChartTotals }) {
-  const { currentUser, userSettings } = useAuth();
+  const { userSettings } = useAuth();
   const currentYear = new Date().getFullYear();
   const overallChartRef = useRef(null);
   const overallTableRef = useRef(null);

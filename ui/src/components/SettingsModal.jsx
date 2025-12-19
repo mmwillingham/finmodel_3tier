@@ -22,6 +22,20 @@ export const useCategoryModalStates = () => {
   };
 };
 
+const formatPhoneNumber = (value) => {
+    if (!value) return "";
+    value = value.replace(/\D/g, ""); // Remove non-digits
+    if (value.length > 10) {
+        value = value.slice(0, 10);
+    }
+    if (value.length > 6) {
+        return `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6)}`;
+    } else if (value.length > 3) {
+        return `(${value.slice(0, 3)}) ${value.slice(3)}`;
+    }
+    return value;
+};
+
 export default function SettingsModal({
   isOpen,
   onClose,
@@ -101,7 +115,7 @@ export default function SettingsModal({
     } catch (e) {
       console.error('Failed to load settings', e);
     }
-  }, [currentUser]); // Added currentUser as a dependency
+  }, [currentUser, email]); // Added currentUser and email as dependencies
 
   const fetchUsers = useCallback(async () => {
     if (!currentUser || !currentUser.is_admin) return;
@@ -339,7 +353,7 @@ export default function SettingsModal({
                       id="person1-cell-phone"
                       type="tel"
                       value={person1CellPhone}
-                      onChange={(e) => setPerson1CellPhone(e.target.value)}
+                      onChange={(e) => setPerson1CellPhone(formatPhoneNumber(e.target.value))}
                       placeholder="(XXX) XXX-XXXX"
                     />
                   </div>
@@ -386,7 +400,7 @@ export default function SettingsModal({
                       id="person2-cell-phone"
                       type="tel"
                       value={person2CellPhone}
-                      onChange={(e) => setPerson2CellPhone(e.target.value)}
+                      onChange={(e) => setPerson2CellPhone(formatPhoneNumber(e.target.value))}
                       placeholder="(XXX) XXX-XXXX"
                     />
                   </div>
@@ -455,7 +469,7 @@ export default function SettingsModal({
                       placeholder="Email Address"
                     />
                   </div>
-                  <div>
+                  <div className="change-password-btn-wrapper">
                     <button type="button" className="change-password-btn" onClick={() => setIsChangePasswordModalOpen(true)}>Change Password</button>
                   </div>
                 </div>

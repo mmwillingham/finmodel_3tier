@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import CashFlowService from "../services/cashflow.service";
 import SettingsService from "../services/settings.service";
+import AssetService from "../services/asset.service"; // New import
+import LiabilityService from "../services/liability.service"; // New import
 import Modal from "./Modal"; // Import the generic Modal component
 import "./CashFlowFormModal.css"; // Specific styling for this form
 
@@ -14,6 +16,16 @@ export default function CashFlowFormModal({
   const [typeOptions, setTypeOptions] = useState([]);
   const [personOptions, setPersonOptions] = useState([]);
   const [defaultInflation, setDefaultInflation] = useState(2.0);
+  const [isDynamic, setIsDynamic] = useState(false); // New state for dynamic item
+  const [linkedItemType, setLinkedItemType] = useState(""); // New state for linked item type
+  const [linkedItemId, setLinkedItemId] = useState(null); // New state for linked item ID
+  const [percentage, setPercentage] = useState(""); // New state for percentage
+  const [availableLinkedItems, setAvailableLinkedItems] = useState({
+    assets: [],
+    liabilities: [],
+    income: [],
+    expenses: [],
+  }); // New state for fetching available linked items
 
   const [newItem, setNewItem] = useState({
     category: "",
@@ -29,8 +41,9 @@ export default function CashFlowFormModal({
     tax_deductible: false,
   });
 
+  // Effect for loading settings and initializing form fields
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadSettingsAndItem = async () => {
       try {
         const res = await SettingsService.getSettings();
         const inflation = res.data.default_inflation_percent;
@@ -52,15 +65,16 @@ export default function CashFlowFormModal({
         }
         setPersonOptions(newPersonOptions);
 
-        // Set form data if editing, otherwise ensure empty defaults
+        // --- Initialize form data based on itemToEdit or defaults ---
         if (itemToEdit) {
           const displayValue = itemToEdit.frequency === 'monthly'
             ? (itemToEdit.yearly_value / 12).toString()
             : itemToEdit.yearly_value.toString();
+
           setNewItem({
             category: itemToEdit.category || '',
             description: itemToEdit.description || '',
-            value: displayValue,
+            value: displayValue, // This will be ignored if isDynamic is true
             frequency: itemToEdit.frequency || '',
             annual_increase_percent: itemToEdit.annual_increase_percent || 0,
             inflation_percent: itemToEdit.inflation_percent || inflation,
@@ -70,6 +84,12 @@ export default function CashFlowFormModal({
             taxable: itemToEdit.taxable || false,
             tax_deductible: itemToEdit.tax_deductible || false,
           });
+          // Initialize dynamic fields if present in itemToEdit
+          setIsDynamic(!!itemToEdit.linked_item_id); // Set to true if linked_item_id exists
+          setLinkedItemType(itemToEdit.linked_item_type || "");
+          setLinkedItemId(itemToEdit.linked_item_id || null);
+          setPercentage(itemToEdit.percentage !== null ? itemToEdit.percentage.toString() : "");
+
         } else {
           // Ensure empty defaults for new item
           setNewItem(prev => ({
@@ -86,9 +106,14 @@ export default function CashFlowFormModal({
             taxable: true, // Default to true for new income items
             tax_deductible: false,
           }));
+          // Reset dynamic fields for new item
+          setIsDynamic(false);
+          setLinkedItemType("");
+          setLinkedItemId(null);
+          setPercentage("");
         }
       } catch (e) {
-        console.error("Failed to load settings", e);
+        console.error("Failed to load settings or item", e);
         const defaultCategories = type === "income"
           ? ["Salary", "Bonus", "Investment Income", "Other"]
           : ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
@@ -97,20 +122,61 @@ export default function CashFlowFormModal({
         if (!itemToEdit) {
           setNewItem(prev => ({ ...prev, category: "", person: "", frequency: "", inflation_percent: 0 }));
         }
+        setIsDynamic(false);
+        setLinkedItemType("");
+        setLinkedItemId(null);
+        setPercentage("");
       }
     };
-    loadSettings();
+    loadSettingsAndItem();
   }, [itemToEdit, type]);
 
+  // Effect for fetching all potential linked items
+  useEffect(() => {
+    if (isOpen) { // Only fetch when modal is open
+      const fetchLinkedItems = async () => {
+        try {
+          const assetsRes = await AssetService.list();
+          const liabilitiesRes = await LiabilityService.list();
+          const incomeRes = await CashFlowService.list(true);
+          const expensesRes = await CashFlowService.list(false);
+
+          setAvailableLinkedItems({
+            assets: assetsRes.data,
+            liabilities: liabilitiesRes.data,
+            income: incomeRes.data,
+            expenses: expensesRes.data,
+          });
+        } catch (error) {
+          console.error("Failed to fetch linked items:", error);
+        }
+      };
+      fetchLinkedItems();
+    }
+  }, [isOpen]); // Only re-run when modal opens/closes
+
   const save = async () => {
-    if (!newItem.category || !newItem.description || !newItem.value) return;
+    if (!newItem.category || !newItem.description) return; // Value can be dynamic or 0
+
+    // Validation for dynamic items
+    if (isDynamic) {
+      if (!linkedItemType || !linkedItemId || percentage === "" || isNaN(parseFloat(percentage))) {
+        alert("Please select a linked item type, an item, and enter a valid percentage.");
+        return;
+      }
+    } else if (newItem.value === "" || isNaN(parseFloat(newItem.value))) {
+      // Regular item validation
+      alert("Please enter a valid value.");
+      return;
+    }
 
     const payload = {
       is_income: type === "income",
       category: newItem.category,
       description: newItem.description,
       frequency: newItem.frequency || "yearly", // Fallback if empty
-      value: parseFloat(newItem.value),
+      // Value handling: if dynamic, send 0 or null; backend will calculate. Otherwise, send parsed value.
+      value: isDynamic ? 0.0 : parseFloat(newItem.value),
       annual_increase_percent: type === "income" ? parseFloat(newItem.annual_increase_percent || 0) : 0,
       inflation_percent: type === "expense" ? parseFloat(newItem.inflation_percent || defaultInflation) : 0,
       person: newItem.person === "Select Person" || newItem.person === "Family" ? null : newItem.person || null,
@@ -118,6 +184,10 @@ export default function CashFlowFormModal({
       end_date: newItem.end_date || null,
       taxable: type === "income" ? newItem.taxable : false,
       tax_deductible: type === "expense" ? newItem.tax_deductible : false,
+      // Dynamic fields
+      linked_item_id: isDynamic ? linkedItemId : null,
+      linked_item_type: isDynamic ? linkedItemType : null,
+      percentage: isDynamic ? parseFloat(percentage) : null,
     };
 
     try {
@@ -131,11 +201,34 @@ export default function CashFlowFormModal({
     } catch (error) {
       console.error("Failed to save cash flow item:", error);
       // Optionally, show an error message to the user
+      alert(`Failed to save item: ${error.response?.data?.detail || error.message}`);
     }
   };
 
   const cancelEdit = () => {
     onClose(); // Just close the modal on cancel
+  };
+
+  // Helper to get linked item options based on selected type
+    const getLinkedItemOptions = () => {
+    console.log("Current linkedItemType:", linkedItemType);
+    const lowerCaseType = linkedItemType.toLowerCase();
+    console.log("Lowercase linkedItemType:", lowerCaseType);
+    const typeToKeyMap = {
+      "asset": "assets",
+      "liability": "liabilities",
+      "income": "income",
+      "expense": "expenses"
+    };
+    const key = typeToKeyMap[lowerCaseType];
+    const items = availableLinkedItems[key];
+    if (!items) return [];
+    // For cash flow items, filter out the item being edited to prevent self-linking
+    return items.filter(item => !(itemToEdit && item.id === itemToEdit.id)).map(item => ({
+      id: item.id,
+      name: item.name || item.description, // Assets/Liabilities have name, CashFlowItems have description
+      category: item.category,
+    }));
   };
 
   return (
@@ -182,16 +275,17 @@ export default function CashFlowFormModal({
               <input
                 id="value-input"
                 type="number"
-                placeholder="Value"
-                value={newItem.value}
+                placeholder={isDynamic ? "Calculated Dynamically" : "Value"}
+                value={isDynamic ? "" : newItem.value}
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
+                disabled={isDynamic}
               />
             </div>
 
             <div className="form-field">
               <label htmlFor="frequency-select">Frequency</label>
-              <select id="frequency-select" value={newItem.frequency} onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })}> 
+              <select id="frequency-select" value={newItem.frequency} onChange={(e) => setNewItem({ ...newItem, frequency: e.target.value })} disabled={isDynamic}> 
                 <option value="">Select Frequency</option>
                 <option value="monthly">Monthly</option>
                 <option value="yearly">Yearly</option>
@@ -199,7 +293,83 @@ export default function CashFlowFormModal({
             </div>
           </div>
 
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 1fr)' }}> {/* Second row: Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
+          {/* New row for dynamic item configuration */}
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+            <div className="form-field">
+              <label htmlFor="is-dynamic-select">Dynamic</label>
+              <select
+                id="is-dynamic-select"
+                value={isDynamic ? "Yes" : "No"}
+                onChange={(e) => {
+                  const newIsDynamic = e.target.value === "Yes";
+                  setIsDynamic(newIsDynamic);
+                  // Reset linked item fields when toggling dynamic status
+                  setLinkedItemType("");
+                  setLinkedItemId(null);
+                  setPercentage("");
+                  // If switching from dynamic to non-dynamic, re-enable value/frequency
+                  if (!newIsDynamic && !itemToEdit) {
+                    setNewItem(prev => ({...prev, value: "", frequency: ""}));
+                  }
+                }}
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+            </div>
+
+            {isDynamic && (
+              <> 
+                <div className="form-field">
+                  <label htmlFor="linked-item-type-select">Linked Item Type</label>
+                  <select
+                    id="linked-item-type-select"
+                    value={linkedItemType}
+                    onChange={(e) => { setLinkedItemType(e.target.value); setLinkedItemId(null); /* Reset linked item on type change */ }}
+                  >
+                    <option value="">Select Type</option>
+                    <option value="asset">Asset</option>
+                    <option value="liability">Liability</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="linked-item-select">Linked Item</label>
+                  <select
+                    id="linked-item-select"
+                    value={linkedItemId || ""}
+                    onChange={(e) => setLinkedItemId(parseInt(e.target.value))}
+                    disabled={!linkedItemType}
+                  >
+                    <option value="">Select Item</option>
+                    {getLinkedItemOptions().map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} ({item.category})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="percentage-input">Percentage (%)</label>
+                  <input
+                    id="percentage-input"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="Percentage"
+                    value={percentage}
+                    onChange={(e) => setPercentage(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 1fr)' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
             {type === "income" && (
               <div className="form-field">
                 <label htmlFor="annual-increase">Annual Increase %</label>
@@ -211,6 +381,7 @@ export default function CashFlowFormModal({
                   value={newItem.annual_increase_percent}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
+                  disabled={isDynamic} // Disable if dynamic
                 />
               </div>
             )}
@@ -226,6 +397,7 @@ export default function CashFlowFormModal({
                   value={newItem.inflation_percent}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, inflation_percent: e.target.value })}
+                  disabled={isDynamic} // Disable if dynamic
                 />
               </div>
             )}
@@ -238,6 +410,7 @@ export default function CashFlowFormModal({
                 placeholder="Start Date"
                 value={newItem.start_date}
                 onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
+                disabled={isDynamic} // Disable if dynamic
               />
             </div>
 
@@ -249,6 +422,7 @@ export default function CashFlowFormModal({
                 placeholder="End Date"
                 value={newItem.end_date || ""}
                 onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
+                disabled={isDynamic} // Disable if dynamic
               />
             </div>
 

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
-import ApiService from '../services/api.service';
 import SettingsService from '../services/settings.service';
 
 const AuthContext = createContext();

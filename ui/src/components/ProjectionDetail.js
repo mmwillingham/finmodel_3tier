@@ -36,7 +36,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
   const [error, setError] = useState(null);
   const [data, setData] = useState([]);
   const [accountDetails, setAccountDetails] = useState([]);
-  const { currentUser, userSettings } = useAuth();
+  const { userSettings } = useAuth();
   const chartRef = useRef(null);
   const yearByYearTableRef = useRef(null);
   const accountDetailsTableRef = useRef(null);

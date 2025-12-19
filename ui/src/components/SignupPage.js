@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import '../styles/AuthForms.css'; // Import new styling
 
@@ -9,7 +8,6 @@ const SignupPage = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
 
     const handleSignup = async (e) => {
         e.preventDefault();

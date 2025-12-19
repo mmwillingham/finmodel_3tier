@@ -19,7 +19,7 @@
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     width: 90%;
-    max-width: 800px;
+    max-width: 1000px; /* Increased max-width for better two-column layout */
     max-height: 90vh; /* Limit height to viewport height */
     overflow-y: auto; /* Enable scrolling for long content */
     position: relative;
@@ -79,16 +79,12 @@
 }
 
 .settings-form .tab-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Removed generic grid; specific tabs will define their layout */
+    display: flex;
+    flex-direction: column;
     gap: 20px;
     padding: 10px;
     border-radius: 5px;
-}
-
-.settings-form .tab-content > div {
-    display: flex;
-    flex-direction: column;
 }
 
 /* Application Tab - Checkbox Alignment */
@@ -102,29 +98,55 @@
     margin-bottom: 0; /* Remove bottom margin for labels in checkbox group */
 }
 
-/* Profile Tab - horizontal alignment for label and input and prevent wrapping */
+/* Application Tab - Input Width */
+.settings-form .tab-content:not(.profile) .setting-group > div input:not([type="checkbox"]),
+.settings-form .tab-content:not(.profile) .setting-group > div select {
+    max-width: 250px; /* Match width of profile fields */
+    width: 100%; /* Ensure it takes available space up to max-width */
+}
+
+/* Profile Tab Specific Styles */
+.settings-form .tab-content.profile .setting-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two equal columns */
+    gap: 20px 40px; /* Row gap, Column gap */
+}
+
 .settings-form .tab-content.profile .setting-group > div {
-    flex-direction: row; /* Align label and input horizontally */
-    align-items: center; /* Vertically center them */
-    gap: 15px; /* Space between label and input */
-    justify-content: space-between; /* Push label to left, input to right */
-    flex-wrap: nowrap; /* Prevent wrapping */
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Space between label and input */
 }
 
 .settings-form .tab-content.profile .setting-group > div label {
-    white-space: nowrap; /* Prevent label text from wrapping */
-    margin-bottom: 0; /* Remove bottom margin for labels in horizontal layout */
-    flex-shrink: 0; /* Prevent label from shrinking */
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 0; /* Ensures consistent vertical spacing */
 }
 
 .settings-form .tab-content.profile .setting-group > div input,
 .settings-form .tab-content.profile .setting-group > div select {
-    flex-grow: 1; /* Allow input/select to take remaining space */
-    max-width: 250px; /* Limit input width to prevent excessive growth */
+    width: 100%; /* Make inputs take full width of their grid cell */
+    box-sizing: border-box; /* Include padding in width */
+    height: 40px; /* Standardized height for all inputs and selects */
+    min-height: 40px; /* Ensure minimum height */
+    padding: 8px 12px; /* Adjust padding to fit new height */
+}
+
+.settings-form .tab-content.profile .setting-group .change-password-btn-wrapper {
+    grid-column: 1 / 2; /* Confine to the first column */
+    display: flex;
+    justify-content: flex-start; /* Align to the start (left) */
+    margin-top: 10px;
+}
+
+.settings-form .tab-content.profile .setting-group .change-password-btn {
+    width: auto; /* Allow button to size naturally */
+    max-width: 100%; /* Prevent overflow */
 }
 
 .settings-form h3 {
-    grid-column: 1 / -1;
+    grid-column: 1 / -1; /* Ensure headers span full width in a grid context */
     font-size: 1.4em;
     color: #282c34;
     margin-bottom: 15px;
@@ -267,7 +289,7 @@
     cursor: pointer;
     font-size: 0.9em;
     transition: background-color 0.2s ease;
-    margin-top: 10px;
+    margin-top: 0; /* Remove top margin, parent div will handle spacing */
 }
 
 .change-password-btn:hover {

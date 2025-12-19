@@ -11,7 +11,7 @@ import './CustomChartView.css'; // We will create this CSS file
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack }) {
-  const { currentUser, userSettings } = useAuth();
+  const { userSettings } = useAuth();
   const [chartConfig, setChartConfig] = useState(null);
   const [chartData, setChartData] = useState({ labels: [], datasets: [] });
   const [loading, setLoading] = useState(true);
