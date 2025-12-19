@@ -98,18 +98,6 @@ steps:
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
 
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Start Cloud SQL Proxy (Docker)'
-    args:
-      - 'run'
-      - '-d'
-      - '--network=cloudbuild'
-      - '--name=cloudsql-proxy-service'
-      - 'gcr.io/cloudsql-docker/gce-proxy:latest'
-      - '/cloud_sql_proxy'
-      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432'
-    waitFor: ['-']
-
   - name: 'python:3.9'
     id: 'Run Alembic Migrations'
     dir: 'api'
@@ -129,7 +117,6 @@ steps:
       - 'SECRET_KEY=${_SECRET_KEY}'
     secretEnv:
       - '_DB_PASSWORD'
-    waitFor: ['Start Cloud SQL Proxy (Docker)']
 
 options:
   # Force Cloud Build re-evaluation of secrets
