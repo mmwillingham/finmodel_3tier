@@ -36,9 +36,11 @@ def create_custom_chart(
 
     # Helper to fetch and convert items to AccountSchema
     def fetch_and_convert_item(item_type: str, item_id: int):
+        print(f"DEBUG (custom_charts.py): Attempting to fetch item_type: {item_type}, item_id: {item_id}")
         if item_type == 'asset':
             item = db.query(models.Asset).filter(models.Asset.id == item_id, models.Asset.owner_id == current_user.id).first()
             if item:
+                print(f"DEBUG (custom_charts.py): Found asset: {item.name} (ID: {item.id}, Value: {item.value})")
                 return schemas.AccountSchema(
                     name=item.name,
                     type='asset',
@@ -47,9 +49,12 @@ def create_custom_chart(
                     annual_increase_percent=item.annual_increase_percent,
                     annual_change_type=item.annual_change_type
                 )
+            else:
+                print(f"DEBUG (custom_charts.py): Asset with ID {item_id} not found for user {current_user.id}")
         elif item_type == 'liability':
             item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
             if item:
+                print(f"DEBUG (custom_charts.py): Found liability: {item.name} (ID: {item.id}, Value: {item.value})")
                 return schemas.AccountSchema(
                     name=item.name,
                     type='liability',
@@ -58,9 +63,12 @@ def create_custom_chart(
                     annual_increase_percent=item.annual_increase_percent,
                     annual_change_type=item.annual_change_type
                 )
+            else:
+                print(f"DEBUG (custom_charts.py): Liability with ID {item_id} not found for user {current_user.id}")
         elif item_type in ['income', 'expense']:
             item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
             if item:
+                print(f"DEBUG (custom_charts.py): Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)})")
                 # For cash flow items, the yearly_value is either static or calculated dynamically later
                 # We initially use the stored yearly_value, which for dynamic items will be 0.0 before resolution
                 return schemas.AccountSchema(
@@ -71,6 +79,8 @@ def create_custom_chart(
                     annual_increase_percent=item.annual_increase_percent if item.is_income else item.inflation_percent,
                     annual_change_type='increase' if item.is_income else 'decrease'
                 )
+            else:
+                print(f"DEBUG (custom_charts.py): CashFlowItem with ID {item_id} not found for user {current_user.id}")
         return None
 
     for series_config in series_configs:
