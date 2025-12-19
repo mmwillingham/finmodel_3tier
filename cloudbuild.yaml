@@ -98,13 +98,13 @@ steps:
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
 
-  - name: 'gcr.io/cloud-sql-proxy/cloud-sql-proxy:latest' # Use Cloud SQL Proxy v2
+  - name: 'us-east1-docker.pkg.dev/financial-model-cloud/cloud-sql-proxy/cloud-sql-proxy:latest' # Explicitly use your project's Artifact Registry path
     id: 'Start Cloud SQL Proxy for Migrations'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        gcloud auth configure-docker # Configure Docker for GCR/Artifact Registry authentication
+        gcloud auth configure-docker us-east1-docker.pkg.dev # Authenticate to your project's Artifact Registry
         /cloud-sql-proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 --port=5432 --debug &
         sleep 5 # Give proxy a moment to start
     waitFor: ['Deploy Backend Service']
