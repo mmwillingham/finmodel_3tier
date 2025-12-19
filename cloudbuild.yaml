@@ -98,14 +98,15 @@ steps:
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
 
-  - name: 'gcr.io/cloud-sql-proxy/cloud-sql-proxy:latest' # Correct public image path
+  - name: 'gcr.io/cloud-builders/gcloud' # Use gcloud builder which includes curl and bash
     id: 'Start Cloud SQL Proxy for Migrations'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        gcloud auth configure-docker gcr.io # Authenticate specifically for gcr.io
-        /cloud-sql-proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 --port=5432 --debug &
+        curl -sS -o /usr/local/bin/cloud_sql_proxy https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64
+        chmod +x /usr/local/bin/cloud_sql_proxy
+        /usr/local/bin/cloud_sql_proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 --port=5432 --debug &
         sleep 5 # Give proxy a moment to start
     waitFor: ['Deploy Backend Service']
 
