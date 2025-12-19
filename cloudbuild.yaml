@@ -98,15 +98,12 @@ steps:
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
 
-  - name: 'gcr.io/cloud-builders/gcloud'
+  - name: 'gcr.io/cloudsql-docker/gce-proxy:latest'
     id: 'Start Cloud SQL Proxy for Migrations'
-    entrypoint: 'bash'
+    entrypoint: '/cloud_sql_proxy'
     args:
-      - '-c'
-      - |
-        /cloud-sdk/bin/gcloud sql connect financial-model-cloud:us-east1:finmodel-postgres-instance --user=dbadmin --host=127.0.0.1 --port=5432 --quiet --enable-tcp-forwarding &
-        sleep 5 # Give proxy a moment to start
-    waitFor: ['Deploy Backend Service'] # This step can start after backend deployment
+      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432'
+    waitFor: ['Deploy Backend Service']
 
   - name: 'python:3.9'
     id: 'Run Alembic Migrations'
@@ -116,6 +113,7 @@ steps:
       - '-c'
       - |
         python3 -m pip install -r requirements.txt
+        sleep 5 # Give proxy a moment to start
         /usr/local/bin/alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
