@@ -10,10 +10,10 @@ import models # Adjust import for models
 # from schemas import ProjectionRequest 
 
 def calculate_projection(years: int, accounts: list, db: Session, owner_id: int) -> dict:
-    \"\"\"
+    """
     Calculates the financial projection, tracking balances for each account yearly.
     Includes dynamic calculation of cash flow items linked to other assets/income/expenses.
-    \"\"\"
+    """
     
     # 1. Fetch all relevant items for the owner
     all_assets = db.query(models.Asset).filter(models.Asset.owner_id == owner_id).all()

@@ -416,7 +416,9 @@ def create_projection(
     try:
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
-            accounts=projection_data.accounts
+            accounts=projection_data.accounts,
+            db=db,
+            owner_id=user.id
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
