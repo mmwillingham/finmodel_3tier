@@ -1,10 +1,13 @@
-# api/calculations.py
-
 import pandas as pd
 import json
 from typing import List, Optional
 from sqlalchemy.orm import Session
 import models # Adjust import for models
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # Note: Assuming schemas and the ProjectionRequest model are accessible here
 # from schemas import ProjectionRequest 
@@ -20,7 +23,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     all_liabilities = db.query(models.Liability).filter(models.Liability.owner_id == owner_id).all()
     all_cashflow_items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == owner_id).all()
 
-    print(f"DEBUG: Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
+    logger.debug(f"Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
 
     # Create lookup dictionaries for quick access
     assets_by_id = {asset.id: asset for asset in all_assets}
@@ -43,7 +46,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Convert to dictionary for easy lookup and modification
     cashflow_by_id = {item["id"]: item for item in processed_cashflow_items}
 
-    print(f"DEBUG: Initial processed cashflow items: {json.dumps(processed_cashflow_items, indent=2)}")
+    logger.debug(f"Initial processed cashflow items: {json.dumps(processed_cashflow_items, indent=2)}")
 
     # 2. Iteratively resolve dynamic CashFlowItems
     # This loop will ensure that items dependent on other cashflow items are calculated
@@ -54,14 +57,14 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     current_pass = 0
     while resolved_count != 0 and current_pass < max_passes:
         resolved_count = 0
-        print(f"DEBUG: Starting pass {current_pass + 1} for dynamic item resolution.")
+        logger.debug(f"Starting pass {current_pass + 1} for dynamic item resolution.")
         for item_dict in processed_cashflow_items:
             if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
-                print(f"DEBUG: Processing dynamic item: {item_dict['description']} (ID: {item_dict['id']})")
+                logger.debug(f"Processing dynamic item: {item_dict['description']} (ID: {item_dict['id']})")
                 
                 # If yearly_value is already calculated, skip
                 if item_dict["yearly_value"] != 0.0:
-                    print(f"DEBUG: Item {item_dict['description']} already resolved with yearly_value: {item_dict['yearly_value']}")
+                    logger.debug(f"Item {item_dict['description']} already resolved with yearly_value: {item_dict['yearly_value']}")
                     continue
 
                 linked_value = 0.0
@@ -89,16 +92,16 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
                 
-                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
+                logger.debug(f"Linked item type: {linked_item_type}, ID: {linked_item_id}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
 
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
                     resolved_count += 1
-                    print(f"DEBUG: Item {item_dict['description']} (ID: {item_dict['id']}) resolved. New yearly_value: {item_dict['yearly_value']}")
+                    logger.debug(f"Item {item_dict['description']} (ID: {item_dict['id']}) resolved. New yearly_value: {item_dict['yearly_value']}")
         current_pass += 1
-        print(f"DEBUG: Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
+        logger.debug(f"Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
         
-    print(f"DEBUG: Final processed cashflow items after iterative resolution: {json.dumps(processed_cashflow_items, indent=2)}")
+    logger.debug(f"Final processed cashflow items after iterative resolution: {json.dumps(processed_cashflow_items, indent=2)}")
 
     # After resolution, convert CashFlowItems to an account-like structure for projection
     final_cashflow_accounts = []
@@ -113,7 +116,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "id": item_dict["id"], # Keep original ID for potential future lookup
         })
     
-    print(f"DEBUG: Final cashflow accounts for projection: {json.dumps(final_cashflow_accounts, indent=2)}")
+    logger.debug(f"Final cashflow accounts for projection: {json.dumps(final_cashflow_accounts, indent=2)}")
 
     # Combine original accounts with processed cash flow items
     # Ensure 'accounts' passed in are already Pydantic models or similar dicts
@@ -129,7 +132,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
 
-    print(f"DEBUG: Combined accounts for main projection loop: {json.dumps(combined_accounts, indent=2)}")
+    logger.debug(f"Combined accounts for main projection loop: {json.dumps(combined_accounts, indent=2)}")
 
     # Initialize separate running balances for each account
     account_balances = {
