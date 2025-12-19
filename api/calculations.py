@@ -30,16 +30,16 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     processed_cashflow_items = []
     for item in all_cashflow_items:
         item_copy = item.__dict__.copy() # Create a mutable copy
-        if not item_copy.get(\"linked_item_id\") and not item_copy.get(\"linked_item_type\") and item_copy.get(\"percentage\") is None:
+        if not item_copy.get("linked_item_id") and not item_copy.get("linked_item_type") and item_copy.get("percentage") is None:
             # For static items, yearly_value is already stored
             pass # No change needed, yearly_value is already loaded from DB
         else:
             # Mark dynamic items to be resolved
-            item_copy[\"yearly_value\"] = 0.0 # Temporarily set to 0, will be calculated
+            item_copy["yearly_value"] = 0.0 # Temporarily set to 0, will be calculated
         processed_cashflow_items.append(item_copy)
 
     # Convert to dictionary for easy lookup and modification
-    cashflow_by_id = {item[\"id\"]: item for item in processed_cashflow_items}
+    cashflow_by_id = {item["id"]: item for item in processed_cashflow_items}
 
     # 2. Iteratively resolve dynamic CashFlowItems
     # This loop will ensure that items dependent on other cashflow items are calculated
@@ -51,35 +51,35 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     while resolved_count != 0 and current_pass < max_passes:
         resolved_count = 0
         for item_dict in processed_cashflow_items:
-            if item_dict.get(\"linked_item_id\") and item_dict.get(\"linked_item_type\") and item_dict.get(\"percentage\") is not None:
+            if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
                 # If yearly_value is already calculated, skip
-                if item_dict[\"yearly_value\"] != 0.0:
+                if item_dict["yearly_value"] != 0.0:
                     continue
 
                 linked_value = 0.0
                 linked_item_resolved = False
 
-                if item_dict[\"linked_item_type\"] == \'asset\' and item_dict[\"linked_item_id\"] in assets_by_id:
-                    linked_value = assets_by_id[item_dict[\"linked_item_id\"]].value
+                if item_dict["linked_item_type"] == \'asset\' and item_dict["linked_item_id"] in assets_by_id:
+                    linked_value = assets_by_id[item_dict["linked_item_id"]].value
                     linked_item_resolved = True
-                elif item_dict[\"linked_item_type\"] == \'liability\' and item_dict[\"linked_item_id\"] in liabilities_by_id:
-                    linked_value = liabilities_by_id[item_dict[\"linked_item_id\"]].value
+                elif item_dict["linked_item_type"] == \'liability\' and item_dict["linked_item_id"] in liabilities_by_id:
+                    linked_value = liabilities_by_id[item_dict["linked_item_id"]].value
                     linked_item_resolved = True
-                elif item_dict[\"linked_item_type\"] == \'income\' and item_dict[\"linked_item_id\"] in cashflow_by_id:
+                elif item_dict["linked_item_type"] == \'income\' and item_dict["linked_item_id"] in cashflow_by_id:
                     # Check if the linked cashflow item's yearly_value is already resolved
-                    linked_cf_item = cashflow_by_id.get(item_dict[\"linked_item_id\"])
-                    if linked_cf_item and linked_cf_item[\"yearly_value\"] != 0.0:
-                        linked_value = linked_cf_item[\"yearly_value\"]
+                    linked_cf_item = cashflow_by_id.get(item_dict["linked_item_id"])
+                    if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
+                        linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
-                elif item_dict[\"linked_item_type\"] == \'expense\' and item_dict[\"linked_item_id\"] in cashflow_by_id:
+                elif item_dict["linked_item_type"] == \'expense\' and item_dict["linked_item_id"] in cashflow_by_id:
                     # Check if the linked cashflow item's yearly_value is already resolved
-                    linked_cf_item = cashflow_by_id.get(item_dict[\"linked_item_id\"])
-                    if linked_cf_item and linked_cf_item[\"yearly_value\"] != 0.0:
-                        linked_value = linked_cf_item[\"yearly_value\"]
+                    linked_cf_item = cashflow_by_id.get(item_dict["linked_item_id"])
+                    if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
+                        linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
                 
                 if linked_item_resolved:
-                    item_dict[\"yearly_value\"] = linked_value * (item_dict[\"percentage\"] / 100.0)
+                    item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
                     resolved_count += 1
         current_pass += 1
         
@@ -87,13 +87,13 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     final_cashflow_accounts = []
     for item_dict in processed_cashflow_items:
         final_cashflow_accounts.append({
-            \"name\": item_dict[\"description\"], # Use description as name for projection clarity
-            \"type\": \"income\" if item_dict[\"is_income\"] else \"expense\", # Treat as income/expense for cashflow
-            \"initial_balance\": 0.0, # Cash flow items don\'t have an initial balance in this context
-            \"monthly_contribution\": item_dict[\"yearly_value\"] / 12, # Always monthly equivalent
-            \"annual_increase_percent\": item_dict[\"annual_increase_percent\"] if item_dict[\"is_income\"] else item_dict[\"inflation_percent\"],
-            \"annual_change_type\": \"increase\" if item_dict[\"is_income\"] else \"decrease\", # Income increases, expense decreases
-            \"id\": item_dict[\"id\"], # Keep original ID for potential future lookup
+            "name": item_dict["description"], # Use description as name for projection clarity
+            "type": "income" if item_dict["is_income"] else "expense", # Treat as income/expense for cashflow
+            "initial_balance": 0.0, # Cash flow items don\'t have an initial balance in this context
+            "monthly_contribution": item_dict["yearly_value"] / 12, # Always monthly equivalent
+            "annual_increase_percent": item_dict["annual_increase_percent"] if item_dict["is_income"] else item_dict["inflation_percent"],
+            "annual_change_type": "increase" if item_dict["is_income"] else "decrease", # Income increases, expense decreases
+            "id": item_dict["id"], # Keep original ID for potential future lookup
         })
     
     # Combine original accounts with processed cash flow items
@@ -104,15 +104,15 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Filter out cashflow_items that are already in `accounts` from `combined_accounts`
     # This scenario would happen if a cashflow item is sent by the frontend as part of `accounts`
     # We prioritize the dynamically calculated value, so we\'ll ensure no duplicates.
-    existing_account_names = {acc[\"name\"] for acc in combined_accounts}
+    existing_account_names = {acc["name"] for acc in combined_accounts}
     for cf_acc in final_cashflow_accounts:
-        if cf_acc[\"name\"] not in existing_account_names:
+        if cf_acc["name"] not in existing_account_names:
             combined_accounts.append(cf_acc)
-            existing_account_names.add(cf_acc[\"name\"])
+            existing_account_names.add(cf_acc["name"])
 
     # Initialize separate running balances for each account
     account_balances = {\
-        acc[\"name\"]: acc[\"initial_balance\"] for acc in combined_accounts\
+        acc["name"]: acc["initial_balance"] for acc in combined_accounts\
     }
     
     # Initialize data structures for results
@@ -121,7 +121,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     total_growth = 0.0
     
     # Track previous year\'s ending value for StartingValue calculation
-    previous_year_total_value = sum(acc[\"initial_balance\"] for acc in combined_accounts)
+    previous_year_total_value = sum(acc["initial_balance"] for acc in combined_accounts)
 
     # ----------------------------------------------------------------------
     # Main Projection Loop
@@ -131,8 +131,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         starting_value = previous_year_total_value
         
         yearly_record = {\
-            \"Year\": year, \
-            \"StartingValue\": starting_value,\
+            "Year": year, \
+            "StartingValue": starting_value,\
         }
         current_year_total_value = 0.0
         year_total_contributions = 0.0
@@ -140,7 +140,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         
         # 2. Loop through each account to calculate its growth
         for account in combined_accounts:
-            current_balance = account_balances.get(account[\"name\"], 0.0) # Use .get for safety
+            current_balance = account_balances.get(account["name"], 0.0) # Use .get for safety
 
             # --- CALCULATE GROWTH ---\
             # Determine the effective rate based on annual_change_type
@@ -148,17 +148,17 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             change_type = account.get(\'annual_change_type\', \'increase\')
             
             effective_rate = rate_from_schema
-            if change_type == \"decrease\":
+            if change_type == "decrease":
                 effective_rate = -effective_rate
             
             # Adjust annual_contribution for liabilities/expenses: contributions decrease the balance
-            # For cash flow items, monthly_contribution is already a yearly value if frequency was \"yearly\"
-            monthly_contribution = account.get(\"monthly_contribution\", 0.0)
+            # For cash flow items, monthly_contribution is already a yearly value if frequency was "yearly"
+            monthly_contribution = account.get("monthly_contribution", 0.0)
             adjusted_annual_contribution = monthly_contribution * 12 # This is where monthly is converted to yearly.
             
-            if account[\"type\"] == \"liability\" or account[\"type\"] == \"expense\":
+            if account["type"] == "liability" or account["type"] == "expense":
                 adjusted_annual_contribution = -abs(adjusted_annual_contribution) # Contributions/expenses reduce balance
-            elif account[\"type\"] == \"income\":
+            elif account["type"] == "income":
                 adjusted_annual_contribution = abs(adjusted_annual_contribution) # Income adds to balance
 
             total_contribution += adjusted_annual_contribution
@@ -171,14 +171,14 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             
             # Update balance and add account value to record
             new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
-            account_balances[account[\"name\"]] = new_balance
-            yearly_record[f\"{account[\'name\']}_Value\"] = new_balance
+            account_balances[account["name"]] = new_balance
+            yearly_record[f"{account[\'name\']}_Value"] = new_balance
             current_year_total_value += new_balance
         
         # Add totals to yearly record
-        yearly_record[\"Total_Contribution\"] = year_total_contributions
-        yearly_record[\"Total_Growth\"] = year_total_growth
-        yearly_record[\"Total_Value\"] = current_year_total_value
+        yearly_record["Total_Contribution"] = year_total_contributions
+        yearly_record["Total_Growth"] = year_total_growth
+        yearly_record["Total_Value"] = current_year_total_value
         
         yearly_results.append(yearly_record)
         previous_year_total_value = current_year_total_value
@@ -186,9 +186,9 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
 
     # 5. The final output structure (returned to the FastAPI endpoint)
     return {
-        \"final_value\": yearly_results[-1][\"Total_Value\"] if yearly_results else 0.0,
-        \"total_contributed\": total_contribution,\
-        \"total_growth\": total_growth,\
+        "final_value": yearly_results[-1]["Total_Value"] if yearly_results else 0.0,
+        "total_contributed": total_contribution,\
+        "total_growth": total_growth,\
         # Convert the list of dictionaries to a JSON string for data_json
-        \"data_json\": json.dumps(yearly_results)\
+        "data_json": json.dumps(yearly_results)\
     }
