@@ -100,10 +100,9 @@ steps:
 
   - name: 'gcr.io/cloudsql-docker/gce-proxy:latest'
     id: 'Start Cloud SQL Proxy for Migrations'
-    entrypoint: 'bash'
+    entrypoint: '/cloud_sql_proxy'
     args:
-      - '-c'
-      - '/cloud_sql_proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 &'
+      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432'
     waitFor: ['Deploy Backend Service']
 
   - name: 'python:3.9'
@@ -114,7 +113,18 @@ steps:
       - '-c'
       - |
         python3 -m pip install -r requirements.txt
-        sleep 10 # Give proxy a moment to start
+        # Install netcat for checking proxy readiness
+        apt-get update && apt-get install -y netcat-traditional
+        
+        # Wait for the Cloud SQL Proxy to be ready before running migrations
+        echo "Waiting for Cloud SQL Proxy to start..."
+        for i in `seq 1 10`; do
+          nc -z 127.0.0.1 5432 && echo "Cloud SQL Proxy is ready!" && break
+          echo "Still waiting..." && sleep 5;
+        done
+        # Ensure we exit if proxy didn't start
+        nc -z 127.0.0.1 5432 || (echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1)
+        
         /usr/local/bin/alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
