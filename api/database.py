@@ -24,10 +24,12 @@ def get_database_url() -> str:
             raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
 
         if cloud_sql_connection_name:
-            # Use Unix socket path for Cloud SQL Proxy in Cloud Run
+            # Use TCP connection to the Cloud SQL Proxy (which runs on 127.0.0.1:5432 by default)
+            # The proxy itself will handle the Unix socket connection to the Cloud SQL instance.
+            db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to 127.0.0.1 for Cloud Run proxy
+            db_port = os.getenv("DB_PORT", "5432")     # Default to 5432 for Cloud Run proxy
             database_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}"
-                f"?unix_sock=/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
+                f"postgresql+pg8000://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
             )
         else:
             # Fallback for local development or direct connection
@@ -40,7 +42,7 @@ def get_database_url() -> str:
     
     if database_url is None:
         raise ValueError("DATABASE_URL could not be determined from environment variables.")
-
+    
     print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {database_url}")
     return database_url
 
@@ -48,6 +50,7 @@ def get_database_url() -> str:
 def get_engine_instance():
     """Creates and returns a SQLAlchemy Engine with connection pooling configured."""
     DATABASE_URL = get_database_url()
+    print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
     return create_engine(
         DATABASE_URL,
         pool_size=10,        # NEW: Number of connections to keep open in the pool
