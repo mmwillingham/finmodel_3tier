@@ -68,7 +68,17 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable_url = api.database.get_async_database_url()
+    # Use environment variables directly for Cloud Build context
+    db_user = os.getenv("DB_USER", "dbadmin")
+    db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD", "bolaudersez88")
+    db_name = os.getenv("DB_NAME", "finmodel1")
+    # For Cloud Build, the proxy is usually accessible at 127.0.0.1:5432
+    db_host = os.getenv("DB_HOST", "127.0.0.1")
+    db_port = os.getenv("DB_PORT", "5432")
+
+    connectable_url = f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    
+    print(f"DEBUG (alembic/env.py): Constructed ASYNC DATABASE_URL for migrations: {connectable_url}")
 
     # Use the retrieved URL to create the async engine
     connectable = async_engine_from_config(

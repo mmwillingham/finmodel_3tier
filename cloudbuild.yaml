@@ -98,6 +98,16 @@ steps:
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
 
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Start Cloud SQL Proxy for Migrations'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        /cloud-sdk/bin/gcloud sql connect financial-model-cloud:us-east1:finmodel-postgres-instance --user=dbadmin --host=127.0.0.1 --port=5432 --quiet --enable-tcp-forwarding &
+        sleep 5 # Give proxy a moment to start
+    waitFor: ['Deploy Backend Service'] # This step can start after backend deployment
+
   - name: 'python:3.9'
     id: 'Run Alembic Migrations'
     dir: 'api'
@@ -110,13 +120,14 @@ steps:
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
-      - 'DB_HOST=cloudsql-proxy-service'
-      - 'DB_PORT=5432'
+      - 'DB_HOST=127.0.0.1' # Connect to the proxy running on localhost
+      - 'DB_PORT=5432'     # Connect to the proxy running on port 5432
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
       - 'DB_PASSWORD=${_DB_PASSWORD}'
       - 'SECRET_KEY=${_SECRET_KEY}'
     secretEnv:
       - '_DB_PASSWORD'
+    waitFor: ['Start Cloud SQL Proxy for Migrations'] # Wait for the proxy to start before running migrations
 
 options:
   # Force Cloud Build re-evaluation of secrets
