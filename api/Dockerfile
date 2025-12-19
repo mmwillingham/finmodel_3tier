@@ -1,20 +1,28 @@
 # Dockerfile for the FastAPI backend
 
-# Use a lightweight Python base image
-FROM python:3.11-slim-bookworm
+# --- Builder Stage: Install dependencies ---
+FROM python:3.11-slim-bookworm as builder
 
-# Install build dependencies for pg8000 (will be removed later)
-RUN apt-get update && apt-get install -y build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+# Install build dependencies for psycopg2-binary (if needed)
+# RUN apt-get update && apt-get install -y build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app/api
+
+# Copy the requirements file and install dependencies into /wheels
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+# --- Runtime Stage: Copy only necessary files ---
+FROM python:3.11-slim-bookworm
 
 # Set the working directory inside the container
 WORKDIR /app/api
 
-# Copy the requirements file and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the pre-built wheel files from the builder stage
+COPY --from=builder /wheels /usr/local/lib/python3.11/site-packages/
 
-# Remove build dependencies to slim down the image
-RUN apt-get remove -y build-essential libpq-dev
+# Copy the rest of the application code
+COPY . /app/api
 
 # Set static environment variables directly in the Docker image
 ENV DB_USER=dbadmin
@@ -32,9 +40,6 @@ ENV USE_CREDENTIALS=True
 ENV VALIDATE_CERTS=True
 # Allow all origins for now, to be refined later if needed
 ENV CORS_ORIGINS_REGEX=.*
-
-# Copy the rest of the application code
-COPY . /app/api
 
 # Command to run the FastAPI application with Uvicorn (Alembic handled in Cloud Build step)
 # Explicitly pass the PORT environment variable using bash -c
