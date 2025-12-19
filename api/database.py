@@ -95,9 +95,8 @@ def get_async_database_url() -> str:
             raise ValueError("Missing one or more database environment variables for async URL (DB_USER, DB_PASSWORD, DB_NAME, CLOUD_SQL_CONNECTION_NAME)")
 
         if cloud_sql_connection_name:
-            # When CLOUD_SQL_CONNECTION_NAME is set, we assume a Cloud SQL environment.
-            # For async connections, we connect via TCP to the proxy, which itself connects to the Unix socket.
-            # Or, if running directly in Cloud Run, it connects to the internal IP of the database.
+            # For async connections using Cloud SQL Proxy, connect via TCP to the proxy.
+            # The proxy itself will handle the Unix socket connection to the Cloud SQL instance.
             db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to localhost if running proxy with TCP on 127.0.0.1
             db_port = os.getenv("DB_PORT", "5432") # Default to 5432
             database_url = (

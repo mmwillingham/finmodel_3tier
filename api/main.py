@@ -493,7 +493,9 @@ def update_projection(
     
     result = calculations.calculate_projection(
         years=req.years,
-        accounts=req.accounts
+        accounts=req.accounts,
+        db=db,
+        owner_id=current_user.id
     )
     
     projection.name = req.plan_name
@@ -546,7 +548,10 @@ def create_cashflow(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    yearly_value = 0.0 # Will be calculated dynamically if linked_item_id is present
+    if not (payload.linked_item_id and payload.linked_item_type and payload.percentage is not None):
+        yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    
     item = models.CashFlowItem(
         owner_id=current_user.id,
         is_income=payload.is_income,
@@ -561,6 +566,9 @@ def create_cashflow(
         end_date=payload.end_date,
         taxable=payload.taxable,
         tax_deductible=payload.tax_deductible,
+        linked_item_id=payload.linked_item_id,
+        linked_item_type=payload.linked_item_type,
+        percentage=payload.percentage
     )
     db.add(item)
     db.commit()
@@ -579,7 +587,10 @@ def update_cashflow(
         raise HTTPException(status_code=404, detail="Item not found")
     if item.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
-    yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    yearly_value = 0.0 # Will be calculated dynamically if linked_item_id is present
+    if not (payload.linked_item_id and payload.linked_item_type and payload.percentage is not None):
+        yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    
     item.is_income = payload.is_income
     item.category = payload.category
     item.description = payload.description
@@ -592,6 +603,9 @@ def update_cashflow(
     item.end_date = payload.end_date
     item.taxable = payload.taxable
     item.tax_deductible = payload.tax_deductible
+    item.linked_item_id = payload.linked_item_id
+    item.linked_item_type = payload.linked_item_type
+    item.percentage = payload.percentage
     db.commit()
     db.refresh(item)
     return item

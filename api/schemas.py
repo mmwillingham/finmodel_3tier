@@ -159,6 +159,12 @@ class CashFlowCreate(BaseModel):
     end_date: str | None = None
     taxable: bool = False
     tax_deductible: bool = False
+    linked_item_id: Optional[int] = None
+    linked_item_type: Optional[str] = None
+    percentage: Optional[float] = None
+    linked_item_id: Optional[int] = None
+    linked_item_type: Optional[str] = None
+    percentage: Optional[float] = None
 
 class CashFlowUpdate(CashFlowCreate):
     pass
@@ -177,6 +183,9 @@ class CashFlowOut(BaseModel):
     end_date: str | None = None
     taxable: bool
     tax_deductible: bool
+    linked_item_id: Optional[int] = None
+    linked_item_type: Optional[str] = None
+    percentage: Optional[float] = None
     model_config = ConfigDict(from_attributes=True)
 
 class UserSettingsOut(BaseModel):

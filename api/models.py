@@ -90,6 +90,11 @@ class CashFlowItem(Base):
     tax_deductible = Column(Boolean, default=False)  # For expenses
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # New fields for dynamic items
+    linked_item_id = Column(Integer, nullable=True)
+    linked_item_type = Column(String, nullable=True)  # 'asset', 'income', 'expense'
+    percentage = Column(Float, nullable=True)
+
 
 class UserSettings(Base):
     __tablename__ = "user_settings"
