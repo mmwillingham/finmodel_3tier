@@ -104,7 +104,7 @@ steps:
     args:
       - '-c'
       - |
-        curl -sS -o /usr/local/bin/cloud_sql_proxy https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64
+        curl -sS -o /usr/local/bin/cloud_sql_proxy https://dl.google.com/cloudsql/cloud_sql_proxy/v2.5.0/cloud_sql_proxy.linux.amd64 # Download v2.5.0 directly
         chmod +x /usr/local/bin/cloud_sql_proxy
         /usr/local/bin/cloud_sql_proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 --port=5432 --debug &
         sleep 5 # Give proxy a moment to start
