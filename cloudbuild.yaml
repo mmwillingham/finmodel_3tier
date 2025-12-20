@@ -6,7 +6,7 @@ steps:
       - '--no-cache'
       - '--pull'
       - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA-${_TIMESTAMP}'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP}'
       - 'api'
       - '--build-arg'
       - 'CACHEBUSTER=${_TIMESTAMP}'
@@ -79,7 +79,7 @@ steps:
       - 'build'
       - '--no-cache'
       - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
       - '.'
     dir: 'ui'
     waitFor: ['Deploy Backend Service']
@@ -88,7 +88,7 @@ steps:
     id: 'Push Frontend Image'
     args:
       - 'push'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
     waitFor: ['Build Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -98,7 +98,7 @@ steps:
       - 'deploy'
       - 'finmodel-frontend-service'
       - '--image'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
       - '--region'
       - 'us-east1'
       - '--platform'
