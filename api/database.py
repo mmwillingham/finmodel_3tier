@@ -26,13 +26,19 @@ def get_database_url() -> str:
             raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
 
         if cloud_sql_connection_name:
-            # Use TCP connection to the Cloud SQL Proxy (which runs on 127.0.0.1:5432 by default)
-            # The proxy itself will handle the Unix socket connection to the Cloud SQL instance.
-            db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to 127.0.0.1 for Cloud Run proxy
-            db_port = os.getenv("DB_PORT", "5432")     # Default to 5432 for Cloud Run proxy
-            database_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-            )
+            db_host = os.getenv("DB_HOST", "127.0.0.1")
+            
+            if db_host.startswith("/cloudsql/"):
+                # Use Unix socket
+                database_url = (
+                    f"postgresql+pg8000://{db_user}:{db_password}@{db_host}/{db_name}"
+                )
+            else:
+                # Use TCP connection to the Cloud SQL Proxy (which runs on 127.0.0.1:5432 by default)
+                db_port = os.getenv("DB_PORT", "5432")
+                database_url = (
+                    f"postgresql+pg8000://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+                )
         else:
             # Fallback for local development or direct connection
             # Use DB_HOST and DB_PORT from config.py's environment variable logic
