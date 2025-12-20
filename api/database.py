@@ -1,9 +1,11 @@
 import os
+import time # NEW: Import time for sleep
 from functools import lru_cache # NEW: Import lru_cache
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from typing import Any, Generator
+from sqlalchemy.exc import OperationalError # NEW: Import OperationalError
 
 # --- Database URL Construction (Cached for Performance) ---
 @lru_cache(maxsize=1) # Cache the result of this function to avoid repeated computation
@@ -48,17 +50,33 @@ def get_database_url() -> str:
 
 @lru_cache(maxsize=1) # Cache the result of this function to ensure a single engine instance
 def get_engine_instance():
-    """Creates and returns a SQLAlchemy Engine with connection pooling configured."""
+    """Creates and returns a SQLAlchemy Engine with connection pooling configured, with retries."""
     DATABASE_URL = get_database_url()
     print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
-    return create_engine(
-        DATABASE_URL,
-        pool_size=10,        # NEW: Number of connections to keep open in the pool
-        max_overflow=20,     # NEW: Maximum number of connections to allow beyond pool_size
-        pool_timeout=30,     # NEW: Number of seconds to wait before giving up on getting a connection from the pool
-        pool_recycle=1800,   # NEW: Recycle connections after 30 minutes (1800 seconds) to prevent stale connections
-        # Add other engine specific configs as needed
-    )
+    
+    retries = 5
+    delay = 2 # seconds
+    for i in range(retries):
+        try:
+            engine = create_engine(
+                DATABASE_URL,
+                pool_size=10,        # NEW: Number of connections to keep open in the pool
+                max_overflow=20,     # NEW: Maximum number of connections to allow beyond pool_size
+                pool_timeout=30,     # NEW: Number of seconds to wait before giving up on getting a connection from the pool
+                pool_recycle=1800,   # NEW: Recycle connections after 30 minutes (1800 seconds) to prevent stale connections
+                # Add other engine specific configs as needed
+            )
+            # Test the connection immediately
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            print("DEBUG (database.py): Database engine created and connection tested successfully.")
+            return engine
+        except OperationalError as e:
+            print(f"ERROR (database.py): Database connection failed (attempt {i+1}/{retries}): {e}")
+            if i < retries - 1:
+                time.sleep(delay)
+            else:
+                raise # Re-raise if all retries fail
 
 # Instantiate the engine once at startup
 engine = get_engine_instance()
