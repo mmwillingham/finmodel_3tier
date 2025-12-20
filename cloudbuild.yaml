@@ -126,7 +126,6 @@ steps:
           nc -z 127.0.0.1 5432 && echo "Cloud SQL Proxy is ready!" && break\
           echo "Still waiting..." && sleep 10;\
         done
-        cat proxy.log
         nc -z 127.0.0.1 5432 || (echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1)
         /usr/local/bin/alembic upgrade head
     env:
