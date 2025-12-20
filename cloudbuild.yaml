@@ -138,10 +138,8 @@ steps:
       - 'DB_HOST=127.0.0.1'
       - 'DB_PORT=5432'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
-      - 'DB_PASSWORD=${_DB_PASSWORD}'
-      - 'SECRET_KEY=${_SECRET_KEY}'
     secretEnv:
-      - '_DB_PASSWORD'
+      - '_DB_PASSWORD' 
     waitFor: ['cloudsql-proxy-service']
 
 options:
