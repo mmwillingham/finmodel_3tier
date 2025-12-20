@@ -108,11 +108,15 @@ steps:
       - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
     waitFor: ['Push Frontend Image']
 
-  - name: 'gcr.io/cloudsql-docker/gce-proxy:latest'
+  - name: 'gcr.io/cloud-sql-proxy/cloud-sql-proxy:2.x'
     id: 'cloudsql-proxy-service'
     entrypoint: '/cloud_sql_proxy'
     args:
-      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432'
+      - '--address'
+      - '0.0.0.0'
+      - '--port'
+      - '5432'
+      - 'financial-model-cloud:us-east1:finmodel-postgres-instance'
     timeout: 1800s
     waitFor: ['Deploy Frontend Service']
 
