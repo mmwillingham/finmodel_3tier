@@ -1,12 +1,15 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Backend Image'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA-${_TIMESTAMP} api \
-          --build-arg CACHEBUSTER=${_TIMESTAMP}
+      - 'build'
+      - '--no-cache'
+      - '--pull'
+      - '-t'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA-${_TIMESTAMP}'
+      - 'api'
+      - '--build-arg'
+      - 'CACHEBUSTER=${_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
