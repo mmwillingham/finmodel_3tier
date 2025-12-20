@@ -30,8 +30,9 @@ def get_database_url() -> str:
             
             if db_host.startswith("/cloudsql/"):
                 # Use Unix socket
+                # The pg8000 dialect expects unix_sock as a query parameter
                 database_url = (
-                    f"postgresql+pg8000://{db_user}:{db_password}@{db_host}/{db_name}"
+                    f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={db_host}"
                 )
             else:
                 # Use TCP connection to the Cloud SQL Proxy (which runs on 127.0.0.1:5432 by default)
