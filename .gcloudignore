@@ -14,13 +14,8 @@ __pycache__/
 
 # Node.js dependencies
 node_modules/
-package-lock.json
 
 # Docker-related files
-Dockerfile
-Dockerfile.debug
-Dockerfile.sleep
-docker-compose.yml
 
 # Other generated files
 *.pyc
@@ -33,3 +28,7 @@ ui/package-lock.json
 
 # Agent specific files
 agent-tools/
+
+# Explicitly include Dockerfiles
+!api/Dockerfile
+!ui/Dockerfile
