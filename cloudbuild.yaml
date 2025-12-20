@@ -52,7 +52,7 @@ steps:
       - '--update-env-vars=MAIL_FROM=no_reply@gmail.com'
       - '--update-env-vars=MAIL_PORT=587'
       - '--update-env-vars=MAIL_SERVER=smtp.gmail.com'
-      - '---update-env-vars=FRONTEND_URL=https://finmodel-frontend-service-526419047208.us-east1.run.app'
+      - '--update-env-vars=FRONTEND_URL=https://finmodel-frontend-service-526419047208.us-east1.run.app'
       - '--update-env-vars=PUBLIC_BACKEND_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
       - '--update-env-vars=MAIL_TLS=True'
       - '--update-env-vars=MAIL_SSL=False'
