@@ -165,4 +165,3 @@ availableSecrets:
       env: '_MAIL_PASSWORD'
     - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
       env: '_SECRET_KEY'
-"""
