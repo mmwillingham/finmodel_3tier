@@ -39,7 +39,7 @@ steps:
       - '-c'
       - |
         gcloud run deploy finmodel-backend-service \
-          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA-${_TIMESTAMP} \
+          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP} \
           --region us-east1 \
           --platform managed \
           --allow-unauthenticated \
