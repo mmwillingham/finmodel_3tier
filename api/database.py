@@ -1,18 +1,17 @@
 import os
-import time # NEW: Import time for sleep
-from functools import lru_cache # NEW: Import lru_cache
-from sqlalchemy import create_engine
+import time
+from functools import lru_cache
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from typing import Any, Generator
-from sqlalchemy.exc import OperationalError # NEW: Import OperationalError
+from sqlalchemy.exc import OperationalError
 
-# --- Database URL Construction (Cached for Performance) ---
-@lru_cache(maxsize=1) # Cache the result of this function to avoid repeated computation
+_unix_socket_path: str | None = None # Global to store unix socket path if used
+
+@lru_cache(maxsize=1)
 def get_database_url() -> str:
-    """Constructs and returns a synchronous database URL (e.g., with pg8000) based on environment variables.
-    Prioritizes DATABASE_URL if provided as a single environment variable.
-    """
+    global _unix_socket_path # Declare intent to modify global variable
     database_url = os.getenv("DATABASE_URL")
 
     if database_url is None:
@@ -22,31 +21,66 @@ def get_database_url() -> str:
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
 
         if not all([db_user, db_password, db_name]):
-            # CLOUD_SQL_CONNECTION_NAME is optional for local development
             raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
 
         if cloud_sql_connection_name:
             db_host = os.getenv("DB_HOST", "127.0.0.1")
-            
+
             if db_host.startswith("/cloudsql/"):
-                # Use Unix socket
-                # The pg8000 dialect expects unix_sock as a query parameter
+                _unix_socket_path = db_host # Store the unix socket path
                 database_url = (
-                    f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={db_host}"
+                    f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}" # Note: no host here
                 )
             else:
-                # Use TCP connection to the Cloud SQL Proxy (which runs on 127.0.0.1:5432 by default)
                 db_port = os.getenv("DB_PORT", "5432")
                 database_url = (
                     f"postgresql+pg8000://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
                 )
         else:
-            # Fallback for local development or direct connection
-            # Use DB_HOST and DB_PORT from config.py's environment variable logic
             local_db_host = os.getenv("DB_HOST", "localhost")
             local_db_port = os.getenv("DB_PORT", "5432")
             database_url = (
                 f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
+            )
+
+    if database_url is None:
+        raise ValueError("DATABASE_URL could not be determined from environment variables.")
+
+    print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {database_url}")
+    return database_url
+
+@lru_cache(maxsize=1)
+def get_engine_instance():
+    global _unix_socket_path # Access global variable
+    DATABASE_URL = get_database_url()
+    print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
+
+    connect_args = {}
+    if _unix_socket_path:
+        connect_args["unix_sock"] = _unix_socket_path
+
+    retries = 5
+    delay = 2 # seconds
+    for i in range(retries):
+        try:
+            engine = create_engine(
+                DATABASE_URL,
+                pool_size=10,
+                max_overflow=20,
+                pool_timeout=30,
+                pool_recycle=1800,
+                connect_args=connect_args # Pass connect_args here
+            )
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            print("DEBUG (database.py): Database engine created and connection tested successfully.")
+            return engine
+        except OperationalError as e:
+            print(f"ERROR (database.py): Database connection failed (attempt {i+1}/{retries}): {e}")
+            if i < retries - 1:
+                time.sleep(delay)
+            else:
+                raise
             )
     
     if database_url is None:
@@ -101,11 +135,10 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
-# Note: The async database URL part is not used by the current FastAPI app for ORM operations, 
-# but kept for potential future async database needs or Alembic specific async configurations.
-# Ensure it also uses caching if it were to be actively used in a hot path.
+    # Ensure it also uses caching if it were to be actively used in a hot path.
 @lru_cache(maxsize=1) # Cache the result of this function if it were to be used frequently
 def get_async_database_url() -> str:
+    global _unix_socket_path # Access global variable
     """Constructs and returns an asynchronous database URL (e.g., with asyncpg) based on environment variables.
     Prioritizes DATABASE_URL if provided as a single environment variable.
     This is intended for asynchronous operations like Alembic migrations.
@@ -123,13 +156,19 @@ def get_async_database_url() -> str:
             raise ValueError("Missing one or more database environment variables for async URL (DB_USER, DB_PASSWORD, DB_NAME, CLOUD_SQL_CONNECTION_NAME)")
 
         if cloud_sql_connection_name:
-            # For async connections using Cloud SQL Proxy, connect via TCP to the proxy.
-            # The proxy itself will handle the Unix socket connection to the Cloud SQL instance.
             db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to localhost if running proxy with TCP on 127.0.0.1
-            db_port = os.getenv("DB_PORT", "5432") # Default to 5432
-            database_url = (
-                f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-            )
+
+            if db_host.startswith("/cloudsql/"):
+                _unix_socket_path = db_host # Store the unix socket path
+                database_url = (
+                    f"postgresql+asyncpg://{db_user}:{db_password}@/{db_name}" # Note: no host here
+                )
+            else:
+                # For async connections using Cloud SQL Proxy, connect via TCP to the proxy.
+                db_port = os.getenv("DB_PORT", "5432") # Default to 5432
+                database_url = (
+                    f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+                )
         else:
             # Fallback for local development with a direct local PostgreSQL connection
             local_db_host = os.getenv("DB_HOST", "localhost")
