@@ -45,7 +45,6 @@ steps:
           --allow-unauthenticated \
           --project financial-model-cloud \
           --no-traffic \
-          --to-latest \
           --update-env-vars=DB_USER=dbadmin \
           --update-env-vars=DB_NAME=finmodel1 \
           --update-env-vars=CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance \
