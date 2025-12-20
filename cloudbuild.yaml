@@ -5,8 +5,10 @@ steps:
       - 'build'
       - '--no-cache'
       - '--pull'
+      - '--build-arg'
+      - 'CACHEBUSTER=$(date +%s)' # Unique build argument
       - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA-$(date +%s)' # Unique tag with timestamp
       - '.'
     dir: 'api'
 
@@ -14,7 +16,7 @@ steps:
     id: 'Push Backend Image'
     args:
       - 'push'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA-$(date +%s)' # Push unique tag
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Remove old secret env vars'
@@ -37,7 +39,7 @@ steps:
       - 'deploy'
       - 'finmodel-backend-service'
       - '--image'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$COMMIT_SHA-$(date +%s)' # Deploy unique tag
       - '--region'
       - 'us-east1'
       - '--platform'
@@ -45,6 +47,8 @@ steps:
       - '--allow-unauthenticated'
       - '--project'
       - 'financial-model-cloud'
+      - '--no-traffic' # Deploy without immediate traffic shift
+      - '--to-latest' # Ensure this is the latest revision
       - '--update-env-vars=DB_USER=dbadmin'
       - '--update-env-vars=DB_NAME=finmodel1'
       - '--update-env-vars=CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
@@ -108,16 +112,16 @@ steps:
       - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
     waitFor: ['Push Frontend Image']
 
-  - name: 'gcr.io/cloudsql-docker/gce-proxy:latest'
-    id: 'cloudsql-proxy-service'
+  - name: 'gcr.io/cloudsql-docker/gce-proxy:latest' # Reverting to v1 proxy for Cloud Build migrations
+    id: 'cloudsql-proxy-service' # Name this step as a service
     entrypoint: '/cloud_sql_proxy'
     args:
       - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance'
       - '-port=5432'
-      - '-debug'
+      - '-debug' # Add debug logging to proxy
     waitFor: ['Deploy Frontend Service'] # Start after frontend is deployed
 
-  - name: 'python:3.11'
+  - name: 'python:3.11' # Standardize Python version
     id: 'Run Alembic Migrations'
     dir: 'api'
     entrypoint: 'bash'
@@ -125,11 +129,11 @@ steps:
       - '-c'
       - |
         python3 -m pip install -r requirements.txt
-        apt-get update && apt-get install -y netcat-traditional
+        apt-get update && apt-get install -y netcat-traditional # Install netcat
         
         echo "Waiting for Cloud SQL Proxy to start..."
         for i in `seq 1 10`; do\
-          nc -z 127.0.0.1 5432 && echo "Cloud SQL Proxy is ready!" && break;\
+          nc -z 127.0.0.1 5432 && echo "Cloud SQL Proxy is ready!" && break\
           echo "Still waiting..." && sleep 5;\
         done
         nc -z 127.0.0.1 5432 || (echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1)
@@ -137,14 +141,14 @@ steps:
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
-      - 'DB_HOST=127.0.0.1'
+      - 'DB_HOST=127.0.0.1' # Connect to the proxy running on localhost
       - 'DB_PORT=5432'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
       - 'DB_PASSWORD=${_DB_PASSWORD}'
       - 'SECRET_KEY=${_SECRET_KEY}'
     secretEnv:
       - '_DB_PASSWORD'
-    waitFor: ['cloudsql-proxy-service']
+    waitFor: ['cloudsql-proxy-service'] # Wait for the proxy service to start before running migrations
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
@@ -161,3 +165,4 @@ availableSecrets:
       env: '_MAIL_PASSWORD'
     - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
       env: '_SECRET_KEY'
+"""
