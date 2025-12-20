@@ -112,7 +112,7 @@ steps:
     id: 'cloudsql-proxy-service'
     entrypoint: '/cloud_sql_proxy'
     args:
-      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:5432'
+      - '-instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432'
     timeout: 1800s
     waitFor: ['Deploy Frontend Service']
 
