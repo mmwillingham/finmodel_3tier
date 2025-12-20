@@ -232,7 +232,7 @@ def delete_user_by_admin(
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@app.get("/admin/users", response_model=List[schemas.UserOut], tags=["admin"])
+@app.get("/admin/users", response_model=list[schemas.UserOut], tags=["admin"])
 def list_all_manageable_users(
     db: Session = Depends(database.get_db),
     current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
@@ -343,11 +343,11 @@ def forgot_password(
     if user:
         token = auth.create_password_reset_token(db, user.id)
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-        print(f"Password reset link: {reset_link}")
-        send_email(
-            to_email=user.email,
-            subject="Financial Projector - Password Reset Request",
-            body=f"""Hello,
+    print(f"Password reset link: {reset_link}")
+    send_email(
+        to_email=user.email,
+        subject="Financial Projector - Password Reset Request",
+        body=f"""Hello,
 
 You have requested a password reset for your Financial Projector account.
 
@@ -433,7 +433,6 @@ def create_projection(
         data_json=data_json,
         accounts_json=json.dumps([acc.model_dump() for acc in projection_data.accounts]),
     )
-
     db.add(db_projection)
     db.commit()
     db.refresh(db_projection)
@@ -521,7 +520,7 @@ def delete_projection(
     if not projection:
         raise HTTPException(status_code=404, detail="Projection not found.")
     if projection.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this projection.")
+        raise HTTPException(status_code=403, detail="Not authorized")
     db.delete(projection)
     db.commit()
     return Response(status_code=204)
@@ -648,17 +647,17 @@ def get_settings(
             email="",
             projection_years=30
         )
-        db.add(settings)
-        try:
-            db.commit()
-            db.refresh(settings)
-        except Exception as e:
-            db.rollback()
-            # Another request may have created it, try to fetch again
-            settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
-            if not settings:
-                # If still not found, re-raise the original exception
-                raise e
+    db.add(settings)
+    try:
+        db.commit()
+        db.refresh(settings)
+    except Exception as e:
+        db.rollback()
+        # Another request may have created it, try to fetch again
+        settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
+        if not settings:
+            # If still not found, re-raise the original exception
+            raise e
     return settings
 
 @app.put("/settings", response_model=schemas.UserSettingsOut, tags=["settings"])
@@ -945,3 +944,17 @@ def delete_custom_chart(
     db.delete(chart)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+import socket
+
+@app.get("/debug/proxy-check", tags=["debug"], summary="Debug: Check Cloud SQL Proxy connectivity")
+async def debug_proxy_check():
+    host = "127.0.0.1"
+    port = 5432
+    try:
+        with socket.create_connection((host, port), timeout=5) as sock:
+            return {"status": "success", "message": f"Successfully connected to Cloud SQL Proxy at {host}:{port}"}
+    except socket.error as e:
+        return {"status": "error", "message": f"Failed to connect to Cloud SQL Proxy at {host}:{port}: {e}"}
+    except Exception as e:
+        return {"status": "error", "message": f"An unexpected error occurred: {e}"}
