@@ -117,22 +117,11 @@ steps:
       - '-c'
       - |
         python3 -m pip install -r requirements.txt
-        curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
-        chmod +x cloud-sql-proxy
-        ./cloud-sql-proxy --address 0.0.0.0 --port 5432 financial-model-cloud:us-east1:finmodel-postgres-instance &
-        
-        echo "Waiting for Cloud SQL Proxy to start..."
-        for i in `seq 1 10`; do\
-          nc -z 127.0.0.1 5432 && echo "Cloud SQL Proxy is ready!" && break\
-          echo "Still waiting..." && sleep 10;\
-        done
-        nc -z 127.0.0.1 5432 || (echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1)
         /usr/local/bin/alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
-      - 'DB_HOST=127.0.0.1'
-      - 'DB_PORT=5432'
+      - 'DB_HOST=/cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
     timeout: 1800s
     secretEnv:
