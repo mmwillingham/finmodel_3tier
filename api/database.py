@@ -81,43 +81,6 @@ def get_engine_instance():
                 time.sleep(delay)
             else:
                 raise
-            )
-    
-    if database_url is None:
-        raise ValueError("DATABASE_URL could not be determined from environment variables.")
-    
-    print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {database_url}")
-    return database_url
-
-@lru_cache(maxsize=1) # Cache the result of this function to ensure a single engine instance
-def get_engine_instance():
-    """Creates and returns a SQLAlchemy Engine with connection pooling configured, with retries."""
-    DATABASE_URL = get_database_url()
-    print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
-    
-    retries = 5
-    delay = 2 # seconds
-    for i in range(retries):
-        try:
-            engine = create_engine(
-                DATABASE_URL,
-                pool_size=10,        # NEW: Number of connections to keep open in the pool
-                max_overflow=20,     # NEW: Maximum number of connections to allow beyond pool_size
-                pool_timeout=30,     # NEW: Number of seconds to wait before giving up on getting a connection from the pool
-                pool_recycle=1800,   # NEW: Recycle connections after 30 minutes (1800 seconds) to prevent stale connections
-                # Add other engine specific configs as needed
-            )
-            # Test the connection immediately
-            with engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
-            print("DEBUG (database.py): Database engine created and connection tested successfully.")
-            return engine
-        except OperationalError as e:
-            print(f"ERROR (database.py): Database connection failed (attempt {i+1}/{retries}): {e}")
-            if i < retries - 1:
-                time.sleep(delay)
-            else:
-                raise # Re-raise if all retries fail
 
 # Instantiate the engine once at startup
 engine = get_engine_instance()
@@ -135,7 +98,7 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
-    # Ensure it also uses caching if it were to be actively used in a hot path.
+# Ensure it also uses caching if it were to be actively used in a hot path.
 @lru_cache(maxsize=1) # Cache the result of this function if it were to be used frequently
 def get_async_database_url() -> str:
     global _unix_socket_path # Access global variable
