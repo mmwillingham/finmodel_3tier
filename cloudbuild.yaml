@@ -108,7 +108,7 @@ steps:
       - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
     waitFor: ['Push Frontend Image']
 
-  - name: 'gcr.io/cloud-sql-proxy/cloud-sql-proxy:2.x'
+  - name: 'gcr.io/cloud-sql-proxy/cloud-sql-proxy:v2.20.0'
     id: 'cloudsql-proxy-service'
     entrypoint: '/cloud_sql_proxy'
     args:
