@@ -1,0 +1,35 @@
+# This file specifies files to be ignored by `gcloud builds submit`,
+# which uses rules similar to `.gitignore`.
+#
+# See https://cloud.google.com/cloud-build/docs/build-config#gcloudignore
+# for more information.
+
+.gcloudignore
+.git
+.gitignore
+
+venv/
+.venv/
+__pycache__/
+
+# Node.js dependencies
+node_modules/
+package-lock.json
+
+# Docker-related files
+Dockerfile
+Dockerfile.debug
+Dockerfile.sleep
+docker-compose.yml
+
+# Other generated files
+*.pyc
+*.log
+finmodel.db
+
+# UI build output
+ui/build/
+ui/package-lock.json
+
+# Agent specific files
+agent-tools/
