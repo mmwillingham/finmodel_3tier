@@ -1,36 +1,5 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build Frontend Image'
-    args:
-      - 'build'
-      - '--no-cache' # NEW: Force no-cache for frontend build
-      - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
-      - '.'
-    dir: 'ui'
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push Frontend Image'
-    args:
-      - 'push'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Deploy Frontend Service'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'finmodel-frontend-service'
-      - '--image'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
-      - '--region'
-      - 'us-east1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
-
-  - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Backend Image'
     args:
       - 'build'
@@ -98,50 +67,77 @@ steps:
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
 
-  - name: 'gcr.io/cloud-builders/gcloud' # Use gcloud builder which includes curl and bash
-    id: 'Start Cloud SQL Proxy for Migrations'
-    entrypoint: 'bash'
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Frontend Image'
     args:
-      - '-c'
-      - |
-        curl -sS -o /usr/local/bin/cloud_sql_proxy https://dl.google.com/cloudsql/cloud_sql_proxy/v2.5.0/cloud_sql_proxy.linux.amd64 # Download v2.5.0 directly
-        chmod +x /usr/local/bin/cloud_sql_proxy
-        /usr/local/bin/cloud_sql_proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 --port=5432 --debug &
-        sleep 5 # Give proxy a moment to start
-    waitFor: ['Deploy Backend Service']
+      - 'build'
+      - '--no-cache' # NEW: Force no-cache for frontend build
+      - '-t'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+      - '.'
+    dir: 'ui'
 
-  - name: 'python:3.9'
-    id: 'Run Alembic Migrations'
-    dir: 'api'
-    entrypoint: 'bash'
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Frontend Image'
     args:
-      - '-c'
-      - |
-        python3 -m pip install -r requirements.txt
-        # Install netcat for checking proxy readiness
-        apt-get update && apt-get install -y netcat-traditional
-        
-        # Wait for the Cloud SQL Proxy to be ready before running migrations
-        echo "Waiting for Cloud SQL Proxy to start..."
-        for i in `seq 1 10`; do
-          nc -z 127.0.0.1 5432 && echo "Cloud SQL Proxy is ready!" && break
-          echo "Still waiting..." && sleep 5;
-        done
-        # Ensure we exit if proxy didn't start
-        nc -z 127.0.0.1 5432 || (echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1)
-        
-        /usr/local/bin/alembic upgrade head
-    env:
-      - 'DB_USER=dbadmin'
-      - 'DB_NAME=finmodel1'
-      - 'DB_HOST=127.0.0.1' # Connect to the proxy running on localhost
-      - 'DB_PORT=5432'     # Connect to the proxy running on port 5432
-      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
-      - 'DB_PASSWORD=${_DB_PASSWORD}'
-      - 'SECRET_KEY=${_SECRET_KEY}'
-    secretEnv:
-      - '_DB_PASSWORD'
-    waitFor: ['Start Cloud SQL Proxy for Migrations'] # Wait for the proxy to start before running migrations
+      - 'push'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Frontend Service'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'finmodel-frontend-service'
+      - '--image'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$COMMIT_SHA'
+      - '--region'
+      - 'us-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
+
+#  - name: 'gcr.io/cloud-builders/gcloud' # Use gcloud builder which includes curl and bash
+#    id: 'Start Cloud SQL Proxy for Migrations'
+#    entrypoint: 'bash'
+#    args:
+#      - '-c'
+#      - |
+#        curl -sS -o /usr/local/bin/cloud_sql_proxy https://dl.google.com/cloudsql/cloud_sql_proxy/v2.5.0/cloud_sql_proxy.linux.amd64 # Download v2.5.0 directly
+#        chmod +x /usr/local/bin/cloud_sql_proxy
+#        /usr/local/bin/cloud_sql_proxy -instances=financial-model-cloud:us-east1:finmodel-postgres-instance=tcp:0.0.0.0:5432 --port=5432 --debug &
+#        sleep 5 # Give proxy a moment to start
+#    waitFor: ['Deploy Backend Service']
+
+#  - name: 'python:3.11' # Standardize Python version
+#    id: 'Run Alembic Migrations'
+#    dir: 'api'
+#    entrypoint: 'bash'
+#    args:
+#      - '-c'
+#      - |
+#        python3 -m pip install -r requirements.txt
+#        # Wait for the Cloud SQL Proxy to be ready before running migrations
+#        echo "Waiting for Cloud SQL Proxy to start..."
+#        for i in `seq 1 10`; do\
+#          nc -z 127.0.0.1 5432 && echo "Cloud SQL Proxy is ready!" && break\
+#          echo "Still waiting..." && sleep 5;\
+#        done
+#        # Ensure we exit if proxy didn't start
+#        nc -z 127.0.0.1 5432 || (echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1)
+#        /usr/local/bin/alembic upgrade head
+#    env:
+#      - 'DB_USER=dbadmin'
+#      - 'DB_NAME=finmodel1'
+#      - 'DB_HOST=127.0.0.1' # Connect to the proxy running on localhost
+#      - 'DB_PORT=5432'     # Connect to the proxy running on port 5432
+#      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+#      - 'DB_PASSWORD=${_DB_PASSWORD}'
+#      - 'SECRET_KEY=${_SECRET_KEY}'
+#    secretEnv:
+#      - '_DB_PASSWORD'
+#    waitFor: ['Start Cloud SQL Proxy for Migrations'] # Wait for the proxy to start before running migrations
 
 options:
   # Force Cloud Build re-evaluation of secrets
