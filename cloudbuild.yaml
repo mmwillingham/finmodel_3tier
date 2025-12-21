@@ -128,7 +128,6 @@ steps:
         done
         if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
         /usr/local/bin/alembic upgrade head
-    cloud_sql_instances: financial-model-cloud:us-east1:finmodel-postgres-instance
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
