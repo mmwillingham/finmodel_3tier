@@ -121,12 +121,7 @@ steps:
         chmod +x cloud-sql-proxy
         ./cloud-sql-proxy --unix-socket /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance &
         
-        echo "Waiting for Cloud SQL Proxy to start..."
-        for i in `seq 1 10`; do
-          if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance ]; then echo "Cloud SQL Proxy is ready!"; break; fi\
-          echo "Still waiting..." && sleep 10;
-        done
-        if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
+        echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
         /usr/local/bin/alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
