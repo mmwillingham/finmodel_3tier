@@ -117,9 +117,7 @@ steps:
       - '-c'
       - |
         python3 -m pip install -r requirements.txt
-        /usr/local/bin/alembic upgrade head
-    cloud_sql_instances: financial-model-cloud:us-east1:finmodel-postgres-instance
-    env:
+        /usr/local/bin/alembic upgrade head    env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
       - 'DB_HOST=/cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance'
@@ -130,6 +128,7 @@ steps:
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
+  cloud_sql_instances: financial-model-cloud:us-east1:finmodel-postgres-instance
 
 availableSecrets:
   secretManager:
