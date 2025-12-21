@@ -118,6 +118,7 @@ steps:
       - |
         python3 -m pip install -r requirements.txt
         /usr/local/bin/alembic upgrade head
+    cloud_sql_instances: financial-model-cloud:us-east1:finmodel-postgres-instance
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
