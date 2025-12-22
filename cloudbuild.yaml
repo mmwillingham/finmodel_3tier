@@ -79,7 +79,7 @@ steps:
       - '--no-cache'
       - '-t'
       - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-      - '.'
+      - '--build-arg=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
     dir: 'ui'
     waitFor: ['Deploy Backend Service']
 
