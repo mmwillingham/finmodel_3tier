@@ -113,7 +113,6 @@ steps:
       - '--allow-unauthenticated'
       - '--project'
       - 'financial-model-cloud'
-      - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app' # This will be updated later dynamically
     waitFor: ['Push Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
