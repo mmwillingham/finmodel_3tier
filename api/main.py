@@ -10,6 +10,9 @@ from utils import google_oauth
 from jose import jwt, JWTError
 import json
 import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
+from fastapi.responses import JSONResponse
+from starlette.requests import Request
+import traceback
 
 # Internal Modules
 import models
@@ -959,3 +962,20 @@ async def debug_proxy_check():
         return {"status": "error", "message": f"Failed to connect to Cloud SQL Proxy at {host}:{port}: {e}"}
     except Exception as e:
         return {"status": "error", "message": f"An unexpected error occurred: {e}"}
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    print(f"DEBUG (main.py): HTTPException caught: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    error_traceback = traceback.format_exc()
+    print(f"ERROR (main.py): Unhandled exception: {error_traceback}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error. Please check logs for details."},
+    )
