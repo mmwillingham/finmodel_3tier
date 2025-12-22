@@ -19,21 +19,25 @@ steps:
       - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Deploy & Configure Services'
+    id: 'Remove old secret env vars'
+    args:
+      - 'run'
+      - 'services'
+      - 'update'
+      - 'finmodel-backend-service'
+      - '--region'
+      - 'us-east1'
+      - '--project'
+      - 'financial-model-cloud'
+      - '--remove-env-vars=SECRET_KEY,DB_PASSWORD,GOOGLE_CLIENT_SECRET,MAIL_PASSWORD,GOOGLE_CLIENT_ID'
+    allowFailure: true
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Backend Service'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        set -e # Exit immediately if a command exits with a non-zero status.
-
-        echo "--- Removing old secret env vars from backend service ---"
-        gcloud run services update finmodel-backend-service \
-          --region us-east1 \
-          --project financial-model-cloud \
-          --remove-env-vars=SECRET_KEY,DB_PASSWORD,GOOGLE_CLIENT_SECRET,MAIL_PASSWORD,GOOGLE_CLIENT_ID \
-          || true # Allow failure if no old vars exist
-
-        echo "--- Deploying Backend Service (initial) ---"
         gcloud run deploy finmodel-backend-service \
           --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP} \
           --region us-east1 \
@@ -41,55 +45,66 @@ steps:
           --allow-unauthenticated \
           --project financial-model-cloud \
           --no-traffic \
-          --update-env-vars=DB_USER=dbadmin,DB_NAME=finmodel1,CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance \
-          --update-env-vars=MAIL_USERNAME=martin.willingham@gmail.com,MAIL_FROM=no_reply@gmail.com,MAIL_PORT=587,MAIL_SERVER=smtp.gmail.com \
-          --update-env-vars=MAIL_TLS=True,MAIL_SSL=False,USE_CREDENTIALS=True,VALIDATE_CERTS=True \
+          --update-env-vars=DB_USER=dbadmin \
+          --update-env-vars=DB_NAME=finmodel1 \
+          --update-env-vars=CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance \
+          --update-env-vars=MAIL_USERNAME=martin.willingham@gmail.com \
+          --update-env-vars=MAIL_FROM=no_reply@gmail.com \
+          --update-env-vars=MAIL_PORT=587 \
+          --update-env-vars=MAIL_SERVER=smtp.gmail.com \
+          --update-env-vars=MAIL_TLS=True \
+          --update-env-vars=MAIL_SSL=False \
+          --update-env-vars=USE_CREDENTIALS=True \
+          --update-env-vars=VALIDATE_CERTS=True \
           --add-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
-          --set-secrets=SECRET_KEY=_SECRET_KEY:1,DB_PASSWORD=_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1
-
-        echo "--- Getting Backend Service URL ---"
-        BACKEND_URL=$(gcloud run services describe finmodel-backend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
-        echo "Backend URL: $BACKEND_URL"
-        
-        echo "--- Building Frontend Image using dynamic Backend URL ---"
-        (cd ui && docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA --build-arg=REACT_APP_API_URL="$$BACKEND_URL" .)
-        
-        echo "--- Pushing Frontend Image ---"
-        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA
-
-        echo "--- Deploying Frontend Service (initial) ---"
-        gcloud run deploy finmodel-frontend-service \
-          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA \
-          --region us-east1 \
-          --platform managed \
-          --allow-unauthenticated \
-          --project financial-model-cloud
-
-        echo "--- Getting Frontend Service URL ---"
-        FRONTEND_URL=$(gcloud run services describe finmodel-frontend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
-        echo "Frontend URL: $FRONTEND_URL"
-
-        echo "--- Updating Backend Service with Frontend URL ---"
-        BACKEND_ENV_VARS="PUBLIC_BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL"
-        gcloud run services update finmodel-backend-service \
-          --region us-east1 \
-          --project financial-model-cloud \
-          --update-env-vars="$BACKEND_ENV_VARS"
-        
-        echo "--- Updating Frontend Service with Backend URL ---"
-        FRONTEND_ENV_VARS="REACT_APP_API_URL=$BACKEND_URL"
-        gcloud run services update finmodel-frontend-service \
-          --region us-east1 \
-          --project financial-model-cloud \
-          --update-env-vars="$FRONTEND_ENV_VARS"
-
+          --set-secrets=SECRET_KEY=_SECRET_KEY:1 \
+          --set-secrets=DB_PASSWORD=_DB_PASSWORD:1 \
+          --set-secrets=GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2 \
+          --set-secrets=GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2 \
+          --set-secrets=MAIL_PASSWORD=_MAIL_PASSWORD:1
     secretEnv:
       - '_DB_PASSWORD'
       - '_GOOGLE_CLIENT_SECRET'
       - '_GOOGLE_CLIENT_ID'
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
-    waitFor: ['Push Backend Image']
+    waitFor: ['Remove old secret env vars']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Frontend Image'
+    args:
+      - 'build'
+      - '--no-cache'
+      - '-t'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+      - '--build-arg=REACT_APP_API_URL=http://localhost:8000' # Placeholder URL
+      - '.'
+    dir: 'ui'
+    waitFor: ['Deploy Backend Service']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Frontend Image'
+    args:
+      - 'push'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+    waitFor: ['Build Frontend Image']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Frontend Service'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'finmodel-frontend-service'
+      - '--image'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+      - '--region'
+      - 'us-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--project'
+      - 'financial-model-cloud'
+    waitFor: ['Push Frontend Image']
 
   - name: 'python:3.11'
     id: 'Run Alembic Migrations'
@@ -98,31 +113,13 @@ steps:
     args:
       - '-c'
       - |
-        set -e
-        echo "--- Installing Python requirements for Alembic ---"
         python3 -m pip install -r requirements.txt
-
-        echo "--- Downloading Cloud SQL Proxy ---"
         curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
         chmod +x cloud-sql-proxy
-
-        echo "--- Starting Cloud SQL Proxy ---"
         mkdir -p /cloudsql
         ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
         
-        echo "--- Waiting for Cloud SQL Proxy to start ---"
-        for i in $(seq 1 10); do 
-          if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then 
-            echo "Cloud SQL Proxy is ready!"; 
-            break; 
-          fi; 
-          echo "Still waiting..." && sleep 10; 
-        done
-        if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then 
-          echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; 
-        fi
-
-        echo "--- Running Alembic Migrations ---"
+        echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
         (/usr/local/bin/alembic current > /dev/null 2>&1 || /usr/local/bin/alembic stamp base) && /usr/local/bin/alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
