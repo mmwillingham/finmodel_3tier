@@ -19,16 +19,19 @@ def get_database_url() -> str:
         db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")
         db_name = os.getenv("DB_NAME")
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
+        print(f"DEBUG (database.py): CLOUD_SQL_CONNECTION_NAME (from os.getenv): '{cloud_sql_connection_name}'") # NEW DEBUG
 
         if not all([db_user, db_password, db_name]):
             raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
 
         if cloud_sql_connection_name:
+            print("DEBUG (database.py): Entering Cloud SQL Proxy SYNC connection path.") # NEW DEBUG
             _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
             database_url = (
                 f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={_unix_socket_path}"
             )
         else:
+            print("DEBUG (database.py): Entering local TCP SYNC connection path.") # NEW DEBUG
             local_db_host = os.getenv("DB_HOST", "localhost")
             local_db_port = os.getenv("DB_PORT", "5432")
             database_url = (
