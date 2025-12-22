@@ -19,25 +19,19 @@ steps:
       - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Remove old secret env vars'
-    args:
-      - 'run'
-      - 'services'
-      - 'update'
-      - 'finmodel-backend-service'
-      - '--region'
-      - 'us-east1'
-      - '--project'
-      - 'financial-model-cloud'
-      - '--remove-env-vars=SECRET_KEY,DB_PASSWORD,GOOGLE_CLIENT_SECRET,MAIL_PASSWORD,GOOGLE_CLIENT_ID'
-    allowFailure: true
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Deploy Backend Service'
+    id: 'Deploy & Configure Services'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # Step 1: Remove old secret env vars (backend)
+        gcloud run services update finmodel-backend-service \
+          --region us-east1 \
+          --project financial-model-cloud \
+          --remove-env-vars=SECRET_KEY,DB_PASSWORD,GOOGLE_CLIENT_SECRET,MAIL_PASSWORD,GOOGLE_CLIENT_ID \
+          || true # Allow failure if no old vars exist
+
+        # Step 2: Deploy Backend Service (initial)
         gcloud run deploy finmodel-backend-service \
           --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP} \
           --region us-east1 \
@@ -45,113 +39,51 @@ steps:
           --allow-unauthenticated \
           --project financial-model-cloud \
           --no-traffic \
-          --update-env-vars=DB_USER=dbadmin \
-          --update-env-vars=DB_NAME=finmodel1 \
-          --update-env-vars=CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance \
-          --update-env-vars=MAIL_USERNAME=martin.willingham@gmail.com \
-          --update-env-vars=MAIL_FROM=no_reply@gmail.com \
-          --update-env-vars=MAIL_PORT=587 \
-          --update-env-vars=MAIL_SERVER=smtp.gmail.com \
-          --update-env-vars=MAIL_TLS=True \
-          --update-env-vars=MAIL_SSL=False \
-          --update-env-vars=USE_CREDENTIALS=True \
-          --update-env-vars=VALIDATE_CERTS=True \
+          --update-env-vars=DB_USER=dbadmin,DB_NAME=finmodel1,CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance \
+          --update-env-vars=MAIL_USERNAME=martin.willingham@gmail.com,MAIL_FROM=no_reply@gmail.com,MAIL_PORT=587,MAIL_SERVER=smtp.gmail.com \
+          --update-env-vars=MAIL_TLS=True,MAIL_SSL=False,USE_CREDENTIALS=True,VALIDATE_CERTS=True \
           --add-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
-          --set-secrets=SECRET_KEY=_SECRET_KEY:1 \
-          --set-secrets=DB_PASSWORD=_DB_PASSWORD:1 \
-          --set-secrets=GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2 \
-          --set-secrets=GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2 \
-          --set-secrets=MAIL_PASSWORD=_MAIL_PASSWORD:1
+          --set-secrets=SECRET_KEY=_SECRET_KEY:1,DB_PASSWORD=_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1
+
+        # Step 3: Get Backend Service URL
+        BACKEND_URL=$(gcloud run services describe finmodel-backend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
+        
+        # Step 4: Build Frontend Image using dynamic Backend URL
+        (cd ui && docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA --build-arg=REACT_APP_API_URL=$BACKEND_URL .)
+        
+        # Step 5: Push Frontend Image
+        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA
+
+        # Step 6: Deploy Frontend Service (initial)
+        gcloud run deploy finmodel-frontend-service \
+          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA \
+          --region us-east1 \
+          --platform managed \
+          --allow-unauthenticated \
+          --project financial-model-cloud
+
+        # Step 7: Get Frontend Service URL
+        FRONTEND_URL=$(gcloud run services describe finmodel-frontend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
+
+        # Step 8: Update Backend Service with Frontend URL (and its own URL again for idempotency)
+        gcloud run services update finmodel-backend-service \
+          --region us-east1 \
+          --project financial-model-cloud \
+          --update-env-vars=PUBLIC_BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL
+        
+        # Step 9: Update Frontend Service with Backend URL (for idempotency and explicit config)
+        gcloud run services update finmodel-frontend-service \
+          --region us-east1 \
+          --project financial-model-cloud \
+          --update-env-vars=REACT_APP_API_URL=$BACKEND_URL
+
     secretEnv:
       - '_DB_PASSWORD'
       - '_GOOGLE_CLIENT_SECRET'
       - '_GOOGLE_CLIENT_ID'
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
-    waitFor: ['Remove old secret env vars']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Get Backend Service URL'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        BACKEND_URL=$(gcloud run services describe finmodel-backend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
-        echo "$BACKEND_URL" > /workspace/backend_service_url.txt
-    waitFor: ['Deploy Backend Service']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build Frontend Image'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        BACKEND_URL=$(cat /workspace/backend_service_url.txt)
-        docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA --build-arg=REACT_APP_API_URL=$BACKEND_URL .
-    dir: 'ui'
-    waitFor: ['Get Backend Service URL']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push Frontend Image'
-    args:
-      - 'push'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-    waitFor: ['Build Frontend Image']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Deploy Frontend Service'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'finmodel-frontend-service'
-      - '--image'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-      - '--region'
-      - 'us-east1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--project'
-      - 'financial-model-cloud'
-    waitFor: ['Push Frontend Image']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Get Frontend Service URL'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        FRONTEND_URL=$(gcloud run services describe finmodel-frontend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
-        echo "$FRONTEND_URL" > /workspace/frontend_service_url.txt
-    waitFor: ['Deploy Frontend Service']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Update Backend Service with URLs'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        BACKEND_URL=$(cat /workspace/backend_service_url.txt)
-        FRONTEND_URL=$(cat /workspace/frontend_service_url.txt)
-        gcloud run services update finmodel-backend-service \
-          --region us-east1 \
-          --project financial-model-cloud \
-          --update-env-vars=PUBLIC_BACKEND_URL=$BACKEND_URL \
-          --update-env-vars=FRONTEND_URL=$FRONTEND_URL
-    waitFor: ['Get Frontend Service URL']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Update Frontend Service with URL'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        BACKEND_URL=$(cat /workspace/backend_service_url.txt)
-        gcloud run services update finmodel-frontend-service \
-          --region us-east1 \
-          --project financial-model-cloud \
-          --update-env-vars=REACT_APP_API_URL=$BACKEND_URL
-    waitFor: ['Update Backend Service with URLs']
+    waitFor: ['Push Backend Image']
 
   - name: 'python:3.11'
     id: 'Run Alembic Migrations'
@@ -188,7 +120,7 @@ availableSecrets:
       env: '_GOOGLE_CLIENT_SECRET'
     - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_ID/versions/2'
       env: '_GOOGLE_CLIENT_ID'
-    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1' 
+    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
       env: '_MAIL_PASSWORD'
     - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
       env: '_SECRET_KEY'
