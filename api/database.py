@@ -106,9 +106,7 @@ def get_async_database_url() -> str:
             raise ValueError("Missing one or more database environment variables for async URL (DB_USER, DB_PASSWORD, DB_NAME, CLOUD_SQL_CONNECTION_NAME)")
 
         if cloud_sql_connection_name:
-            _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
-            database_url = (
-                _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432" # Keep full path for sync
+            _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432" # Keep full path for pg8000
             unix_socket_dir = f"/cloudsql/{cloud_sql_connection_name}" # Directory for asyncpg host
             database_url = (
                 f"postgresql+asyncpg://{db_user}:{db_password}@/{db_name}?host={unix_socket_dir}"
