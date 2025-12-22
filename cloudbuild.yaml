@@ -52,8 +52,6 @@ steps:
           --update-env-vars=MAIL_FROM=no_reply@gmail.com \
           --update-env-vars=MAIL_PORT=587 \
           --update-env-vars=MAIL_SERVER=smtp.gmail.com \
-          --update-env-vars=FRONTEND_URL=https://finmodel-frontend-service-526419047208.us-east1.run.app \
-          --update-env-vars=PUBLIC_BACKEND_URL=https://finmodel-backend-service-526419047208.us-east1.run.app \
           --update-env-vars=MAIL_TLS=True \
           --update-env-vars=MAIL_SSL=False \
           --update-env-vars=USE_CREDENTIALS=True \
@@ -72,17 +70,26 @@ steps:
       - '_SECRET_KEY'
     waitFor: ['Remove old secret env vars']
 
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Get Backend Service URL'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BACKEND_URL=$(gcloud run services describe finmodel-backend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
+        echo "$BACKEND_URL" > /workspace/backend_service_url.txt
+    waitFor: ['Deploy Backend Service']
+
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Frontend Image'
+    entrypoint: 'bash'
     args:
-      - 'build'
-      - '--no-cache'
-      - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-      - '--build-arg=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
-      - '.'
+      - '-c'
+      - |
+        BACKEND_URL=$(cat /workspace/backend_service_url.txt)
+        docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA --build-arg=REACT_APP_API_URL=$BACKEND_URL .
     dir: 'ui'
-    waitFor: ['Deploy Backend Service']
+    waitFor: ['Get Backend Service URL']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Frontend Image'
@@ -106,9 +113,46 @@ steps:
       - '--allow-unauthenticated'
       - '--project'
       - 'financial-model-cloud'
-      - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app'
+      - '--update-env-vars=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app' # This will be updated later dynamically
     waitFor: ['Push Frontend Image']
 
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Get Frontend Service URL'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        FRONTEND_URL=$(gcloud run services describe finmodel-frontend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
+        echo "$FRONTEND_URL" > /workspace/frontend_service_url.txt
+    waitFor: ['Deploy Frontend Service']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Update Backend Service with URLs'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BACKEND_URL=$(cat /workspace/backend_service_url.txt)
+        FRONTEND_URL=$(cat /workspace/frontend_service_url.txt)
+        gcloud run services update finmodel-backend-service \
+          --region us-east1 \
+          --project financial-model-cloud \
+          --update-env-vars=PUBLIC_BACKEND_URL=$BACKEND_URL \
+          --update-env-vars=FRONTEND_URL=$FRONTEND_URL
+    waitFor: ['Get Frontend Service URL']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Update Frontend Service with URL'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BACKEND_URL=$(cat /workspace/backend_service_url.txt)
+        gcloud run services update finmodel-frontend-service \
+          --region us-east1 \
+          --project financial-model-cloud \
+          --update-env-vars=REACT_APP_API_URL=$BACKEND_URL
+    waitFor: ['Update Backend Service with URLs']
 
   - name: 'python:3.11'
     id: 'Run Alembic Migrations'
