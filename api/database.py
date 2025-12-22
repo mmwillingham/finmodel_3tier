@@ -108,7 +108,10 @@ def get_async_database_url() -> str:
         if cloud_sql_connection_name:
             _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
             database_url = (
-                f"postgresql+asyncpg://{db_user}:{db_password}@/{db_name}"
+                _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432" # Keep full path for sync
+            unix_socket_dir = f"/cloudsql/{cloud_sql_connection_name}" # Directory for asyncpg host
+            database_url = (
+                f"postgresql+asyncpg://{db_user}:{db_password}@/{db_name}?host={unix_socket_dir}"
             )
         else:
             local_db_host = os.getenv("DB_HOST", "127.0.0.1") 
