@@ -26,7 +26,7 @@ def get_database_url() -> str:
         if cloud_sql_connection_name:
             _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
             database_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}"
+                f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={_unix_socket_path}"
             )
         else:
             local_db_host = os.getenv("DB_HOST", "localhost")
