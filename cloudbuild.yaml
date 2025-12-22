@@ -24,14 +24,16 @@ steps:
     args:
       - '-c'
       - |
-        # Step 1: Remove old secret env vars (backend)
+        set -e # Exit immediately if a command exits with a non-zero status.
+
+        echo "--- Removing old secret env vars from backend service ---"
         gcloud run services update finmodel-backend-service \
           --region us-east1 \
           --project financial-model-cloud \
           --remove-env-vars=SECRET_KEY,DB_PASSWORD,GOOGLE_CLIENT_SECRET,MAIL_PASSWORD,GOOGLE_CLIENT_ID \
           || true # Allow failure if no old vars exist
 
-        # Step 2: Deploy Backend Service (initial)
+        echo "--- Deploying Backend Service (initial) ---"
         gcloud run deploy finmodel-backend-service \
           --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP} \
           --region us-east1 \
@@ -45,16 +47,17 @@ steps:
           --add-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
           --set-secrets=SECRET_KEY=_SECRET_KEY:1,DB_PASSWORD=_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1
 
-        # Step 3: Get Backend Service URL
+        echo "--- Getting Backend Service URL ---"
         BACKEND_URL=$(gcloud run services describe finmodel-backend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
+        echo "Backend URL: $BACKEND_URL"
         
-        # Step 4: Build Frontend Image using dynamic Backend URL
+        echo "--- Building Frontend Image using dynamic Backend URL ---"
         (cd ui && docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA --build-arg=REACT_APP_API_URL=$BACKEND_URL .)
         
-        # Step 5: Push Frontend Image
+        echo "--- Pushing Frontend Image ---"
         docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA
 
-        # Step 6: Deploy Frontend Service (initial)
+        echo "--- Deploying Frontend Service (initial) ---"
         gcloud run deploy finmodel-frontend-service \
           --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA \
           --region us-east1 \
@@ -62,16 +65,17 @@ steps:
           --allow-unauthenticated \
           --project financial-model-cloud
 
-        # Step 7: Get Frontend Service URL
+        echo "--- Getting Frontend Service URL ---"
         FRONTEND_URL=$(gcloud run services describe finmodel-frontend-service --region us-east1 --project financial-model-cloud --format='value(status.url)')
+        echo "Frontend URL: $FRONTEND_URL"
 
-        # Step 8: Update Backend Service with Frontend URL (and its own URL again for idempotency)
+        echo "--- Updating Backend Service with Frontend URL ---"
         gcloud run services update finmodel-backend-service \
           --region us-east1 \
           --project financial-model-cloud \
           --update-env-vars=PUBLIC_BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL
         
-        # Step 9: Update Frontend Service with Backend URL (for idempotency and explicit config)
+        echo "--- Updating Frontend Service with Backend URL ---"
         gcloud run services update finmodel-frontend-service \
           --region us-east1 \
           --project financial-model-cloud \
@@ -83,7 +87,7 @@ steps:
       - '_GOOGLE_CLIENT_ID'
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
-    waitFor: ['Push Backend Image']
+    waitFor: ['Push Backend Image'] # This step waits for backend image to be pushed
 
   - name: 'python:3.11'
     id: 'Run Alembic Migrations'
@@ -92,13 +96,31 @@ steps:
     args:
       - '-c'
       - |
+        set -e
+        echo "--- Installing Python requirements for Alembic ---"
         python3 -m pip install -r requirements.txt
+
+        echo "--- Downloading Cloud SQL Proxy ---"
         curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
         chmod +x cloud-sql-proxy
+
+        echo "--- Starting Cloud SQL Proxy ---"
         mkdir -p /cloudsql
         ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
         
-        echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
+        echo "--- Waiting for Cloud SQL Proxy to start ---"
+        for i in $(seq 1 10); do 
+          if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then 
+            echo "Cloud SQL Proxy is ready!"; 
+            break; 
+          fi; 
+          echo "Still waiting..." && sleep 10; 
+        done
+        if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then 
+          echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; 
+        fi
+
+        echo "--- Running Alembic Migrations ---"
         (/usr/local/bin/alembic current > /dev/null 2>&1 || /usr/local/bin/alembic stamp base) && /usr/local/bin/alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
