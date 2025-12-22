@@ -52,7 +52,7 @@ steps:
         echo "Backend URL: $BACKEND_URL"
         
         echo "--- Building Frontend Image using dynamic Backend URL ---"
-        (cd ui && docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA --build-arg=REACT_APP_API_URL=\$BACKEND_URL .)
+        (cd ui && docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA --build-arg=REACT_APP_API_URL="$$BACKEND_URL" .)
         
         echo "--- Pushing Frontend Image ---"
         docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA
@@ -70,16 +70,18 @@ steps:
         echo "Frontend URL: $FRONTEND_URL"
 
         echo "--- Updating Backend Service with Frontend URL ---"
+        BACKEND_ENV_VARS="PUBLIC_BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL"
         gcloud run services update finmodel-backend-service \
           --region us-east1 \
           --project financial-model-cloud \
-          --update-env-vars=PUBLIC_BACKEND_URL=\$BACKEND_URL,FRONTEND_URL=\$FRONTEND_URL
+          --update-env-vars="$BACKEND_ENV_VARS"
         
         echo "--- Updating Frontend Service with Backend URL ---"
+        FRONTEND_ENV_VARS="REACT_APP_API_URL=$BACKEND_URL"
         gcloud run services update finmodel-frontend-service \
           --region us-east1 \
           --project financial-model-cloud \
-          --update-env-vars=REACT_APP_API_URL=\$BACKEND_URL
+          --update-env-vars="$FRONTEND_ENV_VARS"
 
     secretEnv:
       - '_DB_PASSWORD'
