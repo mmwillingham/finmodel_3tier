@@ -65,7 +65,6 @@ steps:
       - 'USE_CREDENTIALS=True'
       - 'VALIDATE_CERTS=True'
       - 'CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX}'
-      - 'GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
     secretEnv:
       - '_DB_PASSWORD'
       - '_GOOGLE_CLIENT_SECRET'
@@ -141,8 +140,6 @@ availableSecrets:
       env: '_DB_PASSWORD'
     - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
       env: '_GOOGLE_CLIENT_SECRET'
-    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_ID/versions/2'
-      env: '_GOOGLE_CLIENT_ID'
     - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
       env: '_MAIL_PASSWORD'
     - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
