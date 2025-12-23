@@ -19,20 +19,6 @@ steps:
       - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Remove old secret env vars'
-    args:
-      - 'run'
-      - 'services'
-      - 'update'
-      - 'finmodel-backend-service'
-      - '--region'
-      - 'us-east1'
-      - '--project'
-      - 'financial-model-cloud'
-      - '--remove-env-vars=SECRET_KEY,DB_PASSWORD,GOOGLE_CLIENT_SECRET,MAIL_PASSWORD,GOOGLE_CLIENT_ID'
-    allowFailure: true
-
-  - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Backend Service'
     entrypoint: 'bash'
     args:
@@ -50,108 +36,73 @@ steps:
           --concurrency=80 \
           --timeout=30m \
           --traffic=100
-    env:
-      - 'DB_USER=dbadmin'
-      - 'DB_NAME=finmodel1'
-      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
-      - 'MAIL_USERNAME=${_MAIL_USERNAME}'
-      - 'MAIL_FROM=${_MAIL_FROM}'
-      - 'MAIL_PORT=${_MAIL_PORT}'
-      - 'MAIL_SERVER=${_MAIL_SERVER}'
-      - 'FRONTEND_URL=${_FRONTEND_URL}'
-      - 'PUBLIC_BACKEND_URL=${_PUBLIC_BACKEND_URL}'
-      - 'MAIL_TLS=True'
-      - 'MAIL_SSL=False'
-      - 'USE_CREDENTIALS=True'
-      - 'VALIDATE_CERTS=True'
-      - 'CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX}'
-      - 'GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
-    secretEnv:
-      - '_DB_PASSWORD'
-      - '_GOOGLE_CLIENT_SECRET'
-      - '_MAIL_PASSWORD'
-      - '_SECRET_KEY'
-    waitFor: ['Remove old secret env vars']
+    # Temporarily removed env and secretEnv to isolate the issue
 
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build Frontend Image'
-    args:
-      - 'build'
-      - '--no-cache'
-      - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-      - '--build-arg=REACT_APP_API_URL=http://localhost:8000' # Placeholder URL
-      - '.'
-    dir: 'ui'
-    waitFor: ['Deploy Backend Service']
+# Temporarily commented out frontend and alembic steps to simplify build process
+#  - name: 'gcr.io/cloud-builders/docker'
+#    id: 'Build Frontend Image'
+#    args:
+#      - 'build'
+#      - '--no-cache'
+#      - '-t'
+#      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+#      - '--build-arg=REACT_APP_API_URL=http://localhost:8000' # Placeholder URL
+#      - '.'
+#    dir: 'ui'
+#    waitFor: ['Deploy Backend Service']
 
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push Frontend Image'
-    args:
-      - 'push'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-    waitFor: ['Build Frontend Image']
+#  - name: 'gcr.io/cloud-builders/docker'
+#    id: 'Push Frontend Image'
+#    args:
+#      - 'push'
+#      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+#    waitFor: ['Build Frontend Image']
 
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Deploy Frontend Service'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'finmodel-frontend-service'
-      - '--image'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-      - '--region'
-      - 'us-east1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--project'
-      - 'financial-model-cloud'
-    waitFor: ['Push Frontend Image']
+#  - name: 'gcr.io/cloud-builders/gcloud'
+#    id: 'Deploy Frontend Service'
+#    args:
+#      - 'run'
+#      - 'deploy'
+#      - 'finmodel-frontend-service'
+#      - '--image'
+#      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+#      - '--region'
+#      - 'us-east1'
+#      - '--platform'
+#      - 'managed'
+#      - '--allow-unauthenticated'
+#      - '--project'
+#      - 'financial-model-cloud'
+#    waitFor: ['Push Frontend Image']
 
-  - name: 'python:3.11'
-    id: 'Run Alembic Migrations'
-    dir: 'api'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        python3 -m pip install -r requirements.txt
-        curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
-        chmod +x cloud-sql-proxy
-        mkdir -p /cloudsql
-        ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
-        
-        echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
-        (/usr/local/bin/alembic current > /dev/null 2>&1 || /usr/local/bin/alembic stamp base) && /usr/local/bin/alembic upgrade head
-    env:
-      - 'DB_USER=dbadmin'
-      - 'DB_NAME=finmodel1'
-      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
-    timeout: 1800s
-    secretEnv:
-      - '_DB_PASSWORD' 
+#  - name: 'python:3.11'
+#    id: 'Run Alembic Migrations'
+#    dir: 'api'
+#    entrypoint: 'bash'
+#    args:
+#      - '-c'
+#      - |
+#        python3 -m pip install -r requirements.txt
+#        curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
+#        chmod +x cloud-sql-proxy
+#        mkdir -p /cloudsql
+#        ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
+#        
+#        echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
+#        (/usr/local/bin/alembic current > /dev/null 2>&1 || /usr/local/bin/alembic stamp base) && /usr/local/bin/alembic upgrade head
+#    env:
+#      - 'DB_USER=dbadmin'
+#      - 'DB_NAME=finmodel1'
+#      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+#    timeout: 1800s
+#    secretEnv:
+#      - '_DB_PASSWORD' 
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
 
-availableSecrets:
-  secretManager:
-    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
-      env: '_DB_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
-      env: '_GOOGLE_CLIENT_SECRET'
-    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
-      env: '_MAIL_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
-      env: '_SECRET_KEY'
+# Temporarily removed availableSecrets section to simplify build process
+
 substitutions:
   _TIMESTAMP: $(date +%s)
-  _MAIL_USERNAME: 'martin.willingham@gmail.com'
-  _MAIL_FROM: 'no_reply@gmail.com'
-  _MAIL_PORT: '587'
-  _MAIL_SERVER: 'smtp.gmail.com'
-  _FRONTEND_URL: 'https://finmodel-frontend-service-526419047208.us-east1.run.app'
-  _PUBLIC_BACKEND_URL: 'https://finmodel-backend-service-526419047208.us-east1.run.app'
-  _CORS_ORIGINS_REGEX: 'https?://(localhost|127\.0\.0\.1)(:\d+)?|https?://finmodel-frontend-service-526419047208\.us-east1\.run\.app'
-  _GOOGLE_CLIENT_ID: '526419047208-tk8dkcvn20cidc8sdi6d2n3kgpg81eu6.apps.googleusercontent.com'
+  _COMMIT_SHA: $(git rev-parse HEAD)
