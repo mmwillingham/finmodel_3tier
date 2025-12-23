@@ -65,6 +65,7 @@ steps:
       - 'USE_CREDENTIALS=True'
       - 'VALIDATE_CERTS=True'
       - 'CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX}'
+      - 'GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
     secretEnv:
       - '_DB_PASSWORD'
       - '_GOOGLE_CLIENT_SECRET'
