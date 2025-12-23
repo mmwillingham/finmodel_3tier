@@ -35,7 +35,20 @@ steps:
           --memory=512Mi \
           --concurrency=80 \
           --timeout=30m \
-          --traffic=100
+          --no-traffic
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Update Backend Traffic'
+    args:
+      - 'run'
+      - 'services'
+      - 'update-traffic'
+      - 'finmodel-backend-service'
+      - '--region'
+      - 'us-east1'
+      - '--to-latest'
+      - '--project'
+      - 'financial-model-cloud'
     # Temporarily removed env and secretEnv to isolate the issue
 
 # Temporarily commented out frontend and alembic steps to simplify build process
