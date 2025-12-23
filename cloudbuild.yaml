@@ -30,7 +30,7 @@ steps:
           --platform managed \
           --allow-unauthenticated \
           --project financial-model-cloud \
-          --cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
+          --set-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
           --cpu=1 \
           --memory=512Mi \
           --concurrency=80 \
