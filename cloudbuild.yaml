@@ -147,11 +147,11 @@ availableSecrets:
       env: '_SECRET_KEY'
 substitutions:
   _TIMESTAMP: $(date +%s)
-  _MAIL_USERNAME: 'placeholder@example.com'
-  _MAIL_FROM: 'no_reply@example.com'
+  _MAIL_USERNAME: 'martin.willingham@gmail.com'
+  _MAIL_FROM: 'no_reply@gmail.com'
   _MAIL_PORT: '587'
-  _MAIL_SERVER: 'smtp.example.com'
-  _FRONTEND_URL: 'http://localhost:3000'
-  _PUBLIC_BACKEND_URL: 'http://localhost:8000'
-  _CORS_ORIGINS_REGEX: 'https?://(localhost|127\.0\.0\.1)(:\d+)?'
-  _GOOGLE_CLIENT_ID: 'your-google-client-id'
+  _MAIL_SERVER: 'smtp.gmail.com'
+  _FRONTEND_URL: 'https://finmodel-frontend-service-526419047208.us-east1.run.app'
+  _PUBLIC_BACKEND_URL: 'https://finmodel-backend-service-526419047208.us-east1.run.app'
+  _CORS_ORIGINS_REGEX: 'https?://(localhost|127\.0\.0\.1)(:\d+)?|https?://finmodel-frontend-service-526419047208\.us-east1\.run\.app'
+  _GOOGLE_CLIENT_ID: '526419047208-tk8dkcvn20cidc8sdi6d2n3kgpg81eu6.apps.googleusercontent.com'
