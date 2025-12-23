@@ -44,32 +44,30 @@ steps:
           --platform managed \
           --allow-unauthenticated \
           --project financial-model-cloud \
-          --update-env-vars=DB_USER=dbadmin \
-          --update-env-vars=DB_NAME=finmodel1 \
-          --update-env-vars=CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance \
-          --update-env-vars=MAIL_USERNAME=martin.willingham@gmail.com \
-          --update-env-vars=MAIL_FROM=no_reply@gmail.com \
-          --update-env-vars=MAIL_PORT=587 \
-          --update-env-vars=MAIL_SERVER=smtp.gmail.com \
-          --update-env-vars=MAIL_TLS=True \
-          --update-env-vars=MAIL_SSL=False \
-          --update-env-vars=USE_CREDENTIALS=True \
-          --update-env-vars=VALIDATE_CERTS=True \
-          --add-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
-          --set-secrets=SECRET_KEY=_SECRET_KEY:1 \
-          --set-secrets=DB_PASSWORD=_DB_PASSWORD:1 \
-          --set-secrets=GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2 \
-          --set-secrets=GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2 \
-          --set-secrets=MAIL_PASSWORD=_MAIL_PASSWORD:1 \
+          --cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
           --cpu=1 \
           --memory=512Mi \
           --concurrency=80 \
           --timeout=30m \
           --traffic=100
+      - 'DB_USER=dbadmin'
+      - 'DB_NAME=finmodel1'
+      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+      - 'MAIL_USERNAME=${_MAIL_USERNAME}'
+      - 'MAIL_FROM=${_MAIL_FROM}'
+      - 'MAIL_PORT=${_MAIL_PORT}'
+      - 'MAIL_SERVER=${_MAIL_SERVER}'
+      - 'FRONTEND_URL=${_FRONTEND_URL}'
+      - 'PUBLIC_BACKEND_URL=${_PUBLIC_BACKEND_URL}'
+      - 'MAIL_TLS=True'
+      - 'MAIL_SSL=False'
+      - 'USE_CREDENTIALS=True'
+      - 'VALIDATE_CERTS=True'
+      - 'CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX}'
+      - 'GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
     secretEnv:
       - '_DB_PASSWORD'
       - '_GOOGLE_CLIENT_SECRET'
-      - '_GOOGLE_CLIENT_ID'
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
     waitFor: ['Remove old secret env vars']
