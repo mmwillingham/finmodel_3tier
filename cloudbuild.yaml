@@ -60,7 +60,12 @@ steps:
           --set-secrets=DB_PASSWORD=_DB_PASSWORD:1 \
           --set-secrets=GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2 \
           --set-secrets=GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2 \
-          --set-secrets=MAIL_PASSWORD=_MAIL_PASSWORD:1
+          --set-secrets=MAIL_PASSWORD=_MAIL_PASSWORD:1 \
+          --cpu=1 \
+          --memory=512Mi \
+          --concurrency=80 \
+          --timeout=30m \
+          --traffic=100
     secretEnv:
       - '_DB_PASSWORD'
       - '_GOOGLE_CLIENT_SECRET'
