@@ -50,6 +50,7 @@ steps:
           --concurrency=80 \
           --timeout=30m \
           --traffic=100
+    env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
