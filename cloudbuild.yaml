@@ -148,3 +148,11 @@ availableSecrets:
       env: '_SECRET_KEY'
 substitutions:
   _TIMESTAMP: $(date +%s)
+  _MAIL_USERNAME: 'placeholder@example.com'
+  _MAIL_FROM: 'no_reply@example.com'
+  _MAIL_PORT: '587'
+  _MAIL_SERVER: 'smtp.example.com'
+  _FRONTEND_URL: 'http://localhost:3000'
+  _PUBLIC_BACKEND_URL: 'http://localhost:8000'
+  _CORS_ORIGINS_REGEX: 'https?://(localhost|127\.0\.0\.1)(:\d+)?'
+  _GOOGLE_CLIENT_ID: 'your-google-client-id'
