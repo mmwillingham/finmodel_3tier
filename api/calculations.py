@@ -68,13 +68,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 linked_item_type = item_dict["linked_item_type"]
                 linked_item_id = item_dict["linked_item_id"]
 
-                if linked_item_type == 'asset' and linked_item_id in assets_by_id:
-                    linked_value = assets_by_id[linked_item_id].value
-                    linked_item_resolved = True
-                elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
-                    linked_value = liabilities_by_id[linked_item_id].value
-                    linked_item_resolved = True
-                elif linked_item_type == 'income' and linked_item_id in cashflow_by_id:
+                if linked_item_type == 'income' and linked_item_id in cashflow_by_id:
                     # Check if the linked cashflow item's yearly_value is already resolved
                     linked_cf_item = cashflow_by_id.get(linked_item_id)
                     if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
@@ -157,6 +151,36 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         year_total_contributions = 0.0
         year_total_growth = 0.0
         
+        # 2.5. Dynamically calculate cash flow items linked to assets/liabilities for the current year
+        for item_dict in processed_cashflow_items:
+            if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
+                linked_item_type = item_dict["linked_item_type"]
+                linked_item_id = item_dict["linked_item_id"]
+
+                # Only process if linked to an asset or liability and its yearly_value needs update
+                if linked_item_type in ['asset', 'liability'] and item_dict["yearly_value"] == 0.0: # Re-evaluate for each year
+                    linked_value = 0.0
+                    if linked_item_type == 'asset' and linked_item_id in assets_by_id:
+                        # Get the current projected value of the asset for this year
+                        asset_name = assets_by_id[linked_item_id].name
+                        linked_value = account_balances.get(asset_name, assets_by_id[linked_item_id].value)
+                    elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
+                        # Get the current projected value of the liability for this year
+                        liability_name = liabilities_by_id[linked_item_id].name
+                        linked_value = account_balances.get(liability_name, liabilities_by_id[linked_item_id].value)
+
+                    item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
+                    print(f"DEBUG: Dynamic item {item_dict['description']} (ID: {item_dict['id']}) re-calculated for year {year}. New yearly_value: {item_dict['yearly_value']}")
+
+        # Update the monthly_contribution for cashflow accounts in combined_accounts
+        # based on newly calculated yearly_value
+        for account in combined_accounts:
+            if account["type"] in ['income', 'expense'] and account.get('id') is not None:
+                original_cf_item = cashflow_by_id.get(account["id"])
+                if original_cf_item and original_cf_item.get("linked_item_type") in ['asset', 'liability']:
+                    account["monthly_contribution"] = original_cf_item["yearly_value"] / 12
+                    print(f"DEBUG: Updated monthly_contribution for {account['name']} to {account["monthly_contribution"]}")
+
         # 2. Loop through each account to calculate its growth
         for account in combined_accounts:
             current_balance = account_balances.get(account["name"], 0.0) # Use .get for safety
