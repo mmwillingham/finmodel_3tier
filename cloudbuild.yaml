@@ -52,41 +52,41 @@ steps:
     # Temporarily removed env and secretEnv to isolate the issue
 
 # Temporarily commented out frontend and alembic steps to simplify build process
-#  - name: 'gcr.io/cloud-builders/docker'
-#    id: 'Build Frontend Image'
-#    args:
-#      - 'build'
-#      - '--no-cache'
-#      - '-t'
-#      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-#      - '--build-arg=REACT_APP_API_URL=http://localhost:8000' # Placeholder URL
-#      - '.'
-#    dir: 'ui'
-#    waitFor: ['Deploy Backend Service']
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Frontend Image'
+    args:
+      - 'build'
+      - '--no-cache'
+      - '-t'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+      - '--build-arg=REACT_APP_API_URL=https://finmodel-backend-service-msdi7jcivq-ue.a.run.app' # Use deployed backend URL
+      - '.'
+    dir: 'ui'
+    waitFor: ['Update Backend Traffic']
 
-#  - name: 'gcr.io/cloud-builders/docker'
-#    id: 'Push Frontend Image'
-#    args:
-#      - 'push'
-#      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-#    waitFor: ['Build Frontend Image']
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Frontend Image'
+    args:
+      - 'push'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+    waitFor: ['Build Frontend Image']
 
-#  - name: 'gcr.io/cloud-builders/gcloud'
-#    id: 'Deploy Frontend Service'
-#    args:
-#      - 'run'
-#      - 'deploy'
-#      - 'finmodel-frontend-service'
-#      - '--image'
-#      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
-#      - '--region'
-#      - 'us-east1'
-#      - '--platform'
-#      - 'managed'
-#      - '--allow-unauthenticated'
-#      - '--project'
-#      - 'financial-model-cloud'
-#    waitFor: ['Push Frontend Image']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Frontend Service'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'finmodel-frontend-service'
+      - '--image'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:$_COMMIT_SHA'
+      - '--region'
+      - 'us-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--project'
+      - 'financial-model-cloud'
+    waitFor: ['Push Frontend Image']
 
 #  - name: 'python:3.11'
 #    id: 'Run Alembic Migrations'
