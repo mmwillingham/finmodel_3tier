@@ -67,10 +67,10 @@ class Settings(BaseSettings):
         # Set default Cloud Run URLs if environment variables are not provided
         if self.PUBLIC_BACKEND_URL is None:
             # K_SERVICE_URL is provided by Cloud Run for the service's public URL
-            self.PUBLIC_BACKEND_URL = os.environ.get("K_SERVICE_URL", "http://localhost:8000")
+            self.PUBLIC_BACKEND_URL = os.environ.get("K_SERVICE", "http://localhost:8000")
         if self.FRONTEND_URL is None:
             # Fallback to local for dev, or Cloud Run's environment will need to set it.
-            self.FRONTEND_URL = os.environ.get("FRONTEND_SERVICE_URL", "http://localhost:3000")
+            self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 # Instantiate the settings object once to be imported everywhere
 settings = Settings()
