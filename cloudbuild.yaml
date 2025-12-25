@@ -41,7 +41,7 @@ steps:
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
     secretEnv:
-      - '_DB_PASSWORD'
+      - 'DB_PASSWORD'
       - '_GOOGLE_CLIENT_SECRET'
       - '_MAIL_PASSWORD'
       - '_SECRET_KEY'
@@ -116,7 +116,7 @@ steps:
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
     timeout: 1800s
     secretEnv:
-      - '_DB_PASSWORD' 
+      - 'DB_PASSWORD' 
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
@@ -124,7 +124,7 @@ options:
 availableSecrets:
   secretManager:
     - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
-      env: '_DB_PASSWORD'
+      env: 'DB_PASSWORD'
     - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
       env: '_GOOGLE_CLIENT_SECRET'
     - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
