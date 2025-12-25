@@ -36,6 +36,27 @@ steps:
           --concurrency=80 \
           --timeout=30m \
           --no-traffic
+    env:
+      - 'DB_USER=dbadmin'
+      - 'DB_NAME=finmodel1'
+      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+      - 'MAIL_USERNAME=${_MAIL_USERNAME}'
+      - 'MAIL_FROM=${_MAIL_FROM}'
+      - 'MAIL_PORT=${_MAIL_PORT}'
+      - 'MAIL_SERVER=${_MAIL_SERVER}'
+      - 'FRONTEND_URL=${_FRONTEND_URL}'
+      - 'PUBLIC_BACKEND_URL=${_PUBLIC_BACKEND_URL}'
+      - 'MAIL_TLS=True'
+      - 'MAIL_SSL=False'
+      - 'USE_CREDENTIALS=True'
+      - 'VALIDATE_CERTS=True'
+      - 'CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX}'
+      - 'GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
+    secretEnv:
+      - '_DB_PASSWORD'
+      - '_GOOGLE_CLIENT_SECRET'
+      - '_MAIL_PASSWORD'
+      - '_SECRET_KEY'
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Update Backend Traffic'
@@ -49,9 +70,7 @@ steps:
       - '--to-latest'
       - '--project'
       - 'financial-model-cloud'
-    # Temporarily removed env and secretEnv to isolate the issue
 
-# Temporarily commented out frontend and alembic steps to simplify build process
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Frontend Image'
     args:
@@ -109,13 +128,29 @@ steps:
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
     timeout: 1800s
     secretEnv:
-      - '_DB_PASSWORD'
+      - '_DB_PASSWORD' 
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
 
-# Temporarily removed availableSecrets section to simplify build process
-
+availableSecrets:
+  secretManager:
+    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
+      env: '_DB_PASSWORD'
+    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
+      env: '_GOOGLE_CLIENT_SECRET'
+    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
+      env: '_MAIL_PASSWORD'
+    - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
+      env: '_SECRET_KEY'
 substitutions:
   _TIMESTAMP: $(date +%s)
   _COMMIT_SHA: $(git rev-parse HEAD)
+  _MAIL_USERNAME: 'martin.willingham@gmail.com'
+  _MAIL_FROM: 'no_reply@gmail.com'
+  _MAIL_PORT: '587'
+  _MAIL_SERVER: 'smtp.gmail.com'
+  _FRONTEND_URL: 'https://finmodel-frontend-service-526419047208.us-east1.run.app'
+  _PUBLIC_BACKEND_URL: 'https://finmodel-backend-service-526419047208.us-east1.run.app'
+  _CORS_ORIGINS_REGEX: 'https?://(localhost|127\.0\.0\.1)(:\d+)?|https?://finmodel-frontend-service-526419047208\.us-east1\.run\.app'
+  _GOOGLE_CLIENT_ID: '526419047208-tk8dkcvn20cidc8sdi6d2n3kgpg81eu6.apps.googleusercontent.com'
