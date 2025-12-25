@@ -35,7 +35,9 @@ steps:
           --memory=512Mi \
           --concurrency=80 \
           --timeout=30m \
-          --no-traffic
+          --no-traffic \
+          --set-secrets=DB_PASSWORD=_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,SECRET_KEY=_SECRET_KEY:1 \
+          --set-secrets=DB_PASSWORD=_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,SECRET_KEY=_SECRET_KEY:1
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
