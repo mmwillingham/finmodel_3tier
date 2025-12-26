@@ -105,9 +105,10 @@ steps:
         ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
         
         echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
-        DB_PASSWORD=INSECURE_TEMPORARY_PASSWORD_FOR_MIGRATIONS alembic upgrade head
+        alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
+      - 'DB_PASSWORD=INSECURE_TEMPORARY_PASSWORD_FOR_MIGRATIONS' # TEMPORARY: WILL BE REPLACED WITH SECURE METHOD
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
     timeout: 1800s
