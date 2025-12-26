@@ -6,7 +6,7 @@ steps:
       - '--no-cache'
       - '--pull'
       - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP}'
+      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${_COMMIT_SHA}-${_TIMESTAMP}'
       - 'api'
       - '--build-arg'
       - 'CACHEBUSTER=${_TIMESTAMP}'
@@ -16,7 +16,7 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP}'
+      - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${_COMMIT_SHA}-${_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Backend Service'
@@ -25,7 +25,7 @@ steps:
       - '-c'
       - |
         gcloud run deploy finmodel-backend-service \
-          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:$_COMMIT_SHA-${_TIMESTAMP} \
+          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${_COMMIT_SHA}-${_TIMESTAMP} \
           --region us-east1 \
           --platform managed \
           --allow-unauthenticated \
@@ -35,16 +35,12 @@ steps:
           --memory=512Mi \
           --concurrency=80 \
           --timeout=30m \
-          --no-traffic
+          --no-traffic \
+          --update-secrets=DB_PASSWORD=projects/financial-model-cloud/secrets/_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET:2,MAIL_PASSWORD=projects/financial-model-cloud/secrets/_MAIL_PASSWORD:1,SECRET_KEY=projects/financial-model-cloud/secrets/_SECRET_KEY:1
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
-    secretEnv:
-      - '_DB_PASSWORD'
-      - '_GOOGLE_CLIENT_SECRET'
-      - '_MAIL_PASSWORD'
-      - '_SECRET_KEY'
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Update Backend Traffic'
@@ -109,27 +105,13 @@ steps:
         ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
         
         echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
-        DB_PASSWORD=INSECURE_TEMPORARY_PASSWORD_FOR_MIGRATIONS alembic upgrade head
+        alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
-      - 'DB_PASSWORD=INSECURE_TEMPORARY_PASSWORD_FOR_MIGRATIONS' # TEMPORARY: WILL BE REPLACED WITH SECURE METHOD
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+      - 'DB_PASSWORD=INSECURE_TEMPORARY_PASSWORD_FOR_MIGRATIONS' # TEMPORARY: WILL BE REPLACED WITH SECURE METHOD
     timeout: 1800s
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
-
-availableSecrets:
-  secretManager:
-    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
-      env: '_DB_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
-      env: '_GOOGLE_CLIENT_SECRET'
-    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
-      env: '_MAIL_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
-      env: '_SECRET_KEY'
-substitutions:
-  _TIMESTAMP: $(date +%s)
-  _COMMIT_SHA: $(git rev-parse HEAD)
