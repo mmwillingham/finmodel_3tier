@@ -179,7 +179,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 original_cf_item = cashflow_by_id.get(account["id"])
                 if original_cf_item and original_cf_item.get("linked_item_type") in ['asset', 'liability']:
                     account["monthly_contribution"] = original_cf_item["yearly_value"] / 12
-                    print(f"DEBUG: Updated monthly_contribution for {account['name']} to {account["monthly_contribution"]}")
+                    print(f"DEBUG: Updated monthly_contribution for {account['name']} to {account['monthly_contribution']}")
 
         # 2. Loop through each account to calculate its growth
         for account in combined_accounts:
