@@ -158,7 +158,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 linked_item_id = item_dict["linked_item_id"]
 
                 # Only process if linked to an asset or liability and its yearly_value needs update
-                if linked_item_type in ['asset', 'liability'] and item_dict["yearly_value"] == 0.0: # Re-evaluate for each year
+                if linked_item_type in ['asset', 'liability']: # Re-evaluate for each year
                     linked_value = 0.0
                     if linked_item_type == 'asset' and linked_item_id in assets_by_id:
                         # Get the current projected value of the asset for this year
