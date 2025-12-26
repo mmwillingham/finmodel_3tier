@@ -116,9 +116,3 @@ availableSecrets:
   secretManager:
     - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
       env: '_DB_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
-      env: '_GOOGLE_CLIENT_SECRET'
-    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
-      env: '_MAIL_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
-      env: '_SECRET_KEY'
