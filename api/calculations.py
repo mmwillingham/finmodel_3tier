@@ -19,6 +19,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     all_cashflow_items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == owner_id).all()
 
     print(f"DEBUG: Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
+    print(f"DEBUG: Assets by ID: {json.dumps({k: v.__dict__ for k, v in assets_by_id.items()}, indent=2)}")
+    print(f"DEBUG: Liabilities by ID: {json.dumps({k: v.__dict__ for k, v in liabilities_by_id.items()}, indent=2)}")
 
     # Create lookup dictionaries for quick access
     assets_by_id = {asset.id: asset for asset in all_assets}
@@ -81,7 +83,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
                 
-                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
+                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Percentage: {item_dict.get("percentage")}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
 
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
@@ -135,6 +137,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             existing_account_names.add(cf_acc["name"])
 
     print(f"DEBUG: Combined accounts for main projection loop: {json.dumps(combined_accounts, indent=2)}")
+    print(f"DEBUG: Initial account balances: {json.dumps(account_balances, indent=2)}")
 
     # Initialize separate running balances for each account
     account_balances = {
@@ -214,6 +217,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         asset_name = assets_by_id[linked_item_id].name
                         # Use current_year_balances for the most up-to-date asset value for the current year
                         linked_value = current_year_balances.get(asset_name, assets_by_id[linked_item_id].value)
+                    print(f"DEBUG: Year {year}, Phase 2: Dynamic item {item_dict['description']} linked to asset {asset_name} (ID: {linked_item_id}), Linked Value used: {linked_value}")
                     elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
                         liability_name = liabilities_by_id[linked_item_id].name
                         # Use current_year_balances for the most up-to-date liability value for the current year
@@ -232,7 +236,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 original_cf_item = cashflow_by_id.get(account["id"])
                 if original_cf_item and original_cf_item.get("linked_item_type") in ['asset', 'liability']:
                     account["monthly_contribution"] = original_cf_item["yearly_value"] / 12
-                    print(f"DEBUG: Updated monthly_contribution for {account['name']} to {account['monthly_contribution']}")
+                    print(f"DEBUG: Year {year}, Phase 3: Updated monthly_contribution for {account['name']} (ID: {account['id']}) to {account['monthly_contribution']} based on yearly_value {original_cf_item["yearly_value"]}")
+            print(f"DEBUG: Year {year}, Phase 3: Account {account["name"]}, Monthly Contribution: {monthly_contribution}, Adjusted Annual Contribution: {adjusted_annual_contribution}")
         
             # Now that monthly_contribution is finalized for all, recalculate adjusted_annual_contribution
             monthly_contribution = account.get("monthly_contribution", 0.0)
@@ -274,6 +279,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         yearly_record["Total_Growth"] = year_total_growth
         yearly_record["Total_Value"] = current_year_total_value
 
+        print(f"DEBUG: Year {year} Final Yearly Record: {json.dumps(yearly_record, indent=2)}")
         yearly_results.append(yearly_record)
         previous_year_total_value = current_year_total_value
     # ----------------------------------------------------------------------
