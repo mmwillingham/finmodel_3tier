@@ -36,16 +36,11 @@ steps:
           --concurrency=80 \
           --timeout=30m \
           --no-traffic \
-          --update-secrets=DB_PASSWORD=projects/financial-model-cloud/secrets/_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET:2,MAIL_PASSWORD=projects/financial-model-cloud/secrets/_MAIL_PASSWORD:1,SECRET_KEY=projects/financial-model-cloud/secrets/_SECRET_KEY:1
+          --set-secrets=DB_PASSWORD=projects/financial-model-cloud/secrets/_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET:2,MAIL_PASSWORD=projects/financial-model-cloud/secrets/_MAIL_PASSWORD:1,SECRET_KEY=projects/financial-model-cloud/secrets/_SECRET_KEY:1
     env:
       - 'DB_USER=dbadmin'
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
-    secretEnv:
-      - 'DB_PASSWORD'
-      - 'GOOGLE_CLIENT_SECRET'
-      - 'MAIL_PASSWORD'
-      - 'SECRET_KEY'
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Update Backend Traffic'
@@ -122,16 +117,6 @@ steps:
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
 
-availableSecrets:
-  secretManager:
-    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
-      env: 'DB_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET/versions/2'
-      env: 'GOOGLE_CLIENT_SECRET'
-    - versionName: 'projects/financial-model-cloud/secrets/_MAIL_PASSWORD/versions/1'
-      env: 'MAIL_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_SECRET_KEY/versions/1'
-      env: 'SECRET_KEY'
 substitutions:
   _TIMESTAMP: $(date +%s)
   _COMMIT_SHA: $(git rev-parse HEAD)
