@@ -114,7 +114,8 @@ steps:
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
+  dynamicSubstitutions: true
 
 substitutions:
-  _TIMESTAMP: $(date +%s)
-  _COMMIT_SHA: $(git rev-parse HEAD)
+  _TIMESTAMP: '_TIMESTAMP'
+  _COMMIT_SHA: '_COMMIT_SHA'
