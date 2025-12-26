@@ -1,3 +1,5 @@
+# api/calculations.py
+
 import pandas as pd
 import json
 from typing import List, Optional
@@ -17,8 +19,6 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     all_cashflow_items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == owner_id).all()
 
     print(f"DEBUG: Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
-    print(f"DEBUG: Assets by ID: {json.dumps({k: v.__dict__ for k, v in assets_by_id.items()}, indent=2)}")
-    print(f"DEBUG: Liabilities by ID: {json.dumps({k: v.__dict__ for k, v in liabilities_by_id.items()}, indent=2)}")
 
     # Create lookup dictionaries for quick access
     assets_by_id = {asset.id: asset for asset in all_assets}
@@ -81,7 +81,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
                 
-                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Percentage: {item_dict.get('percentage')}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
+                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
 
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
@@ -91,7 +91,6 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         print(f"DEBUG: Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
         
     print(f"DEBUG: Final processed cashflow items after iterative resolution: {json.dumps(processed_cashflow_items, indent=2)}")
-    print(f"DEBUG: Final cashflow accounts for projection: {json.dumps(final_cashflow_accounts, indent=2)}")
 
     # After resolution, convert CashFlowItems to an account-like structure for projection
     final_cashflow_accounts = []
@@ -136,7 +135,6 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             existing_account_names.add(cf_acc["name"])
 
     print(f"DEBUG: Combined accounts for main projection loop: {json.dumps(combined_accounts, indent=2)}")
-    print(f"DEBUG: Initial account balances: {json.dumps(account_balances, indent=2)}")
 
     # Initialize separate running balances for each account
     account_balances = {
@@ -154,133 +152,90 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # ----------------------------------------------------------------------
     # Main Projection Loop
     for year in range(1, years + 1):
-
+        
+        # Calculate starting value (previous year's ending value, or initial balances for year 1)
         starting_value = previous_year_total_value
-
+        
         yearly_record = {
-            "Year": year,
+            "Year": year, 
             "StartingValue": starting_value,
         }
         current_year_total_value = 0.0
         year_total_contributions = 0.0
         year_total_growth = 0.0
-
-        # Create a copy of account_balances to work with for the current year's calculations.
-        # This allows us to update asset/liability balances before calculating dynamic cash flow items
-        # based on these updated values.
-        current_year_balances = account_balances.copy()
-
-        # Phase 1: Project balances for all accounts (assets, liabilities, and static income/expense)
-        # This updates current_year_balances with the projected values for the current year.
-        for account in combined_accounts:
-            current_balance = account_balances.get(account["name"], 0.0)
-
-            rate_from_schema = account.get('annual_increase_percent', 0.0) / 100.0
-            change_type = account.get('annual_change_type', 'increase')
-
-            effective_rate = rate_from_schema
-            if change_type == "decrease":
-                effective_rate = -effective_rate
-
-            # For assets and liabilities, consider their existing monthly_contribution.
-            # For income/expense accounts, their monthly_contribution will be fully determined
-            # after dynamic calculations in Phase 2/3.
-            monthly_contribution = account.get("monthly_contribution", 0.0)
-            adjusted_annual_contribution = monthly_contribution * 12
-
-            if account["type"] == "liability" or account["type"] == "expense":
-                adjusted_annual_contribution = -abs(adjusted_annual_contribution)
-            elif account["type"] == "income":
-                adjusted_annual_contribution = abs(adjusted_annual_contribution)
-
-            # Calculate growth based on the previous year's ending balance and current year's contributions
-            growth_on_balance = current_balance * effective_rate
-            growth_on_contributions = adjusted_annual_contribution * effective_rate * 0.5
-
-            # Update the balance in the temporary current_year_balances for assets and liabilities.
-            # This updated value will be used for dynamic cash flow calculations in Phase 2.
-            # For cash flow accounts, this balance will be finalized in Phase 3.
-            new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
-            current_year_balances[account["name"]] = new_balance
-            print(f"DEBUG: Year {year}, Phase 1: Account {account['name']}, New Current Year Balance: {new_balance}")
-
-        # Phase 2: Dynamically calculate cash flow items linked to assets/liabilities for the current year.
-        # This phase now uses the *current_year_balances* calculated in Phase 1.
+        
+        # 2.5. Dynamically calculate cash flow items linked to assets/liabilities for the current year
         for item_dict in processed_cashflow_items:
             if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
                 linked_item_type = item_dict["linked_item_type"]
                 linked_item_id = item_dict["linked_item_id"]
 
+                # Only process if linked to an asset or liability and its yearly_value needs update
                 if linked_item_type in ['asset', 'liability']: # Re-evaluate for each year
                     linked_value = 0.0
                     if linked_item_type == 'asset' and linked_item_id in assets_by_id:
+                        # Get the current projected value of the asset for this year
                         asset_name = assets_by_id[linked_item_id].name
-                        # Use current_year_balances for the most up-to-date asset value for the current year
-                        linked_value = current_year_balances.get(asset_name, assets_by_id[linked_item_id].value)
-                        print(f"DEBUG: Year {year}, Phase 2: Dynamic item {item_dict['description']} linked to asset {asset_name} (ID: {linked_item_id}), Linked Value used: {linked_value}")
+                        linked_value = account_balances.get(asset_name, assets_by_id[linked_item_id].value)
                     elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
+                        # Get the current projected value of the liability for this year
                         liability_name = liabilities_by_id[linked_item_id].name
-                        # Use current_year_balances for the most up-to-date liability value for the current year
-                        linked_value = current_year_balances.get(liability_name, liabilities_by_id[linked_item_id].value)
-                        print(f"DEBUG: Year {year}, Phase 2: Dynamic item {item_dict['description']} linked to liability {liability_name} (ID: {linked_item_id}), Linked Value used: {linked_value}")
+                        linked_value = account_balances.get(liability_name, liabilities_by_id[linked_item_id].value)
 
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
                     print(f"DEBUG: Dynamic item {item_dict['description']} (ID: {item_dict['id']}) re-calculated for year {year}. New yearly_value: {item_dict['yearly_value']}")
 
-        # Phase 3: Update the monthly_contribution for cashflow accounts in combined_accounts
-        #          based on newly calculated yearly_value from Phase 2.
-        #          Then, finalize the yearly record and update overall totals.
+        # Update the monthly_contribution for cashflow accounts in combined_accounts
+        # based on newly calculated yearly_value
         for account in combined_accounts:
-            current_balance = account_balances.get(account["name"], 0.0) # Start from previous year's end balance
-
             if account["type"] in ['income', 'expense'] and account.get('id') is not None:
                 original_cf_item = cashflow_by_id.get(account["id"])
                 if original_cf_item and original_cf_item.get("linked_item_type") in ['asset', 'liability']:
                     account["monthly_contribution"] = original_cf_item["yearly_value"] / 12
-                    print(f"DEBUG: Year {year}, Phase 3: Updated monthly_contribution for {account['name']} (ID: {account['id']}) to {account['monthly_contribution']} based on yearly_value {original_cf_item["yearly_value"]}")
-        
-            # Now that monthly_contribution is finalized for all, recalculate adjusted_annual_contribution
-            monthly_contribution = account.get("monthly_contribution", 0.0)
-            adjusted_annual_contribution = monthly_contribution * 12
+                    print(f"DEBUG: Updated monthly_contribution for {account['name']} to {account['monthly_contribution']}")
 
-            if account["type"] == "liability" or account["type"] == "expense":
-                adjusted_annual_contribution = -abs(adjusted_annual_contribution)
-            elif account["type"] == "income":
-                adjusted_annual_contribution = abs(adjusted_annual_contribution)
+        # 2. Loop through each account to calculate its growth
+        for account in combined_accounts:
+            current_balance = account_balances.get(account["name"], 0.0) # Use .get for safety
 
-            # Accumulate totals
-            total_contribution += adjusted_annual_contribution
-            year_total_contributions += adjusted_annual_contribution
-
-            # Recalculate growth with finalized contributions for this account
+            # --- CALCULATE GROWTH ---
+            # Determine the effective rate based on annual_change_type
             rate_from_schema = account.get('annual_increase_percent', 0.0) / 100.0
             change_type = account.get('annual_change_type', 'increase')
-
+            
             effective_rate = rate_from_schema
             if change_type == "decrease":
                 effective_rate = -effective_rate
+            
+            # Adjust annual_contribution for liabilities/expenses: contributions decrease the balance
+            # For cash flow items, monthly_contribution is already a yearly value if frequency was "yearly"
+            monthly_contribution = account.get("monthly_contribution", 0.0)
+            adjusted_annual_contribution = monthly_contribution * 12 # This is where monthly is converted to yearly.
+            
+            if account["type"] == "liability" or account["type"] == "expense":
+                adjusted_annual_contribution = -abs(adjusted_annual_contribution) # Contributions/expenses reduce balance
+            elif account["type"] == "income":
+                adjusted_annual_contribution = abs(adjusted_annual_contribution) # Income adds to balance
 
-            growth_on_balance = current_balance * effective_rate
-            growth_on_contributions = adjusted_annual_contribution * effective_rate * 0.5
+            total_contribution += adjusted_annual_contribution
+            year_total_contributions += adjusted_annual_contribution
+            
+            # Simple compounded growth
+            growth_on_balance = current_balance * effective_rate 
+            growth_on_contributions = adjusted_annual_contribution * effective_rate * 0.5 
             year_total_growth += growth_on_balance + growth_on_contributions
-
-            # Final new balance for the account for this year
+            
+            # Update balance and add account value to record
             new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
-            if account["type"] in ['asset', 'liability']:
-                account_balances[account["name"]] = new_balance # Update for next year's starting balance
-                yearly_record[f"{account['name']}_Value"] = new_balance
-            else: # For 'income' or 'expense'
-                # For income/expense, the 'value' in the chart is the annual flow, not a cumulative balance
-                yearly_record[f"{account['name']}_Value"] = adjusted_annual_contribution
-                print(f"DEBUG: Year {year}, Phase 3: Setting {account['name']}_Value to Annual Flow: {adjusted_annual_contribution}")
+            account_balances[account["name"]] = new_balance
+            yearly_record[f"{account['name']}_Value"] = new_balance
             current_year_total_value += new_balance
-
+        
         # Add totals to yearly record
         yearly_record["Total_Contribution"] = year_total_contributions
         yearly_record["Total_Growth"] = year_total_growth
         yearly_record["Total_Value"] = current_year_total_value
-
-        print(f"DEBUG: Year {year} Final Yearly Record: {json.dumps(yearly_record, indent=2)}")
+        
         yearly_results.append(yearly_record)
         previous_year_total_value = current_year_total_value
     # ----------------------------------------------------------------------
