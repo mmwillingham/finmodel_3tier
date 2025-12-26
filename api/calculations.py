@@ -83,7 +83,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
                 
-                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Percentage: {item_dict.get("percentage")}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
+                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Percentage: {item_dict.get('percentage')}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
 
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
