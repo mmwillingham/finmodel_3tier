@@ -36,11 +36,8 @@ steps:
           --concurrency=80 \
           --timeout=30m \
           --no-traffic \
+          --update-env-vars=DB_USER=dbadmin,DB_NAME=finmodel1,CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance,MAIL_USERNAME=martin.willingham@gmail.com,MAIL_FROM=no_reply@gmail.com,MAIL_PORT=587,MAIL_SERVER=smtp.gmail.com,FRONTEND_URL=https://finmodel-frontend-service-526419047208.us-east1.run.app,PUBLIC_BACKEND_URL=https://finmodel-backend-service-526419047208.us-east1.run.app,MAIL_TLS=True,MAIL_SSL=False,USE_CREDENTIALS=True,VALIDATE_CERTS=True,CORS_ORIGINS_REGEX=.*,GOOGLE_CLIENT_ID=526419047208-tk8dkcvn20cidc8sdi6d2n3kgpg81eu6.apps.googleusercontent.com \
           --set-secrets=DB_PASSWORD=projects/financial-model-cloud/secrets/_DB_PASSWORD:1,GOOGLE_CLIENT_SECRET=projects/financial-model-cloud/secrets/_GOOGLE_CLIENT_SECRET:2,MAIL_PASSWORD=projects/financial-model-cloud/secrets/_MAIL_PASSWORD:1,SECRET_KEY=projects/financial-model-cloud/secrets/_SECRET_KEY:1
-    env:
-      - 'DB_USER=dbadmin'
-      - 'DB_NAME=finmodel1'
-      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Update Backend Traffic'
@@ -105,17 +102,17 @@ steps:
         ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
         
         echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
-        DB_PASSWORD=INSECURE_TEMPORARY_PASSWORD_FOR_MIGRATIONS alembic upgrade head
+        alembic upgrade head
     env:
       - 'DB_USER=dbadmin'
+      - 'DB_PASSWORD=INSECURE_TEMPORARY_PASSWORD_FOR_MIGRATIONS' # TEMPORARY: WILL BE REPLACED WITH SECURE METHOD
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
     timeout: 1800s
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
-  dynamicSubstitutions: true
 
 substitutions:
-  _TIMESTAMP: '_TIMESTAMP'
-  _COMMIT_SHA: '_COMMIT_SHA'
+  _TIMESTAMP: $(date +%s)
+  _COMMIT_SHA: $(git rev-parse HEAD)
