@@ -261,8 +261,12 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
 
             # Final new balance for the account for this year
             new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
-            account_balances[account["name"]] = new_balance # Update for next year's starting balance
-            yearly_record[f"{account['name']}_Value"] = new_balance
+            if account["type"] in ['asset', 'liability']:
+                account_balances[account["name"]] = new_balance # Update for next year's starting balance
+                yearly_record[f"{account['name']}_Value"] = new_balance
+            else: # For 'income' or 'expense'
+                # For income/expense, the 'value' in the chart is the annual flow, not a cumulative balance
+                yearly_record[f"{account['name']}_Value"] = adjusted_annual_contribution
             current_year_total_value += new_balance
 
         # Add totals to yearly record
