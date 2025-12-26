@@ -110,13 +110,26 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Combine original accounts with processed cash flow items
     # Ensure 'accounts' passed in are already Pydantic models or similar dicts
     # Convert incoming Pydantic AccountSchema objects to dicts for mutable list
-    combined_accounts = [acc.model_dump() if hasattr(acc, 'model_dump') else acc for acc in accounts]
+    # Start by including all assets and liabilities from the database to ensure their values are tracked
+    combined_accounts = []
+    for asset in all_assets:
+        combined_accounts.append({"name": asset.name, "initial_balance": asset.value, "type": "asset", "annual_increase_percent": asset.annual_increase_percent, "annual_change_type": asset.annual_change_type, "id": asset.id})
+    for liability in all_liabilities:
+        combined_accounts.append({"name": liability.name, "initial_balance": liability.value, "type": "liability", "annual_increase_percent": liability.annual_increase_percent, "annual_change_type": liability.annual_change_type, "id": liability.id})
+
+    # Then, add incoming 'accounts' from the frontend, avoiding duplicates with existing assets/liabilities
+    existing_names = {acc["name"] for acc in combined_accounts}
+    for acc in accounts:
+        acc_dict = acc.model_dump() if hasattr(acc, 'model_dump') else acc
+        if acc_dict["name"] not in existing_names:
+            combined_accounts.append(acc_dict)
+            existing_names.add(acc_dict["name"])
     
     # Filter out cashflow_items that are already in `accounts` from `combined_accounts`
     # This scenario would happen if a cashflow item is sent by the frontend as part of `accounts`
     # We prioritize the dynamically calculated value, so we'll ensure no duplicates.
-    existing_account_names = {acc["name"] for acc in combined_accounts}
-    for cf_acc in final_cashflow_accounts:
+    existing_account_names = {acc["name"] for acc in combined_accounts} # Re-initialize after adding assets/liabilities and initial accounts
+    for cf_acc in final_cashflow_accounts: # Now add cashflow items
         if cf_acc["name"] not in existing_account_names:
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
