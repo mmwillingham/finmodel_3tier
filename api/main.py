@@ -522,6 +522,33 @@ def update_projection(
     db.refresh(projection)
     return projection
 
+@app.post("/debug-projection-calc", tags=["debug"], summary="Debug: Directly run projection calculation")
+def debug_run_projection_calculation(
+    projection_data: schemas.ProjectionRequest,
+    db: Session = Depends(database.get_db),
+    # Temporarily bypass current_user dependency for simpler local testing
+    # current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    print("DEBUG (main.py): Received request for /debug-projection-calc. Calling calculate_projection.")
+    # For local debugging, we'll use a hardcoded owner_id.
+    # In a real scenario, you'd get this from an authenticated user.
+    # Replace `1` with an actual owner_id from your local database if needed for specific tests.
+    test_owner_id = 2 # Assuming user_id 2 exists in your local DB for testing
+
+    try:
+        projection_results = calculations.calculate_projection(
+            years=projection_data.years,
+            accounts=projection_data.accounts,
+            db=db,
+            owner_id=test_owner_id # Using a test owner ID for direct debugging
+        )
+        print("DEBUG (main.py): calculate_projection returned successfully.")
+        return projection_results
+    except Exception as e:
+        print(f"ERROR (main.py): Error during /debug-projection-calc: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Debug projection calculation failed: {e}")
+
 @app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
 def delete_projection(
     projection_id: int,

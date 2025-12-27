@@ -2,34 +2,28 @@
 
 import pandas as pd
 import json
-import logging # Import logging module
+import logging
 from typing import List, Optional
 from sqlalchemy.orm import Session
-import models # Adjust import for models
+import models
 
-logger = logging.getLogger(__name__) # Initialize logger
+logger = logging.getLogger(__name__)
 
 def calculate_projection(years: int, accounts: list, db: Session, owner_id: int) -> dict:
-    """
-    Calculates the financial projection, tracking balances for each account yearly.
-    Includes dynamic calculation of cash flow items linked to other assets/income/expenses.
-    """
-    logger.debug(f"ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id}")
-    
+    print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---") # Prominent print
+
     # 1. Fetch all relevant items for the owner
     all_assets = db.query(models.Asset).filter(models.Asset.owner_id == owner_id).all()
     all_liabilities = db.query(models.Liability).filter(models.Liability.owner_id == owner_id).all()
     all_cashflow_items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == owner_id).all()
 
-    logger.debug(f"Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
+    print(f"DEBUG: Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
+    print(f"DEBUG: All CashFlow Items fetched: {all_cashflow_items}") # Print raw cashflow items
 
     # Create lookup dictionaries for quick access
     assets_by_id = {asset.id: asset for asset in all_assets}
     liabilities_by_id = {liability.id: liability for liability in all_liabilities}
     
-    # Create a mutable copy of cashflow items to work with
-    # Initialize a temporary yearly_value for all cashflow items based on their stored value
-    # Dynamic items will have their yearly_value updated later
     processed_cashflow_items = []
     for item in all_cashflow_items:
         item_copy = {
@@ -50,38 +44,31 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "end_date": item.end_date,
             "taxable": item.taxable,
             "tax_deductible": item.tax_deductible,
-            "created_at": str(item.created_at), # Convert datetime to string
+            "created_at": str(item.created_at),
         }
         if not item_copy.get("linked_item_id") and not item_copy.get("linked_item_type") and item_copy.get("percentage") is None:
-            # For static items, yearly_value is already stored
-            pass # No change needed, yearly_value is already loaded from DB
+            pass
         else:
-            # Mark dynamic items to be resolved
-            item_copy["yearly_value"] = 0.0 # Temporarily set to 0, will be calculated
+            item_copy["yearly_value"] = 0.0
         processed_cashflow_items.append(item_copy)
 
-    # Convert to dictionary for easy lookup and modification
     cashflow_by_id = {item["id"]: item for item in processed_cashflow_items}
 
-    logger.debug("Initial processed cashflow items: " + str(processed_cashflow_items))
+    print("DEBUG: Initial processed cashflow items: " + str(processed_cashflow_items))
 
-    # 2. Iteratively resolve dynamic CashFlowItems
-    # This loop will ensure that items dependent on other cashflow items are calculated
-    # in the correct order. It will continue until no more items can be resolved in a pass.
-    resolved_count = -1 # Initialize to -1 to enter the loop at least once
-    max_passes = len(processed_cashflow_items) * 2 # Safety break for circular dependencies
+    resolved_count = -1
+    max_passes = len(processed_cashflow_items) * 2
 
     current_pass = 0
     while resolved_count != 0 and current_pass < max_passes:
         resolved_count = 0
-        logger.debug(f"Starting pass {current_pass + 1} for dynamic item resolution.")
+        print(f"DEBUG: Starting pass {current_pass + 1} for dynamic item resolution.")
         for item_dict in processed_cashflow_items:
             if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
-                logger.debug(f"Processing dynamic item: {item_dict['description']} (ID: {item_dict['id']})")
+                print(f"DEBUG: Processing dynamic item: {item_dict['description']} (ID: {item_dict['id']})")
                 
-                # If yearly_value is already calculated, skip
                 if item_dict["yearly_value"] != 0.0:
-                    logger.debug(f"Item {item_dict['description']} already resolved with yearly_value: {item_dict['yearly_value']}")
+                    print(f"DEBUG: Item {item_dict['description']} already resolved with yearly_value: {item_dict['yearly_value']}")
                     continue
 
                 linked_value = 0.0
@@ -91,13 +78,11 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 linked_item_id = item_dict["linked_item_id"]
 
                 if linked_item_type == 'income' and linked_item_id in cashflow_by_id:
-                    # Check if the linked cashflow item's yearly_value is already resolved
                     linked_cf_item = cashflow_by_id.get(linked_item_id)
                     if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
                 elif linked_item_type == 'expense' and linked_item_id in cashflow_by_id:
-                    # Check if the linked cashflow item's yearly_value is already resolved
                     linked_cf_item = cashflow_by_id.get(linked_item_id)
                     if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
                         linked_value = linked_cf_item["yearly_value"]
@@ -105,44 +90,39 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 elif linked_item_type == 'asset' and linked_item_id in assets_by_id:
                     linked_asset = assets_by_id.get(linked_item_id)
                     if linked_asset:
-                        linked_value = linked_asset.value # Use the initial value of the asset
+                        linked_value = linked_asset.value
                         linked_item_resolved = True
                 elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
                     linked_liability = liabilities_by_id.get(linked_item_id)
                     if linked_liability:
-                        linked_value = linked_liability.value # Use the initial value of the liability
+                        linked_value = linked_liability.value
                         linked_item_resolved = True
                 
-                logger.debug("Linked item type: " + str(linked_item_type) + ", ID: " + str(linked_item_id) + ", Resolved: " + str(linked_item_resolved) + ", Linked value: " + str(linked_value))
+                print("DEBUG: Linked item type: " + str(linked_item_type) + ", ID: " + str(linked_item_id) + ", Resolved: " + str(linked_item_resolved) + ", Linked value: " + str(linked_value))
 
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
                     resolved_count += 1
-                    logger.debug(f"Item {item_dict['description']} (ID: {item_dict['id']}) resolved. New yearly_value: {item_dict['yearly_value']}")
+                    print(f"DEBUG: Item {item_dict['description']} (ID: {item_dict['id']}) resolved. New yearly_value: {item_dict['yearly_value']}")
         current_pass += 1
-        logger.debug(f"Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
+        print(f"DEBUG: Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
         
-    logger.debug("Final processed cashflow items after iterative resolution: " + str(processed_cashflow_items))
+    print("DEBUG: Final processed cashflow items after iterative resolution: " + str(processed_cashflow_items))
 
-    # After resolution, convert CashFlowItems to an account-like structure for projection
     final_cashflow_accounts = []
     for item_dict in processed_cashflow_items:
         final_cashflow_accounts.append({
-            "name": item_dict["description"], # Use description as name for projection clarity
-            "type": "income" if item_dict["is_income"] else "expense", # Treat as income/expense for cashflow
-            "initial_balance": 0.0, # Cash flow items don't have an initial balance in this context
-            "monthly_contribution": item_dict["yearly_value"] / 12, # Always monthly equivalent
+            "name": item_dict["description"],
+            "type": "income" if item_dict["is_income"] else "expense",
+            "initial_balance": 0.0,
+            "monthly_contribution": item_dict["yearly_value"] / 12,
             "annual_increase_percent": item_dict["annual_increase_percent"] if item_dict["is_income"] else item_dict["inflation_percent"],
-            "annual_change_type": "increase" if item_dict["is_income"] else "decrease", # Income increases, expense decreases
-            "id": item_dict["id"], # Keep original ID for potential future lookup
+            "annual_change_type": "increase" if item_dict["is_income"] else "decrease",
+            "id": item_dict["id"],
         })
     
-    logger.debug("Final cashflow accounts for projection: " + str(final_cashflow_accounts))
+    print("DEBUG: Final cashflow accounts for projection: " + str(final_cashflow_accounts))
 
-    # Combine original accounts with processed cash flow items
-    # Ensure 'accounts' passed in are already Pydantic models or similar dicts
-    # Convert incoming Pydantic AccountSchema objects to dicts for mutable list
-    # Start by including all assets and liabilities from the database to ensure their values are tracked
     combined_accounts = []
     for asset in all_assets:
         combined_accounts.append({
@@ -163,7 +143,6 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "id": liability.id
         })
 
-    # Then, add incoming 'accounts' from the frontend, avoiding duplicates with existing assets/liabilities
     existing_names = {acc["name"] for acc in combined_accounts}
     for acc in accounts:
         acc_dict = acc.model_dump() if hasattr(acc, 'model_dump') else acc
@@ -171,28 +150,24 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             combined_accounts.append(acc_dict)
             existing_names.add(acc_dict["name"])
     
-    # Filter out cashflow_items that are already in `accounts` from `combined_accounts`
-    # This scenario would happen if a cashflow item is sent by the frontend as part of `accounts`
-    # We prioritize the dynamically calculated value, so we'll ensure no duplicates.
-    existing_account_names = {acc["name"] for acc in combined_accounts} # Re-initialize after adding assets/liabilities and initial accounts
-    for cf_acc in final_cashflow_accounts: # Now add cashflow items
+    existing_account_names = {acc["name"] for acc in combined_accounts}
+    for cf_acc in final_cashflow_accounts:
         if cf_acc["name"] not in existing_account_names:
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
 
-    logger.debug("Combined accounts for main projection loop: " + str(combined_accounts))
+    print("--- DEBUG: Combined accounts for main projection loop: ---") # Prominent print
+    for acc in combined_accounts:
+        print(f"  Account: {acc['name']}, Type: {acc['type']}, Initial Balance: {acc['initial_balance']}, Annual Increase: {acc.get('annual_increase_percent')}, Change Type: {acc.get('annual_change_type')}, Monthly Contribution: {acc.get('monthly_contribution')}")
 
-    # Initialize separate running balances for each account
     account_balances = {
         acc["name"]: acc["initial_balance"] for acc in combined_accounts
     }
     
-    # Initialize data structures for results
     yearly_results = []
     total_contribution = 0.0
     total_growth = 0.0
     
-    # Track previous year's ending value for StartingValue calculation
     previous_year_total_value = sum(acc["initial_balance"] for acc in combined_accounts)
 
     # ----------------------------------------------------------------------
@@ -209,13 +184,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         year_total_contributions = 0.0
         year_total_growth = 0.0
 
-        # Create a copy of account_balances to work with for the current year's calculations.
-        # This allows us to update asset/liability balances before calculating dynamic cash flow items
-        # based on these updated values.
         current_year_balances = account_balances.copy()
 
-        # Phase 1: Project balances for all accounts (assets, liabilities, and static income/expense)
-        # This updates current_year_balances with the projected values for the current year.
         for account in combined_accounts:
             current_balance = account_balances.get(account["name"], 0.0)
 
@@ -226,9 +196,6 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             if change_type == "decrease":
                 effective_rate = -effective_rate
 
-            # For assets and liabilities, consider their existing monthly_contribution.
-            # For income/expense accounts, their monthly_contribution will be fully determined
-            # after dynamic calculations in Phase 2/3.
             monthly_contribution = account.get("monthly_contribution", 0.0)
             adjusted_annual_contribution = monthly_contribution * 12
 
@@ -237,48 +204,39 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             elif account["type"] == "income":
                 adjusted_annual_contribution = abs(adjusted_annual_contribution)
 
-            # Calculate growth based on the previous year's ending balance and current year's contributions
             growth_on_balance = current_balance * effective_rate
             growth_on_contributions = adjusted_annual_contribution * effective_rate * 0.5
 
-            # Update the balance in the temporary current_year_balances for assets and liabilities.
-            # This updated value will be used for dynamic cash flow calculations in Phase 2.
-            # For cash flow accounts, this balance will be finalized in Phase 3.
             new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
             current_year_balances[account["name"]] = new_balance
 
             # ADDED DEBUGGING FOR LIABILITY AND EXPENSE CALCULATIONS
             if account["type"] in ["liability", "expense"]:
-                logger.debug(f"Year {year} - Account: {account['name']} (Type: {account['type']})")
-                logger.debug(f"  current_balance: {current_balance}, monthly_contribution: {monthly_contribution}, adjusted_annual_contribution: {adjusted_annual_contribution}")
-                logger.debug(f"  rate_from_schema: {rate_from_schema}, change_type: {change_type}, effective_rate: {effective_rate}")
-                logger.debug(f"  growth_on_balance: {growth_on_balance}, growth_on_contributions: {growth_on_contributions}")
-                logger.debug(f"  new_balance: {new_balance}")
+                print(f"--- DEBUG (calculations.py) -- Year {year} - Account: {account['name']} (Type: {account['type']}) ---") # Prominent print
+                print(f"  current_balance: {current_balance}, monthly_contribution: {monthly_contribution}, adjusted_annual_contribution: {adjusted_annual_contribution}")
+                print(f"  rate_from_schema: {rate_from_schema}, change_type: {change_type}, effective_rate: {effective_rate}")
+                print(f"  growth_on_balance: {growth_on_balance}, growth_on_contributions: {growth_on_contributions}")
+                print(f"  new_balance: {new_balance}")
 
 
         # Phase 2: Dynamically calculate cash flow items linked to assets/liabilities for the current year.
-        # This phase now uses the *current_year_balances* calculated in Phase 1.
         for item_dict in processed_cashflow_items:
             if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
                 linked_item_type = item_dict["linked_item_type"]
                 linked_item_id = item_dict["linked_item_id"]
 
-                if linked_item_type in ['asset', 'liability']: # Re-evaluate for each year
+                if linked_item_type in ['asset', 'liability']:
                     linked_value = 0.0
                     if linked_item_type == 'asset' and linked_item_id in assets_by_id:
                         asset_name = assets_by_id[linked_item_id].name
-                        # Use current_year_balances for the most up-to-date asset value for the current year
                         linked_value = current_year_balances.get(asset_name, assets_by_id[linked_item_id].value)
                     elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
                         liability_name = liabilities_by_id[linked_item_id].name
-                        # Use current_year_balances for the most up-to-date liability value for the current year
                         linked_value = current_year_balances.get(liability_name, liabilities_by_id[linked_item_id].value)
 
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
 
         # Phase 3: Update the monthly_contribution for cashflow accounts in combined_accounts
-        #          based on newly calculated yearly_value from Phase 2.
-        #          Then, finalize the yearly record and update overall totals.
         for account in combined_accounts:
             current_balance = account_balances.get(account["name"], 0.0) # Start from previous year's end balance
 
@@ -287,7 +245,6 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 if original_cf_item and original_cf_item.get("linked_item_type") in ['asset', 'liability']:
                     account["monthly_contribution"] = original_cf_item["yearly_value"] / 12
         
-            # Now that monthly_contribution is finalized for all, recalculate adjusted_annual_contribution
             monthly_contribution = account.get("monthly_contribution", 0.0)
             adjusted_annual_contribution = monthly_contribution * 12
 
@@ -296,11 +253,9 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             elif account["type"] == "income":
                 adjusted_annual_contribution = abs(adjusted_annual_contribution)
 
-            # Accumulate totals
             total_contribution += adjusted_annual_contribution
             year_total_contributions += adjusted_annual_contribution
 
-            # Recalculate growth with finalized contributions for this account
             rate_from_schema = account.get('annual_increase_percent', 0.0) / 100.0
             change_type = account.get('annual_change_type', 'increase')
 
@@ -312,7 +267,6 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             growth_on_contributions = adjusted_annual_contribution * effective_rate * 0.5
             year_total_growth += growth_on_balance + growth_on_contributions
 
-            # Final new balance for the account for this year
             new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
             if account["type"] in ['asset', 'liability']:
                 account_balances[account["name"]] = new_balance # Update for next year's starting balance
@@ -331,7 +285,8 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         previous_year_total_value = current_year_total_value
     # ----------------------------------------------------------------------
 
-    logger.debug("Raw yearly_results before JSON dump: " + str(yearly_results))
+    print("--- DEBUG (calculations.py): Raw yearly_results before JSON dump: ---") # Prominent print
+    print(json.dumps(yearly_results, indent=2)) # Pretty print for readability
 
     # 5. The final output structure (returned to the FastAPI endpoint)
     return {
