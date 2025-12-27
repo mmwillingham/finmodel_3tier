@@ -244,6 +244,15 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
             current_year_balances[account["name"]] = new_balance
 
+            # ADDED DEBUGGING FOR LIABILITY AND EXPENSE CALCULATIONS
+            if account["type"] in ["liability", "expense"]:
+                print(f"DEBUG (calculations.py) -- Year {year} - Account: {account['name']} (Type: {account['type']})")
+                print(f"DEBUG:   current_balance: {current_balance}, monthly_contribution: {monthly_contribution}, adjusted_annual_contribution: {adjusted_annual_contribution}")
+                print(f"DEBUG:   rate_from_schema: {rate_from_schema}, change_type: {change_type}, effective_rate: {effective_rate}")
+                print(f"DEBUG:   growth_on_balance: {growth_on_balance}, growth_on_contributions: {growth_on_contributions}")
+                print(f"DEBUG:   new_balance: {new_balance}")
+
+
         # Phase 2: Dynamically calculate cash flow items linked to assets/liabilities for the current year.
         # This phase now uses the *current_year_balances* calculated in Phase 1.
         for item_dict in processed_cashflow_items:
@@ -258,7 +267,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         # Use current_year_balances for the most up-to-date asset value for the current year
                         linked_value = current_year_balances.get(asset_name, assets_by_id[linked_item_id].value)
                     elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
-                        liability_name = liabilities_by_id[linked_item_id].name
+                        liability_name = liabilities_by_by_id[linked_item_id].name
                         # Use current_year_balances for the most up-to-date liability value for the current year
                         linked_value = current_year_balances.get(liability_name, liabilities_by_id[linked_item_id].value)
 
