@@ -99,8 +99,18 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                     if linked_cf_item and linked_cf_item["yearly_value"] != 0.0:
                         linked_value = linked_cf_item["yearly_value"]
                         linked_item_resolved = True
+                elif linked_item_type == 'asset' and linked_item_id in assets_by_id:
+                    linked_asset = assets_by_id.get(linked_item_id)
+                    if linked_asset:
+                        linked_value = linked_asset.value # Use the initial value of the asset
+                        linked_item_resolved = True
+                elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
+                    linked_liability = liabilities_by_id.get(linked_item_id)
+                    if linked_liability:
+                        linked_value = linked_liability.value # Use the initial value of the liability
+                        linked_item_resolved = True
                 
-                print(f"DEBUG: Linked item type: {linked_item_type}, ID: {linked_item_id}, Resolved: {linked_item_resolved}, Linked value: {linked_value}")
+                print("DEBUG: Linked item type: " + str(linked_item_type) + ", ID: " + str(linked_item_id) + ", Resolved: " + str(linked_item_resolved) + ", Linked value: " + str(linked_value))
 
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
