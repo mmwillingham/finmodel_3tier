@@ -128,6 +128,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
 
     setChartData({ labels, datasets });
+    console.log("DEBUG (CustomChartView.jsx): Chart data prepared (labels, datasets):", { labels, datasets });
   }, [assets, liabilities, incomeItems, expenseItems, projectionYears, currentYear, showChartTotals]); // Added showChartTotals dependency
 
   useEffect(() => {
@@ -139,6 +140,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const fetchedConfig = response.data;
         setChartConfig(fetchedConfig);
         setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
+        console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
         prepareChartData(fetchedConfig); // Call the memoized function
       } catch (error) {
         console.error("Error fetching custom chart:", error);
