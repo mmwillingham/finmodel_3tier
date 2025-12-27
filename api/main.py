@@ -13,6 +13,7 @@ import os # Keep os for getenv in config.py (if not using pydantic-settings, but
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 import traceback
+import logging # Import logging module
 
 # Internal Modules
 import models
@@ -24,10 +25,18 @@ from routers import custom_charts
 from utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
 
+logger = logging.getLogger(__name__) # Initialize logger for main.py
+
 # --- INITIALIZATION ---
 # REMOVED: database.Base.metadata.create_all(bind=database.engine) # Alembic handles migrations
 
 app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, servers=[{"url": settings.PUBLIC_BACKEND_URL}])
+
+# Configure logging at the application startup
+@app.on_event("startup")
+async def startup_event():
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger.info("FastAPI application started. Logging level set to DEBUG.")
 
 app.include_router(custom_charts.router)
 
@@ -90,14 +99,14 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
         # Redirect to frontend with our token
         # Frontend will store this token and log in
         redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
-        print(f"DEBUG (main.py): Redirecting to: {redirect_url}") # NEW DEBUG PRINT
+        logger.debug(f"Redirecting to: {redirect_url}") # Changed from print to logger.debug
         return RedirectResponse(url=redirect_url)
 
     except HTTPException as e:
         # Pass through explicit HTTPExceptions
         raise e
     except Exception as e:
-        print(f"ERROR (main.py) in google_callback: {e}") # Modified ERROR print
+        logger.error(f"in google_callback: {e}", exc_info=True) # Changed from print to logger.error, added exc_info
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Google OAuth failed: {e}"
@@ -110,7 +119,7 @@ def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(database.get_db)
 ):
-    print(f"DEBUG (main.py): Attempting login for user: {form_data.username}") # NEW DEBUG
+    logger.debug(f"Attempting login for user: {form_data.username}") # Changed from print to logger.debug
     # This function should be defined in your 'auth' module
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -144,15 +153,15 @@ def read_users_me(
 
 @app.get("/debug/users", response_model=list[schemas.UserOut], summary="Debug: Get all users from DB")
 def debug_get_all_users(db: Session = Depends(database.get_db)):
-    print("DEBUG (main.py): Fetching all users from database via /debug/users endpoint.")
+    logger.debug("Fetching all users from database via /debug/users endpoint.") # Changed from print to logger.debug
     users = db.query(models.User).all()
-    print(f"DEBUG (main.py): Found {len(users)} users.")
+    logger.debug(f"Found {len(users)} users.") # Changed from print to logger.debug
     return users
 
 @app.get("/debug/db-info", summary="Debug: Get current database info")
 def debug_db_info(db: Session = Depends(database.get_db)):
     result = db.execute(text("SELECT current_database();")).scalar_one()
-    print(f"DEBUG (main.py): Current database from /debug/db-info: {result}")
+    logger.debug(f"Current database from /debug/db-info: {result}") # Changed from print to logger.debug
     return {"current_database": result}
 
 @app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
@@ -196,7 +205,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     # Send confirmation email in the background
     confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
     confirmation_link = f"{settings.FRONTEND_URL}/confirm-email?token={confirmation_token}"
-    print(f"Email confirmation link: {confirmation_link}")
+    logger.debug(f"Email confirmation link: {confirmation_link}") # Changed from print to logger.debug
     background_tasks.add_task(send_email, 
         to_email=db_user.email,
         subject="Financial Projector - Confirm Your Email",
@@ -347,7 +356,7 @@ def forgot_password(
     if user:
         token = auth.create_password_reset_token(db, user.id)
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-    print(f"Password reset link: {reset_link}")
+    logger.debug(f"Password reset link: {reset_link}") # Changed from print to logger.debug
     send_email(
         to_email=user.email,
         subject="Financial Projector - Password Reset Request",
@@ -411,7 +420,7 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
-    print(f"DEBUG (main.py): Entering create_projection endpoint for user {user.id}. Calling calculate_projection.")
+    logger.debug(f"Entering create_projection endpoint for user {user.id}. Calling calculate_projection.") # Changed from print to logger.debug
     try:
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
@@ -420,6 +429,7 @@ def create_projection(
             owner_id=user.id
         )
     except Exception as e:
+        logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True) # Changed from raise HTTPException to logger.error and re-raise
         raise HTTPException(status_code=400, detail=str(e))
 
     final_value = projection_results["final_value"]
@@ -491,7 +501,7 @@ def update_projection(
     if projection.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this projection.")
     
-    print(f"DEBUG (main.py): Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.")
+    logger.debug(f"Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.") # Changed from print to logger.debug
     result = calculations.calculate_projection(
         years=req.years,
         accounts=req.accounts,
@@ -719,7 +729,7 @@ def update_settings(
         return settings
     except Exception as e:
         db.rollback()
-        print(f"Error updating settings: {e}")
+        logger.error(f"Error updating settings: {e}", exc_info=True) # Changed from print to logger.error
         raise HTTPException(status_code=500, detail=f"Failed to update settings: {e}")
 
 
@@ -965,7 +975,7 @@ async def debug_proxy_check():
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    print(f"DEBUG (main.py): HTTPException caught: {exc.detail}")
+    logger.debug(f"HTTPException caught: {exc.detail}") # Changed from print to logger.debug
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
@@ -974,7 +984,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     error_traceback = traceback.format_exc()
-    print(f"ERROR (main.py): Unhandled exception: {error_traceback}")
+    logger.error(f"Unhandled exception: {error_traceback}", exc_info=True) # Changed from print to logger.error, added exc_info
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error. Please check logs for details."},

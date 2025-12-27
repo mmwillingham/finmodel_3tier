@@ -2,23 +2,26 @@
 
 import pandas as pd
 import json
+import logging # Import logging module
 from typing import List, Optional
 from sqlalchemy.orm import Session
 import models # Adjust import for models
+
+logger = logging.getLogger(__name__) # Initialize logger
 
 def calculate_projection(years: int, accounts: list, db: Session, owner_id: int) -> dict:
     """
     Calculates the financial projection, tracking balances for each account yearly.
     Includes dynamic calculation of cash flow items linked to other assets/income/expenses.
     """
-    print(f"DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id}")
+    logger.debug(f"ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id}")
     
     # 1. Fetch all relevant items for the owner
     all_assets = db.query(models.Asset).filter(models.Asset.owner_id == owner_id).all()
     all_liabilities = db.query(models.Liability).filter(models.Liability.owner_id == owner_id).all()
     all_cashflow_items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == owner_id).all()
 
-    print(f"DEBUG: Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
+    logger.debug(f"Fetched {len(all_assets)} assets, {len(all_liabilities)} liabilities, {len(all_cashflow_items)} cashflow items for owner {owner_id}")
 
     # Create lookup dictionaries for quick access
     assets_by_id = {asset.id: asset for asset in all_assets}
@@ -60,7 +63,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Convert to dictionary for easy lookup and modification
     cashflow_by_id = {item["id"]: item for item in processed_cashflow_items}
 
-    print("DEBUG: Initial processed cashflow items: " + str(processed_cashflow_items))
+    logger.debug("Initial processed cashflow items: " + str(processed_cashflow_items))
 
     # 2. Iteratively resolve dynamic CashFlowItems
     # This loop will ensure that items dependent on other cashflow items are calculated
@@ -71,14 +74,14 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     current_pass = 0
     while resolved_count != 0 and current_pass < max_passes:
         resolved_count = 0
-        print(f"DEBUG: Starting pass {current_pass + 1} for dynamic item resolution.")
+        logger.debug(f"Starting pass {current_pass + 1} for dynamic item resolution.")
         for item_dict in processed_cashflow_items:
             if item_dict.get("linked_item_id") and item_dict.get("linked_item_type") and item_dict.get("percentage") is not None:
-                print(f"DEBUG: Processing dynamic item: {item_dict['description']} (ID: {item_dict['id']})")
+                logger.debug(f"Processing dynamic item: {item_dict['description']} (ID: {item_dict['id']})")
                 
                 # If yearly_value is already calculated, skip
                 if item_dict["yearly_value"] != 0.0:
-                    print(f"DEBUG: Item {item_dict['description']} already resolved with yearly_value: {item_dict['yearly_value']}")
+                    logger.debug(f"Item {item_dict['description']} already resolved with yearly_value: {item_dict['yearly_value']}")
                     continue
 
                 linked_value = 0.0
@@ -110,16 +113,16 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         linked_value = linked_liability.value # Use the initial value of the liability
                         linked_item_resolved = True
                 
-                print("DEBUG: Linked item type: " + str(linked_item_type) + ", ID: " + str(linked_item_id) + ", Resolved: " + str(linked_item_resolved) + ", Linked value: " + str(linked_value))
+                logger.debug("Linked item type: " + str(linked_item_type) + ", ID: " + str(linked_item_id) + ", Resolved: " + str(linked_item_resolved) + ", Linked value: " + str(linked_value))
 
                 if linked_item_resolved:
                     item_dict["yearly_value"] = linked_value * (item_dict["percentage"] / 100.0)
                     resolved_count += 1
-                    print(f"DEBUG: Item {item_dict['description']} (ID: {item_dict['id']}) resolved. New yearly_value: {item_dict['yearly_value']}")
+                    logger.debug(f"Item {item_dict['description']} (ID: {item_dict['id']}) resolved. New yearly_value: {item_dict['yearly_value']}")
         current_pass += 1
-        print(f"DEBUG: Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
+        logger.debug(f"Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
         
-    print("DEBUG: Final processed cashflow items after iterative resolution: " + str(processed_cashflow_items))
+    logger.debug("Final processed cashflow items after iterative resolution: " + str(processed_cashflow_items))
 
     # After resolution, convert CashFlowItems to an account-like structure for projection
     final_cashflow_accounts = []
@@ -134,7 +137,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "id": item_dict["id"], # Keep original ID for potential future lookup
         })
     
-    print("DEBUG: Final cashflow accounts for projection: " + str(final_cashflow_accounts))
+    logger.debug("Final cashflow accounts for projection: " + str(final_cashflow_accounts))
 
     # Combine original accounts with processed cash flow items
     # Ensure 'accounts' passed in are already Pydantic models or similar dicts
@@ -177,7 +180,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
 
-    print("DEBUG: Combined accounts for main projection loop: " + str(combined_accounts))
+    logger.debug("Combined accounts for main projection loop: " + str(combined_accounts))
 
     # Initialize separate running balances for each account
     account_balances = {
@@ -246,11 +249,11 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
 
             # ADDED DEBUGGING FOR LIABILITY AND EXPENSE CALCULATIONS
             if account["type"] in ["liability", "expense"]:
-                print(f"DEBUG (calculations.py) -- Year {year} - Account: {account['name']} (Type: {account['type']})")
-                print(f"DEBUG:   current_balance: {current_balance}, monthly_contribution: {monthly_contribution}, adjusted_annual_contribution: {adjusted_annual_contribution}")
-                print(f"DEBUG:   rate_from_schema: {rate_from_schema}, change_type: {change_type}, effective_rate: {effective_rate}")
-                print(f"DEBUG:   growth_on_balance: {growth_on_balance}, growth_on_contributions: {growth_on_contributions}")
-                print(f"DEBUG:   new_balance: {new_balance}")
+                logger.debug(f"Year {year} - Account: {account['name']} (Type: {account['type']})")
+                logger.debug(f"  current_balance: {current_balance}, monthly_contribution: {monthly_contribution}, adjusted_annual_contribution: {adjusted_annual_contribution}")
+                logger.debug(f"  rate_from_schema: {rate_from_schema}, change_type: {change_type}, effective_rate: {effective_rate}")
+                logger.debug(f"  growth_on_balance: {growth_on_balance}, growth_on_contributions: {growth_on_contributions}")
+                logger.debug(f"  new_balance: {new_balance}")
 
 
         # Phase 2: Dynamically calculate cash flow items linked to assets/liabilities for the current year.
@@ -328,7 +331,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         previous_year_total_value = current_year_total_value
     # ----------------------------------------------------------------------
 
-    print("DEBUG (calculations.py): Raw yearly_results before JSON dump: " + str(yearly_results))
+    logger.debug("Raw yearly_results before JSON dump: " + str(yearly_results))
 
     # 5. The final output structure (returned to the FastAPI endpoint)
     return {
