@@ -284,3 +284,5 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         # Convert the list of dictionaries to a JSON string for data_json
         "data_json": json.dumps(yearly_results)
     }
+    print(f"DEBUG (calculations.py): Final data_json returned: {json.dumps(json.loads(response["data_json"]), indent=2)}")
+    return response
