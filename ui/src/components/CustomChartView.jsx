@@ -257,8 +257,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       csvRows.push(row.join(','));
     });
 
-    const csvString = csvRows.join('
-');
+    const csvString = csvRows.join(`\n`);
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
