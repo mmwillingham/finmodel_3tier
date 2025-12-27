@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import json
+import logging # Import logging module
 
 import schemas
 import models
 import calculations
 from database import get_db
 from auth import get_current_user
+
+logger = logging.getLogger(__name__) # Initialize logger for custom_charts.py
 
 router = APIRouter(
     prefix="/custom_charts",
@@ -21,7 +24,7 @@ def create_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    print(f"DEBUG (custom_charts.py): Entering create_custom_chart for user {current_user.id}")
+    logger.debug(f"Entering create_custom_chart for user {current_user.id}") # Changed from print to logger.debug
 
     # 1. Parse series_configurations to extract items for projection
     series_configs = json.loads(chart.series_configurations)
@@ -31,16 +34,16 @@ def create_custom_chart(
     user_settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
     projection_years = user_settings.projection_years if user_settings else 30 # Default to 30 if no settings
 
-    print(f"DEBUG (custom_charts.py): Parsed series configurations: {series_configs}")
-    print(f"DEBUG (custom_charts.py): Projection years from user settings: {projection_years}")
+    logger.debug(f"Parsed series configurations: {series_configs}") # Changed from print to logger.debug
+    logger.debug(f"Projection years from user settings: {projection_years}") # Changed from print to logger.debug
 
     # Helper to fetch and convert items to AccountSchema
     def fetch_and_convert_item(item_type: str, item_id: int):
-        print(f"DEBUG (custom_charts.py): Attempting to fetch item_type: {item_type}, item_id: {item_id}")
+        logger.debug(f"Attempting to fetch item_type: {item_type}, item_id: {item_id}") # Changed from print to logger.debug
         if item_type == 'asset':
             item = db.query(models.Asset).filter(models.Asset.id == item_id, models.Asset.owner_id == current_user.id).first()
             if item:
-                print(f"DEBUG (custom_charts.py): Found asset: {item.name} (ID: {item.id}, Value: {item.value})")
+                logger.debug(f"Found asset: {item.name} (ID: {item.id}, Value: {item.value})") # Changed from print to logger.debug
                 return schemas.AccountSchema(
                     name=item.name,
                     type='asset',
@@ -50,11 +53,11 @@ def create_custom_chart(
                     annual_change_type=item.annual_change_type
                 )
             else:
-                print(f"DEBUG (custom_charts.py): Asset with ID {item_id} not found for user {current_user.id}")
+                logger.warning(f"Asset with ID {item_id} not found for user {current_user.id}") # Changed from print to logger.warning
         elif item_type == 'liability':
             item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
             if item:
-                print(f"DEBUG (custom_charts.py): Found liability: {item.name} (ID: {item.id}, Value: {item.value})")
+                logger.debug(f"Found liability: {item.name} (ID: {item.id}, Value: {item.value})") # Changed from print to logger.debug
                 return schemas.AccountSchema(
                     name=item.name,
                     type='liability',
@@ -64,11 +67,11 @@ def create_custom_chart(
                     annual_change_type=item.annual_change_type
                 )
             else:
-                print(f"DEBUG (custom_charts.py): Liability with ID {item_id} not found for user {current_user.id}")
+                logger.warning(f"Liability with ID {item_id} not found for user {current_user.id}") # Changed from print to logger.warning
         elif item_type in ['income', 'expense']:
             item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
             if item:
-                print(f"DEBUG (custom_charts.py): Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)})")
+                logger.debug(f"Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)})") # Changed from print to logger.debug
                 # For cash flow items, the yearly_value is either static or calculated dynamically later
                 # We initially use the stored yearly_value, which for dynamic items will be 0.0 before resolution
                 return schemas.AccountSchema(
@@ -80,9 +83,9 @@ def create_custom_chart(
                     annual_change_type='increase' if item.is_income else 'decrease'
                 )
             else:
-                print(f"DEBUG (custom_charts.py): CashFlowItem with ID {item_id} not found for user {current_user.id}")
+                logger.warning(f"CashFlowItem with ID {item_id} not found for user {current_user.id}") # Changed from print to logger.warning
         return None
-
+    
     for series_config in series_configs:
         item_type = series_config.get('data_type')
         item_id = series_config.get('item_id') # Assuming item_id is passed in series_configurations
@@ -92,11 +95,11 @@ def create_custom_chart(
             if account:
                 accounts_for_projection.append(account)
             else:
-                print(f"WARNING (custom_charts.py): Could not find item {item_id} of type {item_type} for user {current_user.id}")
+                logger.warning(f"Could not find item {item_id} of type {item_type} for user {current_user.id}") # Changed from print to logger.warning
         else:
-            print(f"WARNING (custom_charts.py): Invalid series config: {series_config}")
+            logger.warning(f"Invalid series config: {series_config}") # Changed from print to logger.warning
 
-    print(f"DEBUG (custom_charts.py): Accounts prepared for projection: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)}")
+    logger.debug(f"Accounts prepared for projection: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)}") # Changed from print to logger.debug
 
     # 2. Call calculate_projection
     try:
@@ -106,9 +109,9 @@ def create_custom_chart(
             db=db,
             owner_id=current_user.id
         )
-        print(f"DEBUG (custom_charts.py): Projection calculation successful. Final Value: {projection_results['final_value']}")
+        logger.debug(f"Projection calculation successful. Final Value: {projection_results['final_value']}") # Changed from print to logger.debug
     except Exception as e:
-        print(f"ERROR (custom_charts.py): Error during projection calculation for chart {chart.name}: {e}")
+        logger.error(f"Error during projection calculation for chart {chart.name}: {e}", exc_info=True) # Changed from print to logger.error, added exc_info
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
 
     # 3. Create the CustomChart model instance with projection results
@@ -123,7 +126,7 @@ def create_custom_chart(
     db.add(db_chart)
     db.commit()
     db.refresh(db_chart)
-    print(f"DEBUG (custom_charts.py): Custom chart {db_chart.name} created with ID {db_chart.id} and projection results.")
+    logger.debug(f"Custom chart {db_chart.name} created with ID {db_chart.id} and projection results.") # Changed from print to logger.debug
     return db_chart
 
 @router.get("/", response_model=List[schemas.CustomChartOut])
@@ -152,7 +155,7 @@ def update_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    print(f"DEBUG (custom_charts.py): Entering update_custom_chart for chart ID {chart_id}, user {current_user.id}")
+    logger.debug(f"Entering update_custom_chart for chart ID {chart_id}, user {current_user.id}") # Changed from print to logger.debug
 
     chart_query = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == current_user.id)
     db_chart = chart_query.first()
@@ -168,7 +171,7 @@ def update_custom_chart(
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
         projection_years = user_settings.projection_years if user_settings else 30
         
-        print(f"DEBUG (custom_charts.py): Parsed series configurations for update: {series_configs}")
+        logger.debug(f"Parsed series configurations for update: {series_configs}") # Changed from print to logger.debug
 
         def fetch_and_convert_item(item_type: str, item_id: int):
             if item_type == 'asset':
@@ -214,9 +217,9 @@ def update_custom_chart(
                 if account:
                     accounts_for_projection.append(account)
                 else:
-                    print(f"WARNING (custom_charts.py): Could not find item {item_id} of type {item_type} for user {current_user.id} during chart update.")
+                    logger.warning(f"Could not find item {item_id} of type {item_type} for user {current_user.id} during chart update.") # Changed from print to logger.warning
 
-        print(f"DEBUG (custom_charts.py): Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)}")
+        logger.debug(f"Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)}") # Changed from print to logger.debug
 
         try:
             projection_results = calculations.calculate_projection(
@@ -225,13 +228,13 @@ def update_custom_chart(
                 db=db,
                 owner_id=current_user.id
             )
-            print(f"DEBUG (custom_charts.py): Projection calculation successful for chart update. Final Value: {projection_results['final_value']}")
+            logger.debug(f"Projection calculation successful for chart update. Final Value: {projection_results['final_value']}") # Changed from print to logger.debug
             db_chart.data_json = projection_results["data_json"]
             db_chart.final_value = projection_results["final_value"]
             db_chart.total_contributed = projection_results["total_contributed"]
             db_chart.total_growth = projection_results["total_growth"]
         except Exception as e:
-            print(f"ERROR (custom_charts.py): Error during projection calculation for chart update {db_chart.name}: {e}")
+            logger.error(f"Error during projection calculation for chart update {db_chart.name}: {e}", exc_info=True) # Changed from print to logger.error, added exc_info
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed during update: {e}")
 
     # Update other fields from chart_update payload
@@ -243,7 +246,7 @@ def update_custom_chart(
     db.add(db_chart)
     db.commit()
     db.refresh(db_chart)
-    print(f"DEBUG (custom_charts.py): Custom chart {db_chart.name} (ID: {db_chart.id}) updated with projection results.")
+    logger.debug(f"Custom chart {db_chart.name} (ID: {db_chart.id}) updated with projection results.") # Changed from print to logger.debug
     return db_chart
 
 @router.delete("/{chart_id}", status_code=status.HTTP_204_NO_CONTENT)
