@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-console.log("DEBUG (CustomChartView.jsx): Component is rendering.");
 import { useAuth } from '../context/AuthContext';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
@@ -24,60 +23,34 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type
 
   const prepareChartData = useCallback((fetchedConfig) => {
-    const labels = Array.from({ length: projectionYears + 1 }, (_, i) => currentYear + i);
-    let datasets = []; // Changed to let to allow modification
+    let parsedDataJson = [];
+    try {
+      parsedDataJson = JSON.parse(fetchedConfig.data_json);
+      console.log("DEBUG (CustomChartView.jsx): Parsed data_json inside prepareChartData:", parsedDataJson);
+    } catch (e) {
+      console.error("Error parsing data_json in prepareChartData:", e);
+      setMessage("Error processing chart data from the server.");
+      setChartData({ labels: [], datasets: [] });
+      return;
+    }
 
-    let allData = {
-      assets: assets || [],
-      liabilities: liabilities || [],
-      income: incomeItems || [],
-      expenses: expenseItems || [],
-    };
+    if (!Array.isArray(parsedDataJson) || parsedDataJson.length === 0) {
+      setMessage("No data available for the chart from server response.");
+      setChartData({ labels: [], datasets: [] });
+      return;
+    }
+
+    const labels = parsedDataJson.map(dataPoint => dataPoint.Year);
+    let datasets = [];
 
     try {
       const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
 
-      seriesConfigurations.forEach((series, index) => {
-        const sourceData = allData[series.data_type];
-        if (!sourceData) {
-          console.warn(`Data source ${series.data_type} not found.`);
-          return;
-        }
-
-        const dataValues = labels.map((year, yearIndex) => {
-          let aggregatedValue = 0;
-          sourceData.forEach(item => {
-            // Apply category filter if specified
-            if (series.category && item.category !== series.category) {
-              return;
-            }
-
-            const itemStartDate = item.start_date ? new Date(item.start_date) : null;
-            const itemEndDate = item.end_date ? new Date(item.end_date) : null;
-
-            const isActive = 
-              (!itemStartDate || year >= itemStartDate.getFullYear()) &&
-              (!itemEndDate || year <= itemEndDate.getFullYear());
-
-            if (isActive) {
-              // Handle different data types and fields
-              let value = item[series.field];
-              if (series.data_type === 'income' || series.data_type === 'expenses') {
-                // For cashflow items, yearly_value might be the base, then adjust for increase/inflation
-                const annualRate = (series.data_type === 'income' ? item.annual_increase_percent : item.inflation_percent) / 100;
-                value = item.yearly_value * Math.pow(1 + annualRate, yearIndex); 
-              } else if (series.data_type === 'assets' || series.data_type === 'liabilities') {
-                 let growthRate = item.annual_increase_percent / 100;
-                 if (item.annual_change_type === "decrease") {
-                     growthRate = -growthRate;
-                 }
-                 value = item.value * Math.pow(1 + growthRate, yearIndex);
-              }
-
-              aggregatedValue += value || 0;
-            }
-          });
-          return aggregatedValue;
+      seriesConfigurations.forEach((series) => {
+        const dataValues = parsedDataJson.map(dataPoint => {
+          // Construct the key for the data point, e.g., "InvestIncomeNew_Value"
+          const dataKey = `${series.label}_Value`;
+          return dataPoint[dataKey] || 0; // Use 0 if the key is not found
         });
 
         datasets.push({
@@ -87,7 +60,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           backgroundColor: series.color + "40", // Add some transparency
           fill: false,
           tension: 0.1,
-          // Specifics for chart types
           ...(fetchedConfig.chart_type === 'bar' && { backgroundColor: series.color }),
           ...(fetchedConfig.chart_type === 'pie' && { backgroundColor: series.color, borderColor: '#fff', borderWidth: 1 }),
         });
@@ -125,12 +97,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       console.error("Error parsing series configurations or preparing data:", e);
       setMessage("Error preparing chart data.");
       datasets = []; // Ensure datasets is empty on error
-      return;
     }
 
     setChartData({ labels, datasets });
     console.log("DEBUG (CustomChartView.jsx): Chart data prepared (labels, datasets):", { labels, datasets });
-  }, [assets, liabilities, incomeItems, expenseItems, projectionYears, currentYear, showChartTotals]); // Added showChartTotals dependency
+  }, [showChartTotals]); // Removed other dependencies as data_json is the source
 
   useEffect(() => {
     const fetchAndPrepareChart = async () => {
@@ -144,9 +115,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
         try {
           const parsedDataJson = JSON.parse(fetchedConfig.data_json);
-          console.log("DEBUG (CustomChartView.jsx): Parsed data_json:", parsedDataJson);
+          console.log("DEBUG (CustomChartView.jsx): Parsed data_json in useEffect:", parsedDataJson);
         } catch (parseError) {
-          console.error("DEBUG (CustomChartView.jsx): Error parsing data_json:", parseError);
+          console.error("DEBUG (CustomChartView.jsx): Error parsing data_json in useEffect:", parseError);
         }
         prepareChartData(fetchedConfig); // Call the memoized function
       } catch (error) {
@@ -286,7 +257,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       csvRows.push(row.join(','));
     });
 
-    const csvString = csvRows.join('\n');
+    const csvString = csvRows.join('
+');
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
