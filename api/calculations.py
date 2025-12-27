@@ -47,6 +47,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "end_date": item.end_date,
             "taxable": item.taxable,
             "tax_deductible": item.tax_deductible,
+            "created_at": str(item.created_at), # Convert datetime to string
         }
         if not item_copy.get("linked_item_id") and not item_copy.get("linked_item_type") and item_copy.get("percentage") is None:
             # For static items, yearly_value is already stored
