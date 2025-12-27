@@ -1,17 +1,30 @@
 steps:
+  - name: 'bash'
+    id: 'Generate Timestamp'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        export _FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        echo "export _FIXED_TIMESTAMP=${_FIXED_TIMESTAMP}" > /workspace/env_vars.sh
+    
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Backend Image'
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-$(date +%Y%m%d%H%M%S) api --build-arg CACHEBUSTER=$(date +%Y%m%d%H%M%S)'
+      - |
+        source /workspace/env_vars.sh
+        docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-$(date +%Y%m%d%H%M%S)'
+      - |
+        source /workspace/env_vars.sh
+        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Backend Service'
@@ -19,8 +32,9 @@ steps:
     args:
       - '-c'
       - |
+        source /workspace/env_vars.sh
         gcloud run deploy finmodel-backend-service \
-          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-$(date +%Y%m%d%H%M%S) \
+          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
           --region us-east1 \
           --platform managed \
           --allow-unauthenticated \
@@ -50,7 +64,9 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-$(date +%Y%m%d%H%M%S) --build-arg=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app . '
+      - |
+        source /workspace/env_vars.sh
+        docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app .
     dir: 'ui'
     waitFor: ['Update Backend Traffic']
 
@@ -59,7 +75,9 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-$(date +%Y%m%d%H%M%S)'
+      - |
+        source /workspace/env_vars.sh
+        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}'
     waitFor: ['Build Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -67,7 +85,9 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'gcloud run deploy finmodel-frontend-service --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-$(date +%Y%m%d%H%M%S) --region us-east1 --platform managed --allow-unauthenticated --project financial-model-cloud'
+      - |
+        source /workspace/env_vars.sh
+        gcloud run deploy finmodel-frontend-service --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --region us-east1 --platform managed --allow-unauthenticated --project financial-model-cloud
     waitFor: ['Push Frontend Image']
 
   - name: 'python:3.11'
