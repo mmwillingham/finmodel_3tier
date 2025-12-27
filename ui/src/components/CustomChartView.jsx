@@ -53,19 +53,23 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const dataValues = parsedDataJson.map(dataPoint => {
           // Construct the key for the data point, e.g., "InvestIncomeNew_Value"
           let valueForSeries = 0;
+          let debugDataKey = "N/A (aggregated)"; // Initialize for aggregated case
 
           if (series.aggregation === "sum" && series.category === "Investment Income") {
             // TEMPORARY: Hardcoding aggregation for "Investment Income" category.
             // This assumes "Investment Income" sums InterestTest_Value and dividends_Value.
             // A more robust solution requires backend changes to provide category mapping.
-            valueForSeries += dataPoint["InterestTest_Value"] || 0;
-            valueForSeries += dataPoint["dividends_Value"] || 0;
+            const interestValue = dataPoint["InterestTest_Value"] || 0;
+            const dividendsValue = dataPoint["dividends_Value"] || 0;
+            valueForSeries = interestValue + dividendsValue;
+            debugDataKey = `InterestTest_Value (${interestValue}) + dividends_Value (${dividendsValue})`; // More detailed logging
           } else {
             // Fallback for other series: attempt direct lookup using series.label
             const dataKey = `${series.label}_Value`;
             valueForSeries = dataPoint[dataKey] || 0;
+            debugDataKey = dataKey; // For logging clarity
           }
-          console.log(`DEBUG (CustomChartView.jsx): dataPoint for Year ${dataPoint.Year}, series label: ${series.label}, category: ${series.category}, dataKey sought: calculated, value: ${valueForSeries}`);
+          console.log(`DEBUG (CustomChartView.jsx): dataPoint for Year ${dataPoint.Year}, series label: ${series.label}, category: ${series.category}, dataKey(s) sought: ${debugDataKey}, final value: ${valueForSeries}`); // Updated log statement
           return dataPoint[dataKey] || 0; // Use 0 if the key is not found
         });
 
