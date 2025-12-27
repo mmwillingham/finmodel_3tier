@@ -7,6 +7,14 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import CustomChartService from '../services/customChart.service';
 import './CustomChartView.css'; // We will create this CSS file
 
+const formatValue = (value, displayType) => {
+  if (displayType === 'percentage') {
+    return `${(value * 100).toFixed(2)}%`;
+  } else { // Default to currency
+    return formatCurrency(value);
+  }
+};
+
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -196,9 +204,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += formatCurrency(context.parsed.y);
+                label += formatValue(context.parsed.y, chartConfig.display_type);
               } else if (context.parsed !== null) { // For pie charts, context.parsed is a single value
-                label += formatCurrency(context.parsed);
+                label += formatValue(context.parsed, chartConfig.display_type);
               }
               return label;
             }
@@ -220,7 +228,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           },
           ticks: {
             callback: function(value) {
-              return formatCurrency(value);
+              return formatValue(value, chartConfig.display_type);
             }
           }
         },
@@ -395,7 +403,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                   <tr key={year}>
                     <td>{year}</td>
                     {chartData.datasets.map(dataset => (
-                      <td key={`${year}-${dataset.label}`}>{formatCurrency(dataset.data[yearIndex])}</td>
+                      <td key={`${year}-${dataset.label}`}>{formatValue(dataset.data[yearIndex], chartConfig.display_type)}</td>
                     ))}
                   </tr>
                 ))}

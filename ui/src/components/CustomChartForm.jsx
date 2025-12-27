@@ -55,7 +55,7 @@ export default function CustomChartForm({
           const chart = response.data;
           setName(chart.name);
           setChartType(chart.chart_type);
-          setDisplayType(chart.display_type || "chart"); // Set display type from fetched config
+          setDisplayType(chart.display_type || "currency"); // Set display type from fetched config
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
           setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ ...series, category: series.category || '' })));
           setXAxisLabel(chart.x_axis_label || "");
@@ -183,9 +183,8 @@ export default function CustomChartForm({
             onChange={(e) => setDisplayType(e.target.value)}
             required
           >
-            <option value="chart">Chart Only</option>
-            <option value="table">Table Only</option>
-            <option value="both">Both Chart and Table</option>
+            <option value="currency">Currency</option>
+            <option value="percentage">Percentage</option>
           </select>
         </div>
 

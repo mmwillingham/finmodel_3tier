@@ -292,7 +292,7 @@ class LiabilityOut(BaseModel):
 class CustomChartBase(BaseModel):
     name: str
     chart_type: str
-    display_type: str = "chart" # New field for chart/table display options
+    display_type: Optional[str] = None # New field for chart/table display options
     data_sources: str | None = None # Comma-separated string like "assets,liabilities"
     series_configurations: str       # JSON string
     x_axis_label: str | None = None
@@ -314,6 +314,7 @@ class CustomChartOut(CustomChartBase):
     user_id: int
     created_at: datetime
     updated_at: datetime | None = None
+    display_type: Optional[str] = None # NEW: display type for the chart
     # These are inherited from CustomChartBase but explicitly listed for clarity
     data_json: str | None = None
     final_value: float | None = None
