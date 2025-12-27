@@ -41,7 +41,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Convert to dictionary for easy lookup and modification
     cashflow_by_id = {item["id"]: item for item in processed_cashflow_items}
 
-    print(f"DEBUG: Initial processed cashflow items: {json.dumps(processed_cashflow_items, indent=2)}")
+    print(f"DEBUG: Initial processed cashflow items: {processed_cashflow_items}")
 
     # 2. Iteratively resolve dynamic CashFlowItems
     # This loop will ensure that items dependent on other cashflow items are calculated
@@ -90,7 +90,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         current_pass += 1
         print(f"DEBUG: Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
         
-    print(f"DEBUG: Final processed cashflow items after iterative resolution: {json.dumps(processed_cashflow_items, indent=2)}")
+    print(f"DEBUG: Final processed cashflow items after iterative resolution: {processed_cashflow_items}")
 
     # After resolution, convert CashFlowItems to an account-like structure for projection
     final_cashflow_accounts = []
@@ -105,7 +105,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "id": item_dict["id"], # Keep original ID for potential future lookup
         })
     
-    print(f"DEBUG: Final cashflow accounts for projection: {json.dumps(final_cashflow_accounts, indent=2)}")
+    print(f"DEBUG: Final cashflow accounts for projection: {final_cashflow_accounts}")
 
     # Combine original accounts with processed cash flow items
     # Ensure 'accounts' passed in are already Pydantic models or similar dicts
@@ -113,9 +113,23 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Start by including all assets and liabilities from the database to ensure their values are tracked
     combined_accounts = []
     for asset in all_assets:
-        combined_accounts.append({"name": asset.name, "initial_balance": asset.value, "type": "asset", "annual_increase_percent": asset.annual_increase_percent, "annual_change_type": asset.annual_change_type, "id": asset.id})
+        combined_accounts.append({
+            "name": asset.name,
+            "initial_balance": asset.value,
+            "type": "asset",
+            "annual_increase_percent": asset.annual_increase_percent,
+            "annual_change_type": asset.annual_change_type,
+            "id": asset.id
+        })
     for liability in all_liabilities:
-        combined_accounts.append({"name": liability.name, "initial_balance": liability.value, "type": "liability", "annual_increase_percent": liability.annual_increase_percent, "annual_change_type": liability.annual_change_type, "id": liability.id})
+        combined_accounts.append({
+            "name": liability.name,
+            "initial_balance": liability.value,
+            "type": "liability",
+            "annual_increase_percent": liability.annual_increase_percent,
+            "annual_change_type": liability.annual_change_type,
+            "id": liability.id
+        })
 
     # Then, add incoming 'accounts' from the frontend, avoiding duplicates with existing assets/liabilities
     existing_names = {acc["name"] for acc in combined_accounts}
@@ -134,7 +148,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
 
-    print(f"DEBUG: Combined accounts for main projection loop: {json.dumps(combined_accounts, indent=2)}")
+    print(f"DEBUG: Combined accounts for main projection loop: {combined_accounts}")
 
     # Initialize separate running balances for each account
     account_balances = {
