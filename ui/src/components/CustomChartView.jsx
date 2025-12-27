@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+console.log("DEBUG (CustomChartView.jsx): Component is rendering.");
 import { useAuth } from '../context/AuthContext';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
@@ -141,6 +142,12 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         setChartConfig(fetchedConfig);
         setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
         console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
+        try {
+          const parsedDataJson = JSON.parse(fetchedConfig.data_json);
+          console.log("DEBUG (CustomChartView.jsx): Parsed data_json:", parsedDataJson);
+        } catch (parseError) {
+          console.error("DEBUG (CustomChartView.jsx): Error parsing data_json:", parseError);
+        }
         prepareChartData(fetchedConfig); // Call the memoized function
       } catch (error) {
         console.error("Error fetching custom chart:", error);
