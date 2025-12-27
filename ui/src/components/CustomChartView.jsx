@@ -59,7 +59,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             valueForSeries = (dataPoint["Mortgage_Value"] || 0); // Example, adjust as needed
             valueForSeries = Math.abs(valueForSeries); // Display as positive magnitude
           } else if (series.category === "All Income") { // Assuming 'All Income' aggregates various income sources
-            valueForSeries = (dataPoint["Interest_Value"] || 0) + (dataPoint["Dividends_Value"] || 0) + (dataPoint["Q4 bonus_Value"] || 0) + (dataPoint["Body Shop_Value"] || 0);
+            valueForSeries = (dataPoint["Interest_Value"] || 0) + (dataPoint["Dividends_Value"] || 0) + (dataPoint["Q4 bonus_Value"] || 0) + (dataPoint["Body Shop_Value"] || 0) + (dataPoint["test_Value"] || 0);
           } else if (series.category === "Expenses") { // Assuming 'Expenses' aggregates various expense items
             valueForSeries = (dataPoint["Groceries_Value"] || 0) + (dataPoint["teste_Value"] || 0);
             valueForSeries = Math.abs(valueForSeries); // Display as positive magnitude
