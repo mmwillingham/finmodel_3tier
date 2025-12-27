@@ -4,7 +4,10 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - 'docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)} api --build-arg CACHEBUSTER=${_TIMESTAMP}'
+      - |
+        echo "DEBUG: _COMMIT_SHA is: [${_COMMIT_SHA}]"
+        echo "DEBUG: _TIMESTAMP is: [${_TIMESTAMP}]"
+        docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)} api --build-arg CACHEBUSTER=${_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
