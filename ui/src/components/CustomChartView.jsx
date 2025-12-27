@@ -70,7 +70,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             debugDataKey = dataKey; // For logging clarity
           }
           console.log(`DEBUG (CustomChartView.jsx): dataPoint for Year ${dataPoint.Year}, series label: ${series.label}, category: ${series.category}, dataKey(s) sought: ${debugDataKey}, final value: ${valueForSeries}`); // Updated log statement
-          return dataPoint[dataKey] || 0; // Use 0 if the key is not found
+          return valueForSeries || 0; // Use 0 if the key is not found
         });
 
         datasets.push({
