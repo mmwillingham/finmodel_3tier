@@ -111,6 +111,12 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
 
     final_cashflow_accounts = []
     for item_dict in processed_cashflow_items:
+        # Check if the cashflow item's category is empty, and assign a default if it's an expense
+        # This will help ensure that expenses without an explicit category are still grouped.
+        category = item_dict["category"]
+        if not item_dict["is_income"] and not category: # If it's an expense and category is empty
+             category = "Uncategorized Expenses" # Assign a default category
+
         final_cashflow_accounts.append({
             "name": item_dict["description"],
             "type": "income" if item_dict["is_income"] else "expense",
@@ -119,6 +125,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "annual_increase_percent": item_dict["annual_increase_percent"] if item_dict["is_income"] else item_dict["inflation_percent"],
             "annual_change_type": "increase" if item_dict["is_income"] else "decrease",
             "id": item_dict["id"],
+            "category": category, # Include the category
         })
     
     print("DEBUG: Final cashflow accounts for projection: " + str(final_cashflow_accounts))
@@ -134,9 +141,12 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "id": asset.id
         })
     for liability in all_liabilities:
+        # For liabilities, store the negative of their value if it's positive,
+        # as liabilities typically reduce net worth.
+        initial_liability_balance = -abs(liability.value) if liability.value > 0 else liability.value
         combined_accounts.append({
             "name": liability.name,
-            "initial_balance": liability.value,
+            "initial_balance": initial_liability_balance,
             "type": "liability",
             "annual_increase_percent": liability.annual_increase_percent,
             "annual_change_type": liability.annual_change_type,
@@ -152,13 +162,21 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     
     existing_account_names = {acc["name"] for acc in combined_accounts}
     for cf_acc in final_cashflow_accounts:
+        # If a cash flow account has the same name as an existing asset/liability,
+        # we need to make sure they are distinct. Append a suffix like "_CashFlow"
+        # to prevent collision and ensure both are tracked.
         if cf_acc["name"] not in existing_account_names:
+            combined_accounts.append(cf_acc)
+            existing_account_names.add(cf_acc["name"])
+        else:
+            # If there's a name collision, rename the cash flow account
+            cf_acc["name"] = f"{cf_acc['name']}_CashFlow"
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
 
     print("--- DEBUG: Combined accounts for main projection loop: ---") # Prominent print
     for acc in combined_accounts:
-        print(f"  Account: {acc['name']}, Type: {acc['type']}, Initial Balance: {acc['initial_balance']}, Annual Increase: {acc.get('annual_increase_percent')}, Change Type: {acc.get('annual_change_type')}, Monthly Contribution: {acc.get('monthly_contribution')}")
+        print(f"  Account: {acc['name']}, Type: {acc['type']}, Initial Balance: {acc['initial_balance']}, Annual Increase: {acc.get('annual_increase_percent')}, Change Type: {acc.get('annual_change_type')}, Monthly Contribution: {acc.get('monthly_contribution')}, Category: {acc.get('category')}") # Added Category print
 
     account_balances = {
         acc["name"]: acc["initial_balance"] for acc in combined_accounts
@@ -195,12 +213,15 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             effective_rate = rate_from_schema
             if change_type == "decrease":
                 effective_rate = -effective_rate
+            
+            print(f"DEBUG: Account: {account['name']}, Type: {account['type']}, effective_rate: {effective_rate}") # New print for effective_rate
 
             monthly_contribution = account.get("monthly_contribution", 0.0)
             adjusted_annual_contribution = monthly_contribution * 12
 
+            # For liabilities and expenses, contributions are typically negative cash flows
             if account["type"] == "liability" or account["type"] == "expense":
-                adjusted_annual_contribution = -abs(adjusted_annual_contribution)
+                adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution
             elif account["type"] == "income":
                 adjusted_annual_contribution = abs(adjusted_annual_contribution)
 
@@ -249,7 +270,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             adjusted_annual_contribution = monthly_contribution * 12
 
             if account["type"] == "liability" or account["type"] == "expense":
-                adjusted_annual_contribution = -abs(adjusted_annual_contribution)
+                adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution
             elif account["type"] == "income":
                 adjusted_annual_contribution = abs(adjusted_annual_contribution)
 
@@ -272,8 +293,9 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                 account_balances[account["name"]] = new_balance # Update for next year's starting balance
                 yearly_record[f"{account['name']}_Value"] = new_balance
             else: # For 'income' or 'expense'
-                # For income/expense, the 'value' in the chart is the annual flow, not a cumulative balance
-                yearly_record[f"{account['name']}_Value"] = adjusted_annual_contribution
+                # For income/expense, the 'value' in the chart is the annual flow, not a cumulative balance.
+                # Ensure expenses are consistently negative for reporting.
+                yearly_record[f"{account['name']}_Value"] = adjusted_annual_contribution if account["type"] == "income" else -abs(adjusted_annual_contribution)
             current_year_total_value += new_balance
 
         # Add totals to yearly record
