@@ -29,7 +29,25 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Dynamic items will have their yearly_value updated later
     processed_cashflow_items = []
     for item in all_cashflow_items:
-        item_copy = item.__dict__.copy() # Create a mutable copy
+        item_copy = {
+            "id": item.id,
+            "owner_id": item.owner_id,
+            "is_income": item.is_income,
+            "description": item.description,
+            "yearly_value": item.yearly_value,
+            "linked_item_id": item.linked_item_id,
+            "linked_item_type": item.linked_item_type,
+            "percentage": item.percentage,
+            "annual_increase_percent": item.annual_increase_percent,
+            "inflation_percent": item.inflation_percent,
+            "category": item.category,
+            "frequency": item.frequency,
+            "person": item.person,
+            "start_date": item.start_date,
+            "end_date": item.end_date,
+            "taxable": item.taxable,
+            "tax_deductible": item.tax_deductible,
+        }
         if not item_copy.get("linked_item_id") and not item_copy.get("linked_item_type") and item_copy.get("percentage") is None:
             # For static items, yearly_value is already stored
             pass # No change needed, yearly_value is already loaded from DB
@@ -298,11 +316,3 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         # Convert the list of dictionaries to a JSON string for data_json
         "data_json": json.dumps(yearly_results)
     }
-    response_dict = {
-        "final_value": yearly_results[-1]["Total_Value"] if yearly_results else 0.0,
-        "total_contributed": total_contribution,
-        "total_growth": total_growth,
-        "data_json": json.dumps(yearly_results)
-    }
-    print(f"DEBUG (calculations.py): Final projection response: {json.dumps(response_dict, indent=2)}")
-    return response_dict
