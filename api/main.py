@@ -36,6 +36,9 @@ app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=Tru
 @app.on_event("startup")
 async def startup_event():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # Explicitly set logger levels for modules
+    logging.getLogger('api.calculations').setLevel(logging.DEBUG)
+    logging.getLogger('api.routers.custom_charts').setLevel(logging.DEBUG)
     logger.info("FastAPI application started. Logging level set to DEBUG.")
 
 app.include_router(custom_charts.router)

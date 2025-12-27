@@ -155,6 +155,7 @@ def update_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    logger.error(f"!!!! Entering update_custom_chart for chart ID {chart_id}, user {current_user.id} !!!!") # Prominent ERROR log
     logger.debug(f"Entering update_custom_chart for chart ID {chart_id}, user {current_user.id}") # Changed from print to logger.debug
 
     chart_query = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == current_user.id)
