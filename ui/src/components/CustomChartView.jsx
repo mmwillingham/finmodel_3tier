@@ -52,8 +52,20 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
         const dataValues = parsedDataJson.map(dataPoint => {
           // Construct the key for the data point, e.g., "InvestIncomeNew_Value"
-          const dataKey = `${series.category}_Value`;
-          console.log(`DEBUG (CustomChartView.jsx): dataPoint for Year ${dataPoint.Year}, dataKey: ${dataKey}, value: ${dataPoint[dataKey]}`);
+          let valueForSeries = 0;
+
+          if (series.aggregation === "sum" && series.category === "Investment Income") {
+            // TEMPORARY: Hardcoding aggregation for "Investment Income" category.
+            // This assumes "Investment Income" sums InterestTest_Value and dividends_Value.
+            // A more robust solution requires backend changes to provide category mapping.
+            valueForSeries += dataPoint["InterestTest_Value"] || 0;
+            valueForSeries += dataPoint["dividends_Value"] || 0;
+          } else {
+            // Fallback for other series: attempt direct lookup using series.label
+            const dataKey = `${series.label}_Value`;
+            valueForSeries = dataPoint[dataKey] || 0;
+          }
+          console.log(`DEBUG (CustomChartView.jsx): dataPoint for Year ${dataPoint.Year}, series label: ${series.label}, category: ${series.category}, dataKey sought: calculated, value: ${valueForSeries}`);
           return dataPoint[dataKey] || 0; // Use 0 if the key is not found
         });
 
