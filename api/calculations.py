@@ -267,7 +267,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
                         # Use current_year_balances for the most up-to-date asset value for the current year
                         linked_value = current_year_balances.get(asset_name, assets_by_id[linked_item_id].value)
                     elif linked_item_type == 'liability' and linked_item_id in liabilities_by_id:
-                        liability_name = liabilities_by_by_id[linked_item_id].name
+                        liability_name = liabilities_by_id[linked_item_id].name
                         # Use current_year_balances for the most up-to-date liability value for the current year
                         linked_value = current_year_balances.get(liability_name, liabilities_by_id[linked_item_id].value)
 
