@@ -15,7 +15,7 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}'
+        docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
@@ -24,7 +24,7 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}'
+        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Backend Service'
@@ -77,7 +77,7 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}'
+        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
     waitFor: ['Build Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
