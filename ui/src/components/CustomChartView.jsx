@@ -26,6 +26,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     let parsedDataJson = [];
     try {
       parsedDataJson = JSON.parse(fetchedConfig.data_json);
+      console.log("DEBUG (CustomChartView.jsx): Parsed data_json inside prepareChartData:", parsedDataJson); // RE-ADDED LOG
     } catch (e) {
       console.error("Error parsing data_json in prepareChartData:", e);
       setMessage("Error processing chart data from the server.");
@@ -44,29 +45,52 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
     try {
       const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
+      console.log("DEBUG (CustomChartView.jsx): Parsed series_configurations:", seriesConfigurations); // RE-ADDED LOG
 
       seriesConfigurations.forEach((series) => {
+        console.log("DEBUG (CustomChartView.jsx): Processing series:", series.label, "(Category:", series.category, ")"); // RE-ADDED LOG
+
         const dataValues = parsedDataJson.map(dataPoint => {
-          let valueForSeries = 0; // Initialize for summed value
-          const dataKey = `${series.label}_Value`; // Default data key
+          let valueForSeries = 0;
+          let debugAggregationDetails = "N/A"; // For logging individual values contributing to sum
 
           // Aggregation logic based on category
           if (series.category === "Investment Income") {
-            valueForSeries = (dataPoint["Interest_Value"] || 0) + (dataPoint["Dividends_Value"] || 0);
-          } else if (series.category === "Asset") { // Assuming 'Asset' category sums certain asset types
-            valueForSeries = (dataPoint["Savings_Value"] || 0) + (dataPoint["IRA_Value"] || 0) + (dataPoint["Home Loan_Value"] || 0); // Example, adjust as needed
-          } else if (series.category === "Liability") { // Assuming 'Liability' category sums certain liability types
-            valueForSeries = (dataPoint["Mortgage_Value"] || 0); // Example, adjust as needed
-            valueForSeries = Math.abs(valueForSeries); // Display as positive magnitude
-          } else if (series.category === "All Income") { // Assuming 'All Income' aggregates various income sources
-            valueForSeries = (dataPoint["Interest_Value"] || 0) + (dataPoint["Dividends_Value"] || 0) + (dataPoint["Q4 bonus_Value"] || 0) + (dataPoint["Body Shop_Value"] || 0) + (dataPoint["test_Value"] || 0);
-          } else if (series.category === "Expenses") { // Assuming 'Expenses' aggregates various expense items
-            valueForSeries = (dataPoint["Groceries_Value"] || 0) + (dataPoint["teste_Value"] || 0);
-            valueForSeries = Math.abs(valueForSeries); // Display as positive magnitude
-          } else if (dataPoint[dataKey] !== undefined) {
-            // If a direct dataKey exists, use it
-            valueForSeries = dataPoint[dataKey];
+            const interestValue = dataPoint["Interest_Value"] || 0;
+            const dividendsValue = dataPoint["Dividends_Value"] || 0;
+            valueForSeries = interestValue + dividendsValue;
+            debugAggregationDetails = `Interest_Value (${interestValue}) + Dividends_Value (${dividendsValue})`;
+          } else if (series.category === "Asset") {
+            const savingsValue = dataPoint["Savings_Value"] || 0;
+            const iraValue = dataPoint["IRA_Value"] || 0;
+            const homeLoanValue = dataPoint["Home Loan_Value"] || 0;
+            valueForSeries = savingsValue + iraValue + homeLoanValue;
+            debugAggregationDetails = `Savings_Value (${savingsValue}) + IRA_Value (${iraValue}) + Home Loan_Value (${homeLoanValue})`;
+          } else if (series.category === "Liability") {
+            const mortgageValue = dataPoint["Mortgage_Value"] || 0;
+            valueForSeries = Math.abs(mortgageValue);
+            debugAggregationDetails = `Mortgage_Value (absolute: ${valueForSeries})`;
+          } else if (series.category === "All Income") {
+            const interestValue = dataPoint["Interest_Value"] || 0;
+            const dividendsValue = dataPoint["Dividends_Value"] || 0;
+            const q4BonusValue = dataPoint["Q4 bonus_Value"] || 0;
+            const bodyShopValue = dataPoint["Body Shop_Value"] || 0;
+            const testValue = dataPoint["test_Value"] || 0;
+            valueForSeries = interestValue + dividendsValue + q4BonusValue + bodyShopValue + testValue;
+            debugAggregationDetails = `Interest_Value (${interestValue}) + Dividends_Value (${dividendsValue}) + Q4 bonus_Value (${q4BonusValue}) + Body Shop_Value (${bodyShopValue}) + test_Value (${testValue})`;
+          } else if (series.category === "Expenses") {
+            const groceriesValue = dataPoint["Groceries_Value"] || 0;
+            const testeValue = dataPoint["teste_Value"] || 0; // Assuming this is an expense
+            valueForSeries = Math.abs(groceriesValue + testeValue); // Sum and then take absolute value for display
+            debugAggregationDetails = `Groceries_Value (absolute: ${Math.abs(groceriesValue)}) + teste_Value (absolute: ${Math.abs(testeValue)})`;
+          } else {
+            // Fallback for direct lookup if no category matches
+            const dataKey = `${series.label}_Value`;
+            valueForSeries = dataPoint[dataKey] || 0;
+            debugAggregationDetails = `Direct lookup: ${dataKey} (value: ${valueForSeries})`;
           }
+
+          console.log(`DEBUG (CustomChartView.jsx): Year ${dataPoint.Year}, Series: ${series.label}, Category: ${series.category}, Details: ${debugAggregationDetails}, Final Value: ${valueForSeries}`); // RE-ADDED DETAILED LOG
           return valueForSeries;
         });
 
@@ -117,6 +141,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
 
     setChartData({ labels, datasets });
+    console.log("DEBUG (CustomChartView.jsx): Chart data prepared (labels, datasets):", { labels, datasets }); // RE-ADDED LOG
   }, [showChartTotals]); // Removed other dependencies as data_json is the source
 
   useEffect(() => {
@@ -128,11 +153,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const fetchedConfig = response.data;
         setChartConfig(fetchedConfig);
         setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
-        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "chart");
+        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "chart"); // RE-ADDED LOG
         console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
         try {
           const parsedDataJson = JSON.parse(fetchedConfig.data_json);
-          console.log("DEBUG (CustomChartView.jsx): Parsed data_json in useEffect:", parsedDataJson);
+          console.log("DEBUG (CustomChartView.jsx): Parsed data_json in useEffect:", parsedDataJson); // RE-ADDED LOG
         } catch (parseError) {
           console.error("DEBUG (CustomChartView.jsx): Error parsing data_json in useEffect:", parseError);
         }
