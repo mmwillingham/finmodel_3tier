@@ -45,11 +45,15 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
     try {
       const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
+      console.log("DEBUG (CustomChartView.jsx): Parsed series_configurations:", seriesConfigurations);
 
       seriesConfigurations.forEach((series) => {
+        console.log("DEBUG (CustomChartView.jsx): Processing series with label:", series.label);
+
         const dataValues = parsedDataJson.map(dataPoint => {
           // Construct the key for the data point, e.g., "InvestIncomeNew_Value"
           const dataKey = `${series.label}_Value`;
+          console.log(`DEBUG (CustomChartView.jsx): dataPoint for Year ${dataPoint.Year}, dataKey: ${dataKey}, value: ${dataPoint[dataKey]}`);
           return dataPoint[dataKey] || 0; // Use 0 if the key is not found
         });
 
