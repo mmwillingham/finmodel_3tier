@@ -52,7 +52,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
         const dataValues = parsedDataJson.map(dataPoint => {
           // Construct the key for the data point, e.g., "InvestIncomeNew_Value"
-          const dataKey = `${series.label}_Value`;
+          const dataKey = `${series.category}_Value`;
           console.log(`DEBUG (CustomChartView.jsx): dataPoint for Year ${dataPoint.Year}, dataKey: ${dataKey}, value: ${dataPoint[dataKey]}`);
           return dataPoint[dataKey] || 0; // Use 0 if the key is not found
         });
