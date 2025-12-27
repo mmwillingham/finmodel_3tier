@@ -132,6 +132,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const fetchedConfig = response.data;
         setChartConfig(fetchedConfig);
         setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
+        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "chart");
         console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
         try {
           const parsedDataJson = JSON.parse(fetchedConfig.data_json);
