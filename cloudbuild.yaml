@@ -1,15 +1,10 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Backend Image'
+    entrypoint: 'bash'
     args:
-      - 'build'
-      - '--no-cache'
-      - '--pull'
-      - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)}'
-      - 'api'
-      - '--build-arg'
-      - 'CACHEBUSTER=${_TIMESTAMP}'
+      - '-c'
+      - 'docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)} api --build-arg CACHEBUSTER=${_TIMESTAMP}'
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
@@ -52,38 +47,27 @@ steps:
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Frontend Image'
+    entrypoint: 'bash'
     args:
-      - 'build'
-      - '--no-cache'
-      - '-t'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)}'
-      - '--build-arg=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app' # Use deployed backend URL
-      - '.'
+      - '-c'
+      - 'docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)} --build-arg=REACT_APP_API_URL=https://finmodel-backend-service-526419047208.us-east1.run.app . '
     dir: 'ui'
     waitFor: ['Update Backend Traffic']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Frontend Image'
+    entrypoint: 'bash'
     args:
-      - 'push'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)}'
+      - '-c'
+      - 'docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)}'
     waitFor: ['Build Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Frontend Service'
+    entrypoint: 'bash'
     args:
-      - 'run'
-      - 'deploy'
-      - 'finmodel-frontend-service'
-      - '--image'
-      - 'us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)}'
-      - '--region'
-      - 'us-east1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--project'
-      - 'financial-model-cloud'
+      - '-c'
+      - 'gcloud run deploy finmodel-frontend-service --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${_COMMIT_SHA:-latest}-${_TIMESTAMP:-$(date +%Y%m%d%H%M%S)} --region us-east1 --platform managed --allow-unauthenticated --project financial-model-cloud'
     waitFor: ['Push Frontend Image']
 
   - name: 'python:3.11'
