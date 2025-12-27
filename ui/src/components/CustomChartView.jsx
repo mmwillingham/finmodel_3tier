@@ -257,7 +257,14 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       csvRows.push(row.join(','));
     });
 
-    const csvString = csvRows.join(`\n`);
+    let csvString = '';
+    csvRows.forEach((row, index) => {
+        csvString += row;
+        if (index < csvRows.length - 1) {
+            csvString += '\n'; // Use escaped newline character explicitly
+        }
+    });
+
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
