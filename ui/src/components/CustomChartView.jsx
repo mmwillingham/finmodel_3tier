@@ -60,17 +60,17 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             const dividendsValue = dataPoint["Dividends_Value"] || 0;
             valueForSeries = interestValue + dividendsValue;
             debugAggregationDetails = `Interest_Value (${interestValue}) + Dividends_Value (${dividendsValue})`;
-          } else if (series.category === "Asset") {
+          } else if (series.category === "Investments") { // Corrected from "Asset" to "Investments" based on logs
             const savingsValue = dataPoint["Savings_Value"] || 0;
             const iraValue = dataPoint["IRA_Value"] || 0;
             const homeLoanValue = dataPoint["Home Loan_Value"] || 0;
             valueForSeries = savingsValue + iraValue + homeLoanValue;
             debugAggregationDetails = `Savings_Value (${savingsValue}) + IRA_Value (${iraValue}) + Home Loan_Value (${homeLoanValue})`;
-          } else if (series.category === "Liability") {
+          } else if (series.category === "Mortgage") { // Corrected from "Liability" to "Mortgage" based on logs
             const mortgageValue = dataPoint["Mortgage_Value"] || 0;
             valueForSeries = Math.abs(mortgageValue);
             debugAggregationDetails = `Mortgage_Value (absolute: ${valueForSeries})`;
-          } else if (series.category === "All Income") {
+          } else if (series.label === "All Income") { // Changed to match series.label for "All Income" as category was empty
             const interestValue = dataPoint["Interest_Value"] || 0;
             const dividendsValue = dataPoint["Dividends_Value"] || 0;
             const q4BonusValue = dataPoint["Q4 bonus_Value"] || 0;
@@ -78,7 +78,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             const testValue = dataPoint["test_Value"] || 0;
             valueForSeries = interestValue + dividendsValue + q4BonusValue + bodyShopValue + testValue;
             debugAggregationDetails = `Interest_Value (${interestValue}) + Dividends_Value (${dividendsValue}) + Q4 bonus_Value (${q4BonusValue}) + Body Shop_Value (${bodyShopValue}) + test_Value (${testValue})`;
-          } else if (series.category === "Expenses") {
+          } else if (series.category === "Expenses") { // Assuming category is "Expenses" for this fix
             const groceriesValue = dataPoint["Groceries_Value"] || 0;
             const testeValue = dataPoint["teste_Value"] || 0; // Assuming this is an expense
             valueForSeries = Math.abs(groceriesValue + testeValue); // Sum and then take absolute value for display
@@ -278,7 +278,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           options={options} // Use the consolidated options object
         />;
       default:
-        return <p>Unsupported chart type: {chartConfig.chart_type}</p>;
+        return <p>Unsupported chart type: ${chartConfig.chart_type}</p>;
     }
   };
 
