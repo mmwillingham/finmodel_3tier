@@ -60,7 +60,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
     # Convert to dictionary for easy lookup and modification
     cashflow_by_id = {item["id"]: item for item in processed_cashflow_items}
 
-    print(f"DEBUG: Initial processed cashflow items: {repr(processed_cashflow_items)}")
+    print("DEBUG: Initial processed cashflow items: " + str(processed_cashflow_items))
 
     # 2. Iteratively resolve dynamic CashFlowItems
     # This loop will ensure that items dependent on other cashflow items are calculated
@@ -109,7 +109,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         current_pass += 1
         print(f"DEBUG: Pass {current_pass} completed. Resolved {resolved_count} items. Total passes: {current_pass}/{max_passes}")
         
-    print(f"DEBUG: Final processed cashflow items after iterative resolution: {repr(processed_cashflow_items)}")
+    print("DEBUG: Final processed cashflow items after iterative resolution: " + str(processed_cashflow_items))
 
     # After resolution, convert CashFlowItems to an account-like structure for projection
     final_cashflow_accounts = []
@@ -124,7 +124,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             "id": item_dict["id"], # Keep original ID for potential future lookup
         })
     
-    print(f"DEBUG: Final cashflow accounts for projection: {repr(final_cashflow_accounts)}")
+    print("DEBUG: Final cashflow accounts for projection: " + str(final_cashflow_accounts))
 
     # Combine original accounts with processed cash flow items
     # Ensure 'accounts' passed in are already Pydantic models or similar dicts
@@ -167,7 +167,7 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
             combined_accounts.append(cf_acc)
             existing_account_names.add(cf_acc["name"])
 
-    print(f"DEBUG: Combined accounts for main projection loop: {repr(combined_accounts)}")
+    print("DEBUG: Combined accounts for main projection loop: " + str(combined_accounts))
 
     # Initialize separate running balances for each account
     account_balances = {
@@ -309,12 +309,13 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         previous_year_total_value = current_year_total_value
     # ----------------------------------------------------------------------
 
+    print("DEBUG (calculations.py): Raw yearly_results before JSON dump: " + str(yearly_results))
+
     # 5. The final output structure (returned to the FastAPI endpoint)
     return {
         "final_value": yearly_results[-1]["Total_Value"] if yearly_results else 0.0,
         "total_contributed": total_contribution,
         "total_growth": total_growth,
         # Convert the list of dictionaries to a JSON string for data_json
-        print(f"DEBUG (calculations.py): Raw yearly_results before JSON dump: {repr(yearly_results)}")
         "data_json": json.dumps(yearly_results)
     }
