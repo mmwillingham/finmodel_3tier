@@ -51,7 +51,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
         <p>You haven't created any custom charts yet.</p>
       ) : (
         <div className="chart-cards-container">
-          {charts.map((chart) => (
+          {charts.sort((a, b) => a.name.localeCompare(b.name)).map((chart) => (
             <div key={chart.id} className="chart-card" onClick={() => onViewChart(chart.id)}>
               <div className="chart-card-header">
                 <h4>{chart.name}</h4>
