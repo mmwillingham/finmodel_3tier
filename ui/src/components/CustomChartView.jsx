@@ -7,14 +7,6 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import CustomChartService from '../services/customChart.service';
 import './CustomChartView.css'; // We will create this CSS file
 
-const formatValue = (value, displayType) => {
-  if (displayType === 'percentage') {
-    return `${(value * 100).toFixed(2)}%`;
-  } else { // Default to currency
-    return formatCurrency(value);
-  }
-};
-
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -28,7 +20,15 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const tableRef = useRef(null); // New ref for the table
   const currentYear = new Date().getFullYear();
   const [showChartTotals, setShowChartTotals] = useState(true); // State for individual chart totals
-  const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type
+    const [currentDisplayType, setCurrentDisplayType] = useState("currency"); // New state for display type
+
+  const formatValue = useCallback((value, displayType) => {
+    if (displayType === 'percentage') {
+      return `${(value * 100).toFixed(2)}%`;
+    } else { // Default to currency
+      return formatCurrency(value);
+    }
+  }, [formatCurrency]);
 
   const prepareChartData = useCallback((fetchedConfig) => {
     let parsedDataJson = [];
@@ -160,8 +160,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const response = await CustomChartService.get(chartId);
         const fetchedConfig = response.data;
         setChartConfig(fetchedConfig);
-        setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
-        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "chart"); // RE-ADDED LOG
+        setCurrentDisplayType(fetchedConfig.display_type || "currency"); // Set display type from fetched config
+        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "currency"); // RE-ADDED LOG
         console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
         try {
           const parsedDataJson = JSON.parse(fetchedConfig.data_json);
