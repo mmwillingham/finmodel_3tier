@@ -84,23 +84,24 @@ export default function LiabilityFormModal({
   }, [itemToEdit]);
 
   const save = async () => {
-    if (!newItem.name || !newItem.category || !newItem.value || !newItem.annual_change_type) return;
+    // Validation adjusted based on loan type
+    if (!newItem.name || !newItem.category) return; // Basic validation
 
     const payload = {
       name: newItem.name,
       category: newItem.category,
-      value: parseFloat(newItem.value),
-      annual_increase_percent: parseFloat(newItem.annual_increase_percent || 0),
-      annual_change_type: newItem.annual_change_type,
+      value: newItem.loan_type === "ordinary" ? parseFloat(newItem.value) : 0, // Only send value for ordinary loans
+      annual_increase_percent: newItem.loan_type === "ordinary" ? parseFloat(newItem.annual_increase_percent || 0) : 0, // Only send for ordinary
+      annual_change_type: newItem.loan_type === "ordinary" ? newItem.annual_change_type : "increase", // Default for amortized, or as specified for ordinary
       loan_type: newItem.loan_type,
-      principal_amount: newItem.principal_amount ? parseFloat(newItem.principal_amount) : null,
-      interest_rate: newItem.interest_rate ? parseFloat(newItem.interest_rate) : null,
-      loan_term_months: newItem.loan_term_months ? parseInt(newItem.loan_term_months, 10) : null,
-      loan_start_date: newItem.loan_start_date || null,
-      monthly_payment: newItem.monthly_payment ? parseFloat(newItem.monthly_payment) : null,
-      fees: parseFloat(newItem.fees || 0), // Ensure fees are parsed as float
-      start_date: newItem.start_date || null,
-      end_date: newItem.end_date || null,
+      principal_amount: newItem.loan_type === "amortized" && newItem.principal_amount ? parseFloat(newItem.principal_amount) : null,
+      interest_rate: newItem.loan_type === "amortized" && newItem.interest_rate ? parseFloat(newItem.interest_rate) : null,
+      loan_term_months: newItem.loan_type === "amortized" && newItem.loan_term_months ? parseInt(newItem.loan_term_months, 10) : null,
+      loan_start_date: newItem.loan_type === "amortized" && newItem.loan_start_date ? newItem.loan_start_date : null,
+      monthly_payment: newItem.loan_type === "amortized" && newItem.monthly_payment ? parseFloat(newItem.monthly_payment) : null, // Backend calculates, but can be sent if present
+      fees: newItem.loan_type === "amortized" && newItem.fees ? parseFloat(newItem.fees) : 0,
+      start_date: newItem.loan_type === "ordinary" && newItem.start_date ? newItem.start_date : null,
+      end_date: null, // Always null for both loan types as it's not needed
     };
 
     try {
@@ -125,7 +126,7 @@ export default function LiabilityFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name} (${newItem.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving'})` : `Add New Liability`}>
       <div className="liability-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* New row for loan type */}
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* Loan Type, Name, Category */}
             <div className="form-field">
               <label htmlFor="loan-type">Loan Type</label>
               <select id="loan-type" value={newItem.loan_type} onChange={(e) => setNewItem({ ...newItem, loan_type: e.target.value })}>
@@ -133,7 +134,71 @@ export default function LiabilityFormModal({
                 <option value="amortized">Amortized Loan</option>
               </select>
             </div>
-            {newItem.loan_type === "amortized" && (
+            {/* Name and Category are common for both types */}
+            <div className="form-field">
+              <label htmlFor="liability-name">Name</label>
+              <input
+                id="liability-name"
+                type="text"
+                placeholder="Name"
+                value={newItem.name}
+                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="liability-category">Category</label>
+              <select id="liability-category" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {newItem.loan_type === "ordinary" && (
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* Fields specific to Ordinary/Revolving loan */}
+              <div className="form-field">
+                <label htmlFor="liability-value">Value</label>
+                <input
+                  id="liability-value"
+                  type="number"
+                  placeholder="Value"
+                  value={newItem.value}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="annual-change-percent">Annual Increase Percent</label>
+                <input
+                  id="annual-change-percent"
+                  type="number"
+                  step="0.1"
+                  placeholder="Percent"
+                  value={newItem.annual_increase_percent}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="liability-start-date">Start Date</label>
+                <input
+                  id="liability-start-date"
+                  type="date"
+                  placeholder="Start Date"
+                  value={newItem.start_date}
+                  onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
+          {newItem.loan_type === "amortized" && (
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}> {/* Fields specific to Amortized loan */}
               <div className="form-field">
                 <label htmlFor="principal-amount">Principal Amount</label>
                 <input
@@ -146,8 +211,6 @@ export default function LiabilityFormModal({
                   onChange={(e) => setNewItem({ ...newItem, principal_amount: e.target.value })}
                 />
               </div>
-            )}
-            {newItem.loan_type === "amortized" && (
               <div className="form-field">
                 <label htmlFor="interest-rate">Annual Interest Rate (%)</label>
                 <input
@@ -160,67 +223,6 @@ export default function LiabilityFormModal({
                   onChange={(e) => setNewItem({ ...newItem, interest_rate: e.target.value })}
                 />
               </div>
-            )}
-          </div>
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Name, Category, Value, Percent, Annual Change */} 
-            <div className="form-field">
-              <label htmlFor="liability-name">Name</label>
-              <input
-                id="liability-name"
-                type="text"
-                placeholder="Name"
-                value={newItem.name}
-                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="liability-category">Category</label>
-              <select id="liability-category" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="liability-value">Value</label>
-              <input
-                id="liability-value"
-                type="number"
-                placeholder="Value"
-                value={newItem.value}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="annual-change-percent">Percent</label>
-              <input
-                id="annual-change-percent"
-                type="number"
-                step="0.1"
-                placeholder="Percent"
-                value={newItem.annual_increase_percent}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="annual-change-type">Annual Change</label>
-              <select id="annual-change-type" value={newItem.annual_change_type} onChange={(e) => setNewItem({ ...newItem, annual_change_type: e.target.value })}>
-                <option value="increase">Increase</option>
-                <option value="decrease">Decrease</option>
-              </select>
-            </div>
-          </div>
-
-          {newItem.loan_type === "amortized" && (
-            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className="form-field">
                 <label htmlFor="loan-term-months">Loan Term (Months)</label>
                 <input
@@ -242,6 +244,14 @@ export default function LiabilityFormModal({
                   onChange={(e) => setNewItem({ ...newItem, loan_start_date: e.target.value })}
                 />
               </div>
+            </div>
+          )}
+          {newItem.loan_type === "amortized" && newItem.monthly_payment && (
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div className="form-field">
+                <label>Est. Monthly Payment</label>
+                <input type="text" value={parseFloat(newItem.monthly_payment).toFixed(2)} readOnly disabled />
+              </div>
               <div className="form-field">
                 <label htmlFor="fees">Fees (One-time)</label>
                 <input
@@ -254,38 +264,8 @@ export default function LiabilityFormModal({
                   onChange={(e) => setNewItem({ ...newItem, fees: e.target.value })}
                 />
               </div>
-              {newItem.monthly_payment && (
-                <div className="form-field">
-                  <label>Est. Monthly Payment</label>
-                  <input type="text" value={parseFloat(newItem.monthly_payment).toFixed(2)} readOnly disabled />
-                </div>
-              )}
             </div>
           )}
-
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) 1fr 1fr 1fr' }}> {/* Second row: Start Date, End Date, with 3 empty columns */} 
-            <div className="form-field">
-              <label htmlFor="liability-start-date">Start Date</label>
-              <input
-                id="liability-start-date"
-                type="date"
-                placeholder="Start Date"
-                value={newItem.start_date}
-                onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="liability-end-date">End Date</label>
-              <input
-                id="liability-end-date"
-                type="date"
-                placeholder="End Date"
-                value={newItem.end_date || ""}
-                onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
-              />
-            </div>
-          </div>
 
           <div className="form-actions">
             <button onClick={save} id="add-liability-item-button">
