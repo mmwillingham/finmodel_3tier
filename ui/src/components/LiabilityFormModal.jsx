@@ -85,7 +85,38 @@ export default function LiabilityFormModal({
 
   const save = async () => {
     // Validation adjusted based on loan type
-    if (!newItem.name || !newItem.category) return; // Basic validation
+    if (!newItem.name || !newItem.category) {
+      alert("Name and Category are required.");
+      return;
+    }
+
+    if (newItem.loan_type === "amortized") {
+      if (!newItem.principal_amount || isNaN(parseFloat(newItem.principal_amount))) {
+        alert("Principal Amount is required and must be a number for amortized loans.");
+        return;
+      }
+      if (!newItem.interest_rate || isNaN(parseFloat(newItem.interest_rate))) {
+        alert("Annual Interest Rate is required and must be a number for amortized loans.");
+        return;
+      }
+      if (!newItem.loan_term_months || isNaN(parseInt(newItem.loan_term_months, 10))) {
+        alert("Loan Term (Months) is required and must be an integer for amortized loans.");
+        return;
+      }
+      if (!newItem.loan_start_date) {
+        alert("Loan Start Date is required for amortized loans.");
+        return;
+      }
+    } else { // Ordinary loan validation
+        if (!newItem.value || isNaN(parseFloat(newItem.value))) {
+            alert("Value is required and must be a number for ordinary loans.");
+            return;
+        }
+        if (isNaN(parseFloat(newItem.annual_increase_percent))) {
+            alert("Annual Increase Percent must be a number for ordinary loans.");
+            return;
+        }
+    }
 
     const payload = {
       name: newItem.name,
