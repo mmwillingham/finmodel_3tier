@@ -25,6 +25,9 @@ from routers import custom_charts
 from utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
 
+from math import pow # NEW: For amortization calculation
+from datetime import date # NEW: For handling loan start dates
+
 logger = logging.getLogger(__name__) # Initialize logger for main.py
 
 # --- INITIALIZATION ---
@@ -839,6 +842,21 @@ def delete_asset(
 
 # --- LIABILITY ENDPOINTS ---
 
+def calculate_amortized_monthly_payment(principal, annual_interest_rate, loan_term_months):
+    if annual_interest_rate == 0:
+        return principal / loan_term_months
+
+    monthly_interest_rate = annual_interest_rate / 12 / 100
+    # M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1]
+    # M = monthly payment
+    # P = principal loan amount
+    # i = monthly interest rate
+    # n = loan term in months
+    monthly_payment = principal * (
+        monthly_interest_rate * pow(1 + monthly_interest_rate, loan_term_months)
+    ) / (pow(1 + monthly_interest_rate, loan_term_months) - 1)
+    return monthly_payment
+
 @app.get("/liabilities", response_model=List[schemas.LiabilityOut], tags=["liabilities"])
 def list_liabilities(
     db: Session = Depends(database.get_db),
@@ -858,6 +876,12 @@ def create_liability(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
+    monthly_payment = None
+    if payload.loan_type == "amortized":
+        if not all([payload.principal_amount, payload.interest_rate, payload.loan_term_months]):
+            raise HTTPException(status_code=400, detail="Principal amount, interest rate, and loan term are required for amortized loans.")
+        monthly_payment = calculate_amortized_monthly_payment(payload.principal_amount, payload.interest_rate, payload.loan_term_months)
+
     liability = models.Liability(
         owner_id=current_user.id,
         name=payload.name,
@@ -865,12 +889,39 @@ def create_liability(
         value=payload.value,
         annual_increase_percent=payload.annual_increase_percent,
         annual_change_type=payload.annual_change_type, # New field
+        loan_type=payload.loan_type, # NEW
+        principal_amount=payload.principal_amount, # NEW
+        interest_rate=payload.interest_rate, # NEW
+        loan_term_months=payload.loan_term_months, # NEW
+        loan_start_date=payload.loan_start_date, # NEW
+        monthly_payment=monthly_payment, # NEW
+        fees=payload.fees, # NEW
         start_date=payload.start_date,  # New field
         end_date=payload.end_date      # New field
     )
     db.add(liability)
     db.commit()
     db.refresh(liability)
+
+    if monthly_payment is not None:
+        cash_flow_item = models.CashFlowItem(
+            owner_id=current_user.id,
+            is_income=False,
+            category="Loan Payment", # Or a more dynamic category based on settings
+            description=f"Monthly payment for {payload.name}",
+            frequency="monthly",
+            yearly_value=monthly_payment * 12,
+            value=monthly_payment,
+            annual_increase_percent=0.0,
+            inflation_percent=0.0,
+            start_date=payload.loan_start_date.strftime("%Y-%m-%d") if payload.loan_start_date else None,
+            linked_item_id=liability.id,
+            linked_item_type="liability",
+        )
+        db.add(cash_flow_item)
+        db.commit()
+        db.refresh(cash_flow_item)
+
     return liability
 
 
@@ -886,13 +937,34 @@ def update_liability(
         raise HTTPException(status_code=404, detail="Liability not found")
     if liability.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
-    liability.name = payload.name
-    liability.category = payload.category
-    liability.value = payload.value
-    liability.annual_increase_percent = payload.annual_increase_percent
-    liability.annual_change_type = payload.annual_change_type # New field
-    liability.start_date = payload.start_date  # New field
-    liability.end_date = payload.end_date      # New field
+    
+    # Update fields from payload
+    update_data = payload.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(liability, key, value)
+
+    # Recalculate monthly payment if loan parameters change
+    if liability.loan_type == "amortized":
+        if not all([liability.principal_amount, liability.interest_rate, liability.loan_term_months]):
+            raise HTTPException(status_code=400, detail="Principal amount, interest rate, and loan term are required for amortized loans.")
+        liability.monthly_payment = calculate_amortized_monthly_payment(liability.principal_amount, liability.interest_rate, liability.loan_term_months)
+
+        # Update linked cash flow item if it exists and is linked to this liability
+        cash_flow_item = db.query(models.CashFlowItem).filter(
+            models.CashFlowItem.linked_item_id == liability.id,
+            models.CashFlowItem.linked_item_type == "liability"
+        ).first()
+        if cash_flow_item:
+            cash_flow_item.yearly_value = liability.monthly_payment * 12
+            cash_flow_item.value = liability.monthly_payment
+            cash_flow_item.description = f"Monthly payment for {liability.name}"
+            # Potentially update start_date if loan_start_date changes
+            cash_flow_item.start_date = liability.loan_start_date.strftime("%Y-%m-%d") if liability.loan_start_date else None
+            db.add(cash_flow_item)
+            db.commit()
+            db.refresh(cash_flow_item)
+
+    db.add(liability)
     db.commit()
     db.refresh(liability)
     return liability
@@ -909,6 +981,15 @@ def delete_liability(
         raise HTTPException(status_code=404, detail="Item not found")
     if item.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Delete any linked cash flow item
+    cash_flow_item = db.query(models.CashFlowItem).filter(
+        models.CashFlowItem.linked_item_id == liability_id,
+        models.CashFlowItem.linked_item_type == "liability"
+    ).first()
+    if cash_flow_item:
+        db.delete(cash_flow_item)
+
     db.delete(item)
     db.commit()
     return Response(status_code=204)
