@@ -31,13 +31,15 @@ export default function LiabilityFormModal({
   const [newItem, setNewItem] = useState(initialNewItemState); // Initialize with initialState
 
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadSettingsAndSetItem = async () => {
       try {
         const res = await SettingsService.getSettings();
         const cats = res.data.liability_categories?.split(",") || ["Other"];
         setCategories(cats);
 
         if (itemToEdit) {
+          // If editing, populate with existing item data
+          console.log("Loading item to edit:", itemToEdit); // NEW log
           setNewItem({
             name: itemToEdit.name || '',
             category: itemToEdit.category || '',
@@ -55,9 +57,10 @@ export default function LiabilityFormModal({
             end_date: itemToEdit.end_date || '',
           });
         } else {
-          setNewItem(initialNewItemState); // Reset for new item
+          // If adding a new item, reset to initial state and set default category
+          console.log("Resetting form for new liability."); // NEW log
           setNewItem(prev => ({
-            ...prev,
+            ...initialNewItemState,
             category: cats[0] || "Other",
           }));
         }
@@ -65,12 +68,19 @@ export default function LiabilityFormModal({
         console.error("Failed to load settings", e);
         setCategories(["Other"]);
         if (!itemToEdit) {
-          setNewItem(prev => ({ ...prev, category: "Other" }));
+          setNewItem(prev => ({ ...initialNewItemState, category: "Other" }));
         }
       }
     };
-    loadSettings();
-  }, [itemToEdit]);
+
+    if (isOpen) { // Only run this effect when the modal is open
+      loadSettingsAndSetItem();
+    } else {
+        // Reset when modal closes, ensuring a clean slate for next open
+        console.log("Modal closed, resetting form state."); // NEW log
+        setNewItem(initialNewItemState);
+    }
+  }, [isOpen, itemToEdit]); // Dependencies changed to include isOpen and itemToEdit
 
   const save = async () => {
     // Validation adjusted based on loan type
@@ -127,11 +137,9 @@ export default function LiabilityFormModal({
     try {
       console.log("Attempting to save liability with payload:", payload); // NEW: More detailed logging
       if (itemToEdit) {
-        console.log("Attempting to update liability:", payload); // New log
         await LiabilityService.update(itemToEdit.id, payload);
         console.log("Liability updated successfully."); // New log
       } else {
-        console.log("Attempting to create liability:", payload); // New log
         await LiabilityService.create(payload);
         console.log("Liability created successfully."); // New log
       }
@@ -154,7 +162,7 @@ export default function LiabilityFormModal({
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* Loan Type, Name, Category */}
             <div className="form-field">
               <label htmlFor="loan-type">Loan Type</label>
-              <select id="loan-type" value={newItem.loan_type} onChange={(e) => setNewItem({ ...newItem, loan_type: e.target.value })} autoComplete="off">
+              <select id="loan-type" value={newItem.loan_type} onChange={(e) => setNewItem({ ...newItem, loan_type: e.target.value })}>
                 <option value="ordinary">Ordinary/Revolving</option>
                 <option value="amortized">Amortized Loan</option>
               </select>
@@ -168,12 +176,11 @@ export default function LiabilityFormModal({
                 placeholder="Name"
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                autoComplete="off"
               />
             </div>
             <div className="form-field">
               <label htmlFor="liability-category">Category</label>
-              <select id="liability-category" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })} autoComplete="off">
+              <select id="liability-category" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -194,7 +201,6 @@ export default function LiabilityFormModal({
                   value={newItem.value}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
 
@@ -208,7 +214,6 @@ export default function LiabilityFormModal({
                   value={newItem.annual_increase_percent}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
 
@@ -220,7 +225,6 @@ export default function LiabilityFormModal({
                   placeholder="Start Date"
                   value={newItem.start_date}
                   onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
             </div>
@@ -238,7 +242,6 @@ export default function LiabilityFormModal({
                   value={newItem.principal_amount}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, principal_amount: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
               <div className="form-field">
@@ -251,7 +254,6 @@ export default function LiabilityFormModal({
                   value={newItem.interest_rate}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, interest_rate: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
               <div className="form-field">
@@ -264,7 +266,6 @@ export default function LiabilityFormModal({
                   value={newItem.loan_term_months}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, loan_term_months: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
               <div className="form-field">
@@ -274,7 +275,6 @@ export default function LiabilityFormModal({
                   type="date"
                   value={newItem.loan_start_date}
                   onChange={(e) => setNewItem({ ...newItem, loan_start_date: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function LiabilityFormModal({
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="form-field">
                 <label>Est. Monthly Payment</label>
-                <input type="text" value={parseFloat(newItem.monthly_payment).toFixed(2)} readOnly disabled autoComplete="off" />
+                <input type="text" value={parseFloat(newItem.monthly_payment).toFixed(2)} readOnly disabled />
               </div>
               <div className="form-field">
                 <label htmlFor="fees">Fees (One-time)</label>
@@ -295,7 +295,6 @@ export default function LiabilityFormModal({
                   value={newItem.fees}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, fees: e.target.value })}
-                  autoComplete="off"
                 />
               </div>
             </div>
