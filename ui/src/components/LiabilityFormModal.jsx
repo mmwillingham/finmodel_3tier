@@ -18,6 +18,13 @@ export default function LiabilityFormModal({
     value: "",
     annual_increase_percent: 0,
     annual_change_type: "increase", // Default to increase for liabilities
+    loan_type: "ordinary", // NEW: Default loan type
+    principal_amount: "", // NEW
+    interest_rate: "", // NEW
+    loan_term_months: "", // NEW
+    loan_start_date: "", // NEW
+    fees: 0, // NEW: Default fees
+    monthly_payment: "", // NEW (though calculated by backend for amortized)
     start_date: "",
     end_date: "",
   });
@@ -36,6 +43,13 @@ export default function LiabilityFormModal({
             value: itemToEdit.value.toString() || '',
             annual_increase_percent: itemToEdit.annual_increase_percent || 0,
             annual_change_type: itemToEdit.annual_change_type || "increase",
+            loan_type: itemToEdit.loan_type || "ordinary", // NEW
+            principal_amount: itemToEdit.principal_amount?.toString() || "", // NEW
+            interest_rate: itemToEdit.interest_rate?.toString() || "", // NEW
+            loan_term_months: itemToEdit.loan_term_months?.toString() || "", // NEW
+            loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "", // NEW
+            monthly_payment: itemToEdit.monthly_payment?.toString() || "", // NEW
+            fees: itemToEdit.fees?.toString() || 0, // NEW
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
           });
@@ -47,6 +61,13 @@ export default function LiabilityFormModal({
             value: "",
             annual_increase_percent: 0,
             annual_change_type: "increase",
+            loan_type: "ordinary", // NEW
+            principal_amount: "", // NEW
+            interest_rate: "", // NEW
+            loan_term_months: "", // NEW
+            loan_start_date: "", // NEW
+            monthly_payment: "", // NEW
+            fees: 0, // NEW
             start_date: "",
             end_date: "",
           }));
@@ -71,6 +92,13 @@ export default function LiabilityFormModal({
       value: parseFloat(newItem.value),
       annual_increase_percent: parseFloat(newItem.annual_increase_percent || 0),
       annual_change_type: newItem.annual_change_type,
+      loan_type: newItem.loan_type,
+      principal_amount: newItem.principal_amount ? parseFloat(newItem.principal_amount) : null,
+      interest_rate: newItem.interest_rate ? parseFloat(newItem.interest_rate) : null,
+      loan_term_months: newItem.loan_term_months ? parseInt(newItem.loan_term_months, 10) : null,
+      loan_start_date: newItem.loan_start_date || null,
+      monthly_payment: newItem.monthly_payment ? parseFloat(newItem.monthly_payment) : null,
+      fees: parseFloat(newItem.fees || 0), // Ensure fees are parsed as float
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
     };
@@ -94,9 +122,46 @@ export default function LiabilityFormModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name}` : `Add New Liability`}>
+    <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name} (${newItem.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving'})` : `Add New Liability`}>
       <div className="liability-form-modal-content">
         <div className="add-item-form">
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* New row for loan type */}
+            <div className="form-field">
+              <label htmlFor="loan-type">Loan Type</label>
+              <select id="loan-type" value={newItem.loan_type} onChange={(e) => setNewItem({ ...newItem, loan_type: e.target.value })}>
+                <option value="ordinary">Ordinary/Revolving</option>
+                <option value="amortized">Amortized Loan</option>
+              </select>
+            </div>
+            {newItem.loan_type === "amortized" && (
+              <div className="form-field">
+                <label htmlFor="principal-amount">Principal Amount</label>
+                <input
+                  id="principal-amount"
+                  type="number"
+                  step="0.01"
+                  placeholder="Principal Amount"
+                  value={newItem.principal_amount}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, principal_amount: e.target.value })}
+                />
+              </div>
+            )}
+            {newItem.loan_type === "amortized" && (
+              <div className="form-field">
+                <label htmlFor="interest-rate">Annual Interest Rate (%)</label>
+                <input
+                  id="interest-rate"
+                  type="number"
+                  step="0.01"
+                  placeholder="Annual Interest Rate"
+                  value={newItem.interest_rate}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, interest_rate: e.target.value })}
+                />
+              </div>
+            )}
+          </div>
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Name, Category, Value, Percent, Annual Change */} 
             <div className="form-field">
               <label htmlFor="liability-name">Name</label>
@@ -153,6 +218,50 @@ export default function LiabilityFormModal({
               </select>
             </div>
           </div>
+
+          {newItem.loan_type === "amortized" && (
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              <div className="form-field">
+                <label htmlFor="loan-term-months">Loan Term (Months)</label>
+                <input
+                  id="loan-term-months"
+                  type="number"
+                  step="1"
+                  placeholder="Loan Term (Months)"
+                  value={newItem.loan_term_months}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, loan_term_months: e.target.value })}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="loan-start-date">Loan Start Date</label>
+                <input
+                  id="loan-start-date"
+                  type="date"
+                  value={newItem.loan_start_date}
+                  onChange={(e) => setNewItem({ ...newItem, loan_start_date: e.target.value })}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="fees">Fees (One-time)</label>
+                <input
+                  id="fees"
+                  type="number"
+                  step="0.01"
+                  placeholder="Fees"
+                  value={newItem.fees}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, fees: e.target.value })}
+                />
+              </div>
+              {newItem.monthly_payment && (
+                <div className="form-field">
+                  <label>Est. Monthly Payment</label>
+                  <input type="text" value={parseFloat(newItem.monthly_payment).toFixed(2)} readOnly disabled />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) 1fr 1fr 1fr' }}> {/* Second row: Start Date, End Date, with 3 empty columns */} 
             <div className="form-field">
