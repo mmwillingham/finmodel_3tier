@@ -40,7 +40,6 @@ app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=Tru
 async def startup_event():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     logger.info("FastAPI application started. Logging level set to DEBUG.")
-    logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}") # ADD THIS LINE
 
 app.include_router(custom_charts.router)
 
@@ -59,8 +58,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=settings.CORS_ORIGINS_REGEX,              
-    allow_credentials=True,             
+    allow_origins=["*"],              
+    allow_credentials=False,             
     allow_methods=["*"],                
     allow_headers=["*"],                
 )
