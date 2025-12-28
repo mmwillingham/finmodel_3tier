@@ -270,6 +270,13 @@ class LiabilityCreate(BaseModel):
     value: float
     annual_increase_percent: float = 0.0
     annual_change_type: str = "increase" # New field
+    loan_type: str = "ordinary" # NEW
+    principal_amount: Optional[float] = None # NEW
+    interest_rate: Optional[float] = None # NEW
+    loan_term_months: Optional[int] = None # NEW
+    loan_start_date: Optional[datetime] = None # NEW
+    monthly_payment: Optional[float] = None # NEW
+    fees: Optional[float] = 0.0 # NEW
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
 
@@ -283,6 +290,13 @@ class LiabilityOut(BaseModel):
     value: float
     annual_increase_percent: float
     annual_change_type: str # New field
+    loan_type: str # NEW
+    principal_amount: Optional[float] = None # NEW
+    interest_rate: Optional[float] = None # NEW
+    loan_term_months: Optional[int] = None # NEW
+    loan_start_date: Optional[datetime] = None # NEW
+    monthly_payment: Optional[float] = None # NEW
+    fees: float # NEW
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
