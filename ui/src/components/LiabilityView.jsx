@@ -72,6 +72,10 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
     dataArray.forEach(row => {
       const values = headers.map(header => {
         let value = row[header] || '';
+        // Special handling for loan_start_date which is a DateTime object on the backend
+        if (header === 'Loan Start Date' && row['loan_start_date']) {
+          value = row['loan_start_date'].split('T')[0];
+        }
         if (typeof value === 'number' && valueFormatter) {
           return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
         }
@@ -84,13 +88,20 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
 
   const handleDownloadLiabilitiesCsv = (filename) => {
     if (liabilities.length > 0) {
-      const headers = ['Name', 'Category', 'Value', 'Percent', 'Annual Change', 'Start Date', 'End Date'];
+      const headers = ['Name', 'Category', 'Value', 'Percent', 'Annual Change', 'Loan Type', 'Principal Amount', 'Interest Rate', 'Loan Term Months', 'Loan Start Date', 'Monthly Payment', 'Fees', 'Start Date', 'End Date'];
       const formattedData = liabilities.map(liability => ({
         Name: liability.name,
         Category: liability.category,
         Value: liability.value,
         'Percent': liability.annual_increase_percent,
         'Annual Change': liability.annual_change_type,
+        'Loan Type': liability.loan_type,
+        'Principal Amount': liability.principal_amount,
+        'Interest Rate': liability.interest_rate,
+        'Loan Term Months': liability.loan_term_months,
+        'Loan Start Date': liability.loan_start_date,
+        'Monthly Payment': liability.monthly_payment,
+        'Fees': liability.fees,
         'Start Date': liability.start_date,
         'End Date': liability.end_date,
       }));
@@ -126,6 +137,13 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
             <th className="cashflow-table-cell">Value</th>
             <th className="cashflow-table-cell">Annual Change</th>
             <th className="cashflow-table-cell">Percent</th>
+            <th className="cashflow-table-cell">Loan Type</th>
+            <th className="cashflow-table-cell">Principal</th>
+            <th className="cashflow-table-cell">Interest Rate</th>
+            <th className="cashflow-table-cell">Loan Term (Months)</th>
+            <th className="cashflow-table-cell">Loan Start Date</th>
+            <th className="cashflow-table-cell">Monthly Payment</th>
+            <th className="cashflow-table-cell">Fees</th>
             <th className="cashflow-table-cell">Start Date</th>
             <th className="cashflow-table-cell">End Date</th>
             <th className="cashflow-table-cell">Actions</th>
@@ -139,6 +157,13 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
               <td className="cashflow-table-cell">{formatCurrency(item.value)}</td>
               <td className="cashflow-table-cell">{item.annual_change_type}</td>
               <td className="cashflow-table-cell">{item.annual_increase_percent}%</td>
+              <td className="cashflow-table-cell">{item.loan_type}</td>
+              <td className="cashflow-table-cell">{item.principal_amount ? formatCurrency(item.principal_amount) : 'N/A'}</td>
+              <td className="cashflow-table-cell">{item.interest_rate ? `${item.interest_rate}%` : 'N/A'}</td>
+              <td className="cashflow-table-cell">{item.loan_term_months || 'N/A'}</td>
+              <td className="cashflow-table-cell">{item.loan_start_date ? item.loan_start_date.split('T')[0] : 'N/A'}</td>
+              <td className="cashflow-table-cell">{item.monthly_payment ? formatCurrency(item.monthly_payment) : 'N/A'}</td>
+              <td className="cashflow-table-cell">{formatCurrency(item.fees)}</td>
               <td className="cashflow-table-cell">{item.start_date}</td>
               <td className="cashflow-table-cell">{item.end_date}</td>
               <td className="action-buttons-cell">
