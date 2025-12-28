@@ -147,6 +147,13 @@ class Liability(Base):
     value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)
     annual_change_type = Column(String, default="increase") # New field
+    loan_type = Column(String, nullable=True, default="ordinary") # NEW
+    principal_amount = Column(Float, nullable=True) # NEW
+    interest_rate = Column(Float, nullable=True) # NEW
+    loan_term_months = Column(Integer, nullable=True) # NEW
+    loan_start_date = Column(DateTime(timezone=True), nullable=True) # NEW
+    monthly_payment = Column(Float, nullable=True) # NEW
+    fees = Column(Float, nullable=True, default=0.0) # NEW
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
