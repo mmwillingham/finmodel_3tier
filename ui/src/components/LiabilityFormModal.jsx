@@ -4,6 +4,23 @@ import SettingsService from "../services/settings.service";
 import Modal from "./Modal"; // Import the generic Modal component
 import "./LiabilityFormModal.css"; // Specific styling for this form
 
+const initialNewItemState = {
+  name: "",
+  category: "Other", // Default category for liabilities
+  value: "",
+  annual_increase_percent: 0,
+  annual_change_type: "increase", // Default to increase for liabilities
+  loan_type: "ordinary", // NEW: Default loan type
+  principal_amount: "", // NEW
+  interest_rate: "", // NEW
+  loan_term_months: "", // NEW
+  loan_start_date: "", // NEW
+  fees: 0, // NEW: Default fees
+  monthly_payment: "", // NEW (though calculated by backend for amortized)
+  start_date: "",
+  end_date: "",
+};
+
 export default function LiabilityFormModal({
   isOpen,
   onClose,
@@ -11,23 +28,7 @@ export default function LiabilityFormModal({
   onSaveSuccess,
 }) {
   const [categories, setCategories] = useState([]);
-
-  const [newItem, setNewItem] = useState({
-    name: "",
-    category: "Other", // Default category for liabilities
-    value: "",
-    annual_increase_percent: 0,
-    annual_change_type: "increase", // Default to increase for liabilities
-    loan_type: "ordinary", // NEW: Default loan type
-    principal_amount: "", // NEW
-    interest_rate: "", // NEW
-    loan_term_months: "", // NEW
-    loan_start_date: "", // NEW
-    fees: 0, // NEW: Default fees
-    monthly_payment: "", // NEW (though calculated by backend for amortized)
-    start_date: "",
-    end_date: "",
-  });
+  const [newItem, setNewItem] = useState(initialNewItemState); // Initialize with initialState
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -43,40 +44,28 @@ export default function LiabilityFormModal({
             value: itemToEdit.value.toString() || '',
             annual_increase_percent: itemToEdit.annual_increase_percent || 0,
             annual_change_type: itemToEdit.annual_change_type || "increase",
-            loan_type: itemToEdit.loan_type || "ordinary", // NEW
-            principal_amount: itemToEdit.principal_amount?.toString() || "", // NEW
-            interest_rate: itemToEdit.interest_rate?.toString() || "", // NEW
-            loan_term_months: itemToEdit.loan_term_months?.toString() || "", // NEW
-            loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "", // NEW
-            monthly_payment: itemToEdit.monthly_payment?.toString() || "", // NEW
-            fees: itemToEdit.fees?.toString() || 0, // NEW
+            loan_type: itemToEdit.loan_type || "ordinary",
+            principal_amount: itemToEdit.principal_amount?.toString() || "",
+            interest_rate: itemToEdit.interest_rate?.toString() || "",
+            loan_term_months: itemToEdit.loan_term_months?.toString() || "",
+            loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "",
+            monthly_payment: itemToEdit.monthly_payment?.toString() || "",
+            fees: itemToEdit.fees?.toString() || 0,
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
           });
         } else {
+          setNewItem(initialNewItemState); // Reset for new item
           setNewItem(prev => ({
             ...prev,
-            name: "",
-            category: cats[0] || "Other", // Ensure default category for new items
-            value: "",
-            annual_increase_percent: 0,
-            annual_change_type: "increase",
-            loan_type: "ordinary", // NEW
-            principal_amount: "", // NEW
-            interest_rate: "", // NEW
-            loan_term_months: "", // NEW
-            loan_start_date: "", // NEW
-            monthly_payment: "", // NEW
-            fees: 0, // NEW
-            start_date: "",
-            end_date: "",
+            category: cats[0] || "Other",
           }));
         }
       } catch (e) {
         console.error("Failed to load settings", e);
         setCategories(["Other"]);
         if (!itemToEdit) {
-          setNewItem(prev => ({ ...prev, category: "Other", annual_change_type: "increase" }));
+          setNewItem(prev => ({ ...prev, category: "Other" }));
         }
       }
     };
@@ -129,10 +118,10 @@ export default function LiabilityFormModal({
       interest_rate: newItem.loan_type === "amortized" && newItem.interest_rate ? parseFloat(newItem.interest_rate) : null,
       loan_term_months: newItem.loan_type === "amortized" && newItem.loan_term_months ? parseInt(newItem.loan_term_months, 10) : null,
       loan_start_date: newItem.loan_type === "amortized" && newItem.loan_start_date ? newItem.loan_start_date : null,
-      monthly_payment: newItem.loan_type === "amortized" && newItem.monthly_payment ? parseFloat(newItem.monthly_payment) : null, // Backend calculates, but can be sent if present
+      monthly_payment: newItem.loan_type === "amortized" && newItem.monthly_payment ? parseFloat(newItem.monthly_payment) : null,
       fees: newItem.loan_type === "amortized" && newItem.fees ? parseFloat(newItem.fees) : 0,
       start_date: newItem.loan_type === "ordinary" && newItem.start_date ? newItem.start_date : null,
-      end_date: null, // Always null for both loan types as it's not needed
+      end_date: null,
     };
 
     try {
@@ -141,11 +130,12 @@ export default function LiabilityFormModal({
       } else {
         await LiabilityService.create(payload);
       }
+      // Ensure these are called after successful API operation
       onSaveSuccess();
       onClose();
     } catch (error) {
       console.error("Failed to save liability item:", error);
-      // Optionally, show an error message to the user
+      alert(`Failed to save liability: ${error.response?.data?.detail || error.message}`); // Provide user feedback on API errors
     }
   };
 
