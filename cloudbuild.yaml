@@ -116,6 +116,7 @@ steps:
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
 
+
 availableSecrets:
   secretManager:
     - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
