@@ -34,16 +34,30 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     let sum = 0;
     const targetDataType = series.data_type;
     const targetCategory = series.category;
+    const targetLabel = series.label; // Use series.label to match specific liability names
 
     const isCategoryOfDataType = (category, dataType) => {
+      // This helper needs to be aware of how categories are structured on the backend.
+      // Assuming for now that the assetCategories, liabilityCategories, etc. props contain simple string arrays.
       switch (dataType) {
-        case 'assets': return assetCategories.includes(category);
-        case 'liabilities': return liabilityCategories.includes(category);
-        case 'income': return incomeCategories.includes(category);
-        case 'expenses': return expenseCategories.includes(category);
+        case 'assets': return assets.some(a => a.category === category);
+        case 'liabilities': return liabilities.some(l => l.category === category);
+        case 'income': return incomeItems.some(i => i.category === category);
+        case 'expenses': return expenseItems.some(e => e.category === category);
         default: return false;
       }
     };
+
+    // Special handling for amortized liabilities
+    if (targetDataType === 'liabilities') {
+        const matchingLiability = liabilities.find(l => l.name === targetLabel && l.category === targetCategory);
+        if (matchingLiability && matchingLiability.loan_type === 'amortized') {
+            // Assuming data_json will contain a key like "LoanName_PrincipalBalance" for each year
+            const principalBalanceKey = `${targetLabel}_PrincipalBalance`;
+            return dataPoint[principalBalanceKey] || 0;
+        }
+    }
+
 
     for (const key in dataPoint) {
       if (key.endsWith('_Value')) {
@@ -55,19 +69,26 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             sum += value;
           }
         } else { // No specific category requested, sum all items of the target data type
-          if (isCategoryOfDataType(categoryFromKey, targetDataType)) {
-            sum += value;
+          // Check if the item corresponding to categoryFromKey belongs to targetDataType
+          // This logic is simplified and might need refinement based on exact backend data structure
+          if (
+              (targetDataType === 'assets' && assets.some(a => a.name === categoryFromKey)) ||
+              (targetDataType === 'liabilities' && liabilities.some(l => l.name === categoryFromKey && l.loan_type !== 'amortized')) || // Exclude amortized here
+              (targetDataType === 'income' && incomeItems.some(i => i.description === categoryFromKey)) ||
+              (targetDataType === 'expenses' && expenseItems.some(e => e.description === categoryFromKey))
+          ) {
+              sum += value;
           }
         }
       }
     }
 
     // Special handling for expenses and liabilities to display as positive values if needed
-    if (targetDataType === 'expenses' || targetDataType === 'liabilities') {
+    if (targetDataType === 'expenses' || (targetDataType === 'liabilities' && sum < 0)) {
       return Math.abs(sum);
     }
     return sum;
-  }, [assetCategories, liabilityCategories, incomeCategories, expenseCategories]);
+  }, [assets, liabilities, incomeItems, expenseItems]); // Added dependencies for helper function
 
   const prepareChartData = useCallback((fetchedConfig) => {
     let parsedDataJson = [];
@@ -151,7 +172,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
     setChartData({ labels, datasets });
     console.log("DEBUG (CustomChartView.jsx): Chart data prepared (labels, datasets):", { labels, datasets }); // RE-ADDED LOG
-  }, [showChartTotals, getAggregatedValue]);
+  }, [showChartTotals, getAggregatedValue, assets, liabilities, incomeItems, expenseItems]); // Added all necessary dependencies
 
   useEffect(() => {
     const fetchAndPrepareChart = async () => {
