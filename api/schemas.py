@@ -196,12 +196,12 @@ class UserSettingsBase(BaseModel):
     expense_categories: List[str] = ["Housing", "Food", "Transportation", "Utilities", "Insurance", "Healthcare", "Entertainment"]
     person1_first_name: str = "Person 1"
     person1_last_name: str = ""
-    person1_birthdate: str = ""
-    person1_cell_phone: str = ""
+    person1_birthdate: Optional[str] = None # Make optional
+    person1_cell_phone: Optional[str] = None # Make optional
     person2_first_name: str = "Person 2"
     person2_last_name: str = ""
-    person2_birthdate: str = ""
-    person2_cell_phone: str = ""
+    person2_birthdate: Optional[str] = None # Make optional
+    person2_cell_phone: Optional[str] = None # Make optional
     address: str = ""
     city: str = ""
     state: str = ""
