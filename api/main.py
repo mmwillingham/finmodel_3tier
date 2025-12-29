@@ -40,6 +40,7 @@ app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=Tru
 async def startup_event():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     logger.info("FastAPI application started. Logging level set to DEBUG.")
+    logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}") # Re-ADD THIS LINE
 
 app.include_router(custom_charts.router)
 
@@ -372,8 +373,6 @@ Please use the following link to reset your password: {reset_link}
 This link will expire in 1 hour.
 
 If you did not request a password reset, please ignore this email.
-
-This is why I put the new password reset link in a variable. I need the front end url from settings.py
 
 Best regards,
 The Financial Projector Team"""

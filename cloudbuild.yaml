@@ -116,7 +116,7 @@ steps:
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
 
-
+# Adding a temporary comment to force new build: Dec 29 2025
 availableSecrets:
   secretManager:
     - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
