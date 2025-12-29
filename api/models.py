@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON # Import JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -23,6 +23,8 @@ class User(Base):
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user_owner")
     # Relationship to EmailConfirmationToken: one user can have many confirmation tokens
     email_confirmation_tokens = relationship("EmailConfirmationToken", back_populates="user_owner") # NEW RELATIONSHIP
+    # Relationship to UserSettings: one user has one settings record
+    settings = relationship("UserSettings", back_populates="owner", uselist=False) # NEW RELATIONSHIP
 
 class PasswordResetToken(Base):
     """
@@ -99,12 +101,13 @@ class CashFlowItem(Base):
 class UserSettings(Base):
     __tablename__ = "user_settings"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False) # Changed to owner_id
     default_inflation_percent = Column(Float, default=2.0)
-    asset_categories = Column(String, default="Real Estate,Vehicles,Investments,Other")
-    liability_categories = Column(String, default="Mortgage,Car Loan,Credit Card,Student Loan,Other")
-    income_categories = Column(String, default="Salary,Bonus,Investment Income,Other")
-    expense_categories = Column(String, default="Housing,Transportation,Food,Healthcare,Entertainment,Other")
+    # Changed category fields to JSON type to store lists of strings directly
+    asset_categories = Column(JSON, default=["Other", "Checking", "Savings", "Investment"])
+    liability_categories = Column(JSON, default=["Other", "Mortgage", "Student Loan", "Car Loan"])
+    income_categories = Column(JSON, default=["Salary", "Rental Income", "Investments"])
+    expense_categories = Column(JSON, default=["Housing", "Food", "Transportation", "Utilities", "Insurance", "Healthcare", "Entertainment"])
     person1_first_name = Column(String, default="Person 1")
     person1_last_name = Column(String, default="")
     person1_birthdate = Column(String, default="") # New field for person 1's birthdate
@@ -122,6 +125,8 @@ class UserSettings(Base):
     show_chart_totals = Column(Boolean, default=True) # New field
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    owner = relationship("User", back_populates="settings") # NEW RELATIONSHIP
 
 
 class Asset(Base):
