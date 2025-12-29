@@ -58,8 +58,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],              
-    allow_credentials=False,             
+    allow_origin_regex=settings.CORS_ORIGINS_REGEX,              
+    allow_credentials=True,             
     allow_methods=["*"],                
     allow_headers=["*"],                
 )
@@ -141,7 +141,7 @@ def login_for_access_token(
         )
     
     # Create the access token using a function from your 'auth' module
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
@@ -315,7 +315,7 @@ def check_category_usage(
             is_in_use = True
     elif category_type == "income":
         cashflow_income_count = db.query(models.CashFlowItem).filter(
-            models.CashFlowItem.owner_id == user_id,
+            models.CashFlowItem.owner_id == user.id,
             models.CashFlowItem.category == category_name,
             models.CashFlowItem.is_income == True
         ).count()
@@ -323,7 +323,7 @@ def check_category_usage(
             is_in_use = True
     elif category_type == "expense":
         cashflow_expense_count = db.query(models.CashFlowItem).filter(
-            models.CashFlowItem.owner_id == user_id,
+            models.CashFlowItem.owner_id == user.id,
             models.CashFlowItem.category == category_name,
             models.CashFlowItem.is_income == False
         ).count()
@@ -644,8 +644,8 @@ def update_cashflow(
     item.end_date = payload.end_date
     item.taxable = payload.taxable
     item.tax_deductible = payload.tax_deductible
-    item.linked_item_id = payload.linked_item_id
-    item.linked_item_type = payload.linked_item_type
+    item.linked_item_id = payload.linked_item_id,
+    item.linked_item_type = payload.linked_item_type,
     item.percentage = payload.percentage
     db.commit()
     db.refresh(item)
