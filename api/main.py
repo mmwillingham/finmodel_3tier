@@ -21,7 +21,7 @@ import schemas
 import database
 import auth
 import calculations
-from routers import custom_charts
+from routers import custom_charts, settings
 from utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
 
@@ -43,6 +43,7 @@ async def startup_event():
     logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}") # Re-ADD THIS LINE
 
 app.include_router(custom_charts.router)
+app.include_router(settings.router)
 
 @app.get("/")
 async def root():

@@ -19,19 +19,29 @@ def get_database_url() -> str:
         db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")
         db_name = os.getenv("DB_NAME")
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
-        print(f"DEBUG (database.py): CLOUD_SQL_CONNECTION_NAME (from os.getenv): '{cloud_sql_connection_name}'") # NEW DEBUG
+        use_cloud_sql_proxy_tcp = os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true" # NEW: Check for TCP proxy
+
+        print(f"DEBUG (database.py): CLOUD_SQL_CONNECTION_NAME (from os.getenv): '{cloud_sql_connection_name}'")
+        print(f"DEBUG (database.py): USE_CLOUD_SQL_PROXY_TCP: {use_cloud_sql_proxy_tcp}") # NEW DEBUG
 
         if not all([db_user, db_password, db_name]):
             raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
 
-        if cloud_sql_connection_name:
-            print("DEBUG (database.py): Entering Cloud SQL Proxy SYNC connection path.") # NEW DEBUG
+        if cloud_sql_connection_name and not use_cloud_sql_proxy_tcp: # Use Unix socket by default for Cloud SQL
+            print("DEBUG (database.py): Entering Cloud SQL Proxy SYNC connection path (Unix socket).")
             _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
             database_url = (
                 f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={_unix_socket_path}"
             )
-        else:
-            print("DEBUG (database.py): Entering local TCP SYNC connection path.") # NEW DEBUG
+        elif cloud_sql_connection_name and use_cloud_sql_proxy_tcp: # NEW: Use TCP for local Cloud SQL Proxy
+            print("DEBUG (database.py): Entering Cloud SQL Proxy SYNC connection path (TCP).")
+            local_db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to 127.0.0.1 for proxy
+            local_db_port = os.getenv("DB_PORT", "5432")     # Default to 5432 for proxy
+            database_url = (
+                f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
+            )
+        else: # Regular local database connection
+            print("DEBUG (database.py): Entering local TCP SYNC connection path.")
             local_db_host = os.getenv("DB_HOST", "localhost")
             local_db_port = os.getenv("DB_PORT", "5432")
             database_url = (
@@ -51,7 +61,9 @@ def get_engine_instance():
     print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
 
     connect_args = {}
-    if _unix_socket_path:
+    # Only add unix_sock to connect_args if _unix_socket_path is set (i.e., we are using Unix socket)
+    # The TCP connection will not use this.
+    if _unix_socket_path and "unix_sock" in DATABASE_URL: # Ensure it's explicitly for unix_sock in URL
         connect_args["unix_sock"] = _unix_socket_path
 
     retries = 5
@@ -104,19 +116,27 @@ def get_async_database_url() -> str:
         db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")
         db_name = os.getenv("DB_NAME")
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
+        use_cloud_sql_proxy_tcp = os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true" # NEW: Check for TCP proxy
+
 
         if not all([db_user, db_password, db_name, cloud_sql_connection_name]):
             raise ValueError("Missing one or more database environment variables for async URL (DB_USER, DB_PASSWORD, DB_NAME, CLOUD_SQL_CONNECTION_NAME)")
 
-        if cloud_sql_connection_name:
+        if cloud_sql_connection_name and not use_cloud_sql_proxy_tcp:
             _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432" # Keep full path for pg8000
             unix_socket_dir = f"/cloudsql/{cloud_sql_connection_name}" # Directory for asyncpg host
             database_url = (
                 f"postgresql+asyncpg://{db_user}:{db_password}@/{db_name}?host={unix_socket_dir}"
             )
-        else:
-            local_db_host = os.getenv("DB_HOST", "127.0.0.1") 
-            local_db_port = os.getenv("DB_PORT", "5432") 
+        elif cloud_sql_connection_name and use_cloud_sql_proxy_tcp: # NEW: Use TCP for local Cloud SQL Proxy for async
+            local_db_host = os.getenv("DB_HOST", "127.0.0.1")
+            local_db_port = os.getenv("DB_PORT", "5432")
+            database_url = (
+                f"postgresql+asyncpg://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
+            )
+        else: # Regular local database connection
+            local_db_host = os.getenv("DB_HOST", "127.0.0.1")
+            local_db_port = os.getenv("DB_PORT", "5432")
             database_url = (
                 f"postgresql+asyncpg://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
             )

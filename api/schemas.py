@@ -188,52 +188,59 @@ class CashFlowOut(BaseModel):
     percentage: Optional[float] = None
     model_config = ConfigDict(from_attributes=True)
 
-class UserSettingsOut(BaseModel):
-    id: int
-    user_id: int
-    default_inflation_percent: float
-    asset_categories: str | None = "Real Estate,Vehicles,Investments,Other"
-    liability_categories: str | None = "Mortgage,Car Loan,Credit Card,Student Loan,Other"
-    income_categories: str | None = "Salary,Bonus,Investment Income,Other"
-    expense_categories: str | None = "Housing,Transportation,Food,Healthcare,Entertainment,Other"
-    person1_first_name: str | None = "Person 1"
-    person1_last_name: str | None = ""
-    person1_birthdate: str | None = None
-    person1_cell_phone: str | None = None
-    person2_first_name: str | None = "Person 2"
-    person2_last_name: str | None = ""
-    person2_birthdate: str | None = None
-    person2_cell_phone: str | None = None
-    address: str | None = ""
-    city: str | None = ""
-    state: str | None = ""
-    zip_code: str | None = ""
-    email: str | None = ""
-    projection_years: int | None = 30
-    show_chart_totals: bool | None = True # New field
-    model_config = ConfigDict(from_attributes=True)
+class UserSettingsBase(BaseModel):
+    default_inflation_percent: float = 2.0
+    asset_categories: List[str] = ["Other", "Checking", "Savings", "Investment"]
+    liability_categories: List[str] = ["Other", "Mortgage", "Student Loan", "Car Loan"]
+    income_categories: List[str] = ["Salary", "Rental Income", "Investments"]
+    expense_categories: List[str] = ["Housing", "Food", "Transportation", "Utilities", "Insurance", "Healthcare", "Entertainment"]
+    person1_first_name: str = "Person 1"
+    person1_last_name: str = ""
+    person1_birthdate: str = ""
+    person1_cell_phone: str = ""
+    person2_first_name: str = "Person 2"
+    person2_last_name: str = ""
+    person2_birthdate: str = ""
+    person2_cell_phone: str = ""
+    address: str = ""
+    city: str = ""
+    state: str = ""
+    zip_code: str = ""
+    email: str = ""
+    projection_years: int = 30
+    show_chart_totals: bool = True
+
+class UserSettingsCreate(UserSettingsBase):
+    pass
 
 class UserSettingsUpdate(BaseModel):
-    default_inflation_percent: float
-    asset_categories: str | None = None
-    liability_categories: str | None = None
-    income_categories: str | None = None
-    expense_categories: str | None = None
-    person1_first_name: str | None = None
-    person1_last_name: str | None = None
-    person1_birthdate: str | None = None
-    person1_cell_phone: str | None = None
-    person2_first_name: str | None = None
-    person2_last_name: str | None = None
-    person2_birthdate: str | None = None
-    person2_cell_phone: str | None = None
-    address: str | None = None
-    city: str | None = None
-    state: str | None = None
-    zip_code: str | None = None
-    email: str | None = None
-    projection_years: int | None = None
-    show_chart_totals: bool | None = True # New field
+    default_inflation_percent: Optional[float] = None
+    asset_categories: Optional[List[str]] = None
+    liability_categories: Optional[List[str]] = None
+    income_categories: Optional[List[str]] = None
+    expense_categories: Optional[List[str]] = None
+    person1_first_name: Optional[str] = None
+    person1_last_name: Optional[str] = None
+    person1_birthdate: Optional[str] = None
+    person1_cell_phone: Optional[str] = None
+    person2_first_name: Optional[str] = None
+    person2_last_name: Optional[str] = None
+    person2_birthdate: Optional[str] = None
+    person2_cell_phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    email: Optional[str] = None
+    projection_years: Optional[int] = None
+    show_chart_totals: Optional[bool] = None
+
+class UserSettingsOut(UserSettingsBase):
+    id: int
+    owner_id: int # Changed from user_id to owner_id
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- ASSET SCHEMAS ---
