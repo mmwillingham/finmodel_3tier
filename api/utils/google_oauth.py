@@ -1,6 +1,9 @@
 import httpx
 from urllib.parse import urlencode
 from config import settings
+import logging # Import logging module
+
+logger = logging.getLogger(__name__) # Initialize logger
 
 GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -10,8 +13,9 @@ def get_google_auth_url():
     """
     Generates the Google OAuth authorization URL.
     """
-    # Ensure REDIRECT_URI is constructed here to use the dynamically loaded PUBLIC_BACKEND_URL
-    redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback"
+    # CRITICAL FIX: Use FRONTEND_URL for the redirect_uri
+    redirect_uri = settings.FRONTEND_URL + "/auth/google/callback"
+    logger.debug(f"Google OAuth: Constructed redirect_uri for authorization: {redirect_uri}") # NEW DEBUG LOG
 
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
@@ -27,7 +31,9 @@ async def get_google_oauth_token(code: str):
     """
     Exchanges the authorization code for an access token.
     """
-    redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback" # Re-declare for scope to ensure it's evaluated here
+    # CRITICAL FIX: Use FRONTEND_URL for the redirect_uri
+    redirect_uri = settings.FRONTEND_URL + "/auth/google/callback" # Re-declare for scope to ensure it's evaluated here
+    logger.debug(f"Google OAuth: Constructed redirect_uri for token exchange: {redirect_uri}") # NEW DEBUG LOG
     async with httpx.AsyncClient() as client:
         response = await client.post(
             GOOGLE_TOKEN_URL,
