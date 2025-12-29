@@ -170,7 +170,9 @@ def debug_db_info(db: Session = Depends(database.get_db)):
     logger.debug(f"Current database from /debug/db-info: {result}") # Changed from print to logger.debug
     return {"current_database": result}
 
-@app.post("/signup", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
+@app.get("/debug/frontend-url", tags=["debug"], summary="Debug: Get current FRONTEND_URL setting")
+async def debug_frontend_url():
+    return {"FRONTEND_URL": settings.FRONTEND_URL}
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()): # NEW: Add BackgroundTasks
     """
     Registers a new user in the database.
