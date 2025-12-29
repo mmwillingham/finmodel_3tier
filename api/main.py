@@ -172,7 +172,7 @@ def debug_db_info(db: Session = Depends(database.get_db)):
 
 @app.get("/debug/frontend-url", tags=["debug"], summary="Debug: Get current FRONTEND_URL setting")
 async def debug_frontend_url():
-    return {"FRONTEND_URL": settings.FRONTEND_URL}
+    return {"FRONTEND_URL": settings.FRONTEND_URL, "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID}
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()): # NEW: Add BackgroundTasks
     """
     Registers a new user in the database.
