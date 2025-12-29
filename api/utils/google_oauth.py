@@ -36,11 +36,10 @@ async def get_google_oauth_token(code: str):
     redirect_uri = settings.FRONTEND_URL + "/auth/google/callback" # Re-declare for scope to ensure it's evaluated here
     logger.debug(f"Google OAuth: Constructed redirect_uri for token exchange: {redirect_uri}")
     
-    # NEW DEBUG LOGS for client_id and client_secret
     logger.debug(f"Google OAuth: Sending client_id: {settings.GOOGLE_CLIENT_ID}")
     logger.debug(f"Google OAuth: Sending client_secret (first 5 chars): {settings.GOOGLE_CLIENT_SECRET[:5]}*****") # Log only first few chars for security
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient() as client: # Corrected indentation
         try: # NEW: Add try-except block
             response = await client.post(
                 GOOGLE_TOKEN_URL,
