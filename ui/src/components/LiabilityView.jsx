@@ -10,7 +10,6 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
   const [selectedLiability, setSelectedLiability] = useState(null); // State to hold liability being edited
   const tableRef = useRef(null);
 
-
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -32,7 +31,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
   };
 
   const handleEditLiability = (liability) => {
-    setSelectedLiability(liability); // Set the liability to be edited
+    setSelectedLiability(liability);
     setShowLiabilityModal(true);
   };
 
@@ -46,7 +45,19 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
     handleCloseModal(); // Close modal on successful save
   };
 
-  const total = liabilities.reduce((sum, item) => sum + (item.value || 0), 0);
+  // Calculate total liabilities based on loan_type
+  const total = liabilities.reduce((sum, item) => {
+    if (item.loan_type === 'amortized') {
+      return sum + (item.principal_amount || 0);
+    } else { // ordinary
+      return sum + (item.value || 0);
+    }
+  }, 0);
+
+  // Determine if there are any amortized or ordinary loans to show/hide columns
+  const hasAmortizedLoans = liabilities.some(item => item.loan_type === 'amortized');
+  const hasOrdinaryLoans = liabilities.some(item => item.loan_type === 'ordinary');
+
 
   // Download functions (unchanged)
   const handleDownloadTablePdf = async (tableRef, filename) => {
@@ -88,23 +99,31 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
 
   const handleDownloadLiabilitiesCsv = (filename) => {
     if (liabilities.length > 0) {
-      const headers = ['Name', 'Category', 'Value', 'Percent', 'Annual Change', 'Loan Type', 'Principal Amount', 'Interest Rate', 'Loan Term Months', 'Loan Start Date', 'Monthly Payment', 'Fees', 'Start Date', 'End Date'];
-      const formattedData = liabilities.map(liability => ({
-        Name: liability.name,
-        Category: liability.category,
-        Value: liability.value,
-        'Percent': liability.annual_increase_percent,
-        'Annual Change': liability.annual_change_type,
-        'Loan Type': liability.loan_type,
-        'Principal Amount': liability.principal_amount,
-        'Interest Rate': liability.interest_rate,
-        'Loan Term Months': liability.loan_term_months,
-        'Loan Start Date': liability.loan_start_date,
-        'Monthly Payment': liability.monthly_payment,
-        'Fees': liability.fees,
-        'Start Date': liability.start_date,
-        'End Date': liability.end_date,
-      }));
+      const headers = ['Name', 'Category'];
+      if (hasOrdinaryLoans) headers.push('Value', 'Annual Interest Rate (%)', 'Start Date');
+      if (hasAmortizedLoans) headers.push('Loan Type', 'Principal Amount', 'Interest Rate', 'Loan Term Months', 'Loan Start Date', 'Monthly Payment', 'Fees');
+      headers.push('Actions'); // Actions is not usually in CSV, but kept for consistency with table headers
+
+      const formattedData = liabilities.map(liability => {
+        const row = {
+          Name: liability.name,
+          Category: liability.category,
+        };
+        if (liability.loan_type === 'ordinary') {
+          row.Value = liability.value;
+          row['Annual Interest Rate (%)'] = liability.annual_increase_percent;
+          row['Start Date'] = liability.start_date;
+        } else if (liability.loan_type === 'amortized') {
+          row['Loan Type'] = liability.loan_type;
+          row['Principal Amount'] = liability.principal_amount;
+          row['Interest Rate'] = liability.interest_rate;
+          row['Loan Term Months'] = liability.loan_term_months;
+          row['Loan Start Date'] = liability.loan_start_date ? liability.loan_start_date.split('T')[0] : 'N/A';
+          row['Monthly Payment'] = liability.monthly_payment;
+          row['Fees'] = liability.fees;
+        }
+        return row;
+      });
       const csvString = convertToCsv(formattedData, headers, formatCurrency);
       const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -134,18 +153,24 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
           <tr>
             <th className="cashflow-table-cell">Name</th>
             <th className="cashflow-table-cell">Category</th>
-            <th className="cashflow-table-cell">Value</th>
-            <th className="cashflow-table-cell">Annual Change</th>
-            <th className="cashflow-table-cell">Percent</th>
-            <th className="cashflow-table-cell">Loan Type</th>
-            <th className="cashflow-table-cell">Principal</th>
-            <th className="cashflow-table-cell">Interest Rate</th>
-            <th className="cashflow-table-cell">Loan Term (Months)</th>
-            <th className="cashflow-table-cell">Loan Start Date</th>
-            <th className="cashflow-table-cell">Monthly Payment</th>
-            <th className="cashflow-table-cell">Fees</th>
-            <th className="cashflow-table-cell">Start Date</th>
-            <th className="cashflow-table-cell">End Date</th>
+            <th className="cashflow-table-cell">Current Balance</th> {/* Consolidated column */}
+            {hasOrdinaryLoans && (
+              <>
+                <th className="cashflow-table-cell">Annual Interest Rate (%)</th>
+                <th className="cashflow-table-cell">Start Date</th>
+              </>
+            )}
+            {hasAmortizedLoans && (
+              <>
+                <th className="cashflow-table-cell">Loan Type</th>
+                <th className="cashflow-table-cell">Principal Amount</th>
+                <th className="cashflow-table-cell">Interest Rate</th>
+                <th className="cashflow-table-cell">Loan Term (Months)</th>
+                <th className="cashflow-table-cell">Loan Start Date</th>
+                <th className="cashflow-table-cell">Monthly Payment</th>
+                <th className="cashflow-table-cell">Fees</th>
+              </>
+            )}
             <th className="cashflow-table-cell">Actions</th>
           </tr>
         </thead>
@@ -154,18 +179,26 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
             <tr key={item.id}>
               <td className="cashflow-table-cell">{item.name}</td>
               <td className="cashflow-table-cell">{item.category}</td>
-              <td className="cashflow-table-cell">{formatCurrency(item.value)}</td>
-              <td className="cashflow-table-cell">{item.annual_change_type}</td>
-              <td className="cashflow-table-cell">{item.annual_increase_percent}%</td>
-              <td className="cashflow-table-cell">{item.loan_type}</td>
-              <td className="cashflow-table-cell">{item.principal_amount ? formatCurrency(item.principal_amount) : 'N/A'}</td>
-              <td className="cashflow-table-cell">{item.interest_rate ? `${item.interest_rate}%` : 'N/A'}</td>
-              <td className="cashflow-table-cell">{item.loan_term_months || 'N/A'}</td>
-              <td className="cashflow-table-cell">{item.loan_start_date ? item.loan_start_date.split('T')[0] : 'N/A'}</td>
-              <td className="cashflow-table-cell">{item.monthly_payment ? formatCurrency(item.monthly_payment) : 'N/A'}</td>
-              <td className="cashflow-table-cell">{formatCurrency(item.fees)}</td>
-              <td className="cashflow-table-cell">{item.start_date}</td>
-              <td className="cashflow-table-cell">{item.end_date}</td>
+              <td className="cashflow-table-cell">
+                {item.loan_type === 'amortized' ? formatCurrency(item.principal_amount) : formatCurrency(item.value)}
+              </td>
+              {item.loan_type === 'ordinary' && (
+                <>
+                  <td className="cashflow-table-cell">{item.annual_increase_percent}%</td>
+                  <td className="cashflow-table-cell">{item.start_date || 'N/A'}</td>
+                </>
+              )}
+              {item.loan_type === 'amortized' && (
+                <>
+                  <td className="cashflow-table-cell">{item.loan_type}</td>
+                  <td className="cashflow-table-cell">{item.principal_amount ? formatCurrency(item.principal_amount) : 'N/A'}</td>
+                  <td className="cashflow-table-cell">{item.interest_rate ? `${item.interest_rate}%` : 'N/A'}</td>
+                  <td className="cashflow-table-cell">{item.loan_term_months || 'N/A'}</td>
+                  <td className="cashflow-table-cell">{item.loan_start_date ? item.loan_start_date.split('T')[0] : 'N/A'}</td>
+                  <td className="cashflow-table-cell">{item.monthly_payment ? formatCurrency(item.monthly_payment) : 'N/A'}</td>
+                  <td className="cashflow-table-cell">{formatCurrency(item.fees)}</td>
+                </>
+              )}
               <td className="action-buttons-cell">
                 <button onClick={() => handleEditLiability(item)} className="edit-icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
                 <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
