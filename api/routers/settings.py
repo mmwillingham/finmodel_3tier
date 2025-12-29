@@ -13,7 +13,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/", response_model=schemas.UserSettingsOut)
+@router.get("", response_model=schemas.UserSettingsOut)
 def get_user_settings(
     current_user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db)
@@ -33,7 +33,7 @@ def get_user_settings(
         db.refresh(user_settings)
     return user_settings
 
-@router.put("/", response_model=schemas.UserSettingsOut)
+@router.put("", response_model=schemas.UserSettingsOut)
 def update_user_settings(
     settings_update: schemas.UserSettingsUpdate,
     current_user: schemas.UserOut = Depends(auth.get_current_user),
