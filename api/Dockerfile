@@ -27,6 +27,7 @@ COPY --from=builder /wheels /wheels_cache/
 # Install dependencies from the local wheel cache. This will create executables like uvicorn.
 RUN pip install --no-cache-dir --no-index --find-links=/wheels_cache/ -r requirements.txt
 
+ARG CACHEBUSTER
 # Copy the rest of the application code
 COPY . /app/api
 
