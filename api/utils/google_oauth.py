@@ -1,7 +1,8 @@
+from fastapi import HTTPException, status # Import HTTPException and status
 import httpx
 from urllib.parse import urlencode
 from config import settings
-import logging # Import logging module
+import logging
 
 logger = logging.getLogger(__name__) # Initialize logger
 
@@ -39,22 +40,36 @@ async def get_google_oauth_token(code: str):
     logger.debug(f"Google OAuth: Sending client_id: {settings.GOOGLE_CLIENT_ID}")
     logger.debug(f"Google OAuth: Sending client_secret (first 5 chars): {settings.GOOGLE_CLIENT_SECRET[:5]}*****") # Log only first few chars for security
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": redirect_uri,
-                "grant_type": "authorization_code",
-            },
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        )
-        response.raise_for_status()
-        return response.json()
+        async with httpx.AsyncClient() as client:
+            try: # NEW: Add try-except block
+                response = await client.post(
+                    GOOGLE_TOKEN_URL,
+                    data={
+                        "client_id": settings.GOOGLE_CLIENT_ID,
+                        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                        "code": code,
+                        "redirect_uri": redirect_uri,
+                        "grant_type": "authorization_code",
+                    },
+                    headers={
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    }
+                )
+                response.raise_for_status() # Raise an exception for bad status codes
+                return response.json()
+            except httpx.HTTPStatusError as e: # Catch HTTP errors specifically
+                # Log the full response text for detailed debugging
+                logger.error(f"Google OAuth: Token exchange failed. Status: {e.response.status_code}, Response: {e.response.text}", exc_info=True)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Google OAuth token exchange failed: {e.response.status_code} - {e.response.text}"
+                )
+            except Exception as e: # Catch any other unexpected errors
+                logger.error(f"Google OAuth: An unexpected error occurred during token exchange: {e}", exc_info=True)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Google OAuth token exchange failed due to an unexpected error: {e}"
+                )
 
 async def get_google_user_info(access_token: str):
     """
