@@ -24,7 +24,7 @@ import schemas
 import database
 import auth
 import calculations
-from routers import custom_charts
+from routers import custom_charts, assets, liabilities
 from routers.settings import router as settings_router
 from utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
