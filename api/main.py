@@ -105,7 +105,7 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
         # Redirect to frontend with our token
         # Frontend will store this token and log in
         redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
-        logger.debug(f"Redirecting to: {redirect_url}") # Changed from print to logger.debug
+        logger.debug(f"Google OAuth Callback: Redirecting to: {redirect_url}") # Changed from print to logger.debug
         return RedirectResponse(url=redirect_url)
 
     except HTTPException as e:
