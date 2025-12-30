@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__) # Initialize logger for main.py
 # --- INITIALIZATION ---
 # REMOVED: database.Base.metadata.create_all(bind=database.engine) # Alembic handles migrations
 
-app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, servers=[{"url": settings.PUBLIC_BACKEND_URL}])
+app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True)
 
 # Configure logging at the application startup
 @app.on_event("startup")
