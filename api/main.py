@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__) # Initialize logger for main.py
 # --- INITIALIZATION ---
 # REMOVED: database.Base.metadata.create_all(bind=database.engine) # Alembic handles migrations
 
-app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True)
+app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
 
 # Configure logging at the application startup
 @app.on_event("startup")
@@ -78,7 +78,8 @@ app.add_middleware(
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.get("/auth/google", tags=["oauth"], summary="Initiate Google OAuth login")
-async def google_login():
+async def google_login(request: Request): # Add request as a dependency
+    logger.debug(f"Received /auth/google request for URL: {request.url}")
     return RedirectResponse(url=google_oauth.get_google_auth_url())
 
 @app.get("/auth/google/callback", tags=["oauth"], summary="Handle Google OAuth callback")
@@ -173,6 +174,7 @@ def debug_db_info(db: Session = Depends(database.get_db)):
 @app.get("/debug/frontend-url", tags=["debug"], summary="Debug: Get current FRONTEND_URL setting")
 async def debug_frontend_url():
     return {"FRONTEND_URL": settings.FRONTEND_URL, "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID}
+@app.post("/users/", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["users"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()): # NEW: Add BackgroundTasks
     """
     Registers a new user in the database.
@@ -578,13 +580,16 @@ def list_cashflow(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    return (
+    logger.debug(f"list_cashflow: User ID: {current_user.id}, Is Income: {is_income}")
+    cashflow_items = (
         db.query(models.CashFlowItem)
         .filter(models.CashFlowItem.owner_id == current_user.id)
         .filter(models.CashFlowItem.is_income == is_income)
         .order_by(models.CashFlowItem.id.desc())
         .all()
     )
+    logger.debug(f"list_cashflow: Found {len(cashflow_items)} items for user {current_user.id}, Is Income: {is_income}")
+    return cashflow_items
 
 @app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
 def create_cashflow(
