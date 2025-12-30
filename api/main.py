@@ -38,16 +38,6 @@ logger = logging.getLogger(__name__) # Initialize logger for main.py
 # REMOVED: database.Base.metadata.create_all(bind=database.engine) # Alembic handles migrations
 
 app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
-
-# Custom middleware to log incoming request paths
-class LogRequestMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        logger.debug(f"Middleware: Incoming request path: {request.url.path}")
-        response = await call_next(request)
-        return response
-
-app.add_middleware(LogRequestMiddleware)
-
 # Configure logging at the application startup
 @app.on_event("startup")
 async def startup_event():
@@ -57,6 +47,8 @@ async def startup_event():
 
 app.include_router(custom_charts.router)
 app.include_router(settings_router)
+app.include_router(assets.router)
+app.include_router(liabilities.router)
 
 @app.get("/")
 async def root():
@@ -186,9 +178,6 @@ def debug_db_info(db: Session = Depends(database.get_db)):
 @app.get("/debug/frontend-url", tags=["debug"], summary="Debug: Get current FRONTEND_URL setting")
 async def debug_frontend_url():
     return {"FRONTEND_URL": settings.FRONTEND_URL, "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID}
-@app.get("/test-assets", tags=["debug"], summary="Debug: Test asset routing")
-async def test_assets_endpoint():
-    return {"message": "Test assets endpoint reached successfully!"}
 
 @app.post("/users/", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["users"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()): # NEW: Add BackgroundTasks
