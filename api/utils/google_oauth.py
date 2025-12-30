@@ -15,7 +15,7 @@ def get_google_auth_url():
     Generates the Google OAuth authorization URL.
     """
     # CRITICAL FIX: Use FRONTEND_URL for the redirect_uri
-    redirect_uri = settings.FRONTEND_URL + "/auth/google/callback"
+    redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback"
     logger.debug(f"Google OAuth: Constructed redirect_uri for authorization: {redirect_uri}") # NEW DEBUG LOG
 
     params = {
@@ -33,7 +33,7 @@ async def get_google_oauth_token(code: str):
     Exchanges the authorization code for an access token.
     """
     # CRITICAL FIX: Use FRONTEND_URL for the redirect_uri
-    redirect_uri = settings.FRONTEND_URL + "/auth/google/callback" # Re-declare for scope to ensure it's evaluated here
+    redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback" # Re-declare for scope to ensure it's evaluated here
     logger.debug(f"Google OAuth: Constructed redirect_uri for token exchange: {redirect_uri}")
     
     logger.debug(f"Google OAuth: Sending client_id: {settings.GOOGLE_CLIENT_ID}")
