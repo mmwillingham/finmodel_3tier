@@ -229,7 +229,7 @@ export default function CustomChartForm({
         <div className="series-list">
           {seriesConfigurations.map((series, index) => {
             const currentSeriesDataType = series.data_type;
-            const options = getCategoryOptions(currentSeriesDataType, assetCategories, liabilityCategories, incomeCategories, expenseCategories);
+            const options = getDataSourceItemOptions(currentSeriesDataType, assets, liabilities, incomeItems, expenseItems, series.category);
 
             return (
               <div key={index} className="series-item">
