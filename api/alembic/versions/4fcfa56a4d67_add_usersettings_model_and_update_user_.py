@@ -29,23 +29,23 @@ def upgrade() -> None:
         # 4. Alter column types to JSONB using PostgreSQL functions for robust conversion
         # Use CASE to handle NULL or empty strings, converting them to '[]'::jsonb
         batch_op.alter_column('asset_categories',
-                   existing_type=sa.VARCHAR(),
-                   type_=sa.JSON(),
+               existing_type=sa.VARCHAR(),
+               type_=sa.JSON(),
                    existing_nullable=True,
                    postgresql_using="CASE WHEN asset_categories IS NULL OR TRIM(asset_categories) = '' THEN '[]'::jsonb ELSE to_jsonb(string_to_array(asset_categories, ',')) END")
         batch_op.alter_column('liability_categories',
-                   existing_type=sa.VARCHAR(),
-                   type_=sa.JSON(),
+               existing_type=sa.VARCHAR(),
+               type_=sa.JSON(),
                    existing_nullable=True,
                    postgresql_using="CASE WHEN liability_categories IS NULL OR TRIM(liability_categories) = '' THEN '[]'::jsonb ELSE to_jsonb(string_to_array(liability_categories, ',')) END")
         batch_op.alter_column('income_categories',
-                   existing_type=sa.VARCHAR(),
-                   type_=sa.JSON(),
+               existing_type=sa.VARCHAR(),
+               type_=sa.JSON(),
                    existing_nullable=True,
                    postgresql_using="CASE WHEN income_categories IS NULL OR TRIM(income_categories) = '' THEN '[]'::jsonb ELSE to_jsonb(string_to_array(income_categories, ',')) END")
         batch_op.alter_column('expense_categories',
-                   existing_type=sa.VARCHAR(),
-                   type_=sa.JSON(),
+               existing_type=sa.VARCHAR(),
+               type_=sa.JSON(),
                    existing_nullable=True,
                    postgresql_using="CASE WHEN expense_categories IS NULL OR TRIM(expense_categories) = '' THEN '[]'::jsonb ELSE to_jsonb(string_to_array(expense_categories, ',')) END")
 
@@ -75,8 +75,8 @@ def downgrade() -> None:
         # 4. Revert JSONB to VARCHAR using PostgreSQL functions
         for col_name in ['asset_categories', 'liability_categories', 'income_categories', 'expense_categories']:
             batch_op.alter_column(col_name,
-                       existing_type=sa.JSON(),
-                       type_=sa.VARCHAR(),
+               existing_type=sa.JSON(),
+               type_=sa.VARCHAR(),
                        existing_nullable=True,
                        postgresql_using=f"CASE WHEN {col_name} IS NULL OR {col_name} = '[]'::jsonb THEN NULL ELSE array_to_string(ARRAY(SELECT jsonb_array_elements_text({col_name})), ',') END")
 
