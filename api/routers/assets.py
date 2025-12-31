@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/assets",
     tags=["assets"],
+    responses={404: {"description": "Not found"}},
 )
 
 @router.post("/", response_model=schemas.AssetOut, status_code=status.HTTP_201_CREATED)

@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/liabilities",
     tags=["liabilities"],
+    responses={404: {"description": "Not found"}},
 )
 
 @router.post("/", response_model=schemas.LiabilityOut, status_code=status.HTTP_201_CREATED)
