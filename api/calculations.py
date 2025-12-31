@@ -6,6 +6,7 @@ import logging
 from typing import List, Optional
 from sqlalchemy.orm import Session
 import models
+from datetime import date # NEW: For calculate_amortized_loan_balance
 
 logger = logging.getLogger(__name__)
 
@@ -318,3 +319,59 @@ def calculate_projection(years: int, accounts: list, db: Session, owner_id: int)
         # Convert the list of dictionaries to a JSON string for data_json
         "data_json": json.dumps(yearly_results)
     }
+
+def calculate_amortized_loan_balance(
+    principal: float,
+    annual_interest_rate_percent: float,
+    loan_term_months: int,
+    loan_start_date: date,
+    calculation_date: date
+) -> float:
+    """
+    Calculates the remaining balance of an amortized loan at a given calculation date.
+
+    Args:
+        principal (float): The initial principal amount of the loan.
+        annual_interest_rate_percent (float): The annual interest rate as a percentage (e.g., 5 for 5%).
+        loan_term_months (int): The original term of the loan in months.
+        loan_start_date (date): The date when the loan started.
+        calculation_date (date): The date for which to calculate the remaining balance.
+
+    Returns:
+        float: The remaining loan balance. Returns 0 if the loan is paid off.
+    """
+    if annual_interest_rate_percent == 0:
+        # Simple principal reduction for 0 interest
+        months_passed = (calculation_date.year - loan_start_date.year) * 12 + \
+                        (calculation_date.month - loan_start_date.month)
+        if months_passed >= loan_term_months:
+            return 0.0
+        
+        monthly_payment = principal / loan_term_months
+        remaining_balance = principal - (monthly_payment * months_passed)
+        return max(0.0, remaining_balance)
+
+    monthly_interest_rate = (annual_interest_rate_percent / 100) / 12
+    
+    # Calculate monthly payment (M)
+    # M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1]
+
+    # P = Principal, i = monthly interest rate, n = total number of payments
+    monthly_payment = (principal * monthly_interest_rate) / \
+                      (1 - (1 + monthly_interest_rate)**-loan_term_months)
+
+    # Calculate number of payments made
+    months_passed = (calculation_date.year - loan_start_date.year) * 12 + \
+                    (calculation_date.month - loan_start_date.month)
+
+    if months_passed <= 0:
+        return principal
+    if months_passed >= loan_term_months:
+        return 0.0
+
+    # Calculate remaining balance (B) after p payments
+    # B = P(1+i)^p - M/i((1+i)^p - 1)
+    remaining_balance = principal * (1 + monthly_interest_rate)**months_passed - \
+                        (monthly_payment / monthly_interest_rate) * ((1 + monthly_interest_rate)**months_passed - 1)
+    
+    return max(0.0, remaining_balance)
