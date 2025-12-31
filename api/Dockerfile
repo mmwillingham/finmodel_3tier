@@ -33,7 +33,7 @@ RUN python -c "import sys; print(sys.path)"
 
 ARG CACHEBUSTER
 # Copy the rest of the application code
-COPY api /app/api
+COPY . /app/api
 
 # Set static environment variables directly in the Docker image
 ENV DB_USER=dbadmin
