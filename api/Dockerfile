@@ -6,20 +6,20 @@ FROM python:3.11-slim-bookworm as builder
 # Install build dependencies for psycopg2-binary (if needed)
 # RUN apt-get update && apt-get install -y build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /app/api
 
 # Copy the requirements file and install dependencies into /wheels
-COPY api/requirements.txt .
+COPY requirements.txt .
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
 # --- Runtime Stage: Copy only necessary files ---
 FROM python:3.11-slim-bookworm
 
 # Set the working directory inside the container
-WORKDIR /app
+WORKDIR /app/api
 
 # Copy the requirements.txt to the runtime stage
-COPY api/requirements.txt .
+COPY requirements.txt .
 
 # Copy the pre-built wheel files from the builder stage to a cache location
 COPY --from=builder /wheels /wheels_cache/
@@ -28,6 +28,7 @@ COPY --from=builder /wheels /wheels_cache/
 RUN pip install --no-cache-dir --no-index --find-links=/wheels_cache/ -r requirements.txt
 RUN ls -R /app
 RUN python -c "import sys; print(sys.path)"
+
 
 
 ARG CACHEBUSTER
@@ -53,5 +54,4 @@ ENV CORS_ORIGINS_REGEX=.*
 
 # Command to run the FastAPI application with Uvicorn (Alembic handled in Cloud Build step)
 # Explicitly pass the PORT environment variable using bash -c
-# trigger 
-CMD bash -c "export PORT=$PORT && echo 'DEBUG: PORT environment variable is: '$PORT && uvicorn api.main:app --host 0.0.0.0 --port ""$PORT"""
+CMD bash -c "export PORT=$PORT && echo 'DEBUG: PORT environment variable is: '$PORT && uvicorn main:app --host 0.0.0.0 --port ""$PORT"""

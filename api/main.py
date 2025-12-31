@@ -6,7 +6,7 @@ from sqlalchemy import text
 from datetime import timedelta, datetime
 from typing import List
 from starlette.responses import RedirectResponse
-from utils import google_oauth
+from .utils import google_oauth
 from jose import jwt, JWTError
 import json
 import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
@@ -24,11 +24,11 @@ import schemas
 import database
 import auth
 import calculations
-from api.routers import custom_charts
+from .routers import custom_charts
 from api.routers import assets
-from api.routers import liabilities
+from .routers import liabilities
 from api.routers.settings import router as settings_router
-from utils.email import send_email
+from .utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
 
 from math import pow # NEW: For amortization calculation
