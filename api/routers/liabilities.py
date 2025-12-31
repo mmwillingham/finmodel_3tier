@@ -17,6 +17,7 @@ router = APIRouter(
     tags=["liabilities"],
     responses={404: {"description": "Not found"}},
 )
+logger.info("Liabilities router initialized.")
 
 @router.post("/", response_model=schemas.LiabilityOut, status_code=status.HTTP_201_CREATED)
 async def create_liability(

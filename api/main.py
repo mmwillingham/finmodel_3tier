@@ -50,9 +50,26 @@ app.include_router(settings_router)
 app.include_router(assets.router)
 app.include_router(liabilities.router)
 
-@app.get("/")
+@app.get("/", tags=["debug"])
 async def root():
     return {"message": "Financial Projector API is running!"}
+
+from fastapi.routing import APIRoute
+
+@app.get("/debug/routes", tags=["debug"], summary="Debug: List all registered routes")
+async def list_routes():
+    """Lists all registered routes in the FastAPI application."""
+    routes_info = []
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            routes_info.append({
+                "path": route.path,
+                "name": route.name,
+                "methods": list(route.methods),
+                "tags": route.tags
+            })
+    logger.debug(f"Registered routes: {routes_info}")
+    return routes_info
 
 @app.get("/debug-env", tags=["debug"])
 async def debug_environment():

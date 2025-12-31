@@ -15,6 +15,7 @@ router = APIRouter(
     tags=["assets"],
     responses={404: {"description": "Not found"}},
 )
+logger.info("Assets router initialized.")
 
 @router.post("/", response_model=schemas.AssetOut, status_code=status.HTTP_201_CREATED)
 def create_asset(
