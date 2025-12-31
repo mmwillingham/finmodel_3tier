@@ -120,7 +120,6 @@ class UserSettings(Base):
     city = Column(String, default="")
     state = Column(String, default="")
     zip_code = Column(String, default="")
-    email = Column(String, default="")
     projection_years = Column(Integer, default=30)
     show_chart_totals = Column(Boolean, default=True) # New field
     created_at = Column(DateTime(timezone=True), server_default=func.now())
