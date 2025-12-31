@@ -37,61 +37,65 @@ def create_custom_chart(
     logger.debug(f"Parsed series configurations: {series_configs}") # Changed from print to logger.debug
     logger.debug(f"Projection years from user settings: {projection_years}") # Changed from print to logger.debug
 
-    # Helper to fetch and convert items to AccountSchema
-    def fetch_and_convert_item(item_type: str, item_id: int):
-        logger.debug(f"Attempting to fetch item_type: {item_type}, item_id: {item_id}") # Changed from print to logger.debug
-        if item_type == 'asset':
-            item = db.query(models.Asset).filter(models.Asset.id == item_id, models.Asset.owner_id == current_user.id).first()
-            if item:
-                logger.debug(f"Found asset: {item.name} (ID: {item.id}, Value: {item.value})") # Changed from print to logger.debug
-                return schemas.AccountSchema(
-                    name=item.name,
-                    type='asset',
-                    initial_balance=item.value,
-                    monthly_contribution=0.0, # Assets don't have monthly contribution directly for chart projection
-                    annual_increase_percent=item.annual_increase_percent,
-                    annual_change_type=item.annual_change_type
-                )
-            else:
-                logger.warning(f"Asset with ID {item_id} not found for user {current_user.id}") # Changed from print to logger.warning
-        elif item_type == 'liability':
-            item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
-            if item:
-                logger.debug(f"Found liability: {item.name} (ID: {item.id}, Value: {item.value})") # Changed from print to logger.debug
-                return schemas.AccountSchema(
-                    name=item.name,
-                    type='liability',
-                    initial_balance=item.value,
-                    monthly_contribution=0.0, # Liabilities don't have monthly contribution directly for chart projection
-                    annual_increase_percent=item.annual_increase_percent,
-                    annual_change_type=item.annual_change_type
-                )
-            else:
-                logger.warning(f"Liability with ID {item_id} not found for user {current_user.id}") # Changed from print to logger.warning
-        elif item_type in ['income', 'expense']:
-            item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
-            if item:
-                logger.debug(f"Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)})") # Changed from print to logger.debug
-                # For cash flow items, the yearly_value is either static or calculated dynamically later
-                # We initially use the stored yearly_value, which for dynamic items will be 0.0 before resolution
-                return schemas.AccountSchema(
-                    name=item.description,
-                    type='income' if item.is_income else 'expense',
-                    initial_balance=0.0, # Cashflow items don't have an initial balance in this context
-                    monthly_contribution=item.yearly_value / 12,
-                    annual_increase_percent=item.annual_increase_percent if item.is_income else item.inflation_percent,
-                    annual_change_type='increase' if item.is_income else 'decrease'
-                )
-            else:
-                logger.warning(f"CashFlowItem with ID {item_id} not found for user {current_user.id}") # Changed from print to logger.warning
-        return None
+def fetch_and_convert_item(db: Session, current_user: models.User, item_type: str, item_id: int):
+    logger.debug(f"Attempting to fetch item_type: {item_type}, item_id: {item_id}")
+    if item_type == 'assets':
+        item = db.query(models.Asset).filter(models.Asset.id == item_id, models.Asset.owner_id == current_user.id).first()
+        if item:
+            logger.debug(f"Found asset: {item.name} (ID: {item.id}, Value: {item.value})")
+            return schemas.AccountSchema(
+                name=item.name,
+                type='asset',
+                initial_balance=item.value,
+                monthly_contribution=0.0,
+                annual_increase_percent=item.annual_increase_percent,
+                annual_change_type=item.annual_change_type
+            )
+        else:
+            logger.warning(f"Asset with ID {item_id} not found for user {current_user.id}")
+    elif item_type == 'liabilities':
+        item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
+        if item:
+            logger.debug(f"Found liability: {item.name} (ID: {item.id}, Value: {item.value})")
+            return schemas.AccountSchema(
+                name=item.name,
+                type='liability',
+                initial_balance=item.value,
+                monthly_contribution=0.0,
+                annual_increase_percent=item.annual_increase_percent,
+                annual_change_type=item.annual_change_type
+            )
+        else:
+            logger.warning(f"Liability with ID {item_id} not found for user {current_user.id}")
+    elif item_type in ['income', 'expenses']:
+        # Determine if it's income or expense based on the item_type parameter
+        is_income_item = (item_type == 'income')
+        
+        item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
+        if item:
+            logger.debug(f"Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)})")
+            
+            # The type for AccountSchema should be 'income' or 'expense', not 'incomeItems' or 'expenseItems'
+            account_type = 'income' if is_income_item else 'expense'
+            
+            return schemas.AccountSchema(
+                name=item.description,
+                type=account_type,
+                initial_balance=0.0,
+                monthly_contribution=item.yearly_value / 12,
+                annual_increase_percent=item.annual_increase_percent if is_income_item else item.inflation_percent,
+                annual_change_type='increase' if is_income_item else 'decrease'
+            )
+        else:
+            logger.warning(f"CashFlowItem with ID {item_id} not found for user {current_user.id}")
+    return None
     
     for series_config in series_configs:
         item_type = series_config.get('data_type')
         item_id = series_config.get('item_id') # Assuming item_id is passed in series_configurations
 
         if item_type and item_id:
-            account = fetch_and_convert_item(item_type, item_id)
+            account = fetch_and_convert_item(db, current_user, item_type, item_id)
             if account:
                 accounts_for_projection.append(account)
             else:
@@ -173,47 +177,10 @@ def update_custom_chart(
         
         logger.debug(f"Parsed series configurations for update: {series_configs}") # Changed from print to logger.debug
 
-        def fetch_and_convert_item(item_type: str, item_id: int):
-            if item_type == 'asset':
-                item = db.query(models.Asset).filter(models.Asset.id == item_id, models.Asset.owner_id == current_user.id).first()
-                if item:
-                    return schemas.AccountSchema(
-                        name=item.name,
-                        type='asset',
-                        initial_balance=item.value,
-                        monthly_contribution=0.0,
-                        annual_increase_percent=item.annual_increase_percent,
-                        annual_change_type=item.annual_change_type
-                    )
-            elif item_type == 'liability':
-                item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
-                if item:
-                    return schemas.AccountSchema(
-                        name=item.name,
-                        type='liability',
-                        initial_balance=item.value,
-                        monthly_contribution=0.0,
-                        annual_increase_percent=item.annual_increase_percent,
-                        annual_change_type=item.annual_change_type
-                    )
-            elif item_type in ['income', 'expense']:
-                item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
-                if item:
-                    return schemas.AccountSchema(
-                        name=item.description,
-                        type='income' if item.is_income else 'expense',
-                        initial_balance=0.0,
-                        monthly_contribution=item.yearly_value / 12,
-                        annual_increase_percent=item.annual_increase_percent if item.is_income else item.inflation_percent,
-                        annual_change_type='increase' if item.is_income else 'decrease'
-                    )
-            return None
-
-        for series_config in series_configs:
-            item_type = series_config.get('data_type')
-            item_id = series_config.get('item_id')
-            if item_type and item_id:
-                account = fetch_and_convert_item(item_type, item_id)
+        item_type = series_config.get('data_type')
+        item_id = series_config.get('item_id')
+        if item_type and item_id:
+            account = fetch_and_convert_item(db, current_user, item_type, item_id)
                 if account:
                     accounts_for_projection.append(account)
                 else:

@@ -261,7 +261,7 @@ class AssetOut(BaseModel):
     category: str
     value: float
     annual_increase_percent: float
-    annual_change_type: str # New field
+    annual_change_type: Optional[str] # New field, made optional
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
@@ -284,6 +284,7 @@ class LiabilityCreate(BaseModel):
     fees: Optional[float] = 0.0 # NEW
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
+    include_in_cash_flow: bool = True # New field to control if liability is included in cash flow
 
 class LiabilityUpdate(LiabilityCreate):
     pass
@@ -294,7 +295,7 @@ class LiabilityOut(BaseModel):
     category: str
     value: float
     annual_increase_percent: float
-    annual_change_type: str # New field
+    annual_change_type: Optional[str] # New field, made optional
     loan_type: str # NEW
     principal_amount: Optional[float] = None # NEW
     interest_rate: Optional[float] = None # NEW
@@ -304,6 +305,7 @@ class LiabilityOut(BaseModel):
     fees: float # NEW
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
+    include_in_cash_flow: bool # New field to control if liability is included in cash flow
     model_config = ConfigDict(from_attributes=True)
 
 # --- CUSTOM CHART SCHEMAS ---

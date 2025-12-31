@@ -12,14 +12,27 @@ const getRandomColor = () => {
   return "#" + ("000000" + randomHex).slice(-6);
 };
 
-const getCategoryOptions = (dataType, assetCategories, liabilityCategories, incomeCategories, expenseCategories) => {
+const getDataSourceItemOptions = (dataType, assets, liabilities, incomeItems, expenseItems, selectedCategory) => {
+  let items = [];
   switch (dataType) {
-    case 'assets': return assetCategories;
-    case 'liabilities': return liabilityCategories;
-    case 'income': return incomeCategories;
-    case 'expenses': return expenseCategories;
+    case 'assets': items = assets; break;
+    case 'liabilities': items = liabilities; break;
+    case 'income': items = incomeItems; break;
+    case 'expenses': items = expenseItems; break;
     default: return [];
   }
+
+  // Filter by category if a specific category is selected
+  if (selectedCategory) {
+    items = items.filter(item => item.category === selectedCategory);
+  }
+
+  // Map to a consistent format for options
+  return items.map(item => ({
+    id: item.id,
+    name: item.name || item.description, // Assets/Liabilities have 'name', CashFlowItems have 'description'
+    category: item.category,
+  }));
 };
 
 export default function CustomChartForm({
@@ -57,7 +70,7 @@ export default function CustomChartForm({
           setChartType(chart.chart_type);
           setDisplayType(chart.display_type || "currency"); // Set display type from fetched config
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
-          setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ ...series, category: series.category || '' })));
+          setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ ...series, category: series.category || '', selected_item_id: series.selected_item_id || null })));
           setXAxisLabel(chart.x_axis_label || "");
           setYAxisLabel(chart.y_axis_label || "");
         })
@@ -97,15 +110,21 @@ export default function CustomChartForm({
 
       color: getRandomColor(),
       category: "", // New category field
+      selected_item_id: null, // Initialize selected_item_id
     }]);
   };
 
   const handleSeriesChange = (index, field, value) => {
     const newSeries = [...seriesConfigurations];
     newSeries[index][field] = value;
-    // Reset category if data_type changes
+    // Reset category and selected_item_id if data_type changes
     if (field === 'data_type') {
       newSeries[index].category = '';
+      newSeries[index].selected_item_id = null;
+    }
+    // Reset selected_item_id if category changes
+    if (field === 'category') {
+      newSeries[index].selected_item_id = null;
     }
     setSeriesConfigurations(newSeries);
   };
@@ -244,6 +263,28 @@ export default function CustomChartForm({
                       ) : (
                         <option value="" disabled>No categories available</option>
                       )}
+                    </select>
+                  </div>
+                )}
+
+                {(currentSeriesDataType === 'assets' || currentSeriesDataType === 'liabilities' || currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && (
+                  <div className="form-group">
+                    <label>{currentSeriesDataType.slice(0, -1).charAt(0).toUpperCase() + currentSeriesDataType.slice(0, -1).slice(1)}:</label>
+                    <select
+                      value={series.selected_item_id || ''}
+                      onChange={(e) => handleSeriesChange(index, 'selected_item_id', e.target.value)}
+                    >
+                      <option value="">All Items</option>
+                      {getDataSourceItemOptions(
+                        currentSeriesDataType,
+                        assets,
+                        liabilities,
+                        incomeItems,
+                        expenseItems,
+                        series.category
+                      ).map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
                     </select>
                   </div>
                 )}

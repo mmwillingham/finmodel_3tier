@@ -160,6 +160,7 @@ class Liability(Base):
     fees = Column(Float, nullable=True, default=0.0) # NEW
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
+    include_in_cash_flow = Column(Boolean, default=True) # New field to control if liability is included in cash flow
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

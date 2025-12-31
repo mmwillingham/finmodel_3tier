@@ -20,7 +20,6 @@ if config.config_file_name is not None:
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import api.models # THIS IS CRUCIAL: Import your models to ensure metadata is populated
-import api.database # NEW: Import database to get SQLALCHEMY_DATABASE_URL
 
 target_metadata = api.models.Base.metadata
 
@@ -67,17 +66,37 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable_url = api.database.get_async_database_url()
+    connectable_url = os.getenv("DATABASE_URL")
 
-    # Use the retrieved URL to create the async engine
-    connectable = async_engine_from_config(
-        {'sqlalchemy.url': connectable_url},
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    if not connectable_url:
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")
+        db_name = os.getenv("DB_NAME")
+        cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
+        if all([db_user, db_password, db_name, cloud_sql_connection_name]):
+            unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
+            connectable_url = f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={unix_socket_path}"
+        else:
+            raise ValueError("DATABASE_URL not set and missing one or more database environment variables for connection.")
+
+    # Determine if we should use async or sync engine based on the URL scheme
+    if "asyncpg" in connectable_url:
+        connectable = async_engine_from_config(
+            {'sqlalchemy.url': connectable_url},
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
+    else:
+        connectable = engine_from_config(
+            {'sqlalchemy.url': connectable_url},
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
+        with connectable.connect() as connection:
+            do_run_migrations(connection)
 
 
 if context.is_offline_mode():
