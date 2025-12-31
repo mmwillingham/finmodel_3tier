@@ -24,7 +24,7 @@ import schemas
 import database
 import auth
 import calculations
-from routers import custom_charts, assets, liabilities
+from routers import custom_charts
 from routers.settings import router as settings_router
 from utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
@@ -47,8 +47,6 @@ async def startup_event():
 
 app.include_router(custom_charts.router)
 app.include_router(settings_router)
-app.include_router(assets.router)
-app.include_router(liabilities.router)
 
 @app.get("/", tags=["debug"])
 async def root():
