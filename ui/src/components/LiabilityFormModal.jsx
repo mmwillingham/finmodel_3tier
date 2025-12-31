@@ -34,7 +34,7 @@ export default function LiabilityFormModal({
     const loadSettingsAndSetItem = async () => {
       try {
         const res = await SettingsService.getSettings();
-        const cats = res.data.liability_categories?.split(",") || ["Other"];
+        const cats = res.data.liability_categories || ["Other"];
         setCategories(cats);
 
         if (itemToEdit) {
