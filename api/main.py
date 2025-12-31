@@ -47,6 +47,8 @@ async def startup_event():
 
 app.include_router(custom_charts.router)
 app.include_router(settings_router)
+app.include_router(assets.router)
+app.include_router(liabilities.router)
 
 @app.get("/", tags=["debug"])
 async def root():
