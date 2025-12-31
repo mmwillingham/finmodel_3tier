@@ -181,10 +181,10 @@ def update_custom_chart(
         item_id = series_config.get('item_id')
         if item_type and item_id:
             account = fetch_and_convert_item(db, current_user, item_type, item_id)
-                if account:
-                    accounts_for_projection.append(account)
-                else:
-                    logger.warning(f"Could not find item {item_id} of type {item_type} for user {current_user.id} during chart update.") # Changed from print to logger.warning
+            if account:
+                accounts_for_projection.append(account)
+            else:
+                logger.warning(f"Could not find item {item_id} of type {item_type} for user {current_user.id} during chart update.") # Changed from print to logger.warning
 
         logger.debug(f"Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)}") # Changed from print to logger.debug
 
