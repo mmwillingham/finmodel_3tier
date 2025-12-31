@@ -50,8 +50,8 @@ export default function CashFlowFormModal({
         setDefaultInflation(inflation);
 
         const categories = type === "income"
-          ? res.data.income_categories?.split(",") || ["Salary", "Bonus", "Investment Income", "Other"]
-          : res.data.expense_categories?.split(",") || ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
+          ? res.data.income_categories || ["Salary", "Bonus", "Investment Income", "Other"]
+          : res.data.expense_categories || ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
         setTypeOptions(categories);
 
         const persons = [
@@ -71,19 +71,18 @@ export default function CashFlowFormModal({
             ? (itemToEdit.yearly_value / 12).toString()
             : itemToEdit.yearly_value.toString();
 
-          setNewItem({
-            category: itemToEdit.category || '',
-            description: itemToEdit.description || '',
+          setNewItem(prev => ({
+            ...prev,
+            ...itemToEdit,
             value: displayValue, // This will be ignored if isDynamic is true
-            frequency: itemToEdit.frequency || '',
-            annual_increase_percent: itemToEdit.annual_increase_percent || 0,
-            inflation_percent: itemToEdit.inflation_percent || inflation,
-            person: itemToEdit.person || '',
-            start_date: itemToEdit.start_date || '',
-            end_date: itemToEdit.end_date || '',
-            taxable: itemToEdit.taxable || false,
-            tax_deductible: itemToEdit.tax_deductible || false,
-          });
+            person: itemToEdit.person || "", // Ensure person is empty string if null/undefined
+            annual_increase_percent: itemToEdit.annual_increase_percent ?? 0,
+            inflation_percent: itemToEdit.inflation_percent ?? inflation,
+            taxable: itemToEdit.taxable ?? false,
+            tax_deductible: itemToEdit.tax_deductible ?? false,
+            start_date: itemToEdit.start_date || "",
+            end_date: itemToEdit.end_date || "",
+          }));
           // Initialize dynamic fields if present in itemToEdit
           setIsDynamic(!!itemToEdit.linked_item_id); // Set to true if linked_item_id exists
           setLinkedItemType(itemToEdit.linked_item_type || "");
