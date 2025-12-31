@@ -55,8 +55,8 @@ export default function CashFlowFormModal({
         setTypeOptions(categories);
 
         const persons = [
-          res.data.person1_first_name ? res.data.person1_first_name : null,
-          res.data.person2_first_name ? res.data.person2_first_name : null,
+          res.data.person1_first_name && res.data.person1_first_name !== "Person 1" ? res.data.person1_first_name : null,
+          res.data.person2_first_name && res.data.person2_first_name !== "" ? res.data.person2_first_name : null,
         ].filter(Boolean);
 
         let newPersonOptions = ["Select Person"];

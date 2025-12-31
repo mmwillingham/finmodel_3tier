@@ -615,24 +615,23 @@ def list_cashflow(
     logger.debug(f"list_cashflow: Found {len(cashflow_items)} items for user {current_user.id}, Is Income: {is_income}")
     return cashflow_items
 
-    # Helper function to calculate yearly_value based on linkage
-    def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowCreate | schemas.CashFlowUpdate):
-        if payload.linked_item_id and payload.linked_item_type and payload.percentage is not None:
-            linked_value = 0.0
-            if payload.linked_item_type == "asset":
-                linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
-                if linked_item:
-                    linked_value = linked_item.value
-            elif payload.linked_item_type == "liability":
-                linked_item = db.query(models.Liability).filter(models.Liability.id == payload.linked_item_id).first()
-                if linked_item:
-                    # For liabilities, we might consider initial_loan_amount or current value,
-                    # depending on what 'percentage' refers to. Assuming 'value' for now.
-                    linked_value = linked_item.value # Or initial_loan_amount if that's the base
-            
-            return linked_value * (payload.percentage / 100.0) * (12 if payload.frequency == "monthly" else 1)
-        else:
-            return payload.value * 12 if payload.frequency == "monthly" else payload.value
+
+def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowCreate | schemas.CashFlowUpdate):
+    if payload.linked_item_id and payload.linked_item_type and payload.percentage is not None:
+        linked_value = 0.0
+        if payload.linked_item_type == "asset":
+            linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
+            if linked_item:
+                linked_value = linked_item.value
+        elif payload.linked_item_type == "liability":
+            linked_item = db.query(models.Liability).filter(models.Liability.id == payload.linked_item_id).first()
+            if linked_item:
+                linked_value = linked_item.value
+        
+        return linked_value * (payload.percentage / 100.0) * (12 if payload.frequency == "monthly" else 1)
+    else:
+        return payload.value * 12 if payload.frequency == "monthly" else payload.value
+
 
 @app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
 def create_cashflow(
