@@ -615,15 +615,32 @@ def list_cashflow(
     logger.debug(f"list_cashflow: Found {len(cashflow_items)} items for user {current_user.id}, Is Income: {is_income}")
     return cashflow_items
 
+    # Helper function to calculate yearly_value based on linkage
+    def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowCreate | schemas.CashFlowUpdate):
+        if payload.linked_item_id and payload.linked_item_type and payload.percentage is not None:
+            linked_value = 0.0
+            if payload.linked_item_type == "asset":
+                linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
+                if linked_item:
+                    linked_value = linked_item.value
+            elif payload.linked_item_type == "liability":
+                linked_item = db.query(models.Liability).filter(models.Liability.id == payload.linked_item_id).first()
+                if linked_item:
+                    # For liabilities, we might consider initial_loan_amount or current value,
+                    # depending on what 'percentage' refers to. Assuming 'value' for now.
+                    linked_value = linked_item.value # Or initial_loan_amount if that's the base
+            
+            return linked_value * (payload.percentage / 100.0) * (12 if payload.frequency == "monthly" else 1)
+        else:
+            return payload.value * 12 if payload.frequency == "monthly" else payload.value
+
 @app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
 def create_cashflow(
     payload: schemas.CashFlowCreate,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    yearly_value = 0.0 # Will be calculated dynamically if linked_item_id is present
-    if not (payload.linked_item_id and payload.linked_item_type and payload.percentage is not None):
-        yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
     
     item = models.CashFlowItem(
         owner_id=current_user.id,
@@ -660,9 +677,8 @@ def update_cashflow(
         raise HTTPException(status_code=404, detail="Item not found")
     if item.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
-    yearly_value = 0.0 # Will be calculated dynamically if linked_item_id is present
-    if not (payload.linked_item_id and payload.linked_item_type and payload.percentage is not None):
-        yearly_value = payload.value * 12 if payload.frequency == "monthly" else payload.value
+    
+    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
     
     item.is_income = payload.is_income
     item.category = payload.category
@@ -676,8 +692,8 @@ def update_cashflow(
     item.end_date = payload.end_date
     item.taxable = payload.taxable
     item.tax_deductible = payload.tax_deductible
-    item.linked_item_id = payload.linked_item_id,
-    item.linked_item_type = payload.linked_item_type,
+    item.linked_item_id = payload.linked_item_id
+    item.linked_item_type = payload.linked_item_type
     item.percentage = payload.percentage
     db.commit()
     db.refresh(item)
@@ -695,13 +711,6 @@ def delete_cashflow(
     if item.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Delete any linked cash flow item
-    cash_flow_item = db.query(models.CashFlowItem).filter(
-        models.CashFlowItem.linked_item_id == liability_id,
-        models.CashFlowItem.linked_item_type == "liability"
-    ).first()
-    if cash_flow_item:
-        db.delete(cash_flow_item)
 
     db.delete(item)
     db.commit()
