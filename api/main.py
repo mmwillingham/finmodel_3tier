@@ -6,7 +6,7 @@ from sqlalchemy import text
 from datetime import timedelta, datetime
 from typing import List
 from starlette.responses import RedirectResponse
-from .utils import google_oauth
+from utils import google_oauth
 from jose import jwt, JWTError
 import json
 import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
