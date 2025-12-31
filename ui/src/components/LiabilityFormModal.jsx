@@ -11,12 +11,12 @@ const initialNewItemState = {
   annual_increase_percent: 0,
   annual_change_type: "increase", // Default to increase for liabilities
   loan_type: "ordinary", // NEW: Default loan type
-  principal_amount: "", // NEW
-  interest_rate: "", // NEW
-  loan_term_months: "", // NEW
+  principal_amount: null, // NEW
+  interest_rate: null, // NEW
+  loan_term_months: null, // NEW
   loan_start_date: "", // NEW
   fees: 0, // NEW: Default fees
-  monthly_payment: "", // NEW (though calculated by backend for amortized)
+  monthly_payment: null, // NEW
   start_date: "",
   end_date: "",
 };
@@ -52,7 +52,7 @@ export default function LiabilityFormModal({
             loan_term_months: itemToEdit.loan_term_months?.toString() || "",
             loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "",
             monthly_payment: itemToEdit.monthly_payment?.toString() || "",
-            fees: itemToEdit.fees?.toString() || 0,
+            fees: itemToEdit.fees != null ? itemToEdit.fees.toString() : "0",
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
           });
@@ -124,12 +124,12 @@ export default function LiabilityFormModal({
       annual_increase_percent: newItem.loan_type === "ordinary" ? parseFloat(newItem.annual_increase_percent || 0) : 0, // Only send for ordinary
       annual_change_type: newItem.loan_type === "ordinary" ? newItem.annual_change_type : "increase", // Default for amortized, or as specified for ordinary
       loan_type: newItem.loan_type,
-      principal_amount: newItem.loan_type === "amortized" && newItem.principal_amount ? parseFloat(newItem.principal_amount) : null,
-      interest_rate: newItem.loan_type === "amortized" && newItem.interest_rate ? parseFloat(newItem.interest_rate) : null,
-      loan_term_months: newItem.loan_type === "amortized" && newItem.loan_term_months ? parseInt(newItem.loan_term_months, 10) : null,
+      principal_amount: newItem.loan_type === "amortized" && newItem.principal_amount !== null ? parseFloat(newItem.principal_amount) : null,
+      interest_rate: newItem.loan_type === "amortized" && newItem.interest_rate !== null ? parseFloat(newItem.interest_rate) : null,
+      loan_term_months: newItem.loan_type === "amortized" && newItem.loan_term_months !== null ? parseInt(newItem.loan_term_months, 10) : null,
       loan_start_date: newItem.loan_type === "amortized" && newItem.loan_start_date ? newItem.loan_start_date : null,
-      monthly_payment: newItem.loan_type === "amortized" && newItem.monthly_payment ? parseFloat(newItem.monthly_payment) : null,
-      fees: newItem.loan_type === "amortized" && newItem.fees ? parseFloat(newItem.fees) : 0,
+      monthly_payment: newItem.loan_type === "amortized" && newItem.monthly_payment !== null ? parseFloat(newItem.monthly_payment) : null,
+      fees: newItem.loan_type === "amortized" && newItem.fees !== "" ? parseFloat(newItem.fees) : 0,
       start_date: newItem.loan_type === "ordinary" && newItem.start_date ? newItem.start_date : null,
       end_date: null,
     };
