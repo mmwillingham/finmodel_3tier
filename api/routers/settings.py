@@ -44,14 +44,12 @@ def update_user_settings(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Settings not found")
 
     # Update fields only if provided in the payload
-    if settings_update.liability_categories is not None:
-        user_settings.liability_categories = settings_update.liability_categories
-    if settings_update.asset_categories is not None:
-        user_settings.asset_categories = settings_update.asset_categories
-    if settings_update.income_categories is not None:
-        user_settings.income_categories = settings_update.income_categories
-    if settings_update.expense_categories is not None:
-        user_settings.expense_categories = settings_update.expense_categories
+    update_data = settings_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        # Skip updating email as it belongs to the User model
+        if key == "email":
+            continue
+        setattr(user_settings, key, value)
 
     db.commit()
     db.refresh(user_settings)

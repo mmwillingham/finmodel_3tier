@@ -206,7 +206,6 @@ class UserSettingsBase(BaseModel):
     city: str = ""
     state: str = ""
     zip_code: str = ""
-    email: str = ""
     projection_years: int = 30
     show_chart_totals: bool = True
 
@@ -231,7 +230,6 @@ class UserSettingsUpdate(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
-    email: Optional[str] = None
     projection_years: Optional[int] = None
     show_chart_totals: Optional[bool] = None
 

@@ -65,7 +65,6 @@ export default function SettingsModal({
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [email, setEmail] = useState("");
   const [projectionYears, setProjectionYears] = useState(30);
   const [showChartTotals, setShowChartTotals] = useState(true);
 
@@ -87,10 +86,10 @@ export default function SettingsModal({
     try {
       const res = await SettingsService.getSettings();
       setInflationPercent(res.data.default_inflation_percent);
-      setAssetCategoriesState(res.data.asset_categories ? res.data.asset_categories.split(',') : []);
-      setLiabilityCategoriesState(res.data.liability_categories ? res.data.liability_categories.split(',') : []);
-      setIncomeCategoriesState(res.data.income_categories ? res.data.income_categories.split(',') : []);
-      setExpenseCategoriesState(res.data.expense_categories ? res.data.expense_categories.split(',') : []);
+      setAssetCategoriesState(res.data.asset_categories || []);
+      setLiabilityCategoriesState(res.data.liability_categories || []);
+      setIncomeCategoriesState(res.data.income_categories || []);
+      setExpenseCategoriesState(res.data.expense_categories || []);
       setPerson1FirstName(res.data.person1_first_name || "");
       setPerson1LastName(res.data.person1_last_name || "");
       setPerson1Birthdate(res.data.person1_birthdate || "");
@@ -103,12 +102,6 @@ export default function SettingsModal({
       setCity(res.data.city || "");
       setState(res.data.state || "");
       setZipCode(res.data.zip_code || "");
-      
-      // Prioritize currentUser.email, then saved settings email, then empty string
-      console.log('Debug - currentUser.email (from AuthContext):', currentUser?.email);
-      console.log('Debug - res.data.email (from DB Settings):', res.data.email);
-      setEmail(currentUser?.email || res.data.email || "");
-      console.log('Debug - Email state after setEmail:', email);
 
       setProjectionYears(res.data.projection_years || 30);
       setShowChartTotals(res.data.show_chart_totals ?? true);
@@ -168,7 +161,6 @@ export default function SettingsModal({
         city: city,
         state: state,
         zip_code: zipCode,
-        email: email, // This will save the currently displayed email
         projection_years: parseInt(projectionYears),
         show_chart_totals: showChartTotals,
       });
@@ -455,18 +447,6 @@ export default function SettingsModal({
                       value={zipCode}
                       onChange={(e) => setZipCode(e.target.value)}
                       placeholder="Zip Code"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="email">
-                      Email Address
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email Address"
                     />
                   </div>
                   <div className="change-password-btn-wrapper">
