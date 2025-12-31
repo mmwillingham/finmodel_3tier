@@ -26,19 +26,19 @@ export default function AssetFormModal({
     const loadSettings = async () => {
       try {
         const res = await SettingsService.getSettings();
-        const cats = res.data.asset_categories?.split(",") || [];
+        const cats = res.data.asset_categories || [];
         setCategories(cats);
 
         if (itemToEdit) {
-          setNewItem({
-            name: itemToEdit.name || '',
-            category: itemToEdit.category || '',
-            value: itemToEdit.value.toString() || '',
-            annual_increase_percent: itemToEdit.annual_increase_percent || 0,
+          setNewItem(prev => ({
+            ...prev,
+            ...itemToEdit,
+            value: itemToEdit.value?.toString() || '',
+            annual_increase_percent: itemToEdit.annual_increase_percent ?? 0,
             annual_change_type: itemToEdit.annual_change_type || "increase",
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
-          });
+          }));
         } else {
           setNewItem(prev => ({
             ...prev,
