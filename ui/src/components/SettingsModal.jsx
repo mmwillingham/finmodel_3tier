@@ -108,7 +108,7 @@ export default function SettingsModal({
     } catch (e) {
       console.error('Failed to load settings', e);
     }
-  }, [currentUser, email]); // Added currentUser and email as dependencies
+  }, [currentUser]);
 
   const fetchUsers = useCallback(async () => {
     if (!currentUser || !currentUser.is_admin) return;
