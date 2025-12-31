@@ -75,6 +75,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             algorithms=[settings.ALGORITHM] # 🌟 FIXED
         )
         user_id: int = payload.get("sub")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"DEBUG (auth.py): User ID from JWT payload: {user_id}")
         if user_id is None:
             raise credentials_exception
     except JWTError:
