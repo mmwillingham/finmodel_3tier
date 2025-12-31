@@ -24,11 +24,11 @@ import schemas
 import database
 import auth
 import calculations
-from .routers import custom_charts
+from routers import custom_charts
 from api.routers import assets
-from .routers import liabilities
+from routers import liabilities
 from api.routers.settings import router as settings_router
-from .utils.email import send_email
+from utils.email import send_email
 from config import settings # 🌟 NEW: Import the settings object
 
 from math import pow # NEW: For amortization calculation
