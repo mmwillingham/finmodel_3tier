@@ -305,7 +305,7 @@ class LiabilityOut(BaseModel):
     fees: float # NEW
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
-    include_in_cash_flow: bool # New field to control if liability is included in cash flow
+    include_in_cash_flow: bool | None = None # New field to control if liability is included in cash flow
     model_config = ConfigDict(from_attributes=True)
 
 # --- CUSTOM CHART SCHEMAS ---
