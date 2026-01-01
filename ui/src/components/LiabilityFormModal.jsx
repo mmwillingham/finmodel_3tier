@@ -11,12 +11,12 @@ const initialNewItemState = {
   annual_increase_percent: 0,
   annual_change_type: "increase", // Default to increase for liabilities
   loan_type: "ordinary", // NEW: Default loan type
-  principal_amount: null, // NEW
-  interest_rate: null, // NEW
-  loan_term_months: null, // NEW
-  loan_start_date: "", // NEW
-  fees: 0, // NEW: Default fees
-  monthly_payment: null, // NEW
+  principal_amount: null, // NEW: Changed from "" to null
+  interest_rate: null, // NEW: Changed from "" to null
+  loan_term_months: null, // NEW: Changed from "" to null
+  loan_start_date: null, // NEW: Changed from "" to null
+  fees: null, // NEW: Default fees to null for optional float
+  monthly_payment: null, // NEW: Changed from "" to null
   start_date: "",
   end_date: "",
 };
@@ -37,33 +37,36 @@ export default function LiabilityFormModal({
         const cats = res.data.liability_categories || ["Other"];
         setCategories(cats);
 
-        if (itemToEdit) {
-          // If editing, populate with existing item data
-          console.log("Loading item to edit:", itemToEdit); // NEW log
-          setNewItem({
-            name: itemToEdit.name || '',
-            category: itemToEdit.category || '',
-            value: itemToEdit.value.toString() || '',
-            annual_increase_percent: itemToEdit.annual_increase_percent || 0,
-            annual_change_type: itemToEdit.annual_change_type || "increase",
-            loan_type: itemToEdit.loan_type || "ordinary",
-            principal_amount: itemToEdit.principal_amount?.toString() || "",
-            interest_rate: itemToEdit.interest_rate?.toString() || "",
-            loan_term_months: itemToEdit.loan_term_months?.toString() || "",
-            loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "",
-            monthly_payment: itemToEdit.monthly_payment?.toString() || "",
-            fees: itemToEdit.fees != null ? itemToEdit.fees.toString() : "0",
-            start_date: itemToEdit.start_date || '',
-            end_date: itemToEdit.end_date || '',
-          });
-        } else {
-          // If adding a new item, reset to initial state and set default category
-          console.log("Resetting form for new liability."); // NEW log
-          setNewItem(prev => ({
-            ...initialNewItemState,
-            category: cats[0] || "Other",
-          }));
+        if (isOpen) { // Only reset or load when modal is actually open
+            if (itemToEdit) {
+                // If editing, populate with existing item data
+                console.log("Loading item to edit:", itemToEdit);
+                setNewItem({
+                    name: itemToEdit.name || '',
+                    category: itemToEdit.category || '',
+                    value: itemToEdit.value?.toString() || '', // Use nullish coalescing
+                    annual_increase_percent: itemToEdit.annual_increase_percent ?? 0,
+                    annual_change_type: itemToEdit.annual_change_type || "increase",
+                    loan_type: itemToEdit.loan_type || "ordinary",
+                    principal_amount: itemToEdit.principal_amount?.toString() || "",
+                    interest_rate: itemToEdit.interest_rate?.toString() || "",
+                    loan_term_months: itemToEdit.loan_term_months?.toString() || "",
+                    loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "",
+                    monthly_payment: itemToEdit.monthly_payment?.toString() || "",
+                    fees: itemToEdit.fees != null ? itemToEdit.fees.toString() : "", // Changed from "0" to ""
+                    start_date: itemToEdit.start_date || '',
+                    end_date: itemToEdit.end_date || '',
+                });
+            } else {
+                // If adding a new item, reset to initial state and set default category
+                console.log("Resetting form for new liability.");
+                setNewItem(prev => ({
+                    ...initialNewItemState,
+                    category: cats[0] || "Other",
+                }));
+            }
         }
+
       } catch (e) {
         console.error("Failed to load settings", e);
         setCategories(["Other"]);
@@ -73,13 +76,7 @@ export default function LiabilityFormModal({
       }
     };
 
-    if (isOpen) { // Only run this effect when the modal is open
-      loadSettingsAndSetItem();
-    } else {
-        // Reset when modal closes, ensuring a clean slate for next open
-        console.log("Modal closed, resetting form state."); // NEW log
-        setNewItem(initialNewItemState);
-    }
+    loadSettingsAndSetItem();
   }, [isOpen, itemToEdit]); // Dependencies changed to include isOpen and itemToEdit
 
   const save = async () => {
@@ -120,17 +117,17 @@ export default function LiabilityFormModal({
     const payload = {
       name: newItem.name,
       category: newItem.category,
-      value: newItem.loan_type === "ordinary" ? parseFloat(newItem.value) : 0, // Only send value for ordinary loans
-      annual_increase_percent: newItem.loan_type === "ordinary" ? parseFloat(newItem.annual_increase_percent || 0) : 0, // Only send for ordinary
+      value: newItem.loan_type === "ordinary" && newItem.value !== "" ? parseFloat(newItem.value) : 0, // Only send value for ordinary loans
+      annual_increase_percent: newItem.loan_type === "ordinary" && newItem.annual_increase_percent !== "" ? parseFloat(newItem.annual_increase_percent) : 0, // Only send for ordinary
       annual_change_type: newItem.loan_type === "ordinary" ? newItem.annual_change_type : "increase", // Default for amortized, or as specified for ordinary
       loan_type: newItem.loan_type,
-      principal_amount: newItem.loan_type === "amortized" && newItem.principal_amount !== null ? parseFloat(newItem.principal_amount) : null,
-      interest_rate: newItem.loan_type === "amortized" && newItem.interest_rate !== null ? parseFloat(newItem.interest_rate) : null,
-      loan_term_months: newItem.loan_type === "amortized" && newItem.loan_term_months !== null ? parseInt(newItem.loan_term_months, 10) : null,
-      loan_start_date: newItem.loan_type === "amortized" && newItem.loan_start_date ? newItem.loan_start_date : null,
-      monthly_payment: newItem.loan_type === "amortized" && newItem.monthly_payment !== null ? parseFloat(newItem.monthly_payment) : null,
-      fees: newItem.loan_type === "amortized" && newItem.fees !== "" ? parseFloat(newItem.fees) : 0,
-      start_date: newItem.loan_type === "ordinary" && newItem.start_date ? newItem.start_date : null,
+      principal_amount: newItem.loan_type === "amortized" && newItem.principal_amount !== "" ? parseFloat(newItem.principal_amount) : null,
+      interest_rate: newItem.loan_type === "amortized" && newItem.interest_rate !== "" ? parseFloat(newItem.interest_rate) : null,
+      loan_term_months: newItem.loan_type === "amortized" && newItem.loan_term_months !== "" ? parseInt(newItem.loan_term_months, 10) : null,
+      loan_start_date: newItem.loan_type === "amortized" && newItem.loan_start_date !== "" ? newItem.loan_start_date : null,
+      monthly_payment: newItem.loan_type === "amortized" && newItem.monthly_payment !== "" ? parseFloat(newItem.monthly_payment) : null,
+      fees: newItem.loan_type === "amortized" && newItem.fees !== "" ? parseFloat(newItem.fees) : null, // NEW: Send null if empty string
+      start_date: newItem.loan_type === "ordinary" && newItem.start_date !== "" ? newItem.start_date : null,
       end_date: null,
     };
 
@@ -279,11 +276,19 @@ export default function LiabilityFormModal({
               </div>
             </div>
           )}
-          {newItem.loan_type === "amortized" && newItem.monthly_payment && (
+          {newItem.loan_type === "amortized" && (
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="form-field">
-                <label>Est. Monthly Payment</label>
-                <input type="text" value={parseFloat(newItem.monthly_payment).toFixed(2)} readOnly disabled />
+                <label htmlFor="monthly-payment">Est. Monthly Payment</label>
+                <input
+                  id="monthly-payment"
+                  type="number"
+                  step="0.01"
+                  placeholder="Monthly Payment"
+                  value={newItem.monthly_payment}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, monthly_payment: e.target.value })}
+                />
               </div>
               <div className="form-field">
                 <label htmlFor="fees">Fees (One-time)</label>
