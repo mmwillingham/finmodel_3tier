@@ -39,6 +39,7 @@ export default function CashFlowFormModal({
     end_date: "",
     taxable: false,
     tax_deductible: false,
+    contributes_to_asset_id: null, // NEW: For expense items that contribute to an asset
   });
 
   // Effect for loading settings and initializing form fields
@@ -56,7 +57,7 @@ export default function CashFlowFormModal({
 
         const persons = [
           res.data.person1_first_name && res.data.person1_first_name !== "Person 1" ? res.data.person1_first_name : null,
-          res.data.person2_first_name && res.data.person2_first_name !== "" ? res.data.person2_first_name : null,
+          res.data.person2_first_name && res.data.person2_first_name !== "Person 2" ? res.data.person2_first_name : null,
         ].filter(Boolean);
 
         let newPersonOptions = ["Select Person"];
@@ -82,6 +83,7 @@ export default function CashFlowFormModal({
             tax_deductible: itemToEdit.tax_deductible ?? false,
             start_date: itemToEdit.start_date || "",
             end_date: itemToEdit.end_date || "",
+            contributes_to_asset_id: itemToEdit.contributes_to_asset_id || null, // NEW
           }));
           // Initialize dynamic fields if present in itemToEdit
           setIsDynamic(!!itemToEdit.linked_item_id); // Set to true if linked_item_id exists
@@ -104,6 +106,7 @@ export default function CashFlowFormModal({
             end_date: "",
             taxable: true, // Default to true for new income items
             tax_deductible: false,
+            contributes_to_asset_id: null, // NEW
           }));
           // Reset dynamic fields for new item
           setIsDynamic(false);
@@ -187,6 +190,7 @@ export default function CashFlowFormModal({
       linked_item_id: isDynamic ? linkedItemId : null,
       linked_item_type: isDynamic ? linkedItemType : null,
       percentage: isDynamic ? parseFloat(percentage) : null,
+      contributes_to_asset_id: type === "expense" ? newItem.contributes_to_asset_id : null, // NEW: Only for expenses
     };
 
     try {
@@ -227,6 +231,14 @@ export default function CashFlowFormModal({
       id: item.id,
       name: item.name || item.description, // Assets/Liabilities have name, CashFlowItems have description
       category: item.category,
+    }));
+  };
+
+  // Helper to get asset options for contributes_to_asset_id
+  const getAssetOptions = () => {
+    return availableLinkedItems.assets.map(asset => ({
+      id: asset.id,
+      name: asset.name,
     }));
   };
 
@@ -293,7 +305,7 @@ export default function CashFlowFormModal({
           </div>
 
           {/* New row for dynamic item configuration */}
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+          <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(4, 1fr)' : 'repeat(5, 1fr)' }}>
             <div className="form-field">
               <label htmlFor="is-dynamic-select">Dynamic</label>
               <select
@@ -364,6 +376,27 @@ export default function CashFlowFormModal({
                 </div>
               </>
             )}
+
+            {/* NEW: Contributes to Asset field, only for expenses */}
+            {type === "expense" && !isDynamic && (
+              <div className="form-field">
+                <label htmlFor="contributes-to-asset-select">Contributes to Asset</label>
+                <select
+                  id="contributes-to-asset-select"
+                  value={newItem.contributes_to_asset_id || ""}
+                  onChange={(e) => setNewItem({ ...newItem, contributes_to_asset_id: e.target.value ? parseInt(e.target.value) : null })}
+                >
+                  <option value="">None</option>
+                  {getAssetOptions().map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+
           </div>
 
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 1fr)' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
