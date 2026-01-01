@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -10,29 +10,23 @@ import SignupPage from './components/SignupPage';
 import SidebarLayout from './components/SidebarLayout';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import EmailConfirmationPage from './components/EmailConfirmationPage';
-import GoogleAuthCallback from './components/GoogleAuthCallback'; // NEW: Import GoogleAuthCallback // Trigger rebuild
+import GoogleAuthCallback from './components/GoogleAuthCallback';
 
-// Import Modals and their state management
-import SettingsModal, { useCategoryModalStates } from './components/SettingsModal';
-import ChangePasswordModal from './components/ChangePasswordModal';
+// Import new settings pages
+import ApplicationSettingsPage from './pages/ApplicationSettingsPage';
+import ProfileSettingsPage from './pages/ProfileSettingsPage';
+import CategorySettingsPage from './pages/CategorySettingsPage';
+import UserManagementPage from './pages/UserManagementPage';
+import DefaultCategoriesPage from './pages/DefaultCategoriesPage';
+import HelpPage from './pages/HelpPage';
 
 // The Main Application Structure
 function App() {
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const {
-      isAssetModalOpen, setIsAssetModalOpen,
-      isLiabilityModalOpen, setIsLiabilityModalOpen,
-      isIncomeModalOpen, setIsIncomeModalOpen,
-      isExpenseModalOpen, setIsExpenseModalOpen,
-      isChangePasswordModalOpen, setIsChangePasswordModalOpen,
-    } = useCategoryModalStates();
-
-
     return (
         <Router>
             {/* Wrap the entire app in the Auth Provider */}
             <AuthProvider>
-                <Header setIsSettingsModalOpen={setIsSettingsModalOpen} />
+                <Header /> {/* Removed setIsSettingsModalOpen prop */}
                 <main className="container">
                     <Routes>
                         {/* Public Routes */}
@@ -52,36 +46,19 @@ function App() {
                             }
                         />
                         
+                        {/* New Protected Settings Routes */}
+                        <Route path="/settings/application" element={<ProtectedRoute><ApplicationSettingsPage /></ProtectedRoute>} />
+                        <Route path="/settings/profile" element={<ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>} />
+                        <Route path="/settings/categories" element={<ProtectedRoute><CategorySettingsPage /></ProtectedRoute>} />
+                        <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>} />
+                        <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><DefaultCategoriesPage /></ProtectedRoute>} />
+                        <Route path="/settings/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+
                         {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}
                         <Route path="/my-projections" element={<Navigate to="/" replace />} />
                         <Route path="/calculator" element={<Navigate to="/" replace />} />
                     </Routes>
                 </main>
-
-                {/* Settings Modal - Rendered at App level to overlay everything */}
-                <SettingsModal
-                    isOpen={isSettingsModalOpen}
-                    onClose={() => setIsSettingsModalOpen(false)}
-                    onSettingsSaved={() => { /* Optionally refresh settings in other components */ }}
-                    // Props to control nested modals
-                    isAssetModalOpen={isAssetModalOpen}
-                    setIsAssetModalOpen={setIsAssetModalOpen}
-                    isLiabilityModalOpen={isLiabilityModalOpen}
-                    setIsLiabilityModalOpen={setIsLiabilityModalOpen}
-                    isIncomeModalOpen={isIncomeModalOpen}
-                    setIsIncomeModalOpen={setIsIncomeModalOpen}
-                    isExpenseModalOpen={isExpenseModalOpen}
-                    setIsExpenseModalOpen={setIsExpenseModalOpen}
-                    isChangePasswordModalOpen={isChangePasswordModalOpen}
-                    setIsChangePasswordModalOpen={setIsChangePasswordModalOpen}
-                />
-
-                {/* Change Password Modal - Rendered at App level to overlay everything */}
-                <ChangePasswordModal
-                    isOpen={isChangePasswordModalOpen}
-                    onClose={() => setIsChangePasswordModalOpen(false)}
-                />
-
             </AuthProvider>
         </Router>
     );

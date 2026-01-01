@@ -336,14 +336,14 @@ def get_global_settings(
     if not global_settings:
         logger.info("No global settings found in DB. Creating default global settings.")
         # Create default global settings if they don't exist
-        global_settings = models.GlobalSettings()
+        global_settings = models.GlobalSettings(help_content="<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>") # Initialize with default content
         db.add(global_settings)
         db.commit()
         db.refresh(global_settings)
-        logger.info("Default global settings created and committed.")
+        logger.info("Default global settings created and committed with default help content.")
     else:
         logger.debug("Global settings found in DB.")
-    logger.debug(f"Returning global settings: {global_settings.to_dict() if hasattr(global_settings, 'to_dict') else 'No to_dict method'}")
+    logger.debug(f"Returning global settings: {global_settings.model_dump_json() if hasattr(global_settings, 'model_dump_json') else 'No model_dump_json method'}")
     return global_settings
 
 @admin_router.put("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"], summary="Update global default categories")

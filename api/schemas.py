@@ -291,11 +291,13 @@ class GlobalSettingsUpdate(BaseModel):
     liability_categories: Optional[List[str]] = None
     income_categories: Optional[List[str]] = None
     expense_categories: Optional[List[str]] = None
+    help_content: Optional[str] = None
 
 class GlobalSettingsOut(GlobalSettingsBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    help_content: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
