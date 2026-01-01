@@ -12,6 +12,7 @@ RUN npm cache clean --force && npm install --force
 COPY . .
 
 # Build the React app, explicitly setting REACT_APP_API_URL for the build command
+RUN ls -al /app/ui/src/pages
 RUN DANGEROUSLY_DISABLE_HOST_CHECK=true REACT_APP_API_URL=$REACT_APP_API_URL npm run build
 
 # Stage 2: Serve the React application with Nginx
