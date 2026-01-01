@@ -145,10 +145,10 @@ export default function SettingsModal({
     try {
       await SettingsService.updateSettings({
         default_inflation_percent: parseFloat(inflationPercent),
-        asset_categories: assetCategoriesState.join(','),
-        liability_categories: liabilityCategoriesState.join(','),
-        income_categories: incomeCategoriesState.join(','),
-        expense_categories: expenseCategoriesState.join(','),
+        asset_categories: assetCategoriesState,
+        liability_categories: liabilityCategoriesState,
+        income_categories: incomeCategoriesState,
+        expense_categories: expenseCategoriesState,
         person1_first_name: person1FirstName,
         person1_last_name: person1LastName,
         person1_birthdate: person1Birthdate || null,
