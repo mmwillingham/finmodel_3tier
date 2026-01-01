@@ -24,7 +24,7 @@ const LoginPage = () => {
         }
     }, [location, navigate]);
     // Get the login function from the global authentication context
-    const { login, currentUser, logout } = useAuth(); // Destructure currentUser and logout
+    const { login } = useAuth(); // Destructure login only
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -39,22 +39,10 @@ const LoginPage = () => {
         }
 
         try {
-            // 1. Call the backend API service to get the JWT token
-            await AuthService.login(email, password);
-
-            // 2. If the API call succeeds (200 OK), update the global authentication state
-            //    The login() function will retrieve and verify the token.
-            await login();
-
-            // Check if the user's email is confirmed
-            if (currentUser && !currentUser.is_confirmed) {
-                logout(); // Log out the user to clear the token
-                setError("Your email address has not been confirmed. Please check your inbox for a confirmation link.");
-                setLoading(false);
-                return;
-            }
+            // Call the centralized login function from AuthContext
+            await login(email, password);
             
-            // 3. Redirect the user to the main application page
+            // Redirect the user to the main application page upon successful login
             navigate('/');
         } catch (err) {
             console.error("Login failed:", err);
@@ -66,6 +54,8 @@ const LoginPage = () => {
                 errorMessage = `Login failed: ${err.response.data.detail}`;
             } else if (err.message === "Network Error") {
                 errorMessage = "Login failed: Could not connect to the API server (Is it running?).";
+            } else if (err.message) { // Catch errors thrown from AuthContext (e.g., email not confirmed)
+                errorMessage = `Login failed: ${err.message}`;
             }
             
             setError(errorMessage);
@@ -110,7 +100,7 @@ const LoginPage = () => {
                     </button>
                     <button 
                         type="button" 
-                        onClick={() => window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`} 
+                        onClick={() => window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`} // Hardcoded for testing 
                         disabled={loading} 
                         className="google-signin-button">
                         Sign in with Google

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 import './SettingsModal.css';
 import CategoryEditorModal from './CategoryEditorModal';
+import GlobalSettings from './GlobalSettings';
 
 export const useCategoryModalStates = () => {
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -46,7 +47,7 @@ export default function SettingsModal({
   isExpenseModalOpen, setIsExpenseModalOpen,
   isChangePasswordModalOpen, setIsChangePasswordModalOpen,
 }) {
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUserSettings } = useAuth();
   const [inflationPercent, setInflationPercent] = useState(2.0);
   const [assetCategoriesState, setAssetCategoriesState] = useState([]);
   const [liabilityCategoriesState, setLiabilityCategoriesState] = useState([]);
@@ -519,40 +520,44 @@ export default function SettingsModal({
 
             {activeTab === 'admin' && currentUser && currentUser.is_admin && (
               <div className="tab-content admin-tab-content">
-                <h3>User Management</h3>
-                {adminMessage && <div className="message">{adminMessage}</div>}
-                {loadingUsers ? (
-                  <div className="loading">Loading users...</div>
-                ) : (
-                  <div className="user-list">
-                    {users.length > 0 ? (
-                      <ul>
-                        {users.map(user => (
-                          <li key={user.id}>
-                            <span>
-                              {user.email} (ID: {user.id})
-                              {user.is_admin && <span className="admin-badge"> (Admin)</span>}
-                            </span>
-                            <button 
-                              onClick={() => handleDeleteUser(user.id, user.email)}
-                              className="delete-user-btn"
-                            >
-                              Delete
-                            </button>
-                            <button
-                              onClick={() => handleSetAdminStatus(user.id, user.email, !user.is_admin)}
-                              className="set-admin-status-btn"
-                            >
-                              {user.is_admin ? 'Revoke Admin' : 'Make Admin'}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>No other users found.</p>
-                    )}
-                  </div>
-                )}
+                console.log('SettingsModal: Admin tab content rendering.');
+                <GlobalSettings onGlobalSettingsSaved={refreshUserSettings} />
+                <div>
+                  <h3>User Management</h3>
+                  {adminMessage && <div className="message">{adminMessage}</div>}
+                  {loadingUsers ? (
+                    <div className="loading">Loading users...</div>
+                  ) : (
+                    <div className="user-list">
+                      {users.length > 0 ? (
+                        <ul>
+                          {users.map(user => (
+                            <li key={user.id}>
+                              <span>
+                                {user.email} (ID: {user.id})
+                                {user.is_admin && <span className="admin-badge"> (Admin)</span>}
+                              </span>
+                              <button 
+                                onClick={() => handleDeleteUser(user.id, user.email)}
+                                className="delete-user-btn"
+                              >
+                                Delete
+                              </button>
+                              <button
+                                onClick={() => handleSetAdminStatus(user.id, user.email, !user.is_admin)}
+                                className="set-admin-status-btn"
+                              >
+                                {user.is_admin ? 'Revoke Admin' : 'Make Admin'}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No other users found.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

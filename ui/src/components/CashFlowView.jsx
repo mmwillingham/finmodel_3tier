@@ -7,7 +7,6 @@ import "./CashFlowView.css";
 
 export default function CashFlowView({ type, incomeItems, expenseItems, refreshCashflow }) {
   const items = type === 'income' ? (incomeItems || []) : (expenseItems || []);
-  console.log("DEBUG: CashFlowView items for type", type, items); // NEW DEBUG LOG
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null); // State to hold item being edited

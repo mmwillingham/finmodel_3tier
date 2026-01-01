@@ -14,7 +14,6 @@ import GoogleAuthCallback from './components/GoogleAuthCallback'; // NEW: Import
 
 // Import Modals and their state management
 import SettingsModal, { useCategoryModalStates } from './components/SettingsModal';
-// import CategoryEditorModal from './components/CategoryEditorModal'; // REMOVED: Now managed internally by SettingsModal
 import ChangePasswordModal from './components/ChangePasswordModal';
 
 // The Main Application Structure
@@ -52,8 +51,6 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        {/* Removed /my-projections route, as its functionality is replaced within SidebarLayout */}
-                        {/* <Route path="/my-projections" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} /> */}
                         
                         {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}
                         <Route path="/my-projections" element={<Navigate to="/" replace />} />
@@ -78,9 +75,6 @@ function App() {
                     isChangePasswordModalOpen={isChangePasswordModalOpen}
                     setIsChangePasswordModalOpen={setIsChangePasswordModalOpen}
                 />
-
-                {/* Category Editor Modals are now managed internally by SettingsModal, not App.js */}
-
 
                 {/* Change Password Modal - Rendered at App level to overlay everything */}
                 <ChangePasswordModal
