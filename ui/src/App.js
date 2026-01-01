@@ -13,12 +13,12 @@ import EmailConfirmationPage from './components/EmailConfirmationPage';
 import GoogleAuthCallback from './components/GoogleAuthCallback';
 
 // Import new settings pages
-import ApplicationSettingsPage from './pages/ApplicationSettingsPage';
-import ProfileSettingsPage from './pages/ProfileSettingsPage';
-import CategorySettingsPage from './pages/CategorySettingsPage';
-import UserManagementPage from './pages/UserManagementPage';
-import DefaultCategoriesPage from './pages/DefaultCategoriesPage';
-import HelpPage from './pages/HelpPage';
+import ApplicationSettingsPage from './pages/ApplicationSettingsPage.jsx';
+import ProfileSettingsPage from './pages/ProfileSettingsPage.jsx';
+import CategorySettingsPage from './pages/CategorySettingsPage.jsx';
+import UserManagementPage from './pages/UserManagementPage.jsx';
+import DefaultCategoriesPage from './pages/DefaultCategoriesPage.jsx';
+import HelpPage from './pages/HelpPage.jsx';
 
 // The Main Application Structure
 function App() {
