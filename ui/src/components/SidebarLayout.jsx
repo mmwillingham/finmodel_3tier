@@ -8,7 +8,6 @@ import AssetView from "./AssetView";
 import LiabilityView from "./LiabilityView";
 import BalanceSheetProjection from "./BalanceSheetProjection";
 import CashFlowOverview from "./CashFlowOverview";
-import SettingsModal from "./SettingsModal";
 import "./SidebarLayout.css";
 import SettingsService from "../services/settings.service";
 import CustomChartList from "./CustomChartList";
@@ -325,16 +324,6 @@ export default function SidebarLayout() {
           </div>
         )}
 
-        {!loading && view === "settings" && (
-          <div className="settings">
-            <h2>Settings</h2>
-            <SettingsModal 
-              onClose={() => setView('new-home')} 
-              isOpen={true}
-              onSettingsSaved={refreshSettings}
-            />
-          </div>
-        )}
 
         {!loading && view === "custom-charts" && customChartView === "list" && (
           <div className="custom-charts-list">
