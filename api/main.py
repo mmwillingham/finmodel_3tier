@@ -623,10 +623,6 @@ def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowC
             linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
             if linked_item:
                 linked_value = linked_item.value
-        elif payload.linked_item_type == "liability":
-            linked_item = db.query(models.Liability).filter(models.Liability.id == payload.linked_item_id).first()
-            if linked_item:
-                linked_value = linked_item.value
         elif payload.linked_item_type == "income": # NEW: Handle linked income items
             linked_item = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.id == payload.linked_item_id,
