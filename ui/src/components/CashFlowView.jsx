@@ -7,6 +7,7 @@ import "./CashFlowView.css";
 
 export default function CashFlowView({ type, incomeItems, expenseItems, refreshCashflow }) {
   const items = type === 'income' ? (incomeItems || []) : (expenseItems || []);
+  console.log("DEBUG: CashFlowView items for type", type, items); // NEW DEBUG LOG
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null); // State to hold item being edited
@@ -143,6 +144,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
             <th className="cashflow-table-cell">Yearly Value</th>
             <th className="cashflow-table-cell">Start Date</th>
             <th className="cashflow-table-cell">End Date</th>
+            <th className="cashflow-table-cell">Dynamic</th> {/* NEW: Dynamic Column */}
             {type === 'income' && <th className="cashflow-table-cell">Annual Increase %</th>}
             {type === 'income' && <th className="cashflow-table-cell">Taxable</th>}
             {type === 'expense' && <th className="cashflow-table-cell">Inflation %</th>}
@@ -160,6 +162,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
               <td className="cashflow-table-cell">{formatCurrency(item.yearly_value)}</td>
               <td className="cashflow-table-cell">{item.start_date || '-'}</td>
               <td className="cashflow-table-cell">{item.end_date || 'No end date'}</td>
+              <td className="cashflow-table-cell">{item.linked_item_id ? 'Yes' : 'No'}</td> {/* NEW: Dynamic Column Value */}
               {type === 'income' && <td className="cashflow-table-cell">{item.annual_increase_percent}%</td>}
               {type === 'income' && <td className="cashflow-table-cell">{item.taxable ? 'Yes' : 'No'}</td>}
               {type === 'expense' && <td className="cashflow-table-cell">{item.inflation_percent}%</td>}
@@ -171,6 +174,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
             </tr>
           ))}
         </tbody>
+        
       </table>
 
       <div className="total">
