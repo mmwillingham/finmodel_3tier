@@ -19,8 +19,7 @@ if config.config_file_name is not None:
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import api.models # THIS IS CRUCIAL: Import your models to ensure metadata is populated
-
+import api.models
 target_metadata = api.models.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -73,12 +72,31 @@ async def run_migrations_online() -> None:
         db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")
         db_name = os.getenv("DB_NAME")
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
+        use_cloud_sql_proxy_tcp = os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true"
 
-        if all([db_user, db_password, db_name, cloud_sql_connection_name]):
+        if not all([db_user, db_password, db_name]):
+            raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
+
+        if use_cloud_sql_proxy_tcp: # Prioritize TCP connection if explicitly requested
+            local_db_host = os.getenv("DB_HOST", "127.0.0.1")
+            local_db_port = os.getenv("DB_PORT", "5432")
+            connectable_url = (
+                f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
+            )
+        elif cloud_sql_connection_name: # Fallback to Unix socket if cloud SQL connection name is provided and TCP is not explicitly requested
             unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
-            connectable_url = f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={unix_socket_path}"
-        else:
-            raise ValueError("DATABASE_URL not set and missing one or more database environment variables for connection.")
+            connectable_url = (
+                f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={unix_socket_path}"
+            )
+        else: # Regular local database connection without Cloud SQL Proxy
+            local_db_host = os.getenv("DB_HOST", "localhost")
+            local_db_port = os.getenv("DB_PORT", "5432")
+            connectable_url = (
+                f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
+            )
+
+    if connectable_url is None:
+        raise ValueError("DATABASE_URL could not be determined from environment variables.")
 
     # Determine if we should use async or sync engine based on the URL scheme
     if "asyncpg" in connectable_url:
@@ -90,13 +108,18 @@ async def run_migrations_online() -> None:
         async with connectable.connect() as connection:
             await connection.run_sync(do_run_migrations)
     else:
+        print(f"DEBUG (alembic/env.py): Using synchronous engine for URL: {connectable_url}") # NEW DEBUG
         connectable = engine_from_config(
             {'sqlalchemy.url': connectable_url},
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
         )
+        print(f"DEBUG (alembic/env.py): Connectable type: {type(connectable)}") # NEW DEBUG
+        print("DEBUG (alembic/env.py): Attempting to establish connection for migrations...") # NEW DEBUG
         with connectable.connect() as connection:
+            print("DEBUG (alembic/env.py): Connection established for migrations. Running migrations...") # NEW DEBUG
             do_run_migrations(connection)
+            print("DEBUG (alembic/env.py): Migrations finished. Closing connection.") # NEW DEBUG
 
 
 if context.is_offline_mode():
