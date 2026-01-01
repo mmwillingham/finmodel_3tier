@@ -35,6 +35,7 @@ def get_database_url() -> str:
             )
         elif cloud_sql_connection_name and use_cloud_sql_proxy_tcp: # NEW: Use TCP for local Cloud SQL Proxy
             print("DEBUG (database.py): Entering Cloud SQL Proxy SYNC connection path (TCP).")
+            _unix_socket_path = None # Explicitly set to None for TCP connections
             local_db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to 127.0.0.1 for proxy
             local_db_port = os.getenv("DB_PORT", "5432")     # Default to 5432 for proxy
             database_url = (
