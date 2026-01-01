@@ -156,7 +156,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
             <th className="cashflow-table-cell">Current Balance</th> {/* Consolidated column */}
             {hasOrdinaryLoans && (
               <>
-                <th className="cashflow-table-cell">Annual Interest Rate (%)</th>
+                <th className="cashflow-table-cell">Annual Rate</th>
                 <th className="cashflow-table-cell">Start Date</th>
               </>
             )}
@@ -165,9 +165,9 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
                 <th className="cashflow-table-cell">Loan Type</th>
                 <th className="cashflow-table-cell">Principal Amount</th>
                 <th className="cashflow-table-cell">Interest Rate</th>
-                <th className="cashflow-table-cell">Loan Term (Months)</th>
-                <th className="cashflow-table-cell">Loan Start Date</th>
-                <th className="cashflow-table-cell">Monthly Payment</th>
+                <th className="cashflow-table-cell">Loan Term</th>
+                <th className="cashflow-table-cell">Loan Start</th>
+                <th className="cashflow-table-cell">Monthly Pmt</th>
                 <th className="cashflow-table-cell">Fees</th>
               </>
             )}
