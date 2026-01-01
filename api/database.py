@@ -9,8 +9,8 @@ from sqlalchemy.exc import OperationalError
 
 _unix_socket_path: str | None = None # Global to store unix socket path if used
 
-@lru_cache(maxsize=1)
-def get_database_url() -> str:
+    # @lru_cache(maxsize=1)
+    def get_database_url() -> str:
     global _unix_socket_path # Declare intent to modify global variable
     database_url = os.getenv("DATABASE_URL")
 
@@ -55,17 +55,18 @@ def get_database_url() -> str:
     print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {database_url}")
     return database_url
 
-@lru_cache(maxsize=1)
-def get_engine_instance():
-    global _unix_socket_path # Access global variable
-    DATABASE_URL = get_database_url()
-    print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
+    # @lru_cache(maxsize=1)
+    def get_engine_instance():
+        global _unix_socket_path # Access global variable
+        DATABASE_URL = get_database_url()
+        print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
 
-    connect_args = {}
-    # Only add unix_sock to connect_args if _unix_socket_path is set (i.e., we are using Unix socket)
-    # The TCP connection will not use this.
-    if _unix_socket_path and "unix_sock" in DATABASE_URL: # Ensure it's explicitly for unix_sock in URL
-        connect_args["unix_sock"] = _unix_socket_path
+        connect_args = {}
+        print(f"DEBUG (database.py): Current _unix_socket_path before connect_args: {_unix_socket_path}") # NEW DEBUG
+        # Only add unix_sock to connect_args if _unix_socket_path is set (i.e., we are using Unix socket)
+        # The TCP connection will not use this.
+        if _unix_socket_path and "unix_sock" in DATABASE_URL: # Ensure it's explicitly for unix_sock in URL
+            connect_args["unix_sock"] = _unix_socket_path
 
     retries = 5
     delay = 2 # seconds
