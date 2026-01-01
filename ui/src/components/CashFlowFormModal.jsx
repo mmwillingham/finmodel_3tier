@@ -328,9 +328,7 @@ export default function CashFlowFormModal({
                   >
                     <option value="">Select Type</option>
                     <option value="asset">Asset</option>
-                    <option value="liability">Liability</option>
                     <option value="income">Income</option>
-                    <option value="expense">Expense</option>
                   </select>
                 </div>
 
