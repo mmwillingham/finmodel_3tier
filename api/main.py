@@ -331,13 +331,19 @@ def get_global_settings(
     """
     Retrieves the global default categories. Creates default if none exist.
     """
+    logger.debug(f"Attempting to retrieve global settings for admin user {current_admin_user.email} (ID: {current_admin_user.id})")
     global_settings = db.query(models.GlobalSettings).first()
     if not global_settings:
+        logger.info("No global settings found in DB. Creating default global settings.")
         # Create default global settings if they don't exist
         global_settings = models.GlobalSettings()
         db.add(global_settings)
         db.commit()
         db.refresh(global_settings)
+        logger.info("Default global settings created and committed.")
+    else:
+        logger.debug("Global settings found in DB.")
+    logger.debug(f"Returning global settings: {global_settings.to_dict() if hasattr(global_settings, 'to_dict') else 'No to_dict method'}")
     return global_settings
 
 @admin_router.put("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"], summary="Update global default categories")
