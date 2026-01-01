@@ -131,7 +131,7 @@ export default function CashFlowFormModal({
       }
     };
     loadSettingsAndItem();
-  }, [itemToEdit, type]);
+  }, [itemToEdit, type, isOpen]);
 
   // Effect for fetching all potential linked items
   useEffect(() => {
