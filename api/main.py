@@ -1,7 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from datetime import timedelta, datetime
 from typing import List
@@ -9,11 +9,11 @@ from starlette.responses import RedirectResponse
 from utils import google_oauth
 from jose import jwt, JWTError
 import json
-import os # Keep os for getenv in config.py (if not using pydantic-settings, but remove load_dotenv)
+import os
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 import traceback
-import logging # Import logging module
+import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.types import ASGIApp
@@ -29,28 +29,26 @@ from routers import assets
 from routers import liabilities
 from routers.settings import router as settings_router
 from utils.email import send_email
-from config import settings # 🌟 NEW: Import the settings object
+from config import settings
 
-from math import pow # NEW: For amortization calculation
-from datetime import date # NEW: For handling loan start dates
-
-logger = logging.getLogger(__name__) # Initialize logger for main.py
+logger = logging.getLogger(__name__)
 
 # --- INITIALIZATION ---
-# REMOVED: database.Base.metadata.create_all(bind=database.engine) # Alembic handles migrations
-
 app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
-# Configure logging at the application startup
+
 @app.on_event("startup")
 async def startup_event():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     logger.info("FastAPI application started. Logging level set to DEBUG.")
-    logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}") # Re-ADD THIS LINE
+    logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}")
 
 app.include_router(custom_charts.router)
 app.include_router(settings_router)
 app.include_router(assets.router)
 app.include_router(liabilities.router)
+
+# New router for admin global settings
+admin_router = APIRouter()
 
 @app.get("/", tags=["debug"])
 async def root():
@@ -73,12 +71,17 @@ async def list_routes():
     logger.debug(f"Registered routes: {routes_info}")
     return routes_info
 
-@app.get("/debug-env", tags=["debug"])
-async def debug_environment():
-    return dict(os.environ)
+@app.get("/debug/db-info", summary="Debug: Get current database info")
+def debug_db_info(db: Session = Depends(database.get_db)):
+    result = db.execute(text("SELECT current_database();")).scalar_one()
+    logger.debug(f"Current database from /debug/db-info: {result}")
+    return {"current_database": result}
+
+@app.get("/debug/frontend-url", tags=["debug"], summary="Debug: Get current FRONTEND_URL setting")
+async def debug_frontend_url():
+    return {"FRONTEND_URL": settings.FRONTEND_URL, "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID}
 
 # --- CONFIGURATION ---
-# Use the centralized setting
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
 
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
@@ -91,52 +94,37 @@ app.add_middleware(
 )
 # --- END CORS CONFIGURATION ---
 
-# 🚨 REMOVED: SECRET_KEY and ALGORITHM manual definitions are now in config.py
-# --- 1. Security Constants ---
-# SECRET_KEY = "..." 
-# ALGORITHM = "HS256"
-
-# --- 2. Define the Token Scheme ---
-# NOTE: If tokenUrl is not defined in auth.py, it should be here.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.get("/auth/google", tags=["oauth"], summary="Initiate Google OAuth login")
-async def google_login(request: Request): # Add request as a dependency
+async def google_login(request: Request):
     logger.debug(f"Received /auth/google request for URL: {request.url}")
     return RedirectResponse(url=google_oauth.get_google_auth_url())
 
 @app.get("/auth/google/callback", tags=["oauth"], summary="Handle Google OAuth callback")
 async def google_callback(code: str, db: Session = Depends(database.get_db)):
     try:
-        # Exchange authorization code for tokens
         token_response = await google_oauth.get_google_oauth_token(code)
         access_token = token_response["access_token"]
-
-        # Fetch user info from Google
         user_info = await google_oauth.get_google_user_info(access_token)
         google_id = user_info["id"]
         email = user_info["email"]
         
-        # Authenticate or create user in our DB
         user = auth.authenticate_or_create_google_user(db, google_id, email)
 
-        # Generate our own JWT for the authenticated user
         our_access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         our_access_token = auth.create_access_token(
             data={"sub": str(user.id)}, expires_delta=our_access_token_expires
         )
 
-        # Redirect to frontend with our token
-        # Frontend will store this token and log in
         redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
-        logger.debug(f"Google OAuth Callback: Redirecting to: {redirect_url}") # Changed from print to logger.debug
+        logger.debug(f"Google OAuth Callback: Redirecting to: {redirect_url}")
         return RedirectResponse(url=redirect_url)
 
     except HTTPException as e:
-        # Pass through explicit HTTPExceptions
         raise e
     except Exception as e:
-        logger.error(f"in google_callback: {e}", exc_info=True) # Changed from print to logger.error, added exc_info
+        logger.error(f"in google_callback: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Google OAuth failed: {e}"
@@ -149,8 +137,7 @@ def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(database.get_db)
 ):
-    logger.debug(f"Attempting login for user: {form_data.username}") # Changed from print to logger.debug
-    # This function should be defined in your 'auth' module
+    logger.debug(f"Attempting login for user: {form_data.username}")
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -159,7 +146,6 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # NEW: Check if the user's email is confirmed
     if not user.is_confirmed:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -167,7 +153,6 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create the access token using a function from your 'auth' module
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
@@ -177,33 +162,27 @@ def login_for_access_token(
 
 @app.get("/users/me", response_model=schemas.UserOut)
 def read_users_me(
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
 ):
     return current_user
 
 @app.get("/debug/users", response_model=list[schemas.UserOut], summary="Debug: Get all users from DB")
 def debug_get_all_users(db: Session = Depends(database.get_db)):
-    logger.debug("Fetching all users from database via /debug/users endpoint.") # Changed from print to logger.debug
+    logger.debug("Fetching all users from database via /debug/users endpoint.")
     users = db.query(models.User).all()
-    logger.debug(f"Found {len(users)} users.") # Changed from print to logger.debug
+    logger.debug(f"Found {len(users)} users.")
     return users
 
-@app.get("/debug/db-info", summary="Debug: Get current database info")
-def debug_db_info(db: Session = Depends(database.get_db)):
-    result = db.execute(text("SELECT current_database();")).scalar_one()
-    logger.debug(f"Current database from /debug/db-info: {result}") # Changed from print to logger.debug
-    return {"current_database": result}
-
-@app.get("/debug/frontend-url", tags=["debug"], summary="Debug: Get current FRONTEND_URL setting")
-async def debug_frontend_url():
-    return {"FRONTEND_URL": settings.FRONTEND_URL, "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID}
+@app.get("/debug-env", tags=["debug"])
+async def debug_environment():
+    return dict(os.environ)
 
 @app.post("/users/", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["users"])
-def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()): # NEW: Add BackgroundTasks
+def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
     """
-    Registers a new user in the database.
+    Registers a new user in the database and initializes their settings with global defaults if available.
     """
-    # 1. Check if user already exists (by username or email)
     db_user = db.query(models.User).filter(
         (models.User.email == user.email)
     ).first()
@@ -215,7 +194,6 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
         )
         
     try:
-        # 2. Hash the password
         hashed_password = auth.get_password_hash(user.password)
     except ValueError as e:
         raise HTTPException(
@@ -223,23 +201,52 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
             detail=f"Password did not meet requirements: {e}"
         )
     
-    # 3. Create the database model instance
     db_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
         is_active=True,
-        is_confirmed=False # New users are unconfirmed by default
+        is_confirmed=False
     )
     
-    # 4. Save to DB
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     
-    # Send confirmation email in the background
+    # Initialize UserSettings with global defaults if available, otherwise use schema defaults
+    global_settings = db.query(models.GlobalSettings).first()
+    if global_settings:
+        user_settings = models.UserSettings(
+            owner_id=db_user.id,
+            asset_categories=global_settings.asset_categories,
+            liability_categories=global_settings.liability_categories,
+            income_categories=global_settings.income_categories,
+            expense_categories=global_settings.expense_categories,
+            default_inflation_percent=schemas.UserSettingsBase.model_fields['default_inflation_percent'].default,
+            person1_first_name=schemas.UserSettingsBase.model_fields['person1_first_name'].default,
+            person1_last_name=schemas.UserSettingsBase.model_fields['person1_last_name'].default,
+            person1_birthdate=schemas.UserSettingsBase.model_fields['person1_birthdate'].default,
+            person1_cell_phone=schemas.UserSettingsBase.model_fields['person1_cell_phone'].default,
+            person2_first_name=schemas.UserSettingsBase.model_fields['person2_first_name'].default,
+            person2_last_name=schemas.UserSettingsBase.model_fields['person2_last_name'].default,
+            person2_birthdate=schemas.UserSettingsBase.model_fields['person2_birthdate'].default,
+            person2_cell_phone=schemas.UserSettingsBase.model_fields['person2_cell_phone'].default,
+            address=schemas.UserSettingsBase.model_fields['address'].default,
+            city=schemas.UserSettingsBase.model_fields['city'].default,
+            state=schemas.UserSettingsBase.model_fields['state'].default,
+            zip_code=schemas.UserSettingsBase.model_fields['zip_code'].default,
+            projection_years=schemas.UserSettingsBase.model_fields['projection_years'].default,
+            show_chart_totals=schemas.UserSettingsBase.model_fields['show_chart_totals'].default,
+        )
+    else:
+        user_settings = models.UserSettings(owner_id=db_user.id)
+    
+    db.add(user_settings)
+    db.commit()
+    db.refresh(user_settings)
+
     confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
     confirmation_link = f"{settings.FRONTEND_URL}/confirm-email?token={confirmation_token}"
-    logger.debug(f"Email confirmation link: {confirmation_link}") # Changed from print to logger.debug
+    logger.debug(f"Email confirmation link: {confirmation_link}")
     background_tasks.add_task(send_email, 
         to_email=db_user.email,
         subject="Financial Projector - Confirm Your Email",
@@ -285,7 +292,7 @@ def list_all_manageable_users(
     current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
 ):
     """
-    Allows an admin user to retrieve a list of all other users.
+    Allows an an admin user to retrieve a list of all other users.
     """
     users = db.query(models.User).filter(models.User.id != current_admin_user.id).all()
     return [schemas.UserOut.model_validate(user) for user in users]
@@ -314,6 +321,49 @@ def set_user_admin_status(
     db.commit()
     db.refresh(user_to_update)
     return user_to_update
+
+# --- GLOBAL SETTINGS ENDPOINTS (Admin Only) ---
+@admin_router.get("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"], summary="Get global default categories")
+def get_global_settings(
+    db: Session = Depends(database.get_db),
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user) # Ensures admin access
+):
+    """
+    Retrieves the global default categories. Creates default if none exist.
+    """
+    global_settings = db.query(models.GlobalSettings).first()
+    if not global_settings:
+        # Create default global settings if they don't exist
+        global_settings = models.GlobalSettings()
+        db.add(global_settings)
+        db.commit()
+        db.refresh(global_settings)
+    return global_settings
+
+@admin_router.put("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"], summary="Update global default categories")
+def update_global_settings(
+    payload: schemas.GlobalSettingsUpdate,
+    db: Session = Depends(database.get_db),
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user) # Ensures admin access
+):
+    """
+    Updates the global default categories. Creates default if none exist.
+    """
+    global_settings = db.query(models.GlobalSettings).first()
+    if not global_settings:
+        global_settings = models.GlobalSettings()
+        db.add(global_settings)
+        db.commit()
+        db.refresh(global_settings)
+    
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(global_settings, key, value)
+    
+    db.commit()
+    db.refresh(global_settings)
+    return global_settings
+
+app.include_router(admin_router, prefix="/admin")
 
 @app.post("/categories/check-usage", response_model=bool, tags=["categories"])
 def check_category_usage(
@@ -346,7 +396,7 @@ def check_category_usage(
             is_in_use = True
     elif category_type == "income":
         cashflow_income_count = db.query(models.CashFlowItem).filter(
-            models.CashFlowItem.owner_id == user.id,
+            models.CashFlowItem.owner_id == user_id,
             models.CashFlowItem.category == category_name,
             models.CashFlowItem.is_income == True
         ).count()
@@ -354,7 +404,7 @@ def check_category_usage(
             is_in_use = True
     elif category_type == "expense":
         cashflow_expense_count = db.query(models.CashFlowItem).filter(
-            models.CashFlowItem.owner_id == user.id,
+            models.CashFlowItem.owner_id == user_id,
             models.CashFlowItem.category == category_name,
             models.CashFlowItem.is_income == False
         ).count()
@@ -384,13 +434,11 @@ def forgot_password(
     db: Session = Depends(database.get_db)
 ):
     """Handles the request to initiate a password reset. Sends a reset email if the user exists."""
-    # In a real application, you would send an email with a reset token here.
-    # For now, we'll just acknowledge the request.
     user = db.query(models.User).filter(models.User.email == payload.email).first()
     if user:
         token = auth.create_password_reset_token(db, user.id)
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-    logger.debug(f"Password reset link: {reset_link}") # Changed from print to logger.debug
+    logger.debug(f"Password reset link: {reset_link}")
     send_email(
         to_email=user.email,
         subject="Financial Projector - Password Reset Request",
@@ -408,7 +456,6 @@ Best regards,
 The Financial Projector Team"""
     )
     
-    # Always return a generic success message to prevent email enumeration
     return {"message": "If an account with that email exists, a password reset link has been sent."}
 
 @app.post("/reset-password", response_model=schemas.UserOut, tags=["auth"])
@@ -429,7 +476,7 @@ def reset_password(
             detail=f"New password did not meet requirements: {e}"
         )
     except HTTPException as e:
-        raise e # Re-raise HTTP exceptions like "Invalid or expired token."
+        raise e
     return updated_user
 
 @app.post("/verify-email", response_model=schemas.UserOut, tags=["auth"])
@@ -441,10 +488,10 @@ def verify_email(
     try:
         confirmed_user = auth.verify_email_confirmation_token(db, payload.token)
     except HTTPException as e:
-        raise e # Re-raise HTTP exceptions like "Invalid or expired confirmation token."
+        raise e
     return confirmed_user
 
-@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED, tags=["projections"])
 def create_projection(
     projection_data: schemas.ProjectionRequest,
     user: schemas.UserOut = Depends(auth.get_current_user), 
@@ -452,7 +499,7 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
-    logger.debug(f"Entering create_projection endpoint for user {user.id}. Calling calculate_projection.") # Changed from print to logger.debug
+    logger.debug(f"Entering create_projection endpoint for user {user.id}. Calling calculate_projection.")
     try:
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
@@ -461,27 +508,32 @@ def create_projection(
             owner_id=user.id
         )
     except Exception as e:
-        logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True) # Changed from raise HTTPException to logger.error and re-raise
+        logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
-
-    final_value = projection_results["final_value"]
-    total_contributed = projection_results["total_contributed"]
-    total_growth = projection_results["total_growth"]
-    data_json = projection_results["data_json"]
 
     db_projection = models.Projection(
         owner_id=user.id,
         name=projection_data.plan_name,
         years=projection_data.years,
-        final_value=final_value,
-        total_contributed=total_contributed,
-        total_growth=total_growth,
-        data_json=data_json,
-        accounts_json=json.dumps([acc.model_dump() for acc in projection_data.accounts]),
+        final_value=projection_results["final_value"],
+        total_contributed=projection_results["total_contributed"],
+        total_growth=projection_results["total_growth"],
     )
     db.add(db_projection)
     db.commit()
     db.refresh(db_projection)
+
+    # Associate projected accounts and time series data with the new projection
+    for acc in projection_results["projected_accounts"]:
+        acc.projection_id = db_projection.id
+        db.add(acc)
+
+    for ts_data in projection_results["time_series_data"]:
+        ts_data.projection_id = db_projection.id
+        db.add(ts_data)
+
+    db.commit()
+    db.refresh(db_projection) # Refresh to load relationships
 
     return db_projection
 
@@ -494,17 +546,19 @@ def get_projection_details(
     """
     Retrieves a single projection if the user is the owner."""
     
-    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
+    projection = (
+        db.query(models.Projection)
+        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
+        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
+        .first()
+    )
     
     if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found.")
-
-    if projection.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to view this projection.")
+        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
     
     return projection
 
-@app.get("/projections", response_model=List[schemas.ProjectionResponse], tags=["projections"])
+@app.get("/projections", response_model=List[schemas.ProjectionOut], tags=["projections"])
 def list_projections(
     db: Session = Depends(database.get_db), 
     current_user: schemas.UserOut = Depends(auth.get_current_user)
@@ -512,11 +566,12 @@ def list_projections(
     """
     Lists all projections owned by the current user."""
     
+    # Only load basic projection data for the list view, details will be fetched by get_projection_details
     projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
     
     return projections
 
-@app.put("/projections/{projection_id}", response_model=schemas.ProjectionOut, tags=["projections"])
+@app.put("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
 def update_projection(
     projection_id: int,
     req: schemas.ProjectionRequest,
@@ -525,15 +580,24 @@ def update_projection(
 ):
     """
     Updates an existing projection if user is the owner."""
-    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
+    projection = (
+        db.query(models.Projection)
+        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
+        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
+        .first()
+    )
     
     if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found.")
+        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
     
-    if projection.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this projection.")
+    logger.debug(f"Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.")
     
-    logger.debug(f"Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.") # Changed from print to logger.debug
+    # Delete existing associated data
+    db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
+    db.query(models.ProjectionTimeSeriesData).filter(models.ProjectionTimeSeriesData.projection_id == projection_id).delete()
+    db.commit()
+
+    # Recalculate projection
     result = calculations.calculate_projection(
         years=req.years,
         accounts=req.accounts,
@@ -541,31 +605,36 @@ def update_projection(
         owner_id=current_user.id
     )
     
+    # Update projection header details
     projection.name = req.plan_name
     projection.years = req.years
     projection.final_value = result["final_value"]
     projection.total_contributed = result["total_contributed"]
     projection.total_growth = result["total_growth"]
-    projection.data_json = result["data_json"]
-    projection.accounts_json = json.dumps([acc.model_dump() for acc in req.accounts]),
     projection.timestamp = datetime.utcnow()
     
+    # Add new associated data
+    for acc in result["projected_accounts"]:
+        acc.projection_id = projection.id
+        db.add(acc)
+
+    for ts_data in result["time_series_data"]:
+        ts_data.projection_id = projection.id
+        db.add(ts_data)
+
     db.commit()
-    db.refresh(projection)
+    db.refresh(projection) # Refresh to load relationships
     return projection
 
-@app.post("/debug-projection-calc", tags=["debug"], summary="Debug: Directly run projection calculation")
+@app.post("/debug-projection-calc", response_model=schemas.ProjectionResponse, tags=["debug"], summary="Debug: Directly run projection calculation")
 def debug_run_projection_calculation(
     projection_data: schemas.ProjectionRequest,
     db: Session = Depends(database.get_db),
-    # Temporarily bypass current_user dependency for simpler local testing
-    # current_user: schemas.UserOut = Depends(auth.get_current_user)
+    # current_user: schemas.UserOut = Depends(auth.get_current_user) # Temporarily commented out for debug endpoint
 ):
-    print("DEBUG (main.py): Received request for /debug-projection-calc. Calling calculate_projection.")
+    logger.debug("Received request for /debug-projection-calc. Calling calculate_projection.")
     # For local debugging, we'll use a hardcoded owner_id.
-    # In a real scenario, you'd get this from an authenticated user.
-    # Replace `1` with an actual owner_id from your local database if needed for specific tests.
-    test_owner_id = 2 # Assuming user_id 2 exists in your local DB for testing
+    test_owner_id = 1 # Assuming user_id 1 exists in your local DB for testing
 
     try:
         projection_results = calculations.calculate_projection(
@@ -574,11 +643,24 @@ def debug_run_projection_calculation(
             db=db,
             owner_id=test_owner_id # Using a test owner ID for direct debugging
         )
-        print("DEBUG (main.py): calculate_projection returned successfully.")
-        return projection_results
+        logger.debug("calculate_projection returned successfully.")
+
+        # Manually create a ProjectionResponse to return the structured data
+        # This mimics what create_projection would do, but without saving to DB
+        temp_projection_response = schemas.ProjectionResponse(
+            id=0, # Dummy ID as it's not saved to DB
+            name=projection_data.plan_name,
+            years=projection_data.years,
+            final_value=projection_results["final_value"],
+            total_contributed=projection_results["total_contributed"],
+            total_growth=projection_results["total_growth"],
+            accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
+            time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in projection_results["time_series_data"]]
+        )
+        return temp_projection_response
+
     except Exception as e:
-        print(f"ERROR (main.py): Error during /debug-projection-calc: {e}")
-        traceback.print_exc()
+        logger.error(f"Error during /debug-projection-calc: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Debug projection calculation failed: {e}")
 
 @app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
@@ -594,6 +676,8 @@ def delete_projection(
         raise HTTPException(status_code=404, detail="Projection not found.")
     if projection.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    
+
     db.delete(projection)
     db.commit()
     return Response(status_code=204)
@@ -615,7 +699,6 @@ def list_cashflow(
     logger.debug(f"list_cashflow: Found {len(cashflow_items)} items for user {current_user.id}, Is Income: {is_income}")
     return cashflow_items
 
-
 def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowCreate | schemas.CashFlowUpdate):
     if payload.linked_item_id and payload.linked_item_type and payload.percentage is not None:
         linked_value = 0.0
@@ -623,7 +706,7 @@ def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowC
             linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
             if linked_item:
                 linked_value = linked_item.value
-        elif payload.linked_item_type == "income": # NEW: Handle linked income items
+        elif payload.linked_item_type == "income":
             linked_item = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.id == payload.linked_item_id,
                 models.CashFlowItem.is_income == True
@@ -657,10 +740,11 @@ def create_cashflow(
         start_date=payload.start_date,
         end_date=payload.end_date,
         taxable=payload.taxable,
-        tax_deductible=payload.tax_deductible,
+        tax_deductible=payload.taxable,
         linked_item_id=payload.linked_item_id,
         linked_item_type=payload.linked_item_type,
-        percentage=payload.percentage
+        percentage=payload.percentage,
+        contributes_to_asset_id=payload.contributes_to_asset_id
     )
     db.add(item)
     db.commit()
@@ -682,21 +766,10 @@ def update_cashflow(
     
     yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
     
-    item.is_income = payload.is_income
-    item.category = payload.category
-    item.description = payload.description
-    item.frequency = payload.frequency
-    item.yearly_value = yearly_value
-    item.annual_increase_percent = payload.annual_increase_percent
-    item.inflation_percent = payload.inflation_percent
-    item.person = payload.person
-    item.start_date = payload.start_date
-    item.end_date = payload.end_date
-    item.taxable = payload.taxable
-    item.tax_deductible = payload.tax_deductible
-    item.linked_item_id = payload.linked_item_id
-    item.linked_item_type = payload.linked_item_type
-    item.percentage = payload.percentage
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
+    item.yearly_value = yearly_value # Ensure yearly_value is explicitly set after calculation
+    
     db.commit()
     db.refresh(item)
     return item
@@ -730,6 +803,7 @@ def create_custom_chart(
         user_id=user.id,
         name=payload.name,
         chart_type=payload.chart_type,
+        display_type=payload.display_type,
         data_sources=payload.data_sources,
         series_configurations=payload.series_configurations,
         x_axis_label=payload.x_axis_label,
@@ -754,7 +828,7 @@ def get_custom_chart(
     user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.owner_id == user.id).first()
+    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == user.id).first()
     if not chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
     return chart
@@ -766,13 +840,23 @@ def update_custom_chart(
     user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.owner_id == user.id).first()
+    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == user.id).first()
     if not chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
     
-    chart.chart_name = payload.chart_name
+    chart.name = payload.name
     chart.chart_type = payload.chart_type
-    chart.chart_data = json.dumps(payload.chart_data)
+    chart.display_type = payload.display_type
+    chart.data_sources = payload.data_sources
+    chart.series_configurations = payload.series_configurations
+    chart.x_axis_label = payload.x_axis_label
+    chart.y_axis_label = payload.y_axis_label
+    # Fields for storing calculated projection results are updated in custom_charts.py if applicable
+    # chart.data_json = payload.data_json
+    # chart.final_value = payload.final_value
+    # chart.total_contributed = payload.total_contributed
+    # chart.total_growth = payload.total_growth
+
     db.commit()
     db.refresh(chart)
     return chart
@@ -783,7 +867,7 @@ def delete_custom_chart(
     user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.owner_id == user.id).first()
+    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == user.id).first()
     if not chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
     
@@ -807,7 +891,7 @@ async def debug_proxy_check():
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    logger.debug(f"HTTPException caught: {exc.detail}") # Changed from print to logger.debug
+    logger.debug(f"HTTPException caught: {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
@@ -816,7 +900,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     error_traceback = traceback.format_exc()
-    logger.error(f"Unhandled exception: {error_traceback}", exc_info=True) # Changed from print to logger.error, added exc_info
+    logger.error(f"Unhandled exception: {error_traceback}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error. Please check logs for details."},

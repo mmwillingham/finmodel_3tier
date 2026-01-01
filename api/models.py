@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON # Import JSON
+from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -61,17 +61,56 @@ class Projection(Base):
     __tablename__ = "projections"
 
     id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, index=True)
-    years = Column(Integer)
+    years = Column(Integer) # Number of years for the projection
     final_value = Column(Float)
-    data_json = Column(String)  # yearly results
-    accounts_json = Column(String)  # account metadata with types
     total_contributed = Column(Float)
     total_growth = Column(Float)
-    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="projections")
+    accounts_data = relationship("ProjectedAccount", cascade="all, delete-orphan", back_populates="projection")
+    time_series_data = relationship("ProjectionTimeSeriesData", cascade="all, delete-orphan", back_populates="projection")
+
+
+class ProjectedAccount(Base):
+    __tablename__ = "projected_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    projection_id = Column(Integer, ForeignKey("projections.id", ondelete="CASCADE"), nullable=False)
+    
+    name = Column(String, index=True)
+    account_type = Column(String) # e.g., "asset", "liability", "income", "expense"
+    initial_value = Column(Float)
+    contribution = Column(Float)
+    growth_rate = Column(Float)
+    # NEW fields for amortized loans
+    loan_type = Column(String, nullable=True)  # "ordinary" or "amortized"
+    principal_amount = Column(Float, nullable=True)
+    interest_rate = Column(Float, nullable=True) # Annual interest rate as percentage
+    loan_term_months = Column(Integer, nullable=True)
+    loan_start_date = Column(String, nullable=True) # YYYY-MM-DD format
+    monthly_payment = Column(Float, nullable=True) # Calculated monthly payment
+    
+    # Relationship back to the Projection
+    projection = relationship("Projection", back_populates="accounts_data")
+
+
+class ProjectionTimeSeriesData(Base):
+    __tablename__ = "projection_time_series_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+    projection_id = Column(Integer, ForeignKey("projections.id", ondelete="CASCADE"), nullable=False)
+    account_id = Column(Integer, ForeignKey("projected_accounts.id", ondelete="CASCADE"), nullable=True) # Optional: link to a specific account
+    
+    year = Column(Integer, index=True)
+    value_type = Column(String, index=True)
+    value = Column(Float)
+
+    # Relationships
+    projection = relationship("Projection", back_populates="time_series_data")
+    account = relationship("ProjectedAccount")
 
 
 class CashFlowItem(Base):
@@ -96,6 +135,8 @@ class CashFlowItem(Base):
     linked_item_id = Column(Integer, nullable=True)
     linked_item_type = Column(String, nullable=True)  # 'asset', 'income', 'expense'
     percentage = Column(Float, nullable=True)
+    contributes_to_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True) # NEW: For expense items that contribute to an asset
+    contributes_to_asset = relationship("Asset", foreign_keys=[contributes_to_asset_id]) # NEW: Relationship to Asset
 
 
 class UserSettings(Base):
@@ -103,7 +144,6 @@ class UserSettings(Base):
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False) # Changed to owner_id
     default_inflation_percent = Column(Float, default=2.0)
-    # Changed category fields to JSON type to store lists of strings directly
     asset_categories = Column(JSON, default=["Other", "Checking", "Savings", "Investment"])
     liability_categories = Column(JSON, default=["Other", "Mortgage", "Student Loan", "Car Loan"])
     income_categories = Column(JSON, default=["Salary", "Rental Income", "Investments"])
@@ -125,7 +165,21 @@ class UserSettings(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    owner = relationship("User", back_populates="settings") # NEW RELATIONSHIP
+    owner = relationship("User", back_populates="settings")
+
+
+class GlobalSettings(Base):
+    """
+    SQLAlchemy Model for Global Default Categories. There should only be one record in this table.
+    """
+    __tablename__ = "global_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    asset_categories = Column(JSON, default=["Other", "Checking", "Savings", "Investment"])
+    liability_categories = Column(JSON, default=["Other", "Mortgage", "Student Loan", "Car Loan"])
+    income_categories = Column(JSON, default=["Salary", "Rental Income", "Investments"])
+    expense_categories = Column(JSON, default=["Housing", "Food", "Transportation", "Utilities", "Insurance", "Healthcare", "Entertainment"])
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
 class Asset(Base):
@@ -155,9 +209,8 @@ class Liability(Base):
     principal_amount = Column(Float, nullable=True) # NEW
     interest_rate = Column(Float, nullable=True) # NEW
     loan_term_months = Column(Integer, nullable=True) # NEW
-    loan_start_date = Column(DateTime(timezone=True), nullable=True) # NEW
+    loan_start_date = Column(String, nullable=True) # NEW: Changed from DateTime to String
     monthly_payment = Column(Float, nullable=True) # NEW
-    fees = Column(Float, nullable=True, default=0.0) # NEW
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     include_in_cash_flow = Column(Boolean, default=True) # New field to control if liability is included in cash flow
@@ -174,17 +227,12 @@ class CustomChart(Base):
     name = Column(String, index=True, nullable=False)
     chart_type = Column(String, nullable=False)  # e.g., 'line', 'bar', 'pie'
     display_type = Column(String, default="chart", nullable=False) # New field for chart/table display
-    # data_sources could be a simple string or a more complex JSON structure
-    # For now, a string which can be a comma-separated list like "assets,liabilities"
     data_sources = Column(String, nullable=True)
-    # series_configurations will store a JSON string with details for each chart series
-    # e.g., [{"data_type": "asset", "field": "value", "aggregation": "sum", "label": "Total Assets", "color": "#abc"}]
     series_configurations = Column(String, nullable=False)
     x_axis_label = Column(String, nullable=True)
     y_axis_label = Column(String, nullable=True)
     
-    # New fields for storing calculated projection results
-    data_json = Column(String, nullable=True) # To store the yearly results
+    data_json = Column(String, nullable=True)
     final_value = Column(Float, nullable=True)
     total_contributed = Column(Float, nullable=True)
     total_growth = Column(Float, nullable=True)

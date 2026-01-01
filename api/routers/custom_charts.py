@@ -86,7 +86,7 @@ def create_custom_chart(
     current_user: models.User = Depends(get_current_user)
 ):
     logger.debug(f"Entering create_custom_chart for user {current_user.id}")
-    
+
     series_configs = json.loads(chart.series_configurations)
     accounts_for_projection = []
     
@@ -95,7 +95,7 @@ def create_custom_chart(
 
     logger.debug(f"Parsed series configurations: {series_configs}")
     logger.debug(f"Projection years from user settings: {projection_years}")
-
+    
     for series_config in series_configs:
         item_type = series_config.get('data_type')
         item_id = series_config.get('item_id')
