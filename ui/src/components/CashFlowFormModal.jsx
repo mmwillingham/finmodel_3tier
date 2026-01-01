@@ -378,7 +378,7 @@ export default function CashFlowFormModal({
             )}
 
             {/* NEW: Contributes to Asset field, only for expenses */}
-            {type === "expense" && !isDynamic && (
+            {type === "expense" && (
               <div className="form-field">
                 <label htmlFor="contributes-to-asset-select">Contributes to Asset</label>
                 <select
