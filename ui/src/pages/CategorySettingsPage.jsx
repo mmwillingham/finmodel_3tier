@@ -1,0 +1,133 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import SettingsService from '../services/settings.service';
+import { useAuth } from '../context/AuthContext';
+import CategoryEditorModal from '../components/CategoryEditorModal';
+import './SettingsPages.css'; // General CSS for settings pages
+
+const CategorySettingsPage = () => {
+  const { currentUser } = useAuth();
+  const [assetCategoriesState, setAssetCategoriesState] = useState([]);
+  const [liabilityCategoriesState, setLiabilityCategoriesState] = useState([]);
+  const [incomeCategoriesState, setIncomeCategoriesState] = useState([]);
+  const [expenseCategoriesState, setExpenseCategoriesState] = useState([]);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+
+  const loadSettings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await SettingsService.getSettings();
+      setAssetCategoriesState(res.data.asset_categories || []);
+      setLiabilityCategoriesState(res.data.liability_categories || []);
+      setIncomeCategoriesState(res.data.income_categories || []);
+      setExpenseCategoriesState(res.data.expense_categories || []);
+    } catch (e) {
+      console.error('Failed to load categories settings', e);
+      setError('Failed to load categories settings.');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const handleSaveCategories = async (categoryType, updatedCategories) => {
+    setMessage('');
+    try {
+        const settingsToUpdate = {
+            asset_categories: assetCategoriesState,
+            liability_categories: liabilityCategoriesState,
+            income_categories: incomeCategoriesState,
+            expense_categories: expenseCategoriesState,
+        };
+        // Update the specific category type
+        settingsToUpdate[`${categoryType}_categories`] = updatedCategories;
+
+        await SettingsService.updateSettings(settingsToUpdate);
+        setMessage(`${categoryType} categories saved successfully!`);
+        // Refresh local state to reflect changes if save was successful
+        loadSettings();
+        setTimeout(() => {
+            setMessage('');
+        }, 1500);
+    } catch (e) {
+        console.error(`Failed to save ${categoryType} categories`, e);
+        const errorMessage = e.response?.data?.detail || 'Error saving categories';
+        setMessage(errorMessage);
+    }
+};
+
+  if (loading) {
+    return <div className="loading-message">Loading categories...</div>;
+  }
+
+  if (error) {
+    return <div className="error-message">Error: {error}</div>;
+  }
+
+  const renderCategorySection = (title, categories, setIsModalOpen, categoryType) => (
+    <div className="category-section-item">
+        <div className="category-header">
+            <label>{title}</label>
+            <button type="button" onClick={() => setIsModalOpen(true)}>Manage</button>
+        </div>
+        <div className="category-tags-display">
+            {categories.length > 0 ? (
+                categories.map((cat, index) => (
+                    <span key={index} className="category-tag">{cat}</span>
+                ))
+            ) : (
+                <span className="no-categories-text">No {title.toLowerCase().replace(' categories', '')} defined.</span>
+            )}
+        </div>
+        <CategoryEditorModal
+            isOpen={(() => {
+                switch(categoryType) {
+                    case 'asset': return isAssetModalOpen;
+                    case 'liability': return isLiabilityModalOpen;
+                    case 'income': return isIncomeModalOpen;
+                    case 'expense': return isExpenseModalOpen;
+                    default: return false;
+                }
+            })()}
+            onClose={() => {
+                switch(categoryType) {
+                    case 'asset': setIsAssetModalOpen(false); break;
+                    case 'liability': setIsLiabilityModalOpen(false); break;
+                    case 'income': setIsIncomeModalOpen(false); break;
+                    case 'expense': setIsExpenseModalOpen(false); break;
+                    default: break;
+                }
+            }}
+            onSave={(updatedCats) => handleSaveCategories(categoryType, updatedCats)}
+            categories={categories}
+            title={title}
+        />
+    </div>
+);
+
+  return (
+    <div className="settings-page-container">
+      <h2>My Categories</h2>
+      {message && <div className="message">{message}</div>}
+
+      <div className="setting-group category-settings-group">
+        {renderCategorySection('Asset Categories', assetCategoriesState, setIsAssetModalOpen, 'asset')}
+        {renderCategorySection('Liability Categories', liabilityCategoriesState, setIsLiabilityModalOpen, 'liability')}
+        {renderCategorySection('Income Categories', incomeCategoriesState, setIsIncomeModalOpen, 'income')}
+        {renderCategorySection('Expense Categories', expenseCategoriesState, setIsExpenseModalOpen, 'expense')}
+      </div>
+    </div>
+  );
+};
+
+export default CategorySettingsPage;
