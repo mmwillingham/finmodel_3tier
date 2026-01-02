@@ -123,6 +123,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
     # Dictionary to hold current balances for each account, updated yearly
     account_current_balances = {acc.name: acc.initial_value for acc in projected_accounts_for_db}
+    yearly_data_points = {} # NEW: Dictionary to build up data for data_json
 
     # Initialize global totals for the entire projection period
     total_contributed_overall = 0.0
@@ -252,6 +253,17 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Add overall totals to time series data for the current year
         current_year_net_worth = current_year_total_assets + current_year_total_liabilities
 
+        yearly_data_points[year] = {
+            "Year": current_year + year -1, # Display actual calendar year
+            "Total Assets": current_year_total_assets,
+            "Total Liabilities": current_year_total_liabilities,
+            "Net Worth": current_year_net_worth,
+            "Total Income Flow": current_year_total_income_flow,
+            "Total Expense Flow": current_year_total_expense_flow,
+            "Net Cash Flow": current_year_total_income_flow + current_year_total_expense_flow,
+            **{acc.name: account_current_balances[acc.name] for acc in projected_accounts_for_db} # Individual account balances
+        }
+
         time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_assets", value=current_year_total_assets))
         time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_liabilities", value=current_year_total_liabilities))
         time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="net_worth", value=current_year_net_worth))
@@ -265,11 +277,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
     print(f"--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} ---")
     
+    # Convert yearly_data_points to a list of dicts for JSON serialization
+    data_for_json = [yearly_data_points[year] for year in sorted(yearly_data_points.keys())]
+    data_json_string = json.dumps(data_for_json)
+
     # Return the structured data ready for database saving
     return {
         "final_value": final_value_projection,
         "total_contributed": total_contributed_overall,
         "total_growth": total_growth_overall,
         "projected_accounts": projected_accounts_for_db,
-        "time_series_data": time_series_data_for_db
+        "time_series_data": time_series_data_for_db,
+        "data_json": data_json_string # NEW: Include the JSON string of yearly data
     }
