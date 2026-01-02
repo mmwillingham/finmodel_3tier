@@ -100,7 +100,7 @@ const LoginPage = () => {
                     </button>
                     <button 
                         type="button" 
-                        onClick={() => window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`} // Hardcoded for testing 
+                        onClick={() => window.location.href = `${(process.env.REACT_APP_API_URL || "http://localhost:8000").replace(/\/?$/, '/')}auth/google`} // Use REACT_APP_API_URL with fallback and trailing slash
                         disabled={loading} 
                         className="google-signin-button">
                         Sign in with Google
