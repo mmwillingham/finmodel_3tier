@@ -1,10 +1,53 @@
 .settings-page-container {
     padding: 20px;
-    max-width: 900px;
+    max-width: 600px;
     margin: 20px auto;
     background-color: var(--color-background-soft);
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.settings-page-container .form-group-horizontal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.settings-page-container .form-group-horizontal:last-of-type {
+    border-bottom: none;
+}
+
+.settings-page-container .form-group-horizontal label {
+    margin-bottom: 0;
+    flex-grow: 1;
+}
+
+.settings-page-container .form-group-horizontal input[type="number"],
+.settings-page-container .form-group-horizontal input[type="text"],
+.settings-page-container .form-group-horizontal input[type="date"],
+.settings-page-container .form-group-horizontal input[type="tel"],
+.settings-page-container .form-group-horizontal select {
+    width: 150px; /* Adjust width as needed */
+    text-align: right;
+    margin-left: 10px;
+    padding: 8px;
+}
+
+.settings-page-container .form-group-horizontal.checkbox-group {
+    justify-content: flex-start; /* Align checkbox to the left with label */
+}
+
+.settings-page-container .form-group-horizontal.checkbox-group label {
+    flex-grow: 0; /* Don't let label grow */
+    margin-right: 10px;
+}
+
+.settings-page-container .form-group-horizontal.checkbox-group input[type="checkbox"] {
+    margin-left: auto; /* Push checkbox to the far right */
+    width: 20px;
+    height: 20px;
 }
 
 .settings-page-container h2 {
@@ -31,43 +74,6 @@
     margin-bottom: 8px;
     color: var(--color-label);
     font-size: 0.95em;
-}
-
-.settings-page-container input[type="text"],
-.settings-page-container input[type="number"],
-.settings-page-container input[type="date"],
-.settings-page-container input[type="tel"],
-.settings-page-container select,
-.settings-page-container textarea {
-    padding: 10px 12px;
-    border: 1px solid var(--color-input-border);
-    border-radius: 6px;
-    background-color: var(--color-input-background);
-    color: var(--color-text);
-    font-size: 1em;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.settings-page-container input:focus,
-.settings-page-container select:focus,
-.settings-page-container textarea:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
-    outline: none;
-}
-
-.settings-page-container .checkbox-group {
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.settings-page-container .checkbox-group input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    margin-top: 0; /* Align checkbox vertically */
 }
 
 .settings-page-container .save-button,
@@ -261,20 +267,27 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.profile-settings-form .form-group-horizontal:last-of-type {
+    border-bottom: none;
 }
 
 .profile-settings-form .form-group-horizontal label {
     margin-bottom: 0;
-    flex-shrink: 0;
-    margin-right: 15px;
+    flex-grow: 1;
 }
 
 .profile-settings-form .form-group-horizontal input[type="text"],
 .profile-settings-form .form-group-horizontal input[type="date"],
 .profile-settings-form .form-group-horizontal input[type="tel"],
 .profile-settings-form .form-group-horizontal select {
-    width: 200px; /* Adjust width as needed */
+    width: 150px; /* Adjust width as needed */
     text-align: right;
+    margin-left: 10px;
+    padding: 8px;
 }
 
 .profile-settings-form .form-group-horizontal .change-password-btn {

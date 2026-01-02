@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import globalSettingsService from '../services/globalSettings.service';
 import './SettingsPages.css'; // General CSS for settings pages
+import AuthService from '../services/auth.service';
+import AuthService from '../services/auth.service';
 
 const HelpPage = () => {
-  const { currentUser, token } = useAuth();
+  const { currentUser } = useAuth();
   const [helpContent, setHelpContent] = useState('Loading help content...');
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
@@ -15,7 +17,13 @@ const HelpPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const settings = await globalSettingsService.getGlobalSettings(token);
+      const currentToken = AuthService.getToken();
+      if (!currentToken) {
+        setError('Authentication token missing. Please log in again.');
+        setLoading(false);
+        return;
+      }
+      const settings = await globalSettingsService.getGlobalSettings(currentToken);
       setHelpContent(settings.help_content || '<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>');
     } catch (err) {
       console.error('Failed to fetch help content:', err);
@@ -24,7 +32,7 @@ const HelpPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchHelpContent();
@@ -33,8 +41,13 @@ const HelpPage = () => {
   const handleSave = async () => {
     setMessage('');
     try {
-      const currentGlobalSettings = await globalSettingsService.getGlobalSettings(token);
-      await globalSettingsService.updateGlobalSettings({ ...currentGlobalSettings, help_content: helpContent }, token);
+      const currentToken = AuthService.getToken();
+      if (!currentToken) {
+        setError('Authentication token missing. Please log in again.');
+        return;
+      }
+      const currentGlobalSettings = await globalSettingsService.getGlobalSettings(currentToken);
+      await globalSettingsService.updateGlobalSettings({ ...currentGlobalSettings, help_content: helpContent }, currentToken);
       setMessage('Help content saved successfully!');
       setIsEditing(false);
       setTimeout(() => setMessage(''), 3000);
