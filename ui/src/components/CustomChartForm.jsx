@@ -253,16 +253,14 @@ export default function CustomChartForm({
                       value={series.category}
                       onChange={(e) => handleSeriesChange(index, 'category', e.target.value)}
                     >
-                      {options.length > 0 ? (
-                        <>
-                          <option value="">All Categories</option>
-                          {options.map(category => (
-                            <option key={category} value={category}>{category}</option>
-                          ))}
-                        </>
-                      ) : (
-                        <option value="" disabled>No categories available</option>
-                      )}
+                      <option value="">All Categories</option>
+                      {(currentSeriesDataType === 'assets' && assetCategories ||
+                       currentSeriesDataType === 'liabilities' && liabilityCategories ||
+                       currentSeriesDataType === 'income' && incomeCategories ||
+                       currentSeriesDataType === 'expenses' && expenseCategories ||
+                       []).map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
                     </select>
                   </div>
                 )}
