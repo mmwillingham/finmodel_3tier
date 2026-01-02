@@ -34,13 +34,19 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
 
             total_contributions = sum(cf_item.yearly_value for cf_item in contributing_expenses)
 
-            return schemas.AccountSchema(
+            return schemas.ProjectedAccountCreate(
                 name=item.name,
-                type='asset',
-                initial_balance=item.value,
-                monthly_contribution=total_contributions / 12, # Use calculated contributions
-                annual_increase_percent=item.annual_increase_percent,
-                annual_change_type=item.annual_change_type
+                account_type='asset',
+                initial_value=item.value,
+                contribution=total_contributions / 12, # Use calculated contributions
+                growth_rate=item.annual_increase_percent,
+                # Loan specific fields are not applicable for assets
+                loan_type=None,
+                principal_amount=None,
+                interest_rate=None,
+                loan_term_months=None,
+                loan_start_date=None,
+                monthly_payment=None
             )
         else:
             logger.warning(f"Asset with ID {item_id} not found for user {current_user.id}")
@@ -48,13 +54,18 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
         item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
         if item:
             logger.debug(f"Found liability: {item.name} (ID: {item.id}, Value: {item.value})")
-            return schemas.AccountSchema(
+            return schemas.ProjectedAccountCreate(
                 name=item.name,
-                type='liability',
-                initial_balance=item.value,
-                monthly_contribution=0.0,
-                annual_increase_percent=item.annual_increase_percent,
-                annual_change_type=item.annual_change_type
+                account_type='liability',
+                initial_value=-abs(item.value),
+                contribution=0.0, # Monthly payment is handled within amortized loan logic
+                growth_rate=item.annual_increase_percent,
+                loan_type=item.loan_type,
+                principal_amount=item.principal_amount,
+                interest_rate=item.interest_rate,
+                loan_term_months=item.loan_term_months,
+                loan_start_date=item.loan_start_date,
+                monthly_payment=item.monthly_payment
             )
         else:
             logger.warning(f"Liability with ID {item_id} not found for user {current_user.id}")
@@ -67,13 +78,19 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
             
             account_type = 'income' if is_income_item else 'expense'
             
-            return schemas.AccountSchema(
+            return schemas.ProjectedAccountCreate(
                 name=item.description,
-                type=account_type,
-                initial_balance=0.0,
+                account_type=account_type,
+                initial_value=0.0, # Income is a flow, not a balance
                 monthly_contribution=item.yearly_value / 12,
-                annual_increase_percent=item.annual_increase_percent if is_income_item else item.inflation_percent,
-                annual_change_type='increase' if is_income_item else 'decrease'
+                growth_rate=item.annual_increase_percent if is_income_item else item.inflation_percent,
+                # Loan specific fields are not applicable for income/expense
+                loan_type=None,
+                principal_amount=None,
+                interest_rate=None,
+                loan_term_months=None,
+                loan_start_date=None,
+                monthly_payment=None
             )
         else:
             logger.warning(f"CashFlowItem with ID {item_id} not found for user {current_user.id}")
@@ -165,7 +182,7 @@ def create_custom_chart(
     try:
         projection_results = calculations.calculate_projection(
             years=projection_years,
-            accounts=[acc.model_dump() for acc in accounts_for_projection],
+            accounts=accounts_for_projection,
             db=db,
             owner_id=current_user.id
         )
@@ -298,7 +315,7 @@ def update_custom_chart(
         try:
             projection_results = calculations.calculate_projection(
                 years=projection_years,
-                accounts=[acc.model_dump() for acc in accounts_for_projection],
+                accounts=accounts_for_projection,
                 db=db,
                 owner_id=current_user.id
             )
