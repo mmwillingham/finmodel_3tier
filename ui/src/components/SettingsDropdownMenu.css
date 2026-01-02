@@ -1,7 +1,7 @@
 .settings-dropdown-menu {
     position: absolute;
     top: 60px; /* Adjust as needed to position below the hamburger */
-    right: 10px; /* Adjust as needed */
+    right: 0; /* Align right edge with parent */
     background-color: var(--color-background-soft);
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -18,7 +18,7 @@
     border: none;
     padding: 12px 20px;
     text-align: left;
-    color: var(--color-text);
+    color: #333; /* Make text clearly visible */
     font-size: 1em;
     cursor: pointer;
     transition: background-color 0.2s ease;

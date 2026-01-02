@@ -24,7 +24,7 @@ const LoginPage = () => {
         }
     }, [location, navigate]);
     // Get the login function from the global authentication context
-    const { login } = useAuth(); // Destructure login only
+    const { login, currentUser, logout } = useAuth(); // Destructure login, currentUser, and logout
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -39,8 +39,20 @@ const LoginPage = () => {
         }
 
         try {
-            // Call the centralized login function from AuthContext
-            await login(email, password);
+            // 1. Call the backend API service to get the JWT token
+            await AuthService.login(email, password);
+
+            // 2. If the API call succeeds (200 OK), update the global authentication state
+            //    The login() function will retrieve and verify the token.
+            await login();
+
+            // Check if the user's email is confirmed
+            if (currentUser && !currentUser.is_confirmed) {
+                logout(); // Log out the user to clear the token
+                setError("Your email address has not been confirmed. Please check your inbox for a confirmation link.");
+                setLoading(false);
+                return;
+            }
             
             // Redirect the user to the main application page upon successful login
             navigate('/');
