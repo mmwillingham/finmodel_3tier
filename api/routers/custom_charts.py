@@ -309,8 +309,8 @@ def update_custom_chart(
                             contribution=-(item.yearly_value / 12), # Negative monthly contribution
                             growth_rate=item.inflation_percent, # Expenses grow by inflation
                         ))
-                   else:
-                       print(f"--- WARNING: Unsupported aggregate item type: {item_type} for user {current_user.id} ---")
+            else:
+                print(f"--- WARNING: Unsupported aggregate item type: {item_type} for user {current_user.id} ---")
 
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---")
 
@@ -327,7 +327,7 @@ def update_custom_chart(
             db_chart.final_value = projection_results["final_value"]
             db_chart.total_contributed = projection_results["total_contributed"]
             db_chart.total_growth = projection_results["total_growth"]
-            except Exception as e:
+        except Exception as e:
                 print(f"--- ERROR: Error during projection calculation for chart update {db_chart.name}: {e} ---")
                 print(f"--- TRACEBACK: {traceback.format_exc()} ---")
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed during update: {e}")
