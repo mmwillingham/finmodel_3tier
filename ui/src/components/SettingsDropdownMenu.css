@@ -2,7 +2,7 @@
     position: absolute;
     top: calc(100% + 5px); /* Position 5px below the bottom of the parent container */
     right: 0px; /* Align right edge of dropdown with right edge of hamburger container */
-    background-color: #ffffff; /* Directly set to opaque white to ensure no translucency */
+    background-color: #ffffff !important; /* Force opaque white background to resolve transparency */
     border: 1px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
