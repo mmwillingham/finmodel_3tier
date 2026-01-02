@@ -117,6 +117,7 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
             data={"sub": str(user.id)}, expires_delta=our_access_token_expires
         )
 
+        logger.debug(f"FRONTEND_URL value in google_callback: {settings.FRONTEND_URL}") # DEBUG LOG
         redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
         logger.debug(f"Google OAuth Callback: Redirecting to: {redirect_url}")
         return RedirectResponse(url=redirect_url)
