@@ -1,16 +1,16 @@
 .settings-dropdown-menu {
     position: absolute;
-    top: 60px; /* Explicitly place below the fixed header */
+    top: calc(100% + 5px); /* Position 5px below the bottom of the parent container */
     right: 0px; /* Align right edge of dropdown with right edge of hamburger container */
     background-color: var(--color-background); /* Use a solid background to obscure content behind it */
     border: 1px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    opacity: 0.95; /* Add opacity to the dropdown menu */
+    opacity: 1; /* Make the dropdown menu completely opaque */
     display: flex;
     flex-direction: column;
     padding: 10px 0;
-    z-index: 1001; /* Ensure it's above other elements */
+    z-index: 9999; /* Ensure it's above all other elements */
     min-width: 200px;
 }
 
