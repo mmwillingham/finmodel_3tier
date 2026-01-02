@@ -177,7 +177,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     account_current_balances[projected_account.name] = new_balance
 
                 except ValueError:
-                    logger.warning(f"""Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation.""")
+                    print(f"""--- DEBUG: Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation.""")
                     # Fallback to standard projection logic if date is invalid
                     new_balance = current_balance + (current_balance * (projected_account.growth_rate / 100.0)) + (projected_account.contribution * 12)
                     adjusted_annual_contribution = projected_account.contribution * 12

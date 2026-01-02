@@ -38,8 +38,21 @@ app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=Tru
 
 @app.on_event("startup")
 async def startup_event():
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # Configure logging for the application
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=logging.DEBUG, format=log_format)
+
+    # Explicitly set log levels for uvicorn and our application modules
+    logging.getLogger("uvicorn").setLevel(logging.DEBUG)
+    logging.getLogger("uvicorn.access").setLevel(logging.DEBUG)
+    logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
+    logging.getLogger("api.routers.custom_charts").setLevel(logging.DEBUG)
+    logging.getLogger("api.calculations").setLevel(logging.DEBUG)
+    logging.getLogger("auth").setLevel(logging.DEBUG)
+
+
     logger.info("FastAPI application started. Logging level set to DEBUG.")
+
     logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}")
 
 app.include_router(custom_charts.router)
