@@ -66,6 +66,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const refreshUserSettings = async () => {
+        const token = AuthService.getToken(); // Get token from AuthService
         if (token) {
             try {
                 const settingsResponse = await SettingsService.getSettings();
