@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import globalSettingsService from '../services/globalSettings.service';
 import { useAuth } from '../context/AuthContext';
 import CategoryEditorModal from './CategoryEditorModal'; // Import the CategoryEditorModal
-import './GlobalSettings.css'; // Will update this CSS file
+import AuthService from '../services/auth.service';
 
 const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettingsSaved prop
     const { currentUser: user } = useAuth();
@@ -55,6 +55,12 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
 
     // Generic save handler for CategoryEditorModal instances
     const handleSaveCategories = async (categoryType, updatedCategories) => {
+        const currentToken = AuthService.getToken();
+        if (!currentToken) {
+            setError('Authentication token missing. Please log in again.');
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setError(null);
         setMessage('');
@@ -68,7 +74,7 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
             // Update the specific category type
             settingsToUpdate[`${categoryType}_categories`] = updatedCategories;
 
-            await globalSettingsService.updateGlobalSettings(settingsToUpdate, token);
+            await globalSettingsService.updateGlobalSettings(settingsToUpdate, currentToken);
             setMessage(`Global ${categoryType} categories saved successfully!`);
             // Re-fetch global settings to ensure UI is in sync with backend after save
             await fetchGlobalSettings();
