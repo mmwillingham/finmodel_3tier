@@ -54,4 +54,4 @@ ENV CORS_ORIGINS_REGEX=.*
 
 # Command to run the FastAPI application with Uvicorn (Alembic handled in Cloud Build step)
 # Explicitly pass the PORT environment variable using bash -c
-CMD bash -c "export PORT=$PORT && echo 'DEBUG: PORT environment variable is: '$PORT && uvicorn main:app --host 0.0.0.0 --port ""$PORT"""
+CMD bash -c "export PORT=$PORT && echo 'DEBUG: PORT environment variable is: '$PORT && uvicorn main:app --host 0.0.0.0 --port ""$PORT"" --log-level debug"

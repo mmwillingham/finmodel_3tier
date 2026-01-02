@@ -57,32 +57,32 @@ export default function LiabilityFormModal({
         setCategories(cats);
 
         if (isOpen) {
-          if (itemToEdit) {
-            // If editing, populate with existing item data
+        if (itemToEdit) {
+          // If editing, populate with existing item data
             console.log("Loading item to edit:", itemToEdit);
-            setNewItem({
-              name: itemToEdit.name || '',
-              category: itemToEdit.category || '',
+          setNewItem({
+            name: itemToEdit.name || '',
+            category: itemToEdit.category || '',
               value: itemToEdit.value?.toString() || '',
               annual_increase_percent: itemToEdit.annual_increase_percent ?? 0,
-              annual_change_type: itemToEdit.annual_change_type || "increase",
-              loan_type: itemToEdit.loan_type || "ordinary",
-              principal_amount: itemToEdit.principal_amount?.toString() || "",
-              interest_rate: itemToEdit.interest_rate?.toString() || "",
-              loan_term_months: itemToEdit.loan_term_months?.toString() || "",
-              loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "",
+            annual_change_type: itemToEdit.annual_change_type || "increase",
+            loan_type: itemToEdit.loan_type || "ordinary",
+            principal_amount: itemToEdit.principal_amount?.toString() || "",
+            interest_rate: itemToEdit.interest_rate?.toString() || "",
+            loan_term_months: itemToEdit.loan_term_months?.toString() || "",
+            loan_start_date: itemToEdit.loan_start_date?.split("T")[0] || "",
               // Use the actual monthly_payment from itemToEdit, or calculate if not present
-              monthly_payment: itemToEdit.monthly_payment?.toString() || "", 
-              start_date: itemToEdit.start_date || '',
-              end_date: itemToEdit.end_date || '',
-            });
-          } else {
-            // If adding a new item, reset to initial state and set default category
+            monthly_payment: itemToEdit.monthly_payment?.toString() || "",
+            start_date: itemToEdit.start_date || '',
+            end_date: itemToEdit.end_date || '',
+          });
+        } else {
+          // If adding a new item, reset to initial state and set default category
             console.log("Resetting form for new liability.");
-            setNewItem(prev => ({
-              ...initialNewItemState,
-              category: cats[0] || "Other",
-            }));
+          setNewItem(prev => ({
+            ...initialNewItemState,
+            category: cats[0] || "Other",
+          }));
           }
         }
       } catch (e) {
@@ -94,7 +94,7 @@ export default function LiabilityFormModal({
       }
     };
 
-    loadSettingsAndSetItem();
+      loadSettingsAndSetItem();
   }, [isOpen, itemToEdit]);
 
   // Effect to calculate monthly payment for amortized loans
@@ -114,7 +114,7 @@ export default function LiabilityFormModal({
           ...prev,
           monthly_payment: calculatedPayment.toFixed(2), // Set calculated payment, rounded to 2 decimal places
         }));
-      } else {
+    } else {
         // If inputs are incomplete or invalid, clear monthly payment
         setNewItem(prev => ({ ...prev, monthly_payment: "" }));
       }
@@ -181,12 +181,12 @@ export default function LiabilityFormModal({
 
       if (isNaN(value) || value <= 0) {
         alert("Value is required and must be a positive number for ordinary loans.");
-        return;
-      }
+            return;
+        }
       if (isNaN(annualIncreasePercent)) {
-        alert("Annual Increase Percent must be a number for ordinary loans.");
-        return;
-      }
+            alert("Annual Increase Percent must be a number for ordinary loans.");
+            return;
+        }
 
       Object.assign(payload, {
         loan_type: "ordinary",
@@ -306,67 +306,67 @@ export default function LiabilityFormModal({
 
           {newItem.loan_type === "amortized" && (
             <>
-              <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}> {/* Fields specific to Amortized loan */}
-                <div className="form-field">
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}> {/* Fields specific to Amortized loan */}
+              <div className="form-field">
                   <label htmlFor="principal_amount">Principal Amount</label>
-                  <input
+                <input
                     id="principal_amount"
-                    type="number"
-                    step="0.01"
-                    placeholder="Principal Amount"
-                    value={newItem.principal_amount}
-                    onFocus={(e) => e.target.select()}
+                  type="number"
+                  step="0.01"
+                  placeholder="Principal Amount"
+                  value={newItem.principal_amount}
+                  onFocus={(e) => e.target.select()}
                     onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-field">
+                />
+              </div>
+              <div className="form-field">
                   <label htmlFor="interest_rate">Annual Interest Rate (%)</label>
-                  <input
+                <input
                     id="interest_rate"
-                    type="number"
-                    step="0.01"
-                    placeholder="Annual Interest Rate"
-                    value={newItem.interest_rate}
-                    onFocus={(e) => e.target.select()}
+                  type="number"
+                  step="0.01"
+                  placeholder="Annual Interest Rate"
+                  value={newItem.interest_rate}
+                  onFocus={(e) => e.target.select()}
                     onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-field">
+                />
+              </div>
+              <div className="form-field">
                   <label htmlFor="loan_term_months">Loan Term (Months)</label>
-                  <input
+                <input
                     id="loan_term_months"
-                    type="number"
-                    step="1"
-                    placeholder="Loan Term (Months)"
-                    value={newItem.loan_term_months}
-                    onFocus={(e) => e.target.select()}
+                  type="number"
+                  step="1"
+                  placeholder="Loan Term (Months)"
+                  value={newItem.loan_term_months}
+                  onFocus={(e) => e.target.select()}
                     onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-field">
+                />
+              </div>
+              <div className="form-field">
                   <label htmlFor="loan_start_date">Loan Start Date</label>
-                  <input
+                <input
                     id="loan_start_date"
-                    type="date"
-                    value={newItem.loan_start_date}
+                  type="date"
+                  value={newItem.loan_start_date}
                     onChange={handleInputChange}
-                  />
-                </div>
+                />
+              </div>
               </div>
               <div className="form-row" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
-                <div className="form-field">
+              <div className="form-field">
                   <label htmlFor="monthly_payment">Calculated Monthly Payment</label>
-                  <input
+                <input
                     id="monthly_payment"
-                    type="number"
-                    step="0.01"
+                  type="number"
+                  step="0.01"
                     value={newItem.monthly_payment}
                     readOnly // Make this field read-only
                     tabIndex="-1" // Make it not focusable via tab
                     style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }} // Style to indicate read-only
-                  />
-                </div>
+                />
               </div>
+            </div>
             </>
           )}
 
