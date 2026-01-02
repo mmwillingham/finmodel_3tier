@@ -100,12 +100,63 @@ def create_custom_chart(
         item_type = series_config.get('data_type')
         item_id = series_config.get('item_id')
 
-        if item_type and item_id:
+        if item_type and item_id: # Specific item selected
             account = fetch_and_convert_item(db, current_user, item_type, item_id)
             if account:
                 accounts_for_projection.append(account)
             else:
                 logger.warning(f"Could not find item {item_id} of type {item_type} for user {current_user.id}")
+        elif item_type and item_id is None: # Aggregate type selected (e.g., "all income")
+            if item_type == 'assets':
+                items = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id).all()
+                for item in items:
+                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                        name=item.name,
+                        account_type='asset',
+                        initial_value=item.value,
+                        contribution=0.0, # Assets typically don't have direct monthly contributions
+                        growth_rate=item.annual_increase_percent,
+                    ))
+            elif item_type == 'liabilities':
+                items = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id).all()
+                for item in items:
+                    # For liabilities, initial_value should be negative
+                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                        name=item.name,
+                        account_type='liability',
+                        initial_value=-abs(item.value),
+                        contribution=0.0, # Monthly payment is handled within amortized loan logic
+                        growth_rate=item.annual_increase_percent,
+                        loan_type=item.loan_type,
+                        principal_amount=item.principal_amount,
+                        interest_rate=item.interest_rate,
+                        loan_term_months=item.loan_term_months,
+                        loan_start_date=item.loan_start_date,
+                        monthly_payment=item.monthly_payment
+                    ))
+            elif item_type == 'income':
+                items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == True).all()
+                for item in items:
+                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                        name=item.description,
+                        account_type='income',
+                        initial_value=0.0, # Income is a flow, not a balance
+                        contribution=item.yearly_value / 12, # Monthly contribution
+                        growth_rate=item.annual_increase_percent,
+                    ))
+            elif item_type == 'expenses':
+                items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == False).all()
+                for item in items:
+                    # Expenses are negative contributions
+                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                        name=item.description,
+                        account_type='expense',
+                        initial_value=0.0, # Expenses are a flow, not a balance
+                        contribution=-(item.yearly_value / 12), # Negative monthly contribution
+                        growth_rate=item.inflation_percent, # Expenses grow by inflation
+                    ))
+            else:
+                logger.warning(f"Unsupported aggregate item type: {item_type} for user {current_user.id}")
         else:
             logger.warning(f"Invalid series config: {series_config}")
 
@@ -190,6 +241,57 @@ def update_custom_chart(
                     accounts_for_projection.append(account)
                 else:
                     logger.warning(f"Could not find item {item_id} of type {item_type} for user {current_user.id} during chart update.")
+            elif item_type and item_id is None: # Aggregate type selected (e.g., "all income")
+                if item_type == 'assets':
+                    items = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id).all()
+                    for item in items:
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=item.name,
+                            account_type='asset',
+                            initial_value=item.value,
+                            contribution=0.0, # Assets typically don't have direct monthly contributions
+                            growth_rate=item.annual_increase_percent,
+                        ))
+                elif item_type == 'liabilities':
+                    items = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id).all()
+                    for item in items:
+                        # For liabilities, initial_value should be negative
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=item.name,
+                            account_type='liability',
+                            initial_value=-abs(item.value),
+                            contribution=0.0, # Monthly payment is handled within amortized loan logic
+                            growth_rate=item.annual_increase_percent,
+                            loan_type=item.loan_type,
+                            principal_amount=item.principal_amount,
+                            interest_rate=item.interest_rate,
+                            loan_term_months=item.loan_term_months,
+                            loan_start_date=item.loan_start_date,
+                            monthly_payment=item.monthly_payment
+                        ))
+                elif item_type == 'income':
+                    items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == True).all()
+                    for item in items:
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=item.description,
+                            account_type='income',
+                            initial_value=0.0, # Income is a flow, not a balance
+                            contribution=item.yearly_value / 12, # Monthly contribution
+                            growth_rate=item.annual_increase_percent,
+                        ))
+                elif item_type == 'expenses':
+                    items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == False).all()
+                    for item in items:
+                        # Expenses are negative contributions
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=item.description,
+                            account_type='expense',
+                            initial_value=0.0, # Expenses are a flow, not a balance
+                            contribution=-(item.yearly_value / 12), # Negative monthly contribution
+                            growth_rate=item.inflation_percent, # Expenses grow by inflation
+                        ))
+                else:
+                    logger.warning(f"Unsupported aggregate item type: {item_type} for user {current_user.id}")
 
         logger.debug(f"Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)}")
 
