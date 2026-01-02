@@ -1,7 +1,7 @@
 .settings-dropdown-menu {
     position: absolute;
-    top: 60px; /* Adjust as needed to position below the hamburger */
-    left: -250px; /* Adjust to align right edge of dropdown with hamburger */
+    top: 70px; /* Adjust as needed to position below the hamburger */
+    right: -20px; /* Adjust to align right edge of dropdown with hamburger */
     background-color: var(--color-background-soft);
     border: 1px solid var(--color-border);
     border-radius: 8px;

@@ -5,7 +5,7 @@ import CategoryEditorModal from './CategoryEditorModal'; // Import the CategoryE
 import './GlobalSettings.css'; // Will update this CSS file
 
 const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettingsSaved prop
-    const { token, currentUser: user } = useAuth();
+    const { currentUser: user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(''); // For save/error messages
@@ -23,7 +23,8 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
 
     const fetchGlobalSettings = useCallback(async () => {
-        if (!token || !user || !user.is_admin) {
+        const currentToken = AuthService.getToken();
+        if (!currentToken || !user || !user.is_admin) {
             console.error('GlobalSettings: Access Denied. User is not admin or token is missing.');
             setError('Access Denied: Only administrators can view global settings.');
             setLoading(false);
@@ -33,7 +34,7 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
         setError(null);
         console.log('GlobalSettings: Attempting to fetch global settings...');
         try {
-            const data = await globalSettingsService.getGlobalSettings(token);
+            const data = await globalSettingsService.getGlobalSettings(currentToken);
             setAssetCategories(data.asset_categories || []);
             setLiabilityCategories(data.liability_categories || []);
             setIncomeCategories(data.income_categories || []);
@@ -46,7 +47,7 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
         } finally {
             setLoading(false);
         }
-    }, [token, user]);
+    }, [user]);
 
     useEffect(() => {
         fetchGlobalSettings();

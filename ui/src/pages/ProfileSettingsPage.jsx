@@ -116,7 +116,7 @@ const ProfileSettingsPage = () => {
       {message && <div className="message">{message}</div>}
 
       <div className="profile-settings-form">
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person1-first-name">
             First Name
           </label>
@@ -128,7 +128,7 @@ const ProfileSettingsPage = () => {
             placeholder="First Name"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person1-last-name">
             Last Name
           </label>
@@ -140,7 +140,7 @@ const ProfileSettingsPage = () => {
             placeholder="Last Name"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person1-birthdate">
             Date of Birth
           </label>
@@ -151,7 +151,7 @@ const ProfileSettingsPage = () => {
             onChange={(e) => setPerson1Birthdate(e.target.value)}
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person1-cell-phone">
             Cell Phone
           </label>
@@ -163,7 +163,7 @@ const ProfileSettingsPage = () => {
             placeholder="(XXX) XXX-XXXX"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person2-first-name">
             Spouse First Name
           </label>
@@ -175,7 +175,7 @@ const ProfileSettingsPage = () => {
             placeholder="Spouse First Name"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person2-last-name">
             Spouse Last Name
           </label>
@@ -187,7 +187,7 @@ const ProfileSettingsPage = () => {
             placeholder="Spouse Last Name"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person2-birthdate">
             Spouse Date of Birth
           </label>
@@ -198,7 +198,7 @@ const ProfileSettingsPage = () => {
             onChange={(e) => setPerson2Birthdate(e.target.value)}
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="person2-cell-phone">
             Spouse Cell Phone
           </label>
@@ -210,7 +210,7 @@ const ProfileSettingsPage = () => {
             placeholder="(XXX) XXX-XXXX"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="address">
             Address
           </label>
@@ -222,7 +222,7 @@ const ProfileSettingsPage = () => {
             placeholder="Address"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="city">
             City
           </label>
@@ -234,7 +234,7 @@ const ProfileSettingsPage = () => {
             placeholder="City"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="state">
             State
           </label>
@@ -251,7 +251,7 @@ const ProfileSettingsPage = () => {
             ))}
           </select>
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
           <label htmlFor="zip-code">
             Zip Code
           </label>
@@ -263,7 +263,7 @@ const ProfileSettingsPage = () => {
             placeholder="Zip Code"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group-horizontal">
             <button type="button" className="change-password-btn" onClick={() => setIsChangePasswordModalOpen(true)}>Change Password</button>
         </div>
       </div>

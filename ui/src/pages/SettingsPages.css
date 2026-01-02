@@ -222,6 +222,34 @@
     background-color: var(--color-primary-dark);
 }
 
+/* Application Settings specific styles */
+.application-settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.application-settings-form .form-group-horizontal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.application-settings-form .form-group-horizontal label {
+    margin-bottom: 0;
+    flex-shrink: 0;
+    margin-right: 15px;
+}
+
+.application-settings-form .form-group-horizontal input[type="number"] {
+    width: 100px;
+    text-align: right;
+}
+
+.application-settings-form .form-group-horizontal.checkbox-group input[type="checkbox"] {
+    margin-left: auto;
+}
+
 /* Profile Settings specific styles */
 .profile-settings-form {
     display: flex;
@@ -229,17 +257,28 @@
     gap: 15px; /* Spacing between form groups */
 }
 
-.profile-settings-form .form-group {
+.profile-settings-form .form-group-horizontal {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.profile-settings-form .form-group label {
-    margin-bottom: 5px;
+.profile-settings-form .form-group-horizontal label {
+    margin-bottom: 0;
+    flex-shrink: 0;
+    margin-right: 15px;
 }
 
-.profile-settings-form .change-password-btn {
-    align-self: flex-start; /* Align button to the start */
+.profile-settings-form .form-group-horizontal input[type="text"],
+.profile-settings-form .form-group-horizontal input[type="date"],
+.profile-settings-form .form-group-horizontal input[type="tel"],
+.profile-settings-form .form-group-horizontal select {
+    width: 200px; /* Adjust width as needed */
+    text-align: right;
+}
+
+.profile-settings-form .form-group-horizontal .change-password-btn {
+    align-self: flex-end; /* Align button to the end */
 }
 
 /* Help Page specific styles */

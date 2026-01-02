@@ -41,6 +41,7 @@
     align-items: center;
     gap: 15px;
     white-space: nowrap;
+    position: relative;
 }
 
 .header-right-menu .user-info {
