@@ -90,7 +90,7 @@ def create_custom_chart(
     series_configs = json.loads(chart.series_configurations)
     accounts_for_projection = []
     
-    user_settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
+    user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
     projection_years = user_settings.projection_years if user_settings else 30
 
     logger.debug(f"Parsed series configurations: {series_configs}")
@@ -176,7 +176,7 @@ def update_custom_chart(
         series_configs = json.loads(chart_update.series_configurations)
         accounts_for_projection = []
 
-        user_settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
+        user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
         projection_years = user_settings.projection_years if user_settings else 30
         
         logger.debug(f"Parsed series configurations for update: {series_configs}")
