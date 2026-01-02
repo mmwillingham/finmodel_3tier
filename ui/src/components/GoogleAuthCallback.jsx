@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export default function GoogleAuthCallback() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { checkUserSession } = useAuth();
+    const { login } = useAuth();
 
     useEffect(() => {
         const handleCallback = async () => {
@@ -26,7 +26,7 @@ export default function GoogleAuthCallback() {
                     // Store the JWT token received from our backend
                     AuthService.setToken(token);
                     // After setting the token, check the user session to update context state
-                    await checkUserSession();
+                    await login();
                     navigate('/'); // Redirect to dashboard
                 } catch (e) {
                     console.error("Failed to process Google login token:", e);
@@ -39,7 +39,7 @@ export default function GoogleAuthCallback() {
         };
 
         handleCallback();
-    }, [location, navigate, checkUserSession]);
+    }, [location, navigate, login]);
 
     return (
         <div className="auth-container">
