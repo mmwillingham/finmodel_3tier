@@ -103,7 +103,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
     # Prepare initial projected accounts based on input
     # These will be associated with the Projection after it's created and has an ID
+    print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} ---")
     for acc_schema in accounts:
+        print(f"--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} ---")
         projected_account = models.ProjectedAccount(
             name=acc_schema.name,
             account_type=acc_schema.account_type,
