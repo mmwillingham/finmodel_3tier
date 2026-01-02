@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import globalSettingsService from '../services/globalSettings.service';
 import './SettingsPages.css'; // General CSS for settings pages
 import AuthService from '../services/auth.service';
-import AuthService from '../services/auth.service';
 
 const HelpPage = () => {
   const { currentUser } = useAuth();
