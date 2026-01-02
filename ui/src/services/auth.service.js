@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // IMPORTANT: This must match your FastAPI server address/port
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/?$/, '/'); // Ensure trailing slash
+const API_URL = (process.env.REACT_APP_API_URL || "http://localhost:8000").replace(/\/?$/, '/'); // Ensure trailing slash
 
 const AuthService = {
     /**
