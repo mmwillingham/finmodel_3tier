@@ -82,7 +82,7 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 name=item.description,
                 account_type=account_type,
                 initial_value=0.0, # Income is a flow, not a balance
-                monthly_contribution=item.yearly_value / 12,
+                contribution=item.yearly_value / 12 if is_income_item else -(item.yearly_value / 12),
                 growth_rate=item.annual_increase_percent if is_income_item else item.inflation_percent,
                 # Loan specific fields are not applicable for income/expense
                 loan_type=None,
@@ -182,7 +182,7 @@ def create_custom_chart(
     try:
         projection_results = calculations.calculate_projection(
             years=projection_years,
-            accounts=accounts_for_projection,
+            accounts=accounts_for_projection, # Removed .model_dump()
             db=db,
             owner_id=current_user.id
         )
@@ -249,7 +249,7 @@ def update_custom_chart(
         
         logger.debug(f"Parsed series configurations for update: {series_configs}")
 
-        for series_config in series_configs: # Added missing loop
+        for series_config in series_configs:
             item_type = series_config.get('data_type')
             item_id = series_config.get('item_id')
             if item_type and item_id:
@@ -315,7 +315,7 @@ def update_custom_chart(
         try:
             projection_results = calculations.calculate_projection(
                 years=projection_years,
-                accounts=accounts_for_projection,
+                accounts=accounts_for_projection, # Removed .model_dump()
                 db=db,
                 owner_id=current_user.id
             )

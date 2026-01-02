@@ -95,7 +95,8 @@ def calculate_amortized_loan_balance(
 
 
 def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCreate], db: Session, owner_id: int) -> dict:
-    print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---")
+    print(f"""--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---""")
+    print(f"""--- DEBUG: Accounts received by calculate_projection: {accounts} ---""") # NEW DEBUG
 
     # Initialize lists for new models
     projected_accounts_for_db: List[models.ProjectedAccount] = []
@@ -103,9 +104,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
     # Prepare initial projected accounts based on input
     # These will be associated with the Projection after it's created and has an ID
-    print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} ---")
     for acc_schema in accounts:
-        print(f"--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} ---")
+        print(f"""--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} ---""")
         projected_account = models.ProjectedAccount(
             name=acc_schema.name,
             account_type=acc_schema.account_type,
@@ -136,7 +136,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
     # Main Projection Loop
     for year in range(1, years + 1):
-        print(f"--- DEBUG: Starting projection for Year {year} ---")
+        print(f"""--- DEBUG: Starting projection for Year {year} ---""")
 
         # Yearly aggregates
         current_year_total_assets = 0.0
@@ -177,7 +177,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     account_current_balances[projected_account.name] = new_balance
 
                 except ValueError:
-                    logger.warning(f"Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation.")
+                    logger.warning(f"""Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation.""")
                     # Fallback to standard projection logic if date is invalid
                     new_balance = current_balance + (current_balance * (projected_account.growth_rate / 100.0)) + (projected_account.contribution * 12)
                     adjusted_annual_contribution = projected_account.contribution * 12
@@ -277,7 +277,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
     # Final value is the net worth at the end of the last projected year
     final_value_projection = current_year_net_worth if years > 0 else sum(acc.initial_value for acc in projected_accounts_for_db)
 
-    print(f"--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} ---")
+    print(f"""--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} ---""")
     
     # Convert yearly_data_points to a list of dicts for JSON serialization
     data_for_json = [yearly_data_points[year] for year in sorted(yearly_data_points.keys())]
