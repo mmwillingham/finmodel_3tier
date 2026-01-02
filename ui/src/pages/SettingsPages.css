@@ -222,6 +222,26 @@
     background-color: var(--color-primary-dark);
 }
 
+/* Profile Settings specific styles */
+.profile-settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Spacing between form groups */
+}
+
+.profile-settings-form .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-settings-form .form-group label {
+    margin-bottom: 5px;
+}
+
+.profile-settings-form .change-password-btn {
+    align-self: flex-start; /* Align button to the start */
+}
+
 /* Help Page specific styles */
 .help-content-display {
     margin-top: 20px;

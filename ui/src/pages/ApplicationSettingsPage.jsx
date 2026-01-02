@@ -65,44 +65,42 @@ const ApplicationSettingsPage = () => {
       <h2>Application Settings</h2>
       {message && <div className="message">{message}</div>}
 
-      <div className="setting-group">
-        <div>
-          <label htmlFor="default-inflation">
-            Default Inflation Rate (%)
-          </label>
-          <input
-            id="default-inflation"
-            type="number"
-            step="0.1"
-            value={inflationPercent}
-            onChange={(e) => setInflationPercent(e.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="projection-years">
-            Number of Years to Project
-          </label>
-          <input
-            id="projection-years"
-            type="number"
-            value={projectionYears}
-            onChange={(e) => setProjectionYears(e.target.value)}
-            placeholder="30"
-          />
-        </div>
-        <div className="checkbox-group">
-          <label htmlFor="show-chart-totals">
-            Show Chart Totals
-          </label>
-          <input
-            id="show-chart-totals"
-            type="checkbox"
-            checked={showChartTotals}
-            onChange={(e) => setShowChartTotals(e.target.checked)}
-          />
-        </div>
+      <div className="form-group">
+        <label htmlFor="default-inflation">
+          Default Inflation Rate (%)
+        </label>
+        <input
+          id="default-inflation"
+          type="number"
+          step="0.1"
+          value={inflationPercent}
+          onChange={(e) => setInflationPercent(e.target.value)}
+        />
       </div>
-      <button onClick={handleSave} className="save-button">Save Application Settings</button>
+      <div className="form-group">
+        <label htmlFor="projection-years">
+          Number of Years to Project
+        </label>
+        <input
+          id="projection-years"
+          type="number"
+          value={projectionYears}
+          onChange={(e) => setProjectionYears(e.target.value)}
+          placeholder="30"
+        />
+      </div>
+      <div className="form-group checkbox-group">
+        <label htmlFor="show-chart-totals">
+          Show Chart Totals
+        </label>
+        <input
+          id="show-chart-totals"
+          type="checkbox"
+          checked={showChartTotals}
+          onChange={(e) => setShowChartTotals(e.target.checked)}
+        />
+      </div>
+      <button onClick={handleSave} className="save-button">Save</button>
     </div>
   );
 };

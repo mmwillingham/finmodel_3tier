@@ -11,6 +11,58 @@ html, body {
     color: #333;
 }
 
+:root {
+    /* Color Palette */
+    --color-primary: #007bff;
+    --color-primary-light: #e7f2ff;
+    --color-primary-dark: #0056b3;
+    --color-secondary: #6c757d;
+    --color-secondary-light: #f0f2f5;
+    --color-secondary-dark: #5a6268;
+    --color-accent: #28a745; /* Green for success/action */
+    --color-accent-hover: #218838;
+
+    /* Backgrounds */
+    --color-background: #ffffff;
+    --color-background-soft: #f8f9fa;
+    --color-background-secondary: #f0f2f5;
+
+    /* Text Colors */
+    --color-text: #343a40;
+    --color-text-primary: #343a40;
+    --color-text-secondary: #6c757d;
+    --color-text-tertiary: #adb5bd; /* Lighter grey for less prominent text */
+    --color-text-inverted: #ffffff;
+    --color-heading: #212529;
+    --color-label: #495057;
+
+    /* Borders */
+    --color-border: #dee2e6;
+    --color-input-border: #ced4da;
+
+    /* Input Fields */
+    --color-input-background: #ffffff;
+
+    /* Shadows */
+    --shadow-small: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    /* Status Colors (for messages, etc.) */
+    --color-success-background: #d4edda;
+    --color-success-text: #155724;
+    --color-success-border: #c3e6cb;
+
+    --color-error-background: #f8d7da;
+    --color-error-text: #721c24;
+    --color-error-border: #f5c6cb;
+
+    --color-danger-light: #f8d7da;
+    --color-danger-dark: #721c24;
+
+    /* Specific to tags/categories */
+    --color-tag-background: var(--color-primary-light);
+    --color-tag-text: var(--color-primary-dark);
+}
 
 /* Main container to account for fixed header */
 .container {

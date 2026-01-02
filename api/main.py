@@ -628,7 +628,7 @@ def update_projection(
     for ts_data in result["time_series_data"]:
         ts_data.projection_id = projection.id
         db.add(ts_data)
-
+    
     db.commit()
     db.refresh(projection) # Refresh to load relationships
     return projection

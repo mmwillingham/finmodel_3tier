@@ -20,9 +20,9 @@ class User(Base):
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner")
     # Relationship to PasswordResetToken: one user can have many reset tokens (though we'll only allow one active)
-    password_reset_tokens = relationship("PasswordResetToken", back_populates="user_owner")
+    password_reset_tokens = relationship("PasswordResetToken", back_populates="user_owner", cascade="all, delete-orphan")
     # Relationship to EmailConfirmationToken: one user can have many confirmation tokens
-    email_confirmation_tokens = relationship("EmailConfirmationToken", back_populates="user_owner") # NEW RELATIONSHIP
+    email_confirmation_tokens = relationship("EmailConfirmationToken", back_populates="user_owner", cascade="all, delete-orphan") # NEW RELATIONSHIP
     # Relationship to UserSettings: one user has one settings record
     settings = relationship("UserSettings", back_populates="owner", uselist=False) # NEW RELATIONSHIP
 
