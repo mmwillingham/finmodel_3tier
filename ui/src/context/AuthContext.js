@@ -100,6 +100,7 @@ export const AuthProvider = ({ children }) => {
         userSettings,
         token, // Provide token via context for GlobalSettings.jsx
         refreshUserSettings, // Expose refresh function via context
+        checkUserSession, // Expose checkUserSession for GoogleAuthCallback
     };
 
     return (
