@@ -1,6 +1,6 @@
 .settings-dropdown-menu {
     position: absolute;
-    top: 100%; /* Position directly below the hamburger menu */
+    top: 60px; /* Explicitly place below the fixed header */
     right: 0px; /* Align right edge of dropdown with right edge of hamburger container */
     background-color: var(--color-background); /* Use a solid background to obscure content behind it */
     border: 1px solid var(--color-border);
