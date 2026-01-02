@@ -39,7 +39,7 @@ export default function GoogleAuthCallback() {
         };
 
         handleCallback();
-    }, [location, navigate, login]);
+    }, [location, navigate, checkUserSession]);
 
     return (
         <div className="auth-container">

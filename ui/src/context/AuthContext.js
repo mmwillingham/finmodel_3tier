@@ -13,14 +13,12 @@ export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [userSettings, setUserSettings] = useState(null);
-    const [token, setToken] = useState(AuthService.getToken()); // Store token in state
 
     const navigate = useNavigate();
 
     // Function to check and load user session data
     const checkUserSession = async () => {
         const currentToken = AuthService.getToken();
-        setToken(currentToken);
         if (currentToken) {
             try {
                 const userResponse = await AuthService.getCurrentUser();
@@ -36,7 +34,6 @@ export const AuthProvider = ({ children }) => {
                     AuthService.logout();
                     setCurrentUser(null);
                     setUserSettings(null);
-                    setToken(null);
                     // This error will be caught by the LoginPage component
                     throw new Error("Your email address has not been confirmed. Please check your inbox for a confirmation link.");
                 }
@@ -45,7 +42,6 @@ export const AuthProvider = ({ children }) => {
                 AuthService.logout();
                 setCurrentUser(null);
                 setUserSettings(null);
-                setToken(null);
                 console.error("Error checking user session:", error);
             }
         }
@@ -53,26 +49,15 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Main login function, now handles credential exchange
-    const login = async (email, password) => {
+    const login = async () => {
         setIsLoading(true);
-        try {
-            await AuthService.login(email, password); // Exchange credentials for token
-            await checkUserSession(); // Then check session to load user data
-        } catch (error) {
-            setIsLoading(false);
-            AuthService.logout(); // Ensure token is cleared on login failure
-            setToken(null);
-            setCurrentUser(null);
-            setUserSettings(null);
-            throw error; // Re-throw to be caught by LoginPage for error display
-        }
+        await checkUserSession();
     };
 
     const logout = () => {
         AuthService.logout();
         setCurrentUser(null);
         setUserSettings(null);
-        setToken(null);
         navigate('/login');
     };
     
@@ -98,9 +83,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         userSettings,
-        token, // Provide token via context for GlobalSettings.jsx
         refreshUserSettings, // Expose refresh function via context
-        checkUserSession, // Expose checkUserSession for GoogleAuthCallback
     };
 
     return (
