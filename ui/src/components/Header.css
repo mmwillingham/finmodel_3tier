@@ -74,8 +74,8 @@
     height: 20px;
     cursor: pointer;
     padding: 5px;
-    flex-shrink: 0;
     position: relative; /* Establish positioning context for dropdown */
+    flex-shrink: 0;
 }
 
 .hamburger-menu .bar {
