@@ -119,6 +119,7 @@ def create_custom_chart(
             owner_id=current_user.id
         )
         logger.debug(f"Projection calculation successful. Final Value: {projection_results['final_value']}")
+        logger.debug(f"data_json content before saving in create_custom_chart: {projection_results.get('data_json')}") # Debug log for create
     except Exception as e:
         logger.error(f"Error during projection calculation for chart {chart.name}: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
@@ -200,6 +201,7 @@ def update_custom_chart(
                 owner_id=current_user.id
             )
             logger.debug(f"Projection calculation successful for chart update. Final Value: {projection_results['final_value']}")
+            logger.debug(f"data_json content before saving in update_custom_chart: {projection_results.get('data_json')}") # Debug log for update
             db_chart.data_json = projection_results["data_json"]
             db_chart.final_value = projection_results["final_value"]
             db_chart.total_contributed = projection_results["total_contributed"]
