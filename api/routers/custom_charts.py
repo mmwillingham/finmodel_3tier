@@ -225,6 +225,7 @@ def read_custom_chart(
     chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == current_user.id).first()
     if not chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
+    print(f"--- DEBUG: data_json content AFTER retrieval from DB in read_custom_chart (ID: {chart_id}): {chart.data_json} ---")
     return chart
 
 @router.put("/{chart_id}", response_model=schemas.CustomChartOut)
