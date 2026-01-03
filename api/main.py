@@ -25,7 +25,7 @@ import schemas
 import database
 import auth
 import calculations
-from routers import custom_charts
+from routers.custom_charts import router as custom_charts_router # Changed import
 from routers import assets
 from routers import liabilities
 from routers.settings import router as settings_router
@@ -56,7 +56,7 @@ async def startup_event():
 
     logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}")
 
-app.include_router(custom_charts.router)
+app.include_router(custom_charts_router) # Changed to use the aliased router
 app.include_router(settings_router)
 app.include_router(assets.router)
 app.include_router(liabilities.router)
@@ -435,410 +435,410 @@ def check_category_usage(
     return is_in_use
 
 @app.put("/users/me/password", response_model=schemas.UserOut, tags=["users"])
-def change_password(
-    payload: schemas.ChangePasswordRequest,
-    current_user: schemas.UserOut = Depends(auth.get_current_user),
-    db: Session = Depends(database.get_db)
-):
-    """Allows an authenticated user to change their password."""
-    updated_user = auth.change_user_password(
-        db=db,
-        user_id=current_user.id,
-        current_password=payload.current_password,
-        new_password=payload.new_password
-    )
-    return updated_user
-
-@app.post("/forgot-password", status_code=status.HTTP_200_OK, tags=["auth"])
-def forgot_password(
-    payload: schemas.PasswordResetRequest,
-    db: Session = Depends(database.get_db)
-):
-    """Handles the request to initiate a password reset. Sends a reset email if the user exists."""
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
-    if user:
-        token = auth.create_password_reset_token(db, user.id)
-        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-    logger.debug(f"Password reset link: {reset_link}")
-    send_email(
-        to_email=user.email,
-        subject="Financial Projector - Password Reset Request",
-        body="""Hello,
-
-You have requested a password reset for your Financial Projector account.
-
-Please use the following link to reset your password: {reset_link}
-
-This link will expire in 1 hour.
-
-If you did not request a password reset, please ignore this email.
-
-Best regards,
-The Financial Projector Team"""
-    )
-    
-    return {"message": "If an account with that email exists, a password reset link has been sent."}
-
-@app.post("/reset-password", response_model=schemas.UserOut, tags=["auth"])
-def reset_password(
-    payload: schemas.PasswordReset,
-    db: Session = Depends(database.get_db)
-):
-    """Resets the user's password using a valid reset token."""
-    try:
-        updated_user = auth.reset_user_password(
-            db=db,
-            token=payload.token,
-            new_password=payload.new_password
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"New password did not meet requirements: {e}"
-        )
-    except HTTPException as e:
-        raise e
-    return updated_user
-
-@app.post("/verify-email", response_model=schemas.UserOut, tags=["auth"])
-def verify_email(
-    payload: schemas.EmailConfirmation,
-    db: Session = Depends(database.get_db)
-):
-    """Verifies a user's email address using a confirmation token."""
-    try:
-        confirmed_user = auth.verify_email_confirmation_token(db, payload.token)
-    except HTTPException as e:
-        raise e
-    return confirmed_user
-
-@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED, tags=["projections"])
-def create_projection(
-    projection_data: schemas.ProjectionRequest,
-    user: schemas.UserOut = Depends(auth.get_current_user), 
-    db: Session = Depends(database.get_db)
-):
-    """
-    Creates a new projection, runs the calculation, and saves the results to the database."""
-    logger.debug(f"Entering create_projection endpoint for user {user.id}. Calling calculate_projection.")
-    try:
-        projection_results = calculations.calculate_projection(
-            years=projection_data.years,
-            accounts=projection_data.accounts,
-            db=db,
-            owner_id=user.id
-        )
-    except Exception as e:
-        logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail=str(e))
-
-    db_projection = models.Projection(
-        owner_id=user.id,
-        name=projection_data.plan_name,
-        years=projection_data.years,
-        final_value=projection_results["final_value"],
-        total_contributed=projection_results["total_contributed"],
-        total_growth=projection_results["total_growth"],
-    )
-    db.add(db_projection)
-    db.commit()
-    db.refresh(db_projection)
-
-    # Associate projected accounts and time series data with the new projection
-    for acc in projection_results["projected_accounts"]:
-        acc.projection_id = db_projection.id
-        db.add(acc)
-
-    for ts_data in projection_results["time_series_data"]:
-        ts_data.projection_id = db_projection.id
-        db.add(ts_data)
-
-    db.commit()
-    db.refresh(db_projection) # Refresh to load relationships
-
-    return db_projection
-
-@app.get("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
-def get_projection_details(
-    projection_id: int, 
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Retrieves a single projection if the user is the owner."""
-    
-    projection = (
-        db.query(models.Projection)
-        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
-        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
-        .first()
-    )
-    
-    if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
-    
-    return projection
-
-@app.get("/projections", response_model=List[schemas.ProjectionOut], tags=["projections"])
-def list_projections(
-    db: Session = Depends(database.get_db), 
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Lists all projections owned by the current user."""
-    
-    # Only load basic projection data for the list view, details will be fetched by get_projection_details
-    projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
-    
-    return projections
-
-@app.put("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
-def update_projection(
-    projection_id: int,
-    req: schemas.ProjectionRequest,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Updates an existing projection if user is the owner."""
-    projection = (
-        db.query(models.Projection)
-        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
-        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
-        .first()
-    )
-    
-    if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
-    
-    logger.debug(f"Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.")
-    
-    # Delete existing associated data
-    db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
-    db.query(models.ProjectionTimeSeriesData).filter(models.ProjectionTimeSeriesData.projection_id == projection_id).delete()
-    db.commit()
-
-    # Recalculate projection
-    result = calculations.calculate_projection(
-        years=req.years,
-        accounts=req.accounts,
-        db=db,
-        owner_id=current_user.id
-    )
-    
-    # Update projection header details
-    projection.name = req.plan_name
-    projection.years = req.years
-    projection.final_value = result["final_value"]
-    projection.total_contributed = result["total_contributed"]
-    projection.total_growth = result["total_growth"]
-    projection.timestamp = datetime.utcnow()
-    
-    # Add new associated data
-    for acc in result["projected_accounts"]:
-        acc.projection_id = projection.id
-        db.add(acc)
-
-    for ts_data in result["time_series_data"]:
-        ts_data.projection_id = projection.id
-        db.add(ts_data)
-    
-    db.commit()
-    db.refresh(projection) # Refresh to load relationships
-    return projection
-
-@app.post("/debug-projection-calc", response_model=schemas.ProjectionResponse, tags=["debug"], summary="Debug: Directly run projection calculation")
-def debug_run_projection_calculation(
-    projection_data: schemas.ProjectionRequest,
-    db: Session = Depends(database.get_db),
-    # current_user: schemas.UserOut = Depends(auth.get_current_user) # Temporarily commented out for debug endpoint
-):
-    logger.debug("Received request for /debug-projection-calc. Calling calculate_projection.")
-    # For local debugging, we'll use a hardcoded owner_id.
-    test_owner_id = 1 # Assuming user_id 1 exists in your local DB for testing
-
-    try:
-        projection_results = calculations.calculate_projection(
-            years=projection_data.years,
-            accounts=projection_data.accounts,
-            db=db,
-            owner_id=test_owner_id # Using a test owner ID for direct debugging
-        )
-        logger.debug("calculate_projection returned successfully.")
-
-        # Manually create a ProjectionResponse to return the structured data
-        # This mimics what create_projection would do, but without saving to DB
-        temp_projection_response = schemas.ProjectionResponse(
-            id=0, # Dummy ID as it's not saved to DB
-            name=projection_data.plan_name,
-            years=projection_data.years,
-            final_value=projection_results["final_value"],
-            total_contributed=projection_results["total_contributed"],
-            total_growth=projection_results["total_growth"],
-            accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
-            time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in projection_results["time_series_data"]]
-        )
-        return temp_projection_response
-
-    except Exception as e:
-        logger.error(f"Error during /debug-projection-calc: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Debug projection calculation failed: {e}")
-
-@app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
-def delete_projection(
-    projection_id: int,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Delete a projection if the current user is the owner."""
-    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
-    if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found.")
-    if projection.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-
-    db.delete(projection)
-    db.commit()
-    return Response(status_code=204)
-
-@app.get("/cashflow", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
-def list_cashflow(
-    is_income: bool,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    logger.debug(f"list_cashflow: User ID: {current_user.id}, Is Income: {is_income}")
-    cashflow_items = (
-        db.query(models.CashFlowItem)
-        .filter(models.CashFlowItem.owner_id == current_user.id)
-        .filter(models.CashFlowItem.is_income == is_income)
-        .order_by(models.CashFlowItem.id.desc())
-        .all()
-    )
-    logger.debug(f"list_cashflow: Found {len(cashflow_items)} items for user {current_user.id}, Is Income: {is_income}")
-    return cashflow_items
-
-def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowCreate | schemas.CashFlowUpdate):
-    if payload.linked_item_id and payload.linked_item_type and payload.percentage is not None:
-        linked_value = 0.0
-        if payload.linked_item_type == "asset":
-            linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
-            if linked_item:
-                linked_value = linked_item.value
-        elif payload.linked_item_type == "income":
-            linked_item = db.query(models.CashFlowItem).filter(
-                models.CashFlowItem.id == payload.linked_item_id,
-                models.CashFlowItem.is_income == True
-            ).first()
-            if linked_item:
-                linked_value = linked_item.yearly_value
-        
-        return linked_value * (payload.percentage / 100.0) * (12 if payload.frequency == "monthly" else 1)
-    else:
-        return payload.value * 12 if payload.frequency == "monthly" else payload.value
-
-
-@app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
-def create_cashflow(
-    payload: schemas.CashFlowCreate,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
-    
-    item = models.CashFlowItem(
-        owner_id=current_user.id,
-        is_income=payload.is_income,
-        category=payload.category,
-        description=payload.description,
-        frequency=payload.frequency,
-        yearly_value=yearly_value,
-        annual_increase_percent=payload.annual_increase_percent,
-        inflation_percent=payload.inflation_percent,
-        person=payload.person,
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-        taxable=payload.taxable,
-        tax_deductible=payload.taxable,
-        linked_item_id=payload.linked_item_id,
-        linked_item_type=payload.linked_item_type,
-        percentage=payload.percentage,
-        contributes_to_asset_id=payload.contributes_to_asset_id
-    )
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
-
-@app.put("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
-def update_cashflow(
-    item_id: int,
-    payload: schemas.CashFlowUpdate,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if item.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
-    
-    for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(item, key, value)
-    item.yearly_value = yearly_value # Ensure yearly_value is explicitly set after calculation
-    
-    db.commit()
-    db.refresh(item)
-    return item
-
-@app.delete("/cashflow/{item_id}", status_code=204, tags=["cashflow"])
-def delete_cashflow(
-    item_id: int,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if item.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-
-    db.delete(item)
-    db.commit()
-    return Response(status_code=204)
-
-import socket
-
-@app.get("/debug/proxy-check", tags=["debug"], summary="Debug: Check Cloud SQL Proxy connectivity")
-async def debug_proxy_check():
-    host = "127.0.0.1"
-    port = 5432
-    try:
-        with socket.create_connection((host, port), timeout=5) as sock:
-            return {"status": "success", "message": f"Successfully connected to Cloud SQL Proxy at {host}:{port}"}
-    except socket.error as e:
-        return {"status": "error", "message": f"Failed to connect to Cloud SQL Proxy at {host}:{port}: {e}"}
-    except Exception as e:
-        return {"status": "error", "message": f"An unexpected error occurred: {e}"}
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    logger.debug(f"HTTPException caught: {exc.detail}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    error_traceback = traceback.format_exc()
-    logger.error(f"Unhandled exception: {error_traceback}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal Server Error. Please check logs for details."},
-    )
+   438|def change_password(
+   439|    payload: schemas.ChangePasswordRequest,
+   440|    current_user: schemas.UserOut = Depends(auth.get_current_user),
+   441|    db: Session = Depends(database.get_db)
+   442|):
+   443|    """Allows an authenticated user to change their password."""
+   444|    updated_user = auth.change_user_password(
+   445|        db=db,
+   446|        user_id=current_user.id,
+   447|        current_password=payload.current_password,
+   448|        new_password=payload.new_password
+   449|    )
+   450|    return updated_user
+   451|
+   452|@app.post("/forgot-password", status_code=status.HTTP_200_OK, tags=["auth"])
+   453|def forgot_password(
+   454|    payload: schemas.PasswordResetRequest,
+   455|    db: Session = Depends(database.get_db)
+   456|):
+   457|    """Handles the request to initiate a password reset. Sends a reset email if the user exists."""
+   458|    user = db.query(models.User).filter(models.User.email == payload.email).first()
+   459|    if user:
+   460|        token = auth.create_password_reset_token(db, user.id)
+   461|        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+   462|    logger.debug(f"Password reset link: {reset_link}")
+   463|    send_email(
+   464|        to_email=user.email,
+   465|        subject="Financial Projector - Password Reset Request",
+   466|        body="""Hello,
+   467|
+   468|You have requested a password reset for your Financial Projector account.
+   469|
+   470|Please use the following link to reset your password: {reset_link}
+   471|
+   472|This link will expire in 1 hour.
+   473|
+   474|If you did not request a password reset, please ignore this email.
+   475|
+   476|Best regards,
+   477|The Financial Projector Team"""
+   478|    )
+   479|    
+   480|    return {"message": "If an account with that email exists, a password reset link has been sent."}
+   481|
+   482|@app.post("/reset-password", response_model=schemas.UserOut, tags=["auth"])
+   483|def reset_password(
+   484|    payload: schemas.PasswordReset,
+   485|    db: Session = Depends(database.get_db)
+   486|):
+   487|    """Resets the user's password using a valid reset token."""
+   488|    try:
+   489|        updated_user = auth.reset_user_password(
+   490|            db=db,
+   491|            token=payload.token,
+   492|            new_password=payload.new_password
+   493|        )
+   494|    except ValueError as e:
+   495|        raise HTTPException(
+   496|            status_code=status.HTTP_400_BAD_REQUEST,
+   497|            detail=f"New password did not meet requirements: {e}"
+   498|        )
+   499|    except HTTPException as e:
+   500|        raise e
+   501|    return updated_user
+   502|
+   503|@app.post("/verify-email", response_model=schemas.UserOut, tags=["auth"])
+   504|def verify_email(
+   505|    payload: schemas.EmailConfirmation,
+   506|    db: Session = Depends(database.get_db)
+   507|):
+   508|    """Verifies a user's email address using a confirmation token."""
+   509|    try:
+   510|        confirmed_user = auth.verify_email_confirmation_token(db, payload.token)
+   511|    except HTTPException as e:
+   512|        raise e
+   513|    return confirmed_user
+   514|
+   515|@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED, tags=["projections"])
+   516|def create_projection(
+   517|    projection_data: schemas.ProjectionRequest,
+   518|    user: schemas.UserOut = Depends(auth.get_current_user), 
+   519|    db: Session = Depends(database.get_db)
+   520|):
+   521|    """
+   522|    Creates a new projection, runs the calculation, and saves the results to the database."""
+   523|    logger.debug(f"Entering create_projection endpoint for user {user.id}. Calling calculate_projection.")
+   524|    try:
+   525|        projection_results = calculations.calculate_projection(
+   526|            years=projection_data.years,
+   527|            accounts=projection_data.accounts,
+   528|            db=db,
+   529|            owner_id=user.id
+   530|        )
+   531|    except Exception as e:
+   532|        logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
+   533|        raise HTTPException(status_code=400, detail=str(e))
+   534|
+   535|    db_projection = models.Projection(
+   536|        owner_id=user.id,
+   537|        name=projection_data.plan_name,
+   538|        years=projection_data.years,
+   539|        final_value=projection_results["final_value"],
+   540|        total_contributed=projection_results["total_contributed"],
+   541|        total_growth=projection_results["total_growth"],
+   542|    )
+   543|    db.add(db_projection)
+   544|    db.commit()
+   545|    db.refresh(db_projection)
+   546|
+   547|    # Associate projected accounts and time series data with the new projection
+   548|    for acc in projection_results["projected_accounts"]:
+   549|        acc.projection_id = db_projection.id
+   550|        db.add(acc)
+   551|
+   552|    for ts_data in projection_results["time_series_data"]:
+   553|        ts_data.projection_id = db_projection.id
+   554|        db.add(ts_data)
+   555|
+   556|    db.commit()
+   557|    db.refresh(db_projection) # Refresh to load relationships
+   558|
+   559|    return db_projection
+   560|
+   561|@app.get("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
+   562|def get_projection_details(
+   563|    projection_id: int, 
+   564|    db: Session = Depends(database.get_db),
+   565|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   566|):
+   567|    """
+   568|    Retrieves a single projection if the user is the owner."""
+   569|    
+   570|    projection = (
+   571|        db.query(models.Projection)
+   572|        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
+   573|        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
+   574|        .first()
+   575|    )
+   576|    
+   577|    if not projection:
+   578|        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
+   579|    
+   580|    return projection
+   581|
+   582|@app.get("/projections", response_model=List[schemas.ProjectionOut], tags=["projections"])
+   583|def list_projections(
+   584|    db: Session = Depends(database.get_db), 
+   585|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   586|):
+   587|    """
+   588|    Lists all projections owned by the current user."""
+   589|    
+   590|    # Only load basic projection data for the list view, details will be fetched by get_projection_details
+   591|    projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
+   592|    
+   593|    return projections
+   594|
+   595|@app.put("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
+   596|def update_projection(
+   597|    projection_id: int,
+   598|    req: schemas.ProjectionRequest,
+   599|    db: Session = Depends(database.get_db),
+   600|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   601|):
+   602|    """
+   603|    Updates an existing projection if user is the owner."""
+   604|    projection = (
+   605|        db.query(models.Projection)
+   606|        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
+   607|        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
+   608|        .first()
+   609|    )
+   610|    
+   611|    if not projection:
+   612|        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
+   613|    
+   614|    logger.debug(f"Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.")
+   615|    
+   616|    # Delete existing associated data
+   617|    db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
+   618|    db.query(models.ProjectionTimeSeriesData).filter(models.ProjectionTimeSeriesData.projection_id == projection_id).delete()
+   619|    db.commit()
+   620|
+   621|    # Recalculate projection
+   622|    result = calculations.calculate_projection(
+   623|        years=req.years,
+   624|        accounts=req.accounts,
+   625|        db=db,
+   626|        owner_id=current_user.id
+   627|    )
+   628|    
+   629|    # Update projection header details
+   630|    projection.name = req.plan_name
+   631|    projection.years = req.years
+   632|    projection.final_value = result["final_value"]
+   633|    projection.total_contributed = result["total_contributed"]
+   634|    projection.total_growth = result["total_growth"]
+   635|    projection.timestamp = datetime.utcnow()
+   636|    
+   637|    # Add new associated data
+   638|    for acc in result["projected_accounts"]:
+   639|        acc.projection_id = projection.id
+   640|        db.add(acc)
+   641|
+   642|    for ts_data in result["time_series_data"]:
+   643|        ts_data.projection_id = projection.id
+   644|        db.add(ts_data)
+   645|    
+   646|    db.commit()
+   647|    db.refresh(projection) # Refresh to load relationships
+   648|    return projection
+   649|
+   650|@app.post("/debug-projection-calc", response_model=schemas.ProjectionResponse, tags=["debug"], summary="Debug: Directly run projection calculation")
+   651|def debug_run_projection_calculation(
+   652|    projection_data: schemas.ProjectionRequest,
+   653|    db: Session = Depends(database.get_db),
+   654|    # current_user: schemas.UserOut = Depends(auth.get_current_user) # Temporarily commented out for debug endpoint
+   655|):
+   656|    logger.debug("Received request for /debug-projection-calc. Calling calculate_projection.")
+   657|    # For local debugging, we'll use a hardcoded owner_id.
+   658|    test_owner_id = 1 # Assuming user_id 1 exists in your local DB for testing
+   659|
+   660|    try:
+   661|        projection_results = calculations.calculate_projection(
+   662|            years=projection_data.years,
+   663|            accounts=projection_data.accounts,
+   664|            db=db,
+   665|            owner_id=test_owner_id # Using a test owner ID for direct debugging
+   666|        )
+   667|        logger.debug("calculate_projection returned successfully.")
+   668|
+   669|        # Manually create a ProjectionResponse to return the structured data
+   670|        # This mimics what create_projection would do, but without saving to DB
+   671|        temp_projection_response = schemas.ProjectionResponse(
+   672|            id=0, # Dummy ID as it's not saved to DB
+   673|            name=projection_data.plan_name,
+   674|            years=projection_data.years,
+   675|            final_value=projection_results["final_value"],
+   676|            total_contributed=projection_results["total_contributed"],
+   677|            total_growth=projection_results["total_growth"],
+   678|            accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
+   679|            time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in projection_results["time_series_data"]]
+   680|        )
+   681|        return temp_projection_response
+   682|
+   683|    except Exception as e:
+   684|        logger.error(f"Error during /debug-projection-calc: {e}", exc_info=True)
+   685|        raise HTTPException(status_code=500, detail=f"Debug projection calculation failed: {e}")
+   686|
+   687|@app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
+   688|def delete_projection(
+   689|    projection_id: int,
+   690|    db: Session = Depends(database.get_db),
+   691|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   692|):
+   693|    """
+   694|    Delete a projection if the current user is the owner."""
+   695|    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
+   696|    if not projection:
+   697|        raise HTTPException(status_code=404, detail="Projection not found.")
+   698|    if projection.owner_id != current_user.id:
+   699|        raise HTTPException(status_code=403, detail="Not authorized")
+   700|    
+   701|
+   702|    db.delete(projection)
+   703|    db.commit()
+   704|    return Response(status_code=204)
+   705|
+   706|@app.get("/cashflow", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
+   707|def list_cashflow(
+   708|    is_income: bool,
+   709|    db: Session = Depends(database.get_db),
+   710|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   711|):
+   712|    logger.debug(f"list_cashflow: User ID: {current_user.id}, Is Income: {is_income}")
+   713|    cashflow_items = (
+   714|        db.query(models.CashFlowItem)
+   715|        .filter(models.CashFlowItem.owner_id == current_user.id)
+   716|        .filter(models.CashFlowItem.is_income == is_income)
+   717|        .order_by(models.CashFlowItem.id.desc())
+   718|        .all()
+   719|    )
+   720|    logger.debug(f"list_cashflow: Found {len(cashflow_items)} items for user {current_user.id}, Is Income: {is_income}")
+   721|    return cashflow_items
+   722|
+   723|def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowCreate | schemas.CashFlowUpdate):
+   724|    if payload.linked_item_id and payload.linked_item_type and payload.percentage is not None:
+   725|        linked_value = 0.0
+   726|        if payload.linked_item_type == "asset":
+   727|            linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
+   728|            if linked_item:
+   729|                linked_value = linked_item.value
+   730|        elif payload.linked_item_type == "income":
+   731|            linked_item = db.query(models.CashFlowItem).filter(
+   732|                models.CashFlowItem.id == payload.linked_item_id,
+   733|                models.CashFlowItem.is_income == True
+   734|            ).first()
+   735|            if linked_item:
+   736|                linked_value = linked_item.yearly_value
+   737|        
+   738|        return linked_value * (payload.percentage / 100.0) * (12 if payload.frequency == "monthly" else 1)
+   739|    else:
+   740|        return payload.value * 12 if payload.frequency == "monthly" else payload.value
+   741|
+   742|
+   743|@app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
+   744|def create_cashflow(
+   745|    payload: schemas.CashFlowCreate,
+   746|    db: Session = Depends(database.get_db),
+   747|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   748|):
+   749|    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
+   750|    
+   751|    item = models.CashFlowItem(
+   752|        owner_id=current_user.id,
+   753|        is_income=payload.is_income,
+   754|        category=payload.category,
+   755|        description=payload.description,
+   756|        frequency=payload.frequency,
+   757|        yearly_value=yearly_value,
+   758|        annual_increase_percent=payload.annual_increase_percent,
+   759|        inflation_percent=payload.inflation_percent,
+   760|        person=payload.person,
+   761|        start_date=payload.start_date,
+   762|        end_date=payload.end_date,
+   763|        taxable=payload.taxable,
+   764|        tax_deductible=payload.taxable,
+   765|        linked_item_id=payload.linked_item_id,
+   766|        linked_item_type=payload.linked_item_type,
+   767|        percentage=payload.percentage,
+   768|        contributes_to_asset_id=payload.contributes_to_asset_id
+   769|    )
+   770|    db.add(item)
+   771|    db.commit()
+   772|    db.refresh(item)
+   773|    return item
+   774|
+   775|@app.put("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
+   776|def update_cashflow(
+   777|    item_id: int,
+   778|    payload: schemas.CashFlowUpdate,
+   779|    db: Session = Depends(database.get_db),
+   780|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   781|):
+   782|    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
+   783|    if not item:
+   784|        raise HTTPException(status_code=404, detail="Item not found")
+   785|    if item.owner_id != current_user.id:
+   786|        raise HTTPException(status_code=403, detail="Not authorized")
+   787|    
+   788|    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
+   789|    
+   790|    for key, value in payload.model_dump(exclude_unset=True).items():
+   791|        setattr(item, key, value)
+   792|    item.yearly_value = yearly_value # Ensure yearly_value is explicitly set after calculation
+   793|    
+   794|    db.commit()
+   795|    db.refresh(item)
+   796|    return item
+   797|
+   798|@app.delete("/cashflow/{item_id}", status_code=204, tags=["cashflow"])
+   799|def delete_cashflow(
+   800|    item_id: int,
+   801|    db: Session = Depends(database.get_db),
+   802|    current_user: schemas.UserOut = Depends(auth.get_current_user)
+   803|):
+   804|    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
+   805|    if not item:
+   806|        raise HTTPException(status_code=404, detail="Item not found")
+   807|    if item.owner_id != current_user.id:
+   808|        raise HTTPException(status_code=403, detail="Not authorized")
+   809|    
+   810|
+   811|    db.delete(item)
+   812|    db.commit()
+   813|    return Response(status_code=204)
+   814|
+   815|import socket
+   816|
+   817|@app.get("/debug/proxy-check", tags=["debug"], summary="Debug: Check Cloud SQL Proxy connectivity")
+   818|async def debug_proxy_check():
+   819|    host = "127.0.0.1"
+   820|    port = 5432
+   821|    try:
+   822|        with socket.create_connection((host, port), timeout=5) as sock:
+   823|            return {"status": "success", "message": f"Successfully connected to Cloud SQL Proxy at {host}:{port}"}
+   824|    except socket.error as e:
+   825|        return {"status": "error", "message": f"Failed to connect to Cloud SQL Proxy at {host}:{port}: {e}"}
+   826|    except Exception as e:
+   827|        return {"status": "error", "message": f"An unexpected error occurred: {e}"}
+   828|
+   829|@app.exception_handler(HTTPException)
+   830|async def http_exception_handler(request: Request, exc: HTTPException):
+   831|    logger.debug(f"HTTPException caught: {exc.detail}")
+   832|    return JSONResponse(
+   833|        status_code=exc.status_code,
+   834|        content={"detail": exc.detail},
+   835|    )
+   836|
+   837|@app.exception_handler(Exception)
+   838|async def general_exception_handler(request: Request, exc: Exception):
+   839|    error_traceback = traceback.format_exc()
+   840|    logger.error(f"Unhandled exception: {error_traceback}", exc_info=True)
+   841|    return JSONResponse(
+   842|        status_code=500,
+   843|        content={"detail": "Internal Server Error. Please check logs for details."},
+   844|    )
