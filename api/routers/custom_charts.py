@@ -172,7 +172,7 @@ def create_custom_chart(
         print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush() # NEW DEBUG LINE
         print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush() # NEW DEBUG LINE
         
-        from api import calculations # Lazy import
+        from .. import calculations # Lazy import
         projection_results = calculations.calculate_projection(
             years=projection_years,
             accounts=accounts_for_projection,
@@ -315,7 +315,7 @@ def update_custom_chart(
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
 
         try:
-            from api import calculations # Lazy import
+            from .. import calculations # Lazy import
             projection_results = calculations.calculate_projection(
                 years=projection_years,
                 accounts=accounts_for_projection,
