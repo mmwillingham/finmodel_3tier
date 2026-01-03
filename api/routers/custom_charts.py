@@ -329,8 +329,8 @@ def update_custom_chart(
             db_chart.total_contributed = projection_results["total_contributed"]
             db_chart.total_growth = projection_results["total_growth"]
         except Exception as e:
-                print(f"--- CRITICAL ERROR: Error during projection calculation for chart update {db_chart.name}: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed during update: {e}")
+            print(f"--- CRITICAL ERROR: Error during projection calculation for chart update {db_chart.name}: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed during update: {e}")
 
     update_data = chart_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
