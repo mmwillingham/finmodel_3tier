@@ -20,6 +20,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const tableRef = useRef(null); // New ref for the table
   const currentYear = new Date().getFullYear();
   const [showChartTotals, setShowChartTotals] = useState(true); // State for individual chart totals
+  const [showChartTotalsDisabled, setShowChartTotalsDisabled] = useState(false); // State to disable totals checkbox when data types differ
     const [currentDisplayType, setCurrentDisplayType] = useState("currency"); // New state for display type
 
   const formatValue = useCallback((value, displayType) => {
@@ -203,6 +204,19 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           console.log("DEBUG (CustomChartView.jsx): Parsed data_json in useEffect:", parsedDataJson); // RE-ADDED LOG
         } catch (parseError) {
           console.error("DEBUG (CustomChartView.jsx): Error parsing data_json in useEffect:", parseError);
+        }
+        // Check if series have different data types - if so, disable totals
+        try {
+          const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
+          const dataTypes = seriesConfigurations.map(s => s.data_type);
+          const uniqueDataTypes = [...new Set(dataTypes)];
+          const hasMultipleDataTypes = uniqueDataTypes.length > 1;
+          setShowChartTotalsDisabled(hasMultipleDataTypes);
+          if (hasMultipleDataTypes) {
+            setShowChartTotals(false); // Automatically uncheck if multiple data types
+          }
+        } catch (e) {
+          console.error("Error parsing series configurations for totals check:", e);
         }
         prepareChartData(fetchedConfig); // Call the memoized function
       } catch (error) {
@@ -410,6 +424,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             type="checkbox"
             checked={showChartTotals}
             onChange={(e) => setShowChartTotals(e.target.checked)}
+            disabled={showChartTotalsDisabled}
           />
           Show Chart Totals
         </label>

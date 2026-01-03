@@ -130,7 +130,7 @@ export default function CustomChartForm({
       if (value) {
         newSeries[index].label = value;
       } else {
-        newSeries[index].label = ''; // Clear label if "All Categories" is selected
+        newSeries[index].label = 'All Categories'; // Set label to "All Categories" if "All Categories" is selected
       }
     }
     setSeriesConfigurations(newSeries);
