@@ -36,18 +36,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     const targetCategory = series.category;
     const targetLabel = series.label; // Use series.label to match specific liability names
 
-    const isCategoryOfDataType = (category, dataType) => {
-      // This helper needs to be aware of how categories are structured on the backend.
-      // Assuming for now that the assetCategories, liabilityCategories, etc. props contain simple string arrays.
-      switch (dataType) {
-        case 'assets': return assets.some(a => a.category === category);
-        case 'liabilities': return liabilities.some(l => l.category === category);
-        case 'income': return incomeItems.some(i => i.category === category);
-        case 'expenses': return expenseItems.some(e => e.category === category);
-        default: return false;
-      }
-    };
-
     // Special handling for amortized liabilities
     if (targetDataType === 'liabilities') {
         const matchingLiability = liabilities.find(l => l.name === targetLabel && l.category === targetCategory);
@@ -61,23 +49,48 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
     for (const key in dataPoint) {
       if (key.endsWith('_Value')) {
-        const categoryFromKey = key.replace('_Value', '');
+        const itemNameFromKey = key.replace('_Value', '');
         const value = dataPoint[key] || 0;
 
-        if (targetCategory && targetCategory !== "") {
-          if (categoryFromKey === targetCategory && isCategoryOfDataType(categoryFromKey, targetDataType)) {
-            sum += value;
+        // Find the item in the appropriate array to get its category
+        let itemCategory = null;
+        let itemMatchesDataType = false;
+
+        if (targetDataType === 'assets') {
+          const item = assets.find(a => a.name === itemNameFromKey);
+          if (item) {
+            itemCategory = item.category;
+            itemMatchesDataType = true;
           }
-        } else { // No specific category requested, sum all items of the target data type
-          // Check if the item corresponding to categoryFromKey belongs to targetDataType
-          // This logic is simplified and might need refinement based on exact backend data structure
-          if (
-              (targetDataType === 'assets' && assets.some(a => a.name === categoryFromKey)) ||
-              (targetDataType === 'liabilities' && liabilities.some(l => l.name === categoryFromKey && l.loan_type !== 'amortized')) || // Exclude amortized here
-              (targetDataType === 'income' && incomeItems.some(i => i.description === categoryFromKey)) ||
-              (targetDataType === 'expenses' && expenseItems.some(e => e.description === categoryFromKey))
-          ) {
+        } else if (targetDataType === 'liabilities') {
+          const item = liabilities.find(l => l.name === itemNameFromKey && l.loan_type !== 'amortized');
+          if (item) {
+            itemCategory = item.category;
+            itemMatchesDataType = true;
+          }
+        } else if (targetDataType === 'income') {
+          const item = incomeItems.find(i => i.description === itemNameFromKey);
+          if (item) {
+            itemCategory = item.category;
+            itemMatchesDataType = true;
+          }
+        } else if (targetDataType === 'expenses') {
+          const item = expenseItems.find(e => e.description === itemNameFromKey);
+          if (item) {
+            itemCategory = item.category;
+            itemMatchesDataType = true;
+          }
+        }
+
+        if (itemMatchesDataType) {
+          if (targetCategory && targetCategory !== "") {
+            // Filter by category: only include if the item's category matches
+            if (itemCategory === targetCategory) {
               sum += value;
+            }
+          } else {
+            // No category filter: include all items of the target data type
+            sum += value;
           }
         }
       }
