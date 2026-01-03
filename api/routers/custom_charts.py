@@ -178,8 +178,8 @@ def create_custom_chart(
         else:
             print(f"--- WARNING: Invalid series config: {series_config} ---")
 
-    print(f"--- DEBUG: Accounts prepared for projection: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---")
-
+    print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---") # NEW DEBUG LINE
+    print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---")
     try:
         projection_results = calculations.calculate_projection(
             years=projection_years,
@@ -188,6 +188,7 @@ def create_custom_chart(
             owner_id=current_user.id
         )
         print(f"--- DEBUG: Projection calculation successful. Final Value: {projection_results['final_value']} ---")
+        print(f"--- DEBUG: data_json content after calculation, before model assignment: {projection_results.get('data_json')} ---") # NEW DEBUG LINE
         print(f"--- DEBUG: data_json content before saving in create_custom_chart: {projection_results.get('data_json')} ---") # Debug log for create
     except Exception as e:
         print(f"--- ERROR: Error during projection calculation for chart {chart.name}: {e} ---")
