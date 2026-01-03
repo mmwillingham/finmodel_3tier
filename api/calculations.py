@@ -269,7 +269,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 "Total Income Flow": current_year_total_income_flow,
                 "Total Expense Flow": current_year_total_expense_flow,
                 "Net Cash Flow": current_year_total_income_flow + current_year_total_expense_flow,
-                **{acc.name: account_current_balances[acc.name] for acc in projected_accounts_for_db} # Individual account balances
+                **{f"{acc.name}_Value": account_current_balances[acc.name] for acc in projected_accounts_for_db} # Individual account balances with _Value suffix
             }
 
             time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_assets", value=current_year_total_assets))
