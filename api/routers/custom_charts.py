@@ -23,6 +23,7 @@ try:
         prefix="/custom_charts",
         tags=["Custom Charts"],
         responses={404: {"description": "Not found"}},
+        redirect_slashes=False
     )
     print(f"--- DEBUG: Custom Charts Router instantiated with prefix: {router.prefix} ---"); sys.stdout.flush() # NEW DEBUG
 except Exception as e:
