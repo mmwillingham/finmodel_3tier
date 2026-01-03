@@ -18,11 +18,16 @@ from auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(
-    prefix="/custom_charts",
-    tags=["Custom Charts"],
-    responses={404: {"description": "Not found"}},
-)
+try:
+    router = APIRouter(
+        prefix="/custom_charts",
+        tags=["Custom Charts"],
+        responses={404: {"description": "Not found"}},
+    )
+    print(f"--- DEBUG: Custom Charts Router instantiated with prefix: {router.prefix} ---"); sys.stdout.flush() # NEW DEBUG
+except Exception as e:
+    print(f"--- CRITICAL ERROR: Failed to instantiate Custom Charts Router: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+    raise
 
 def fetch_and_convert_item(db: Session, current_user: models.User, item_type: str, item_id: int) -> Optional[schemas.ProjectedAccountCreate]:
     print(f"--- DEBUG: Attempting to fetch item_type: {item_type}, item_id: {item_id} ---"); sys.stdout.flush()
