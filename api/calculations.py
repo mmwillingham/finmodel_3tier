@@ -2,7 +2,7 @@ import json
 import logging
 import traceback
 import sys
-print(f"--- DEBUG: api/calculations.py LOADED (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+print(f"--- DEBUG: api/calculations.py LOADED ---"); sys.stdout.flush()
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -100,9 +100,9 @@ def calculate_amortized_loan_balance(
 
 def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCreate], db: Session, owner_id: int) -> dict:
     try:
-        print(f"--- DEBUG: TOP OF calculate_projection function. Owner ID: {owner_id} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
-        print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
-        print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush() # NEW DEBUG
+        print(f"--- DEBUG: TOP OF calculate_projection function. Owner ID: {owner_id} ---"); sys.stdout.flush()
+        print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---"); sys.stdout.flush()
+        print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} ---"); sys.stdout.flush() # NEW DEBUG
 
         # Initialize lists for new models
         projected_accounts_for_db: List[models.ProjectedAccount] = []
@@ -111,7 +111,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Prepare initial projected accounts based on input
         # These will be associated with the Projection after it's created and has an ID
         for acc_schema in accounts:
-            print(f"--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+            print(f"--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} ---"); sys.stdout.flush()
             projected_account = models.ProjectedAccount(
                 name=acc_schema.name,
                 account_type=acc_schema.account_type,
@@ -142,7 +142,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
         # Main Projection Loop
         for year in range(1, years + 1):
-            print(f"--- DEBUG: Starting projection for Year {year} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+            print(f"--- DEBUG: Starting projection for Year {year} ---"); sys.stdout.flush()
 
             # Yearly aggregates
             current_year_total_assets = 0.0
@@ -283,7 +283,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Final value is the net worth at the end of the last projected year
         final_value_projection = current_year_net_worth if years > 0 else sum(acc.initial_value for acc in projected_accounts_for_db)
 
-        print(f"--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+        print(f"--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} ---"); sys.stdout.flush()
         
         # Convert yearly_data_points to a list of dicts for JSON serialization
         data_for_json = [yearly_data_points[year] for year in sorted(yearly_data_points.keys())]
