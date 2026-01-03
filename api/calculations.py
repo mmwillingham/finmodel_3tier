@@ -130,6 +130,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             projected_accounts_for_db.append(projected_account)
 
         # Dictionary to hold current balances for each account, updated yearly
+        # For income/expense items, initial_value is 0 (they don't have balances)
         account_current_balances = {acc.name: acc.initial_value for acc in projected_accounts_for_db}
         yearly_data_points = {} # NEW: Dictionary to build up data for data_json
 
@@ -196,29 +197,70 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     if projected_account.account_type == "liability" and current_balance > 0:
                         current_balance = -abs(current_balance)
                     
+                    # Check if this is a dynamic cashflow item (linked to an asset)
+                    # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
+                    linked_asset_name = None
+                    linked_percentage = None
+                    base_account_name = projected_account.name
+                    
+                    if "|LINKED:" in projected_account.name and "|PERCENTAGE:" in projected_account.name:
+                        # Extract linked asset name and percentage
+                        parts = projected_account.name.split("|LINKED:")
+                        if len(parts) == 2:
+                            base_account_name = parts[0]
+                            rest = parts[1]
+                            percent_parts = rest.split("|PERCENTAGE:")
+                            if len(percent_parts) == 2:
+                                linked_asset_name = percent_parts[0]
+                                try:
+                                    linked_percentage = float(percent_parts[1])
+                                except ValueError:
+                                    linked_percentage = None
+                    
+                    # Calculate contribution for this year
+                    if linked_asset_name and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
+                        # Dynamic item: recalculate contribution based on linked asset's current value
+                        if linked_asset_name in account_current_balances:
+                            linked_asset_value = account_current_balances[linked_asset_name]
+                            # Calculate yearly value as percentage of linked asset value
+                            yearly_value = linked_asset_value * (linked_percentage / 100.0)
+                            adjusted_annual_contribution = yearly_value if projected_account.account_type == "income" else -yearly_value
+                            print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {linked_asset_name} value={linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} ---"); sys.stdout.flush()
+                        else:
+                            # Linked asset not found in projection, use 0
+                            adjusted_annual_contribution = 0.0
+                            print(f"--- WARNING: Linked asset {linked_asset_name} not found for dynamic item {base_account_name} ---"); sys.stdout.flush()
+                    else:
+                        # Fixed contribution item
+                        # Monthly contribution
+                        adjusted_annual_contribution = projected_account.contribution * 12
+                        # Contributions to liabilities/expenses are negative cash flow
+                        if projected_account.account_type in ["liability", "expense"]:
+                            adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution
+                        elif projected_account.account_type == "income":
+                             adjusted_annual_contribution = abs(adjusted_annual_contribution)
+
                     # Annual increase/decrease rate
                     effective_growth_rate = projected_account.growth_rate / 100.0
-
-                    # Monthly contribution
-                    adjusted_annual_contribution = projected_account.contribution * 12
-                    # Contributions to liabilities/expenses are negative cash flow
-                    if projected_account.account_type in ["liability", "expense"]:
-                        adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution
-                    elif projected_account.account_type == "income":
-                         adjusted_annual_contribution = abs(adjusted_annual_contribution)
-
 
                     # Calculate growth on existing balance
                     growth_on_balance = current_balance * effective_growth_rate
                     
                     # Calculate growth on contributions (assuming contributions occur mid-year on average for 0.5 factor)
-                    growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5
+                    # For dynamic items, growth on contributions is typically 0 since the value is recalculated each year
+                    growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not (linked_asset_name and linked_percentage is not None) else 0.0
                     
                     # New balance for the end of the current year
-                    new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
-                    
-                    # Update for next year's starting balance
-                    account_current_balances[projected_account.name] = new_balance
+                    # For income/expense items, we track the annual flow value (they don't accumulate like assets/liabilities)
+                    if projected_account.account_type in ["income", "expense"]:
+                        # For cashflow items, the value tracked is the annual flow (contribution), not an accumulating balance
+                        new_balance = adjusted_annual_contribution
+                        # For next year's calculation, we still use 0 as starting balance for cashflow items
+                        account_current_balances[projected_account.name] = 0.0
+                    else:
+                        new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
+                        # Update for next year's starting balance
+                        account_current_balances[projected_account.name] = new_balance
                 
                 # Record time series data for this account
                 time_series_data_for_db.append(models.ProjectionTimeSeriesData(
@@ -261,6 +303,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             # Add overall totals to time series data for the current year
             current_year_net_worth = current_year_total_assets + current_year_total_liabilities
 
+            # Build yearly data points, cleaning up account names for display (remove LINKED markers)
+            account_values = {}
+            for acc in projected_accounts_for_db:
+                # Clean account name for display (remove LINKED markers)
+                display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
+                account_values[f"{display_name}_Value"] = account_current_balances[acc.name]
+            
             yearly_data_points[year] = {
                 "Year": current_year + year -1, # Display actual calendar year
                 "Total Assets": current_year_total_assets,
@@ -269,7 +318,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 "Total Income Flow": current_year_total_income_flow,
                 "Total Expense Flow": current_year_total_expense_flow,
                 "Net Cash Flow": current_year_total_income_flow + current_year_total_expense_flow,
-                **{f"{acc.name}_Value": account_current_balances[acc.name] for acc in projected_accounts_for_db} # Individual account balances with _Value suffix
+                **account_values # Individual account balances with _Value suffix
             }
 
             time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_assets", value=current_year_total_assets))

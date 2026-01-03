@@ -76,11 +76,30 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
         if item:
             print(f"--- DEBUG: Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)}) ---"); sys.stdout.flush()
             account_type = 'income' if is_income_item else 'expense'
+            # For dynamic items (linked to asset), contribution will be recalculated each year in projection
+            # Store initial contribution as 0 for dynamic items - it will be recalculated based on linked asset
+            contribution = 0.0
+            if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                # This is a dynamic item - contribution will be recalculated each year
+                # For now, set to 0 - the projection calculation will handle the recalculation
+                linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                if linked_asset:
+                    # Store linked asset name in account name with special marker for projection calculation
+                    # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
+                    linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                    account_name = item.description + linked_marker
+                    print(f"--- DEBUG: Dynamic item {item.description} linked to asset {linked_asset.name} with {item.percentage}% ---"); sys.stdout.flush()
+                else:
+                    account_name = item.description
+            else:
+                account_name = item.description
+                contribution = item.yearly_value / 12 if is_income_item else -(item.yearly_value / 12)
+            
             return schemas.ProjectedAccountCreate(
-                name=item.description,
+                name=account_name,
                 account_type=account_type,
                 initial_value=0.0,
-                contribution=item.yearly_value / 12 if is_income_item else -(item.yearly_value / 12),
+                contribution=contribution,
                 growth_rate=item.annual_increase_percent if is_income_item else item.inflation_percent,
                 loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
             )
@@ -199,11 +218,21 @@ def create_custom_chart(
                     items = query.all()
                     print(f"--- DEBUG: Found {len(items)} expense items for item_type={item_type}, category={category} ---"); sys.stdout.flush()
                     for item in items:
+                        # Handle dynamic items (linked to asset)
+                        contribution = 0.0
+                        account_name = item.description
+                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                            if linked_asset:
+                                linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                account_name = item.description + linked_marker
+                        else:
+                            contribution = -(item.yearly_value / 12)
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
-                            name=item.description,
+                            name=account_name,
                             account_type='expense',
                             initial_value=0.0,
-                            contribution=-(item.yearly_value / 12),
+                            contribution=contribution,
                             growth_rate=item.inflation_percent,
                         ))
                 else:
@@ -356,11 +385,21 @@ def update_custom_chart(
                         query = query.filter(models.CashFlowItem.category == category)
                     items = query.all()
                     for item in items:
+                        # Handle dynamic items (linked to asset)
+                        contribution = 0.0
+                        account_name = item.description
+                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                            if linked_asset:
+                                linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                account_name = item.description + linked_marker
+                        else:
+                            contribution = item.yearly_value / 12
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
-                            name=item.description,
+                            name=account_name,
                             account_type='income',
                             initial_value=0.0,
-                            contribution=item.yearly_value / 12,
+                            contribution=contribution,
                             growth_rate=item.annual_increase_percent,
                         ))
                 elif item_type == 'expenses':
@@ -372,11 +411,21 @@ def update_custom_chart(
                         query = query.filter(models.CashFlowItem.category == category)
                     items = query.all()
                     for item in items:
+                        # Handle dynamic items (linked to asset)
+                        contribution = 0.0
+                        account_name = item.description
+                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                            if linked_asset:
+                                linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                account_name = item.description + linked_marker
+                        else:
+                            contribution = -(item.yearly_value / 12)
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
-                            name=item.description,
+                            name=account_name,
                             account_type='expense',
                             initial_value=0.0,
-                            contribution=-(item.yearly_value / 12),
+                            contribution=contribution,
                             growth_rate=item.inflation_percent,
                         ))
                 else:

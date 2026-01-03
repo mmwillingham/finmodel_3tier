@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 
-export default function CashFlowOverview({ incomeItems, expenseItems, projectionYears, formatCurrency }) {
+export default function CashFlowOverview({ incomeItems, expenseItems, projectionYears, formatCurrency, assets = [] }) {
   const { currentUser, userSettings } = useAuth();
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
@@ -16,19 +16,62 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
     const expenseValues = [];
     const surplus = [];
 
+    // Pre-calculate asset projections for all years (needed for dynamic items)
+    const assetProjections = {};
+    assets.forEach(asset => {
+      assetProjections[asset.name] = [];
+      for (let year = 0; year <= projectionYears; year++) {
+        const growthRate = (asset.annual_increase_percent || 0) / 100;
+        const assetValue = asset.value * Math.pow(1 + growthRate, year);
+        assetProjections[asset.name].push(assetValue);
+      }
+    });
+
     for (let year = 0; year <= projectionYears; year++) {
       years.push(year);
       
       let totalIncome = 0;
       incomeItems.forEach((item) => {
-        const growthRate = item.annual_increase_percent / 100;
-        totalIncome += item.yearly_value * Math.pow(1 + growthRate, year);
+        let itemValue = item.yearly_value;
+        
+        // Handle dynamic items (linked to assets)
+        if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+          // Find the linked asset
+          const linkedAsset = assets.find(a => a.id === item.linked_item_id);
+          if (linkedAsset && assetProjections[linkedAsset.name]) {
+            // Recalculate based on projected asset value for this year
+            const projectedAssetValue = assetProjections[linkedAsset.name][year];
+            itemValue = projectedAssetValue * (item.percentage / 100.0);
+          }
+        } else {
+          // Fixed value item - apply growth rate
+          const growthRate = (item.annual_increase_percent || 0) / 100;
+          itemValue = item.yearly_value * Math.pow(1 + growthRate, year);
+        }
+        
+        totalIncome += itemValue;
       });
 
       let totalExpenses = 0;
       expenseItems.forEach((item) => {
-        const inflationRate = item.inflation_percent / 100;
-        totalExpenses += item.yearly_value * Math.pow(1 + inflationRate, year);
+        let itemValue = item.yearly_value;
+        
+        // Handle dynamic items (linked to assets)
+        if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+          // Find the linked asset
+          const linkedAsset = assets.find(a => a.id === item.linked_item_id);
+          if (linkedAsset && assetProjections[linkedAsset.name]) {
+            // Recalculate based on projected asset value for this year
+            const projectedAssetValue = assetProjections[linkedAsset.name][year];
+            itemValue = projectedAssetValue * (item.percentage / 100.0);
+          }
+        } else {
+          // Fixed value item - apply inflation rate
+          const inflationRate = (item.inflation_percent || 0) / 100;
+          itemValue = item.yearly_value * Math.pow(1 + inflationRate, year);
+        }
+        
+        totalExpenses += itemValue;
       });
 
       incomeValues.push(totalIncome);

@@ -292,6 +292,7 @@ export default function SidebarLayout() {
               expenseItems={expenseItems}
               projectionYears={projectionYears}
               formatCurrency={formatCurrency}
+              assets={assets}
             />
           </div>
         )}

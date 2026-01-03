@@ -24,7 +24,7 @@ ChartJS.register(
   Legend
 );
 
-export default function CashFlowSummary({ incomeItems, expenseItems }) {
+export default function CashFlowSummary({ incomeItems, expenseItems, assets = [] }) {
   const { userSettings } = useAuth(); // Get userSettings from context
   const [years, setYears] = useState(10);
   const [defaultInflation, setDefaultInflation] = useState(2.0);
@@ -51,6 +51,17 @@ export default function CashFlowSummary({ incomeItems, expenseItems }) {
 
   const currentYear = new Date().getFullYear();
 
+  // Pre-calculate asset projections for all years (needed for dynamic items)
+  const assetProjections = {};
+  assets.forEach(asset => {
+    assetProjections[asset.name] = [];
+    for (let i = 0; i < years; i++) {
+      const growthRate = (asset.annual_increase_percent || 0) / 100;
+      const assetValue = asset.value * Math.pow(1 + growthRate, i);
+      assetProjections[asset.name].push(assetValue);
+    }
+  });
+
   // Calculate year-by-year projections
   const yearlyData = [];
   for (let i = 0; i < years; i++) {
@@ -58,16 +69,46 @@ export default function CashFlowSummary({ incomeItems, expenseItems }) {
     
     // Calculate income for this year
     const yearIncome = incomeItems.reduce((sum, item) => {
-      const increaseRate = (item.annual_increase_percent || 0) / 100;
-      const adjustedValue = item.yearly_value * Math.pow(1 + increaseRate, i);
-      return sum + adjustedValue;
+      let itemValue = item.yearly_value;
+      
+      // Handle dynamic items (linked to assets)
+      if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+        // Find the linked asset
+        const linkedAsset = assets.find(a => a.id === item.linked_item_id);
+        if (linkedAsset && assetProjections[linkedAsset.name] && assetProjections[linkedAsset.name][i] !== undefined) {
+          // Recalculate based on projected asset value for this year
+          const projectedAssetValue = assetProjections[linkedAsset.name][i];
+          itemValue = projectedAssetValue * (item.percentage / 100.0);
+        }
+      } else {
+        // Fixed value item - apply growth rate
+        const increaseRate = (item.annual_increase_percent || 0) / 100;
+        itemValue = item.yearly_value * Math.pow(1 + increaseRate, i);
+      }
+      
+      return sum + itemValue;
     }, 0);
 
     // Calculate expenses for this year
     const yearExpenses = expenseItems.reduce((sum, item) => {
-      const inflationRate = (item.inflation_percent || defaultInflation) / 100;
-      const adjustedValue = item.yearly_value * Math.pow(1 + inflationRate, i);
-      return sum + adjustedValue;
+      let itemValue = item.yearly_value;
+      
+      // Handle dynamic items (linked to assets)
+      if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+        // Find the linked asset
+        const linkedAsset = assets.find(a => a.id === item.linked_item_id);
+        if (linkedAsset && assetProjections[linkedAsset.name] && assetProjections[linkedAsset.name][i] !== undefined) {
+          // Recalculate based on projected asset value for this year
+          const projectedAssetValue = assetProjections[linkedAsset.name][i];
+          itemValue = projectedAssetValue * (item.percentage / 100.0);
+        }
+      } else {
+        // Fixed value item - apply inflation rate
+        const inflationRate = (item.inflation_percent || defaultInflation) / 100;
+        itemValue = item.yearly_value * Math.pow(1 + inflationRate, i);
+      }
+      
+      return sum + itemValue;
     }, 0);
 
     const surplus = yearIncome - yearExpenses;

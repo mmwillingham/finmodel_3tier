@@ -133,6 +133,22 @@ export default function CustomChartForm({
         newSeries[index].label = 'All Categories'; // Set label to "All Categories" if "All Categories" is selected
       }
     }
+    // Set label to item name when selected_item_id changes
+    if (field === 'selected_item_id' && value) {
+      const currentSeriesDataType = newSeries[index].data_type;
+      const options = getDataSourceItemOptions(
+        currentSeriesDataType,
+        assets,
+        liabilities,
+        incomeItems,
+        expenseItems,
+        newSeries[index].category
+      );
+      const selectedItem = options.find(item => item.id.toString() === value.toString());
+      if (selectedItem) {
+        newSeries[index].label = selectedItem.name;
+      }
+    }
     setSeriesConfigurations(newSeries);
   };
 
