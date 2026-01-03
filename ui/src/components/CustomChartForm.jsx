@@ -121,10 +121,17 @@ export default function CustomChartForm({
     if (field === 'data_type') {
       newSeries[index].category = '';
       newSeries[index].selected_item_id = null;
+      newSeries[index].label = ''; // Reset label when data type changes
     }
-    // Reset selected_item_id if category changes
+    // Reset selected_item_id if category changes, and set default label to category
     if (field === 'category') {
       newSeries[index].selected_item_id = null;
+      // Set label to category value if category is selected
+      if (value) {
+        newSeries[index].label = value;
+      } else {
+        newSeries[index].label = ''; // Clear label if "All Categories" is selected
+      }
     }
     setSeriesConfigurations(newSeries);
   };

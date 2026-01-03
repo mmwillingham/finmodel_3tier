@@ -98,6 +98,14 @@ def create_custom_chart(
     try:
         print(f"--- DEBUG: Entering create_custom_chart for user {current_user.id} ---"); sys.stdout.flush()
 
+        # Check for duplicate chart name
+        existing_chart = db.query(models.CustomChart).filter(
+            models.CustomChart.user_id == current_user.id,
+            models.CustomChart.name == chart.name
+        ).first()
+        if existing_chart:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"A chart with the name '{chart.name}' already exists. Please choose a different name.")
+
         series_configs = json.loads(chart.series_configurations)
         accounts_for_projection = []
         
@@ -109,7 +117,9 @@ def create_custom_chart(
         
         for series_config in series_configs:
             item_type = series_config.get('data_type')
-            item_id = series_config.get('item_id')
+            # Check both item_id and selected_item_id for compatibility
+            item_id = series_config.get('item_id') or series_config.get('selected_item_id')
+            category = series_config.get('category')
 
             if item_type and item_id: # Specific item selected
                 account = fetch_and_convert_item(db, current_user, item_type, item_id)
@@ -117,9 +127,12 @@ def create_custom_chart(
                     accounts_for_projection.append(account)
                 else:
                     print(f"--- WARNING: Could not find item {item_id} of type {item_type} for user {current_user.id} ---"); sys.stdout.flush()
-            elif item_type and item_id is None: # Aggregate type selected (e.g., "all income")
+            elif item_type and item_id is None: # Aggregate type selected (e.g., "all income" or "all items in a category")
                 if item_type == 'assets':
-                    items = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id).all()
+                    query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.Asset.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.name,
@@ -129,7 +142,10 @@ def create_custom_chart(
                             growth_rate=item.annual_increase_percent,
                         ))
                 elif item_type == 'liabilities':
-                    items = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id).all()
+                    query = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id)
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.Liability.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.name,
@@ -145,7 +161,13 @@ def create_custom_chart(
                             monthly_payment=item.monthly_payment
                         ))
                 elif item_type == 'income':
-                    items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == True).all()
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == True
+                    )
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.description,
@@ -155,7 +177,13 @@ def create_custom_chart(
                             growth_rate=item.annual_increase_percent,
                         ))
                 elif item_type == 'expenses':
-                    items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == False).all()
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == False
+                    )
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.description,
@@ -253,7 +281,9 @@ def update_custom_chart(
 
         for series_config in series_configs:
             item_type = series_config.get('data_type')
-            item_id = series_config.get('item_id')
+            # Check both item_id and selected_item_id for compatibility
+            item_id = series_config.get('item_id') or series_config.get('selected_item_id')
+            category = series_config.get('category')
             if item_type and item_id:
                 account = fetch_and_convert_item(db, current_user, item_type, item_id)
                 if account:
@@ -262,7 +292,10 @@ def update_custom_chart(
                     print(f"--- WARNING: Could not find item {item_id} of type {item_type} for user {current_user.id} during chart update. ---"); sys.stdout.flush()
             elif item_type and item_id is None:
                 if item_type == 'assets':
-                    items = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id).all()
+                    query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.Asset.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.name,
@@ -272,7 +305,10 @@ def update_custom_chart(
                             growth_rate=item.annual_increase_percent,
                         ))
                 elif item_type == 'liabilities':
-                    items = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id).all()
+                    query = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id)
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.Liability.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.name,
@@ -288,7 +324,13 @@ def update_custom_chart(
                             monthly_payment=item.monthly_payment
                         ))
                 elif item_type == 'income':
-                    items = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == True).all()
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == True
+                    )
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.description,
@@ -298,7 +340,13 @@ def update_custom_chart(
                             growth_rate=item.annual_increase_percent,
                         ))
                 elif item_type == 'expenses':
-                    items = db.query(models.CashFlowItem).filter(models.CashFlowItem.is_income == False, models.CashFlowItem.owner_id == current_user.id).all()
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.is_income == False,
+                        models.CashFlowItem.owner_id == current_user.id
+                    )
+                    if category:  # Filter by category if specified
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.description,
