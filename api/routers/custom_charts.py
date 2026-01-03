@@ -118,7 +118,10 @@ def create_custom_chart(
         for series_config in series_configs:
             item_type = series_config.get('data_type')
             # Check both item_id and selected_item_id for compatibility
+            # Handle None, empty string, or 0 as "no item selected"
             item_id = series_config.get('item_id') or series_config.get('selected_item_id')
+            if item_id == "" or item_id == 0:
+                item_id = None
             category = series_config.get('category')
 
             if item_type and item_id: # Specific item selected
@@ -132,7 +135,9 @@ def create_custom_chart(
                     query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
                     if category:  # Filter by category if specified
                         query = query.filter(models.Asset.category == category)
+                        print(f"--- DEBUG: Filtering assets by category: {category} ---"); sys.stdout.flush()
                     items = query.all()
+                    print(f"--- DEBUG: Found {len(items)} assets for item_type={item_type}, category={category} ---"); sys.stdout.flush()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.name,
@@ -183,7 +188,9 @@ def create_custom_chart(
                     )
                     if category:  # Filter by category if specified
                         query = query.filter(models.CashFlowItem.category == category)
+                        print(f"--- DEBUG: Filtering expense items by category: {category} ---"); sys.stdout.flush()
                     items = query.all()
+                    print(f"--- DEBUG: Found {len(items)} expense items for item_type={item_type}, category={category} ---"); sys.stdout.flush()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.description,
@@ -282,7 +289,10 @@ def update_custom_chart(
         for series_config in series_configs:
             item_type = series_config.get('data_type')
             # Check both item_id and selected_item_id for compatibility
+            # Handle None, empty string, or 0 as "no item selected"
             item_id = series_config.get('item_id') or series_config.get('selected_item_id')
+            if item_id == "" or item_id == 0:
+                item_id = None
             category = series_config.get('category')
             if item_type and item_id:
                 account = fetch_and_convert_item(db, current_user, item_type, item_id)

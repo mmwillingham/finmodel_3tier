@@ -1,6 +1,6 @@
 # api/auth.py
 
-from datetime import datetime, timezone, timedelta, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
