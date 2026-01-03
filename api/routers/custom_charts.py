@@ -13,7 +13,7 @@ import models
 import schemas
 from database import get_db
 from auth import get_current_user
-from . import calculations
+# Removed: from api import calculations # This will now be lazy-loaded inside functions
 
 
 logger = logging.getLogger(__name__)
@@ -167,6 +167,7 @@ def create_custom_chart(
         print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush() # NEW DEBUG LINE
         print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush() # NEW DEBUG LINE
         
+        from api import calculations # Lazy import
         projection_results = calculations.calculate_projection(
             years=projection_years,
             accounts=accounts_for_projection,
@@ -309,6 +310,7 @@ def update_custom_chart(
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
 
         try:
+            from api import calculations # Lazy import
             projection_results = calculations.calculate_projection(
                 years=projection_years,
                 accounts=accounts_for_projection,
