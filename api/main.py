@@ -85,6 +85,8 @@ async def list_routes():
     logger.debug(f"Registered routes: {routes_info}")
     return routes_info
 
+from fastapi.routing import APIRoute
+
 @app.get("/debug/db-info", summary="Debug: Get current database info")
 def debug_db_info(db: Session = Depends(database.get_db)):
     result = db.execute(text("SELECT current_database();")).scalar_one()
@@ -463,7 +465,7 @@ def forgot_password(
         send_email(
             to_email=user.email,
             subject="Financial Projector - Password Reset Request",
-            body="""Hello,
+            body=f"""Hello,
 
 You have requested a password reset for your Financial Projector account.
 
