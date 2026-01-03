@@ -21,7 +21,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const currentYear = new Date().getFullYear();
   const [showChartTotals, setShowChartTotals] = useState(true); // State for individual chart totals
   const [showChartTotalsDisabled, setShowChartTotalsDisabled] = useState(false); // State to disable totals checkbox when data types differ
-    const [currentDisplayType, setCurrentDisplayType] = useState("currency"); // New state for display type
+    const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type (chart, table, or both)
 
   const formatValue = useCallback((value, displayType) => {
     if (displayType === 'percentage') {
@@ -196,8 +196,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const response = await CustomChartService.get(chartId);
         const fetchedConfig = response.data;
         setChartConfig(fetchedConfig);
-        setCurrentDisplayType(fetchedConfig.display_type || "currency"); // Set display type from fetched config
-        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "currency"); // RE-ADDED LOG
+        setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
+        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "chart"); // RE-ADDED LOG
         console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
         try {
           const parsedDataJson = JSON.parse(fetchedConfig.data_json);
@@ -253,9 +253,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += formatValue(context.parsed.y, chartConfig.display_type);
+                label += formatValue(context.parsed.y, "currency"); // Default to currency formatting
               } else if (context.parsed !== null) { // For pie charts, context.parsed is a single value
-                label += formatValue(context.parsed, chartConfig.display_type);
+                label += formatValue(context.parsed, "currency"); // Default to currency formatting
               }
               return label;
             }
@@ -277,7 +277,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           },
           ticks: {
             callback: function(value) {
-              return formatValue(value, chartConfig.display_type);
+              return formatValue(value, "currency"); // Default to currency formatting
             }
           }
         },
@@ -453,7 +453,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                   <tr key={year}>
                     <td>{year}</td>
                     {chartData.datasets.map(dataset => (
-                      <td key={`${year}-${dataset.label}`}>{formatValue(dataset.data[yearIndex], chartConfig.display_type)}</td>
+                      <td key={`${year}-${dataset.label}`}>{formatValue(dataset.data[yearIndex], "currency")}</td>
                     ))}
                   </tr>
                 ))}

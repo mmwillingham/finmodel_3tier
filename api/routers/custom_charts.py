@@ -122,6 +122,13 @@ def create_custom_chart(
             item_id = series_config.get('item_id') or series_config.get('selected_item_id')
             if item_id == "" or item_id == 0:
                 item_id = None
+            elif item_id is not None:
+                # Convert to integer if it's a string (JSON numbers can come as strings)
+                try:
+                    item_id = int(item_id)
+                except (ValueError, TypeError):
+                    print(f"--- WARNING: Invalid item_id format: {item_id}, skipping ---"); sys.stdout.flush()
+                    continue
             category = series_config.get('category')
 
             if item_type and item_id: # Specific item selected
@@ -293,6 +300,13 @@ def update_custom_chart(
             item_id = series_config.get('item_id') or series_config.get('selected_item_id')
             if item_id == "" or item_id == 0:
                 item_id = None
+            elif item_id is not None:
+                # Convert to integer if it's a string (JSON numbers can come as strings)
+                try:
+                    item_id = int(item_id)
+                except (ValueError, TypeError):
+                    print(f"--- WARNING: Invalid item_id format: {item_id}, skipping ---"); sys.stdout.flush()
+                    continue
             category = series_config.get('category')
             if item_type and item_id:
                 account = fetch_and_convert_item(db, current_user, item_type, item_id)

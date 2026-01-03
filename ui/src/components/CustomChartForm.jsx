@@ -68,7 +68,7 @@ export default function CustomChartForm({
           const chart = response.data;
           setName(chart.name);
           setChartType(chart.chart_type);
-          setDisplayType(chart.display_type || "currency"); // Set display type from fetched config
+          setDisplayType(chart.display_type || "chart"); // Set display type from fetched config
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
           setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ ...series, category: series.category || '', selected_item_id: series.selected_item_id || null })));
           setXAxisLabel(chart.x_axis_label || "");
@@ -209,8 +209,9 @@ export default function CustomChartForm({
             onChange={(e) => setDisplayType(e.target.value)}
             required
           >
-            <option value="currency">Currency</option>
-            <option value="percentage">Percentage</option>
+            <option value="chart">Chart only</option>
+            <option value="table">Table only</option>
+            <option value="both">Chart and Table</option>
           </select>
         </div>
 
@@ -274,7 +275,7 @@ export default function CustomChartForm({
 
                 {(currentSeriesDataType === 'assets' || currentSeriesDataType === 'liabilities' || currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && (
                   <div className="form-group">
-                    <label>{currentSeriesDataType.slice(0, -1).charAt(0).toUpperCase() + currentSeriesDataType.slice(0, -1).slice(1)}:</label>
+                    <label>{currentSeriesDataType.charAt(0).toUpperCase() + currentSeriesDataType.slice(1)}:</label>
                     <select
                       value={series.selected_item_id || ''}
                       onChange={(e) => handleSeriesChange(index, 'selected_item_id', e.target.value)}
