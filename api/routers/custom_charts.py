@@ -23,7 +23,6 @@ try:
         prefix="/custom_charts",
         tags=["Custom Charts"],
         responses={404: {"description": "Not found"}},
-        redirect_slashes=False
     )
     print(f"--- DEBUG: Custom Charts Router instantiated with prefix: {router.prefix} ---"); sys.stdout.flush() # NEW DEBUG
 except Exception as e:
@@ -208,7 +207,7 @@ def create_custom_chart(
         print(f"--- CRITICAL ERROR in create_custom_chart: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
 
-@router.get("/", response_model=List[schemas.CustomChartOut])
+@router.get("", response_model=List[schemas.CustomChartOut])
 def read_custom_charts(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
