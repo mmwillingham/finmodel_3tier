@@ -4,6 +4,7 @@ from typing import List, Optional
 import json
 import logging
 import traceback
+import sys
 
 import schemas
 import models
@@ -103,6 +104,7 @@ def create_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    print(f"--- DEBUG: TOP OF create_custom_chart function. User ID: {current_user.id} (Traceback: {traceback.format_exc()}) ---")
     print(f"--- DEBUG: Entering create_custom_chart for user {current_user.id} (Traceback: {traceback.format_exc()}) ---")
 
     series_configs = json.loads(chart.series_configurations)

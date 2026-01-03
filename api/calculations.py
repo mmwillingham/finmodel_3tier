@@ -95,6 +95,7 @@ def calculate_amortized_loan_balance(
 
 
 def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCreate], db: Session, owner_id: int) -> dict:
+    print(f"--- DEBUG: TOP OF calculate_projection function. Owner ID: {owner_id} ---")
     print(f"""--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---""")
     print(f"""--- DEBUG: Accounts received by calculate_projection: {accounts} ---""") # NEW DEBUG
 
