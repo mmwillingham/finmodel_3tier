@@ -88,7 +88,7 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
             print(f"--- WARNING: CashFlowItem with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()
     return None
 
-@router.post("/", response_model=schemas.CustomChartOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=schemas.CustomChartOut, status_code=status.HTTP_201_CREATED)
 def create_custom_chart(
     chart: schemas.CustomChartCreate,
     db: Session = Depends(get_db),
