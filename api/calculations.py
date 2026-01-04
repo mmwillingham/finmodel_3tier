@@ -152,6 +152,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             current_year_total_expense_flow = 0.0
             current_year_contributions_sum = 0.0 # Sum of all contributions for this year
             current_year_growth_sum = 0.0 # Sum of all growth for this year
+            
+            # Dictionary to store annual flow values for income/expense items (since they reset to 0)
+            annual_flow_values = {}
 
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
@@ -263,6 +266,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Restore sign: expenses are negative, income is positive
                         if projected_account.account_type == "expense":
                             new_balance = -new_balance
+                        # Store the annual flow value before resetting to 0 (needed for data_json)
+                        annual_flow_values[projected_account.name] = new_balance
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
                     else:
@@ -316,7 +321,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             for acc in projected_accounts_for_db:
                 # Clean account name for display (remove LINKED markers)
                 display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
-                account_values[f"{display_name}_Value"] = account_current_balances[acc.name]
+                # For income/expense items, use annual flow value; for others, use account balance
+                if acc.account_type in ["income", "expense"]:
+                    account_values[f"{display_name}_Value"] = annual_flow_values.get(acc.name, 0.0)
+                else:
+                    account_values[f"{display_name}_Value"] = account_current_balances[acc.name]
             
             yearly_data_points[year] = {
                 "Year": current_year + year -1, # Display actual calendar year

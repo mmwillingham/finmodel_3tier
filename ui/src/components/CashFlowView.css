@@ -77,20 +77,7 @@
   text-overflow: ellipsis !important;
 }
 
-/* Make Description column wider and auto-size */
-.main-content .cashflow-table th:nth-child(2),
-.main-content .cashflow-table td:nth-child(2) {
-  min-width: 200px !important;
-  width: auto !important;
-  max-width: none !important;
-}
-
-/* Make all columns resizable */
-.main-content .cashflow-table th {
-  position: relative;
-  resize: horizontal;
-  overflow: auto;
-}
+/* Columns auto-size to content - no hardcoded widths */
 
 /* Styling for icon buttons */
 .edit-icon-btn,

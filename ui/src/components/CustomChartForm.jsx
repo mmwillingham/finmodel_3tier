@@ -102,11 +102,13 @@ export default function CustomChartForm({
 
   const handleAddSeries = () => {
     const defaultDataType = selectedDataSources.length > 0 ? selectedDataSources[0] : dataSourcesOptions[0];
+    // Set default label to capitalized data type name
+    const defaultLabel = defaultDataType ? defaultDataType.charAt(0).toUpperCase() + defaultDataType.slice(1) : "";
     setSeriesConfigurations(prev => [...prev, {
       data_type: defaultDataType,
       field: "value", // Default field, will need to be dynamic later
       aggregation: "sum",
-      label: "", // Initialize with empty string, user will fill this
+      label: defaultLabel, // Initialize with capitalized data type name
 
       color: getRandomColor(),
       category: "", // New category field
