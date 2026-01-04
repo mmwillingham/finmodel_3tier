@@ -31,11 +31,20 @@ const AutoDisbursementSettingsPage = () => {
     setError(null);
     try {
       const [autoDisbursementsData, assetsRes] = await Promise.all([
-        AutoDisbursementService.getAllAutoDisbursements(),
-        AssetService.list(),
+        AutoDisbursementService.getAllAutoDisbursements().catch((err) => {
+          console.error('Error loading auto-disbursements:', err);
+          return [];
+        }),
+        AssetService.list().catch((err) => {
+          console.error('Error loading assets:', err);
+          return { data: [] };
+        }),
       ]);
-      setAutoDisbursements(autoDisbursementsData);
-      setAssets(assetsRes.data || []);
+      console.log('Auto-disbursements loaded:', autoDisbursementsData);
+      console.log('Assets response:', assetsRes);
+      console.log('Assets data:', assetsRes?.data);
+      setAutoDisbursements(autoDisbursementsData || []);
+      setAssets(assetsRes?.data || []);
     } catch (e) {
       console.error('Failed to load auto-disbursements', e);
       setError('Failed to load auto-disbursements.');
@@ -182,8 +191,13 @@ const AutoDisbursementSettingsPage = () => {
       <h2>Auto-Disbursements</h2>
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
+      {assets.length === 0 && !loading && (
+        <div className="message" style={{ marginBottom: '20px', backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7' }}>
+          <strong>Note:</strong> No assets found. Please create assets first before setting up auto-disbursements.
+        </div>
+      )}
       <div className="setting-group auto-disbursement-form" style={{ maxWidth: '100%', width: '100%' }}>
-        <h3>Add New Auto-Disbursement</h3>
+        <h3>Add New Auto-Disbursement {assets.length > 0 && <span style={{ fontSize: '0.8em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}</h3>
         <div className="auto-disbursement-form-fields">
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '20px' }}>
             <div className="form-field">
@@ -217,11 +231,15 @@ const AutoDisbursementSettingsPage = () => {
                 onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, source_asset_id: e.target.value ? parseInt(e.target.value) : null })}
               >
                 <option value="">Select Source Asset</option>
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name} ({asset.category})
-                  </option>
-                ))}
+                {assets && assets.length > 0 ? (
+                  assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name} ({asset.category})
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No assets available</option>
+                )}
               </select>
             </div>
             <div className="form-field">
@@ -232,11 +250,15 @@ const AutoDisbursementSettingsPage = () => {
                 onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, target_asset_id: e.target.value ? parseInt(e.target.value) : null })}
               >
                 <option value="">Select Target Asset</option>
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name} ({asset.category})
-                  </option>
-                ))}
+                {assets && assets.length > 0 ? (
+                  assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name} ({asset.category})
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No assets available</option>
+                )}
               </select>
             </div>
           </div>
