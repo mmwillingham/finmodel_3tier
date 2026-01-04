@@ -253,8 +253,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # New balance for the end of the current year
                     # For income/expense items, we track the annual flow value (they don't accumulate like assets/liabilities)
                     if projected_account.account_type in ["income", "expense"]:
-                        # For cashflow items, the value tracked is the annual flow (contribution), not an accumulating balance
-                        new_balance = adjusted_annual_contribution
+                        # For cashflow items, apply growth each year: yearly_value * (1 + growth_rate)^(year-1)
+                        # adjusted_annual_contribution is the base yearly value (year 1), we need to apply compound growth
+                        # For expenses, adjusted_annual_contribution is already negative, so we apply growth to the absolute value
+                        base_yearly_value = abs(adjusted_annual_contribution)
+                        # Apply growth: value grows by (1 + growth_rate)^(year-1), where year is 1-indexed
+                        growth_factor = pow(1 + effective_growth_rate, year - 1)  # year is 1-indexed
+                        new_balance = base_yearly_value * growth_factor
+                        # Restore sign: expenses are negative, income is positive
+                        if projected_account.account_type == "expense":
+                            new_balance = -new_balance
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
                     else:

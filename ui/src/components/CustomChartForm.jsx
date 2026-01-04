@@ -134,19 +134,39 @@ export default function CustomChartForm({
       }
     }
     // Set label to item name when selected_item_id changes
-    if (field === 'selected_item_id' && value) {
-      const currentSeriesDataType = newSeries[index].data_type;
-      const options = getDataSourceItemOptions(
-        currentSeriesDataType,
-        assets,
-        liabilities,
-        incomeItems,
-        expenseItems,
-        newSeries[index].category
-      );
-      const selectedItem = options.find(item => item.id.toString() === value.toString());
-      if (selectedItem) {
-        newSeries[index].label = selectedItem.name;
+    if (field === 'selected_item_id') {
+      if (value && value !== "" && value !== null && value !== 0) {
+        const currentSeriesDataType = newSeries[index].data_type;
+        const options = getDataSourceItemOptions(
+          currentSeriesDataType,
+          assets,
+          liabilities,
+          incomeItems,
+          expenseItems,
+          newSeries[index].category
+        );
+        const selectedItem = options.find(item => {
+          const itemId = String(item.id);
+          const valueId = String(value);
+          return itemId === valueId;
+        });
+        if (selectedItem) {
+          newSeries[index].label = selectedItem.name;
+        } else {
+          // Fallback: set label to category or default
+          if (newSeries[index].category) {
+            newSeries[index].label = newSeries[index].category;
+          } else {
+            newSeries[index].label = 'All Items';
+          }
+        }
+      } else {
+        // No item selected - reset label to category or default
+        if (newSeries[index].category) {
+          newSeries[index].label = newSeries[index].category;
+        } else {
+          newSeries[index].label = 'All Categories';
+        }
       }
     }
     setSeriesConfigurations(newSeries);
@@ -190,12 +210,11 @@ export default function CustomChartForm({
 
   return (
     <div className="custom-chart-form-container">
-      <h3>{chartId ? "Edit Custom Chart" : "Create New Custom Chart"}</h3>
       {message && <div className="message">{message}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="chart-name">Chart Name:</label>
+          <label htmlFor="chart-name">Name:</label>
           <input
             id="chart-name"
             type="text"

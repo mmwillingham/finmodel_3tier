@@ -77,6 +77,14 @@
   text-overflow: ellipsis !important;
 }
 
+/* Make Description column wider */
+.main-content .cashflow-table th:nth-child(2),
+.main-content .cashflow-table td:nth-child(2) {
+  width: 25% !important;
+  min-width: 200px !important;
+  max-width: 400px !important;
+}
+
 /* Styling for icon buttons */
 .edit-icon-btn,
 .delete-icon-btn {

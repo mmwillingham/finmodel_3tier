@@ -35,7 +35,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     let sum = 0;
     const targetDataType = series.data_type;
     const targetCategory = series.category;
-    const targetLabel = series.label; // Use series.label to match specific liability names
+    const targetLabel = series.label; // Use series.label to match specific item names
+    const selectedItemId = series.selected_item_id || series.item_id; // Check for specific item selection
 
     // Special handling for amortized liabilities
     if (targetDataType === 'liabilities') {
@@ -47,6 +48,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         }
     }
 
+    // If a specific item is selected (by ID), match by exact label/name
+    const hasSpecificSelection = selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0;
 
     for (const key in dataPoint) {
       if (key.endsWith('_Value')) {
@@ -56,35 +59,45 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         // Find the item in the appropriate array to get its category
         let itemCategory = null;
         let itemMatchesDataType = false;
+        let itemName = null;
 
         if (targetDataType === 'assets') {
           const item = assets.find(a => a.name === itemNameFromKey);
           if (item) {
             itemCategory = item.category;
+            itemName = item.name;
             itemMatchesDataType = true;
           }
         } else if (targetDataType === 'liabilities') {
           const item = liabilities.find(l => l.name === itemNameFromKey && l.loan_type !== 'amortized');
           if (item) {
             itemCategory = item.category;
+            itemName = item.name;
             itemMatchesDataType = true;
           }
         } else if (targetDataType === 'income') {
           const item = incomeItems.find(i => i.description === itemNameFromKey);
           if (item) {
             itemCategory = item.category;
+            itemName = item.description;
             itemMatchesDataType = true;
           }
         } else if (targetDataType === 'expenses') {
           const item = expenseItems.find(e => e.description === itemNameFromKey);
           if (item) {
             itemCategory = item.category;
+            itemName = item.description;
             itemMatchesDataType = true;
           }
         }
 
         if (itemMatchesDataType) {
-          if (targetCategory && targetCategory !== "") {
+          // If a specific item is selected, only match by exact name/label
+          if (hasSpecificSelection) {
+            if (itemName === targetLabel) {
+              sum += value;
+            }
+          } else if (targetCategory && targetCategory !== "") {
             // Filter by category: only include if the item's category matches
             if (itemCategory === targetCategory) {
               sum += value;
