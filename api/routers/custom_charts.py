@@ -161,12 +161,15 @@ def create_custom_chart(
                 account = fetch_and_convert_item(db, current_user, item_type, item_id)
                 if account:
                     accounts_for_projection.append(account)
-                    added_account_names.add(account.name)
+                    # Clean account name (remove LINKED marker if present) before adding to set
+                    clean_account_name = account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name
+                    added_account_names.add(clean_account_name)
                     # If this is a dynamic cashflow item linked to an asset, track it
                     if item_type in ['income', 'expenses']:
                         item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
                         if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                            dynamic_items_needing_assets.append(item.linked_item_id)
+                            linked_asset_ids_needed.add(item.linked_item_id)
+                            print(f"--- DEBUG: Dynamic item {item.description} needs linked asset ID {item.linked_item_id} ---"); sys.stdout.flush()
                 else:
                     print(f"--- WARNING: Could not find item {item_id} of type {item_type} for user {current_user.id} ---"); sys.stdout.flush()
             elif item_type and item_id is None: # Aggregate type selected (e.g., "all income" or "all items in a category")

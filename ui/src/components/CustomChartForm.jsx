@@ -121,7 +121,9 @@ export default function CustomChartForm({
     if (field === 'data_type') {
       newSeries[index].category = '';
       newSeries[index].selected_item_id = null;
-      newSeries[index].label = ''; // Reset label when data type changes
+      // Set default label to data type name (capitalized) when only data type is selected
+      const dataTypeLabel = value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+      newSeries[index].label = dataTypeLabel;
     }
     // Reset selected_item_id if category changes, and set default label to category
     if (field === 'category') {
@@ -161,9 +163,13 @@ export default function CustomChartForm({
           }
         }
       } else {
-        // No item selected - reset label to category or default
+        // No item selected - reset label to category or data type default
         if (newSeries[index].category) {
           newSeries[index].label = newSeries[index].category;
+        } else if (newSeries[index].data_type) {
+          // Default to capitalized data type name
+          const dataTypeLabel = newSeries[index].data_type.charAt(0).toUpperCase() + newSeries[index].data_type.slice(1);
+          newSeries[index].label = dataTypeLabel;
         } else {
           newSeries[index].label = 'All Categories';
         }

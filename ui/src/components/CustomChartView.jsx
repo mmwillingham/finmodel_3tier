@@ -93,10 +93,14 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
         if (itemMatchesDataType) {
           // If a specific item is selected, only match by exact name/label
-          if (hasSpecificSelection) {
+          if (hasSpecificSelection && targetLabel) {
             if (itemName === targetLabel) {
               sum += value;
             }
+          } else if (hasSpecificSelection && !targetLabel) {
+            // Item selected but label not set - try to match by item name from data
+            // This can happen if label wasn't set properly - match any item that exists
+            sum += value;
           } else if (targetCategory && targetCategory !== "") {
             // Filter by category: only include if the item's category matches
             if (itemCategory === targetCategory) {

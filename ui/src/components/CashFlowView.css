@@ -38,7 +38,7 @@
   width: 100% !important;
   border-collapse: collapse !important;
   margin-bottom: 1.5rem !important;
-  table-layout: fixed !important; 
+  table-layout: auto !important; 
 }
 
 /* Styling for the action buttons cell */
@@ -77,12 +77,19 @@
   text-overflow: ellipsis !important;
 }
 
-/* Make Description column wider */
+/* Make Description column wider and auto-size */
 .main-content .cashflow-table th:nth-child(2),
 .main-content .cashflow-table td:nth-child(2) {
-  width: 25% !important;
   min-width: 200px !important;
-  max-width: 400px !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+/* Make all columns resizable */
+.main-content .cashflow-table th {
+  position: relative;
+  resize: horizontal;
+  overflow: auto;
 }
 
 /* Styling for icon buttons */
