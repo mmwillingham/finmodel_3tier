@@ -59,7 +59,7 @@ async def create_liability(
             start_date=db_liability.loan_start_date, # Start date of cash flow is loan start date
             end_date=db_liability.end_date, # End date of cash flow is liability end date
             taxable=False,
-            tax_deductible=db_liability.tax_deductible if db_liability.tax_deductible is not None else False,
+            tax_deductible=False,  # Liabilities don't have a tax_deductible attribute, set default to False
             linked_item_id=db_liability.id,
             linked_item_type="liability",
             percentage=None # Not applicable for fixed loan payments
@@ -147,9 +147,9 @@ async def update_liability(
                     inflation_percent=0.0,
                     person=None,  # Liabilities don't have a person attribute
                     start_date=db_liability.loan_start_date,
-                    end_date=db_liability.loan_end_date,
+                    end_date=db_liability.end_date,
                     taxable=False,
-                    tax_deductible=db_liability.tax_deductible if db_liability.tax_deductible is not None else False,
+                    tax_deductible=False,  # Liabilities don't have a tax_deductible attribute, set default to False
                     linked_item_id=db_liability.id,
                     linked_item_type="liability",
                     percentage=None

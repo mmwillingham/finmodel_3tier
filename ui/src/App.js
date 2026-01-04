@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import NavigationGuard from './components/NavigationGuard';
 
 // Import all main components
 import Header from './components/Header'; 
@@ -26,9 +27,10 @@ function App() {
         <Router>
             {/* Wrap the entire app in the Auth Provider */}
             <AuthProvider>
-                <Header /> {/* Removed setIsSettingsModalOpen prop */}
-                <main className="container">
-                    <Routes>
+                <NavigationGuard>
+                    <Header /> {/* Removed setIsSettingsModalOpen prop */}
+                    <main className="container">
+                        <Routes>
                         {/* Public Routes */}
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/signup" element={<SignupPage />} />
@@ -57,8 +59,9 @@ function App() {
                         {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}
                         <Route path="/my-projections" element={<Navigate to="/" replace />} />
                         <Route path="/calculator" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </main>
+                        </Routes>
+                    </main>
+                </NavigationGuard>
             </AuthProvider>
         </Router>
     );
