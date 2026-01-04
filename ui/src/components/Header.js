@@ -21,7 +21,8 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
     // Placeholder for handling navigation to different settings sections
     const handleNavigation = (path) => {
         console.log(`Navigating to: ${path}`); // Debug log
-        navigate(path);
+        // Pass state to indicate we're coming from home
+        navigate(path, { state: { fromHome: true } });
         setShowDropdown(false); // Close dropdown after navigation
     };
 

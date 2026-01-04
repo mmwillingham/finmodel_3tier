@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
+import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 
 const ApplicationSettingsPage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  useSettingsBackButton(); // Fix browser back button navigation
   const [inflationPercent, setInflationPercent] = useState(2.0);
   const [projectionYears, setProjectionYears] = useState(30);
   const [showChartTotals, setShowChartTotals] = useState(true);
@@ -32,18 +34,7 @@ const ApplicationSettingsPage = () => {
 
   useEffect(() => {
     loadSettings();
-    // Fix browser back button - replace history entry so back goes to home
-    window.history.replaceState(null, '', window.location.pathname);
   }, [loadSettings]);
-
-  useEffect(() => {
-    // Intercept browser back button
-    const handlePopState = (e) => {
-      navigate('/', { replace: true });
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigate]);
 
   const handleSave = async () => {
     setMessage('');

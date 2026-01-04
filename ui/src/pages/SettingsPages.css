@@ -7,6 +7,11 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
+/* User Management page needs more width */
+.settings-page-container:has(.user-management-table) {
+    max-width: 1200px;
+}
+
 .settings-page-container .form-group-horizontal {
     display: flex;
     justify-content: space-between;
@@ -487,6 +492,7 @@
     display: flex;
     gap: 10px;
     justify-content: flex-end;
+    align-items: center;
     margin-top: 20px;
     padding-top: 20px;
     border-top: 1px solid var(--color-border);

@@ -55,7 +55,7 @@ async def create_liability(
             yearly_value=monthly_payment_value * 12,
             annual_increase_percent=0.0, # Loan payments typically don't increase with inflation
             inflation_percent=0.0,
-            person=db_liability.person,
+            person=None,  # Liabilities don't have a person attribute
             start_date=db_liability.loan_start_date, # Start date of cash flow is loan start date
             end_date=db_liability.loan_end_date, # End date of cash flow is loan end date
             taxable=False,
@@ -145,7 +145,7 @@ async def update_liability(
                     yearly_value=monthly_payment_value * 12,
                     annual_increase_percent=0.0,
                     inflation_percent=0.0,
-                    person=db_liability.person,
+                    person=None,  # Liabilities don't have a person attribute
                     start_date=db_liability.loan_start_date,
                     end_date=db_liability.loan_end_date,
                     taxable=False,

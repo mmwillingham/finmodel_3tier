@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
+import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 
 const UserManagementPage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  useSettingsBackButton(); // Fix browser back button navigation
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -38,18 +40,7 @@ const UserManagementPage = () => {
 
   useEffect(() => {
     fetchUsers();
-    // Fix browser back button - replace history entry so back goes to home
-    window.history.replaceState(null, '', window.location.pathname);
   }, [fetchUsers]);
-
-  useEffect(() => {
-    // Intercept browser back button
-    const handlePopState = (e) => {
-      navigate('/', { replace: true });
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigate]);
 
   const handleDeleteUser = async (userId, userEmail) => {
     if (!window.confirm(`Are you sure you want to delete user ${userEmail} (ID: ${userId})? This action cannot be undone.`)) {
