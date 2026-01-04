@@ -303,7 +303,7 @@ class GlobalSettingsOut(GlobalSettingsBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# --- ASSET SCHEMAS ---
+# --- ACCOUNT SCHEMAS ---
 
 class AccountCreate(BaseModel):
     broker: str
@@ -326,6 +326,9 @@ class AccountOut(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- ASSET SCHEMAS ---
 
 class AssetCreate(BaseModel):
     name: str
@@ -394,6 +397,39 @@ class LiabilityOut(BaseModel):
     include_in_cash_flow: bool | None = None # New field to control if liability is included in cash flow
     decrease_by_principal_yearly: bool = False  # NEW
     create_payment_expense: bool = False  # NEW
+    model_config = ConfigDict(from_attributes=True)
+
+# --- AUTO-DISBURSEMENT SCHEMAS ---
+
+class AutoDisbursementCreate(BaseModel):
+    name: str
+    source_asset_id: int
+    target_asset_id: int
+    transfer_type: str  # "percentage" or "dollar_amount"
+    transfer_value: float  # Percentage (0-100) or dollar amount
+    start_date: str | None = None  # Start date as string (YYYY-MM-DD)
+    end_date: str | None = None    # End date as string (YYYY-MM-DD)
+
+class AutoDisbursementUpdate(BaseModel):
+    name: Optional[str] = None
+    source_asset_id: Optional[int] = None
+    target_asset_id: Optional[int] = None
+    transfer_type: Optional[str] = None
+    transfer_value: Optional[float] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+class AutoDisbursementOut(BaseModel):
+    id: int
+    name: str
+    source_asset_id: int
+    target_asset_id: int
+    transfer_type: str
+    transfer_value: float
+    start_date: str | None = None
+    end_date: str | None = None
+    created_at: datetime
+    updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
 # --- CUSTOM CHART SCHEMAS ---
