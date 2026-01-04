@@ -30,12 +30,12 @@ const AutoDisbursementSettingsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [autoDisbursementsData, assetsData] = await Promise.all([
+      const [autoDisbursementsData, assetsRes] = await Promise.all([
         AutoDisbursementService.getAllAutoDisbursements(),
         AssetService.list(),
       ]);
       setAutoDisbursements(autoDisbursementsData);
-      setAssets(assetsData.data || []);
+      setAssets(assetsRes.data || []);
     } catch (e) {
       console.error('Failed to load auto-disbursements', e);
       setError('Failed to load auto-disbursements.');
@@ -182,10 +182,10 @@ const AutoDisbursementSettingsPage = () => {
       <h2>Auto-Disbursements</h2>
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
-      <div className="setting-group" style={{ maxWidth: '100%' }}>
+      <div className="setting-group auto-disbursement-form" style={{ maxWidth: '100%', width: '100%' }}>
         <h3>Add New Auto-Disbursement</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+        <div className="auto-disbursement-form-fields">
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '20px' }}>
             <div className="form-field">
               <label htmlFor="name">Name *</label>
               <input
@@ -208,7 +208,7 @@ const AutoDisbursementSettingsPage = () => {
               </select>
             </div>
           </div>
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '20px' }}>
             <div className="form-field">
               <label htmlFor="source_asset_id">Source Asset *</label>
               <select
@@ -240,7 +240,7 @@ const AutoDisbursementSettingsPage = () => {
               </select>
             </div>
           </div>
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '20px' }}>
             <div className="form-field">
               <label htmlFor="transfer_value">
                 Transfer Value * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'})
@@ -274,17 +274,24 @@ const AutoDisbursementSettingsPage = () => {
             </div>
           </div>
         </div>
-        <button onClick={handleCreateAutoDisbursement} className="save-button" style={{ marginBottom: '30px' }}>
-          Add Auto-Disbursement
-        </button>
+        <div style={{ marginTop: '10px' }}>
+          <button onClick={handleCreateAutoDisbursement} className="save-button" style={{ marginBottom: '30px' }}>
+            Add Auto-Disbursement
+          </button>
+        </div>
       </div>
 
-      <div className="setting-group" style={{ maxWidth: '100%' }}>
-        <h3>Existing Auto-Disbursements</h3>
+      <div className="setting-group" style={{ maxWidth: '100%', width: '100%', marginTop: '30px' }}>
+        <h3 style={{ color: 'var(--color-heading)', marginBottom: '20px', fontSize: '1.25em', borderBottom: '2px solid var(--color-border)', paddingBottom: '10px' }}>
+          Existing Auto-Disbursements
+        </h3>
         {autoDisbursements.length === 0 ? (
-          <p>No auto-disbursements defined. Add an auto-disbursement above.</p>
+          <p style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
+            No auto-disbursements defined. Add an auto-disbursement above.
+          </p>
         ) : (
-          <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px', minWidth: '800px' }}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -405,6 +412,7 @@ const AutoDisbursementSettingsPage = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

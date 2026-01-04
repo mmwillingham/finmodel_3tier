@@ -524,4 +524,141 @@
     cursor: not-allowed;
 }
 
+/* Auto-Disbursement Form Styling */
+.auto-disbursement-form {
+    background-color: var(--color-background-soft);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.auto-disbursement-form h3 {
+    color: var(--color-heading);
+    margin-bottom: 20px;
+    font-size: 1.25em;
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 10px;
+}
+
+.auto-disbursement-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.auto-disbursement-form .form-row {
+    display: grid;
+    gap: 15px;
+    margin-bottom: 20px;
+    width: 100%;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.auto-disbursement-form .form-row:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.auto-disbursement-form .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.auto-disbursement-form .form-field label {
+    font-weight: 600;
+    color: var(--color-label);
+    font-size: 0.95em;
+    margin-bottom: 0;
+}
+
+.auto-disbursement-form .form-field input[type="text"],
+.auto-disbursement-form .form-field input[type="number"],
+.auto-disbursement-form .form-field input[type="date"],
+.auto-disbursement-form .form-field select {
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 1em;
+    width: 100%;
+    box-sizing: border-box;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auto-disbursement-form .form-field input[type="text"]:focus,
+.auto-disbursement-form .form-field input[type="number"]:focus,
+.auto-disbursement-form .form-field input[type="date"]:focus,
+.auto-disbursement-form .form-field select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1);
+}
+
+.auto-disbursement-form .form-field input::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+}
+
+.auto-disbursement-form .form-field select {
+    cursor: pointer;
+}
+
+/* Accounts table styling for auto-disbursements and accounts pages */
+.setting-group .accounts-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background-color: var(--color-background);
+}
+
+.setting-group .accounts-table th {
+    background-color: var(--color-primary-light);
+    color: var(--color-heading);
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+    font-size: 0.95em;
+}
+
+.setting-group .accounts-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9em;
+}
+
+.setting-group .accounts-table tr:hover {
+    background-color: var(--color-background-soft);
+}
+
+.setting-group .accounts-table tr:last-child td {
+    border-bottom: none;
+}
+
+.setting-group .accounts-table input[type="text"],
+.setting-group .accounts-table input[type="number"],
+.setting-group .accounts-table input[type="date"],
+.setting-group .accounts-table select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 0.9em;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.setting-group .accounts-table input:focus,
+.setting-group .accounts-table select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+}
+
 

@@ -42,8 +42,8 @@ async def create_liability(
         # This assumes the 'value' or 'initial_loan_amount' is what's used for payment calculation
         # If monthly_payment is provided, use it; otherwise, estimate based on interest rate and term (if available)
         monthly_payment_value = db_liability.monthly_payment if db_liability.monthly_payment is not None else (
-            (db_liability.initial_loan_amount * (db_liability.interest_rate / 12 / 100)) /
-            (1 - (1 + (db_liability.interest_rate / 12 / 100))**(-db_liability.loan_term_months)) if db_liability.loan_term_months and db_liability.initial_loan_amount else 0
+            (db_liability.principal_amount * (db_liability.interest_rate / 12 / 100)) /
+            (1 - (1 + (db_liability.interest_rate / 12 / 100))**(-db_liability.loan_term_months)) if db_liability.loan_term_months and db_liability.principal_amount else 0
         )
 
         cash_flow_item = models.CashFlowItem(
@@ -115,8 +115,8 @@ async def update_liability(
         # Update or create linked cash flow for amortized loans
         if db_liability.include_in_cash_flow:
             monthly_payment_value = db_liability.monthly_payment if db_liability.monthly_payment is not None else (
-                (db_liability.initial_loan_amount * (db_liability.interest_rate / 12 / 100)) /
-                (1 - (1 + (db_liability.interest_rate / 12 / 100))**(-db_liability.loan_term_months)) if db_liability.loan_term_months and db_liability.initial_loan_amount else 0
+                (db_liability.principal_amount * (db_liability.interest_rate / 12 / 100)) /
+                (1 - (1 + (db_liability.interest_rate / 12 / 100))**(-db_liability.loan_term_months)) if db_liability.loan_term_months and db_liability.principal_amount else 0
             )
 
             cash_flow_item = db.query(models.CashFlowItem).filter(
@@ -132,7 +132,7 @@ async def update_liability(
                 cash_flow_item.person = None  # Liabilities don't have a person attribute
                 cash_flow_item.start_date = db_liability.loan_start_date
                 cash_flow_item.end_date = db_liability.end_date
-                cash_flow_item.tax_deductible = db_liability.tax_deductible if db_liability.tax_deductible is not None else False
+                cash_flow_item.tax_deductible = False  # Liabilities don't have a tax_deductible attribute, set default to False
                 db.add(cash_flow_item)
             else:
                 # Create new cash flow item if it doesn't exist and should be included
