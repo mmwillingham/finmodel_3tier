@@ -162,6 +162,7 @@ class UserSettings(Base):
     zip_code = Column(String, default="")
     projection_years = Column(Integer, default=30)
     show_chart_totals = Column(Boolean, default=True) # New field
+    surplus_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True)  # Designated asset for surplus/deficit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -183,6 +184,22 @@ class GlobalSettings(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class Account(Base):
+    """
+    SQLAlchemy Model for Master Accounts (Broker/Financial Institution Accounts).
+    These are container accounts that can hold multiple assets.
+    """
+    __tablename__ = "accounts"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    broker = Column(String, nullable=False)  # e.g., "Merrill Lynch", "Fidelity"
+    account_name = Column(String, nullable=False)  # e.g., "Investment Account", "Checking Account"
+    account_number = Column(String, nullable=True)  # Account number (optional)
+    is_retirement = Column(Boolean, default=False)  # True for retirement accounts (IRA, 401k, etc.)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class Asset(Base):
     __tablename__ = "assets"
     id = Column(Integer, primary_key=True, index=True)
@@ -192,6 +209,7 @@ class Asset(Base):
     value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)
     annual_change_type = Column(String, default="increase") # New field
+    account_id = Column(Integer, ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)  # Link to master account
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -215,6 +233,8 @@ class Liability(Base):
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     include_in_cash_flow = Column(Boolean, default=True) # New field to control if liability is included in cash flow
+    decrease_by_principal_yearly = Column(Boolean, default=False)  # NEW: Option to decrease liability by principal amount each year
+    create_payment_expense = Column(Boolean, default=False)  # NEW: Option to create corresponding expense for payment amount
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -242,3 +262,22 @@ class CustomChart(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     owner = relationship("User")
+
+
+class AutoDisbursement(Base):
+    """
+    SQLAlchemy Model for Auto-Disbursement Rules.
+    Defines yearly transfers between accounts (percentage or dollar amount).
+    """
+    __tablename__ = "auto_disbursements"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)  # Description of the transfer
+    source_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)  # Source asset account
+    target_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)  # Target asset account
+    transfer_type = Column(String, nullable=False)  # "percentage" or "dollar_amount"
+    transfer_value = Column(Float, nullable=False)  # Percentage (0-100) or dollar amount
+    start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
+    end_date = Column(String, nullable=True)  # End date as string (YYYY-MM-DD)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

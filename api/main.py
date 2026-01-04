@@ -29,6 +29,8 @@ from routers.custom_charts import router as custom_charts_router # MODIFIED: Exp
 from routers import assets
 from routers import liabilities
 from routers.settings import router as settings_router
+from routers.accounts import router as accounts_router
+from routers.auto_disbursements import router as auto_disbursements_router
 from utils.email import send_email
 from config import settings
 
@@ -60,6 +62,8 @@ app.include_router(custom_charts_router) # MODIFIED: Use the explicitly imported
 app.include_router(settings_router)
 app.include_router(assets.router)
 app.include_router(liabilities.router)
+app.include_router(accounts_router)
+app.include_router(auto_disbursements_router)
 
 # New router for admin global settings
 admin_router = APIRouter()

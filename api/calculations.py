@@ -98,11 +98,108 @@ def calculate_amortized_loan_balance(
     return max(0.0, remaining_balance)
 
 
+def calculate_annual_principal_interest(
+    principal: float,
+    annual_interest_rate_percent: float,
+    loan_term_months: int,
+    loan_start_date: date,
+    year: int
+) -> dict:
+    """
+    Calculates the principal and interest breakdown for a specific year of an amortized loan.
+    
+    Args:
+        principal: The initial principal amount of the loan.
+        annual_interest_rate_percent: The annual interest rate as a percentage.
+        loan_term_months: The total term of the loan in months.
+        loan_start_date: The date when the loan started.
+        year: The year number (1-indexed) for which to calculate breakdown.
+    
+    Returns:
+        dict with keys: 'principal_paid', 'interest_paid', 'total_payment', 'remaining_balance'
+    """
+    if annual_interest_rate_percent == 0:
+        monthly_payment = principal / loan_term_months
+        months_paid_before_year = (year - 1) * 12
+        if months_paid_before_year >= loan_term_months:
+            return {'principal_paid': 0.0, 'interest_paid': 0.0, 'total_payment': 0.0, 'remaining_balance': 0.0}
+        
+        principal_paid_this_year = min(monthly_payment * 12, principal - (monthly_payment * months_paid_before_year))
+        interest_paid_this_year = 0.0
+        total_payment = principal_paid_this_year
+        remaining_balance = principal - (monthly_payment * min(months_paid_before_year + 12, loan_term_months))
+        return {
+            'principal_paid': principal_paid_this_year,
+            'interest_paid': interest_paid_this_year,
+            'total_payment': total_payment,
+            'remaining_balance': max(0.0, remaining_balance)
+        }
+    
+    monthly_interest_rate = (annual_interest_rate_percent / 100) / 12
+    monthly_payment = (principal * monthly_interest_rate) / (1 - pow(1 + monthly_interest_rate, -loan_term_months))
+    
+    # Calculate remaining balance at start of year
+    months_paid_before_year = (year - 1) * 12
+    if months_paid_before_year >= loan_term_months:
+        return {'principal_paid': 0.0, 'interest_paid': 0.0, 'total_payment': 0.0, 'remaining_balance': 0.0}
+    
+    balance_at_start_of_year = principal * pow(1 + monthly_interest_rate, months_paid_before_year) - \
+                               (monthly_payment / monthly_interest_rate) * (pow(1 + monthly_interest_rate, months_paid_before_year) - 1)
+    balance_at_start_of_year = max(0.0, balance_at_start_of_year)
+    
+    # Calculate total payment for the year (12 months)
+    total_payment = monthly_payment * 12
+    
+    # Calculate interest paid during the year
+    # Approximate: Use average balance during the year
+    balance_at_end_of_year = principal * pow(1 + monthly_interest_rate, months_paid_before_year + 12) - \
+                             (monthly_payment / monthly_interest_rate) * (pow(1 + monthly_interest_rate, months_paid_before_year + 12) - 1)
+    balance_at_end_of_year = max(0.0, balance_at_end_of_year)
+    average_balance = (balance_at_start_of_year + balance_at_end_of_year) / 2.0
+    interest_paid_this_year = average_balance * annual_interest_rate_percent / 100.0
+    
+    # Principal paid is total payment minus interest
+    principal_paid_this_year = total_payment - interest_paid_this_year
+    principal_paid_this_year = min(principal_paid_this_year, balance_at_start_of_year)  # Can't pay more than balance
+    
+    return {
+        'principal_paid': principal_paid_this_year,
+        'interest_paid': interest_paid_this_year,
+        'total_payment': total_payment,
+        'remaining_balance': balance_at_end_of_year
+    }
+
+
 def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCreate], db: Session, owner_id: int) -> dict:
     try:
         print(f"--- DEBUG: TOP OF calculate_projection function. Owner ID: {owner_id} ---"); sys.stdout.flush()
         print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---"); sys.stdout.flush()
         print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} ---"); sys.stdout.flush() # NEW DEBUG
+
+        # Load user settings for surplus asset and other settings
+        user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == owner_id).first()
+        surplus_asset_id = user_settings.surplus_asset_id if user_settings else None
+        surplus_asset_name = None
+        if surplus_asset_id:
+            surplus_asset = db.query(models.Asset).filter(models.Asset.id == surplus_asset_id, models.Asset.owner_id == owner_id).first()
+            if surplus_asset:
+                surplus_asset_name = surplus_asset.name
+
+        # Load auto-disbursement rules
+        auto_disbursements = db.query(models.AutoDisbursement).filter(
+            models.AutoDisbursement.owner_id == owner_id
+        ).all() if db else []
+
+        # Load assets to get account information (for retirement account rules)
+        all_assets = db.query(models.Asset).filter(models.Asset.owner_id == owner_id).all() if db else []
+        asset_to_account_map = {}
+        account_to_retirement_map = {}
+        if all_assets:
+            account_ids = [a.account_id for a in all_assets if a.account_id]
+            if account_ids:
+                accounts_list = db.query(models.Account).filter(models.Account.id.in_(account_ids)).all()
+                account_to_retirement_map = {acc.id: acc.is_retirement for acc in accounts_list}
+                asset_to_account_map = {a.id: a.account_id for a in all_assets if a.account_id}
 
         # Initialize lists for new models
         projected_accounts_for_db: List[models.ProjectedAccount] = []
@@ -155,6 +252,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             
             # Dictionary to store annual flow values for income/expense items (since they reset to 0)
             annual_flow_values = {}
+            
+            # Dictionary to store account values for this year (including principal/interest breakdown)
+            account_values_for_year = {}
 
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
@@ -165,25 +265,69 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         loan_start_date_obj = datetime.strptime(projected_account.loan_start_date, "%Y-%m-%d").date()
                         calculation_date_obj = date(current_year + year -1, 12, 31) # End of current projection year
                         
-                        remaining_principal = calculate_amortized_loan_balance(
+                        # Calculate principal/interest breakdown for this year
+                        breakdown = calculate_annual_principal_interest(
                             principal=projected_account.principal_amount,
                             annual_interest_rate_percent=projected_account.interest_rate,
                             loan_term_months=projected_account.loan_term_months,
                             loan_start_date=loan_start_date_obj,
-                            calculation_date=calculation_date_obj
+                            year=year
                         )
-                        # For liabilities, remaining_principal should be negative in our balance sheet
-                        new_balance = -abs(remaining_principal)
+                        
+                        # Get liability model to check options
+                        liability = None
+                        if db:
+                            liability = db.query(models.Liability).filter(
+                                models.Liability.owner_id == owner_id,
+                                models.Liability.name == projected_account.name
+                            ).first()
+                        
+                        decrease_by_principal = liability.decrease_by_principal_yearly if liability else False
+                        create_payment_expense = liability.create_payment_expense if liability else False
+                        
+                        # Calculate new balance
+                        if decrease_by_principal:
+                            # Decrease by principal paid this year
+                            remaining_principal = calculate_amortized_loan_balance(
+                                principal=projected_account.principal_amount,
+                                annual_interest_rate_percent=projected_account.interest_rate,
+                                loan_term_months=projected_account.loan_term_months,
+                                loan_start_date=loan_start_date_obj,
+                                calculation_date=calculation_date_obj
+                            )
+                            new_balance = -abs(remaining_principal)
+                        else:
+                            # Use standard amortization calculation
+                            remaining_principal = calculate_amortized_loan_balance(
+                                principal=projected_account.principal_amount,
+                                annual_interest_rate_percent=projected_account.interest_rate,
+                                loan_term_months=projected_account.loan_term_months,
+                                loan_start_date=loan_start_date_obj,
+                                calculation_date=calculation_date_obj
+                            )
+                            new_balance = -abs(remaining_principal)
+                        
+                        # Handle expense creation for payment
+                        if create_payment_expense:
+                            # Add payment amount to expense flow
+                            payment_expense = breakdown['total_payment']
+                            # Create a synthetic expense entry for this liability payment
+                            if projected_account.name not in annual_flow_values:
+                                annual_flow_values[projected_account.name + "_Payment"] = -payment_expense  # Negative for expense
+                                current_year_total_expense_flow += payment_expense
+                                print(f"--- DEBUG: Created payment expense of {payment_expense:.2f} for {projected_account.name} ---"); sys.stdout.flush()
+                        
+                        # Store principal/interest breakdown for this year
+                        account_values_for_year[f"{projected_account.name}_Principal"] = breakdown['principal_paid']
+                        account_values_for_year[f"{projected_account.name}_Interest"] = breakdown['interest_paid']
+                        account_values_for_year[f"{projected_account.name}_Payment"] = breakdown['total_payment']
                         
                         # For amortized loans, the 'contribution' is the monthly payment, which is handled in the balance calculation itself.
-                        # The growth rate for a loan typically refers to the interest, which is also part of the amortization.
-                        # So, we don't apply the general 'contribution' and 'growth_rate' logic for amortized loans here.
                         adjusted_annual_contribution = 0.0
                         growth_on_balance = 0.0
                         growth_on_contributions = 0.0
                         
-                        # Update initial_value for next year's starting balance to be the remaining principal
-                        # This ensures the amortization continues correctly
+                        # Update balance for next year
                         account_current_balances[projected_account.name] = new_balance
 
                     except ValueError:
@@ -225,10 +369,37 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Dynamic item: recalculate contribution based on linked asset's current value
                         if linked_asset_name in account_current_balances:
                             linked_asset_value = account_current_balances[linked_asset_name]
+                            # Find the linked asset to check if it's in a retirement account
+                            linked_asset = None
+                            for asset in all_assets:
+                                if asset.name == linked_asset_name:
+                                    linked_asset = asset
+                                    break
+                            
                             # Calculate yearly value as percentage of linked asset value
-                            yearly_value = linked_asset_value * (linked_percentage / 100.0)
-                            adjusted_annual_contribution = yearly_value if projected_account.account_type == "income" else -yearly_value
-                            print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {linked_asset_name} value={linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} ---"); sys.stdout.flush()
+                            yearly_value = abs(linked_asset_value) * (linked_percentage / 100.0)
+                            
+                            # Retirement account rules: In retirement accounts, dividends/interest stay in the account
+                            # In non-retirement accounts, they increase a linked asset and are available for spending
+                            is_retirement = False
+                            if linked_asset and linked_asset.account_id and linked_asset.account_id in account_to_retirement_map:
+                                is_retirement = account_to_retirement_map[linked_asset.account_id]
+                            
+                            if projected_account.account_type == "income":
+                                if is_retirement:
+                                    # For retirement accounts, dividends/interest stay in the account (don't create income flow)
+                                    adjusted_annual_contribution = 0.0
+                                    # Add the dividend/interest directly to the linked asset
+                                    account_current_balances[linked_asset_name] += yearly_value
+                                    print(f"--- DEBUG: Retirement account - {yearly_value:.2f} added to {linked_asset_name} (not available for spending) ---"); sys.stdout.flush()
+                                else:
+                                    # For non-retirement accounts, dividends/interest are available for spending
+                                    adjusted_annual_contribution = yearly_value
+                                    print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {linked_asset_name} value={linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} (available for spending) ---"); sys.stdout.flush()
+                            else:
+                                # Expenses (shouldn't normally be dynamic, but handle if needed)
+                                adjusted_annual_contribution = -yearly_value
+                                print(f"--- DEBUG: Dynamic expense item {base_account_name} recalculated: {linked_asset_name} value={linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} ---"); sys.stdout.flush()
                         else:
                             # Linked asset not found in projection, use 0
                             adjusted_annual_contribution = 0.0
@@ -309,6 +480,66 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 current_year_growth_sum += (growth_on_balance + growth_on_contributions)
 
 
+            # Calculate cash flow surplus/deficit and apply to designated asset
+            net_cash_flow = current_year_total_income_flow + current_year_total_expense_flow
+            surplus_deficit = current_year_total_income_flow - abs(current_year_total_expense_flow)
+            
+            # Apply surplus/deficit to designated asset if configured (before auto-disbursements)
+            if surplus_asset_name and surplus_asset_name in account_current_balances:
+                account_current_balances[surplus_asset_name] += surplus_deficit
+                print(f"--- DEBUG: Applied surplus/deficit of {surplus_deficit:.2f} to {surplus_asset_name} for year {year} ---"); sys.stdout.flush()
+
+            # Apply auto-disbursement transfers
+            current_year_date = date(current_year + year - 1, 1, 1)  # Start of current projection year
+            for disbursement in auto_disbursements:
+                # Check if disbursement is active for this year
+                active = True
+                if disbursement.start_date:
+                    try:
+                        start_date_obj = datetime.strptime(disbursement.start_date, "%Y-%m-%d").date()
+                        if current_year_date < start_date_obj:
+                            active = False
+                    except ValueError:
+                        pass
+                if disbursement.end_date and active:
+                    try:
+                        end_date_obj = datetime.strptime(disbursement.end_date, "%Y-%m-%d").date()
+                        if current_year_date > end_date_obj:
+                            active = False
+                    except ValueError:
+                        pass
+                
+                if active:
+                    # Find source and target asset names in projection
+                    source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
+                    target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
+                    
+                    if source_asset and target_asset:
+                        source_name = source_asset.name
+                        target_name = target_asset.name
+                        
+                        if source_name in account_current_balances and target_name in account_current_balances:
+                            source_balance = account_current_balances[source_name]
+                            
+                            # Calculate transfer amount
+                            if disbursement.transfer_type == "percentage":
+                                transfer_amount = abs(source_balance) * (disbursement.transfer_value / 100.0)
+                            else:  # dollar_amount
+                                transfer_amount = abs(disbursement.transfer_value)
+                            
+                            # Apply transfer (only if source has sufficient balance)
+                            if abs(source_balance) >= transfer_amount:
+                                account_current_balances[source_name] -= transfer_amount
+                                account_current_balances[target_name] += transfer_amount
+                                print(f"--- DEBUG: Applied auto-disbursement: {transfer_amount:.2f} from {source_name} to {target_name} for year {year} ---"); sys.stdout.flush()
+
+            # Recalculate totals after surplus/deficit and auto-disbursements
+            # This ensures assets reflect the transfers
+            current_year_total_assets = 0.0
+            for acc in projected_accounts_for_db:
+                if acc.account_type == "asset" and acc.name in account_current_balances:
+                    current_year_total_assets += account_current_balances[acc.name]
+
             # Update overall totals
             total_contributed_overall += current_year_contributions_sum
             total_growth_overall += current_year_growth_sum
@@ -325,7 +556,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 if acc.account_type in ["income", "expense"]:
                     account_values[f"{display_name}_Value"] = annual_flow_values.get(acc.name, 0.0)
                 else:
-                    account_values[f"{display_name}_Value"] = account_current_balances[acc.name]
+                    account_values[f"{display_name}_Value"] = account_current_balances.get(acc.name, 0.0)
+            
+            # Add principal/interest breakdown values
+            account_values.update(account_values_for_year)
             
             yearly_data_points[year] = {
                 "Year": current_year + year -1, # Display actual calendar year
@@ -334,7 +568,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 "Net Worth": current_year_net_worth,
                 "Total Income Flow": current_year_total_income_flow,
                 "Total Expense Flow": current_year_total_expense_flow,
-                "Net Cash Flow": current_year_total_income_flow + current_year_total_expense_flow,
+                "Net Cash Flow": net_cash_flow,
                 **account_values # Individual account balances with _Value suffix
             }
 

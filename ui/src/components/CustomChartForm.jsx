@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomChartService from '../services/customChart.service';
+import AccountService from '../services/account.service';
 import './CustomChartForm.css'; // We will create this CSS file
 
 const chartTypes = ["line", "bar", "pie"];
@@ -12,7 +13,7 @@ const getRandomColor = () => {
   return "#" + ("000000" + randomHex).slice(-6);
 };
 
-const getDataSourceItemOptions = (dataType, assets, liabilities, incomeItems, expenseItems, selectedCategory) => {
+const getDataSourceItemOptions = (dataType, assets, liabilities, incomeItems, expenseItems, selectedCategory, selectedAccountIds = []) => {
   let items = [];
   switch (dataType) {
     case 'assets': items = assets; break;
@@ -27,11 +28,20 @@ const getDataSourceItemOptions = (dataType, assets, liabilities, incomeItems, ex
     items = items.filter(item => item.category === selectedCategory);
   }
 
+  // Filter by account if accounts are selected (only for assets which have account_id)
+  if (dataType === 'assets' && selectedAccountIds && selectedAccountIds.length > 0) {
+    items = items.filter(item => {
+      if (!item.account_id) return false; // Exclude assets without accounts if filtering by account
+      return selectedAccountIds.includes(item.account_id);
+    });
+  }
+
   // Map to a consistent format for options
   return items.map(item => ({
     id: item.id,
     name: item.name || item.description, // Assets/Liabilities have 'name', CashFlowItems have 'description'
     category: item.category,
+    account_id: item.account_id || null,
   }));
 };
 
@@ -48,6 +58,7 @@ export default function CustomChartForm({
   liabilityCategories,
   incomeCategories,
   expenseCategories,
+  accounts = [],
 }) {
   const [name, setName] = useState("");
   const [chartType, setChartType] = useState(chartTypes[0]);
@@ -70,7 +81,12 @@ export default function CustomChartForm({
           setChartType(chart.chart_type);
           setDisplayType(chart.display_type || "chart"); // Set display type from fetched config
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
-          setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ ...series, category: series.category || '', selected_item_id: series.selected_item_id || null })));
+          setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ 
+            ...series, 
+            category: series.category || '', 
+            selected_item_id: series.selected_item_id || null,
+            selected_account_ids: series.selected_account_ids || [] // Load account filter if present
+          })));
           setXAxisLabel(chart.x_axis_label || "");
           setYAxisLabel(chart.y_axis_label || "");
         })
@@ -113,19 +129,26 @@ export default function CustomChartForm({
       color: getRandomColor(),
       category: "", // New category field
       selected_item_id: null, // Initialize selected_item_id
+      selected_account_ids: [], // Initialize account filter
     }]);
   };
 
   const handleSeriesChange = (index, field, value) => {
     const newSeries = [...seriesConfigurations];
     newSeries[index][field] = value;
-    // Reset category and selected_item_id if data_type changes
+    // Reset category, selected_item_id, and selected_account_ids if data_type changes
     if (field === 'data_type') {
       newSeries[index].category = '';
       newSeries[index].selected_item_id = null;
+      newSeries[index].selected_account_ids = [];
       // Set default label to data type name (capitalized) when only data type is selected
       const dataTypeLabel = value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
       newSeries[index].label = dataTypeLabel;
+    }
+    
+    // Handle account multi-select changes
+    if (field === 'selected_account_ids') {
+      newSeries[index].selected_account_ids = value || [];
     }
     // Reset selected_item_id if category changes, and set default label to category
     if (field === 'category') {
@@ -147,7 +170,8 @@ export default function CustomChartForm({
           liabilities,
           incomeItems,
           expenseItems,
-          newSeries[index].category
+          newSeries[index].category,
+          newSeries[index].selected_account_ids || []
         );
         const selectedItem = options.find(item => {
           const itemId = String(item.id);
@@ -280,7 +304,15 @@ export default function CustomChartForm({
         <div className="series-list">
           {seriesConfigurations.map((series, index) => {
             const currentSeriesDataType = series.data_type;
-            const options = getDataSourceItemOptions(currentSeriesDataType, assets, liabilities, incomeItems, expenseItems, series.category);
+            const options = getDataSourceItemOptions(
+              currentSeriesDataType, 
+              assets, 
+              liabilities, 
+              incomeItems, 
+              expenseItems, 
+              series.category,
+              series.selected_account_ids || []
+            );
 
             return (
               <div key={index} className="series-item">
@@ -295,6 +327,30 @@ export default function CustomChartForm({
                     ))}
                   </select>
                 </div>
+
+                {/* Account multi-selector, only for assets */}
+                {currentSeriesDataType === 'assets' && accounts && accounts.length > 0 && (
+                  <div className="form-group">
+                    <label>Account(s):</label>
+                    <select
+                      multiple
+                      value={series.selected_account_ids || []}
+                      onChange={(e) => {
+                        const selectedValues = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                        handleSeriesChange(index, 'selected_account_ids', selectedValues);
+                      }}
+                      style={{ minHeight: '100px' }}
+                    >
+                      <option value="">All Accounts</option>
+                      {accounts.map(account => (
+                        <option key={account.id} value={account.id}>
+                          {account.broker} - {account.account_name}
+                        </option>
+                      ))}
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple accounts</small>
+                  </div>
+                )}
 
                 {/* Category dropdown, conditional based on data type */}
                 {(currentSeriesDataType === 'assets' || currentSeriesDataType === 'liabilities' || currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && (
@@ -330,7 +386,8 @@ export default function CustomChartForm({
                         liabilities,
                         incomeItems,
                         expenseItems,
-                        series.category
+                        series.category,
+                        series.selected_account_ids || []
                       ).map(item => (
                         <option key={item.id} value={item.id}>{item.name}</option>
                       ))}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AssetService from "../services/asset.service";
 import SettingsService from "../services/settings.service";
+import AccountService from "../services/account.service";
 import Modal from "./Modal"; // Import the generic Modal component
 import "./AssetFormModal.css"; // Specific styling for this form
 
@@ -11,6 +12,7 @@ export default function AssetFormModal({
   onSaveSuccess,
 }) {
   const [categories, setCategories] = useState([]);
+  const [accounts, setAccounts] = useState([]);
 
   const [newItem, setNewItem] = useState({
     name: "",
@@ -18,6 +20,7 @@ export default function AssetFormModal({
     value: "",
     annual_increase_percent: 0,
     annual_change_type: "increase", // Default to increase for assets
+    account_id: null,
     start_date: "",
     end_date: "",
   });
@@ -25,9 +28,13 @@ export default function AssetFormModal({
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const res = await SettingsService.getSettings();
-        const cats = res.data.asset_categories || [];
+        const [settingsRes, accountsRes] = await Promise.all([
+          SettingsService.getSettings(),
+          AccountService.getAllAccounts().catch(() => []) // Don't fail if accounts endpoint doesn't exist yet
+        ]);
+        const cats = settingsRes.data.asset_categories || [];
         setCategories(cats);
+        setAccounts(accountsRes || []);
 
         if (itemToEdit) {
           setNewItem(prev => ({
@@ -36,6 +43,7 @@ export default function AssetFormModal({
             value: itemToEdit.value?.toString() || '',
             annual_increase_percent: itemToEdit.annual_increase_percent ?? 0,
             annual_change_type: itemToEdit.annual_change_type || "increase",
+            account_id: itemToEdit.account_id || null,
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
           }));
@@ -47,6 +55,7 @@ export default function AssetFormModal({
             value: "",
             annual_increase_percent: 0,
             annual_change_type: "increase",
+            account_id: null,
             start_date: "",
             end_date: "",
           }));
@@ -54,8 +63,9 @@ export default function AssetFormModal({
       } catch (e) {
         console.error("Failed to load settings", e);
         setCategories([]);
+        setAccounts([]);
         if (!itemToEdit) {
-          setNewItem(prev => ({ ...prev, category: "", annual_change_type: "increase" }));
+          setNewItem(prev => ({ ...prev, category: "", annual_change_type: "increase", account_id: null }));
         }
       }
     };
@@ -71,6 +81,7 @@ export default function AssetFormModal({
       value: parseFloat(newItem.value),
       annual_increase_percent: parseFloat(newItem.annual_increase_percent || 0),
       annual_change_type: newItem.annual_change_type,
+      account_id: newItem.account_id || null,
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
     };
@@ -97,7 +108,7 @@ export default function AssetFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name}` : `Add New Asset`}>
       <div className="asset-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Name, Category, Value, Percent, Annual Change */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}> {/* First row: Name, Category, Account, Value, Percent, Annual Change */} 
             <div className="form-field">
               <label htmlFor="asset-name">Name</label>
               <input
@@ -116,6 +127,22 @@ export default function AssetFormModal({
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="asset-account">Account</label>
+              <select 
+                id="asset-account" 
+                value={newItem.account_id || ''} 
+                onChange={(e) => setNewItem({ ...newItem, account_id: e.target.value ? parseInt(e.target.value) : null })}
+              >
+                <option value="">None</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.broker} - {account.account_name}
                   </option>
                 ))}
               </select>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
+import AccountService from "../services/account.service";
 import ProjectionDetail from "./ProjectionDetail";
 import CashFlowView from "./CashFlowView";
 import AssetView from "./AssetView";
@@ -13,6 +14,7 @@ import SettingsService from "../services/settings.service";
 import CustomChartList from "./CustomChartList";
 import CustomChartForm from "./CustomChartForm";
 import CustomChartView from "./CustomChartView";
+import MonteCarloProjections from "./MonteCarloProjections";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("new-home");
@@ -27,6 +29,7 @@ export default function SidebarLayout() {
   const [liabilityCategories, setLiabilityCategories] = useState([]);
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [expenseCategories, setExpenseCategories] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [projectionYears, setProjectionYears] = useState(30);
   const [showChartTotals, setShowChartTotals] = useState(true);
   const [customChartView, setCustomChartView] = useState(null);
@@ -46,11 +49,12 @@ export default function SidebarLayout() {
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [inc, exp, ast, lib, settingsRes] = await Promise.all([
+      const [inc, exp, ast, lib, accs, settingsRes] = await Promise.all([
         CashFlowService.list(true),
         CashFlowService.list(false),
         AssetService.list(),
         LiabilityService.list(),
+        AccountService.getAllAccounts().catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
         SettingsService.getSettings(),
       ]);
 
@@ -58,6 +62,7 @@ export default function SidebarLayout() {
       setExpenseItems(exp.data || []);
       setAssets(ast.data || []);
       setLiabilities(lib.data || []);
+      setAccounts(accs || []);
       setProjectionYears(settingsRes.data.projection_years || 30);
       setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
 
@@ -209,6 +214,12 @@ export default function SidebarLayout() {
             >
               Cash Flow Projections
             </button>
+            <button
+              className={`nav-btn ${view === 'monte-carlo' ? 'active' : ''}`}
+              onClick={() => { setView('monte-carlo'); setCashFlowView(null); }}
+            >
+              Monte Carlo Projections
+            </button>
           </section>
 
           <section className="nav-section">
@@ -301,6 +312,19 @@ export default function SidebarLayout() {
           </div>
         )}
 
+        {!loading && view === "monte-carlo" && (
+          <div className="monte-carlo-wrapper">
+            <MonteCarloProjections
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
+              assets={assets}
+              liabilities={liabilities}
+              projectionYears={projectionYears}
+              formatCurrency={formatCurrency}
+            />
+          </div>
+        )}
+
         {!loading && view === "assets" && (
           <div className="assets-view">
             <AssetView 
@@ -351,6 +375,7 @@ export default function SidebarLayout() {
               liabilityCategories={liabilityCategories}
               incomeCategories={incomeCategories}
               expenseCategories={expenseCategories}
+              accounts={accounts}
             />
           </div>
         )}

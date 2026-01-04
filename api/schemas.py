@@ -242,6 +242,7 @@ class UserSettingsBase(BaseModel):
     zip_code: str = ""
     projection_years: int = 30
     show_chart_totals: bool = True
+    surplus_asset_id: Optional[int] = None  # Designated asset for surplus/deficit
 
 class UserSettingsCreate(UserSettingsBase):
     pass
@@ -266,6 +267,7 @@ class UserSettingsUpdate(BaseModel):
     zip_code: Optional[str] = None
     projection_years: Optional[int] = None
     show_chart_totals: Optional[bool] = None
+    surplus_asset_id: Optional[int] = None
 
 class UserSettingsOut(UserSettingsBase):
     id: int
@@ -303,12 +305,35 @@ class GlobalSettingsOut(GlobalSettingsBase):
 
 # --- ASSET SCHEMAS ---
 
+class AccountCreate(BaseModel):
+    broker: str
+    account_name: str
+    account_number: str | None = None
+    is_retirement: bool = False
+
+class AccountUpdate(BaseModel):
+    broker: str | None = None
+    account_name: str | None = None
+    account_number: str | None = None
+    is_retirement: bool | None = None
+
+class AccountOut(BaseModel):
+    id: int
+    broker: str
+    account_name: str
+    account_number: str | None = None
+    is_retirement: bool
+    created_at: datetime
+    updated_at: datetime | None = None
+    model_config = ConfigDict(from_attributes=True)
+
 class AssetCreate(BaseModel):
     name: str
     category: str
     value: float
     annual_increase_percent: float = 0.0
     annual_change_type: str = "increase" # New field
+    account_id: int | None = None  # Link to master account
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
 
@@ -322,6 +347,7 @@ class AssetOut(BaseModel):
     value: float
     annual_increase_percent: float
     annual_change_type: Optional[str] # New field, made optional
+    account_id: Optional[int] = None  # Link to master account
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)
@@ -344,6 +370,8 @@ class LiabilityCreate(BaseModel):
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     include_in_cash_flow: bool = True # New field to control if liability is included in cash flow
+    decrease_by_principal_yearly: bool = False  # NEW: Option to decrease liability by principal amount each year
+    create_payment_expense: bool = False  # NEW: Option to create corresponding expense for payment amount
 
 class LiabilityUpdate(LiabilityCreate):
     pass
@@ -364,6 +392,8 @@ class LiabilityOut(BaseModel):
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     include_in_cash_flow: bool | None = None # New field to control if liability is included in cash flow
+    decrease_by_principal_yearly: bool = False  # NEW
+    create_payment_expense: bool = False  # NEW
     model_config = ConfigDict(from_attributes=True)
 
 # --- CUSTOM CHART SCHEMAS ---

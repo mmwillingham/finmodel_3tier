@@ -17,6 +17,7 @@ import GoogleAuthCallback from './components/GoogleAuthCallback';
 import ApplicationSettingsPage from './pages/ApplicationSettingsPage.jsx';
 import ProfileSettingsPage from './pages/ProfileSettingsPage.jsx';
 import CategorySettingsPage from './pages/CategorySettingsPage.jsx';
+import AccountsSettingsPage from './pages/AccountsSettingsPage.jsx';
 import UserManagementPage from './pages/UserManagementPage.jsx';
 import DefaultCategoriesPage from './pages/DefaultCategoriesPage.jsx';
 import HelpPage from './pages/HelpPage.jsx';
@@ -52,6 +53,7 @@ function App() {
                         <Route path="/settings/application" element={<ProtectedRoute><ApplicationSettingsPage /></ProtectedRoute>} />
                         <Route path="/settings/profile" element={<ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>} />
                         <Route path="/settings/categories" element={<ProtectedRoute><CategorySettingsPage /></ProtectedRoute>} />
+                        <Route path="/settings/accounts" element={<ProtectedRoute><AccountsSettingsPage /></ProtectedRoute>} />
                         <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>} />
                         <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><DefaultCategoriesPage /></ProtectedRoute>} />
                         <Route path="/settings/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
