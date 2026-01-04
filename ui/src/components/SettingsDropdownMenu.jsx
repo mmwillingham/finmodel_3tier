@@ -18,6 +18,7 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
             <button onClick={(e) => handleItemClick(e, '/settings/profile')}>Profile</button>
             <button onClick={(e) => handleItemClick(e, '/settings/categories')}>Categories</button>
             <button onClick={(e) => handleItemClick(e, '/settings/accounts')}>Accounts</button>
+            <button onClick={(e) => handleItemClick(e, '/settings/auto-disbursements')}>Auto-Disbursements</button>
             {currentUser && currentUser.is_admin && (
                 <button onClick={(e) => handleItemClick(e, '/settings/admin/users')}>User Management</button>
             )}

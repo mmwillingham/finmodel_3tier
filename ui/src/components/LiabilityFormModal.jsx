@@ -37,6 +37,8 @@ const initialNewItemState = {
   monthly_payment: "", // Changed from null to empty string, will be calculated
   start_date: "",
   end_date: "",
+  decrease_by_principal_yearly: false, // NEW
+  create_payment_expense: false, // NEW
 };
 
 export default function LiabilityFormModal({
@@ -75,6 +77,8 @@ export default function LiabilityFormModal({
             monthly_payment: itemToEdit.monthly_payment?.toString() || "",
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
+            decrease_by_principal_yearly: itemToEdit.decrease_by_principal_yearly || false,
+            create_payment_expense: itemToEdit.create_payment_expense || false,
           });
         } else {
           // If adding a new item, reset to initial state and set default category
@@ -174,6 +178,8 @@ export default function LiabilityFormModal({
         annual_increase_percent: 0, // Amortized loans don't have this, or it's handled differently
         start_date: null, // Clear these for amortized loans
         end_date: null,
+        decrease_by_principal_yearly: newItem.decrease_by_principal_yearly || false,
+        create_payment_expense: newItem.create_payment_expense || false,
       });
     } else { // Ordinary loan validation and payload construction
       const value = parseFloat(newItem.value);
@@ -365,6 +371,28 @@ export default function LiabilityFormModal({
                     tabIndex="-1" // Make it not focusable via tab
                     style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }} // Style to indicate read-only
                 />
+              </div>
+            </div>
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginTop: '15px' }}>
+              <div className="form-field">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={newItem.decrease_by_principal_yearly || false}
+                    onChange={(e) => setNewItem({ ...newItem, decrease_by_principal_yearly: e.target.checked })}
+                  />
+                  Decrease liability by principal amount each year
+                </label>
+              </div>
+              <div className="form-field">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={newItem.create_payment_expense || false}
+                    onChange={(e) => setNewItem({ ...newItem, create_payment_expense: e.target.checked })}
+                  />
+                  Create corresponding expense for payment amount
+                </label>
               </div>
             </div>
             </>

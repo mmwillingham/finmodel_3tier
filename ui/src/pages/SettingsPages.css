@@ -12,6 +12,11 @@
     max-width: 1200px;
 }
 
+/* Accounts and Auto-Disbursements pages need more width */
+.settings-page-container:has(.accounts-table) {
+    max-width: 1200px;
+}
+
 .settings-page-container .form-group-horizontal {
     display: flex;
     justify-content: space-between;

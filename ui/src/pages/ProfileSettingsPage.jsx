@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
+import AssetService from '../services/asset.service';
 import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming you have this component
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
@@ -48,12 +49,17 @@ const ProfileSettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [assets, setAssets] = useState([]);
+  const [surplusAssetId, setSurplusAssetId] = useState(null);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await SettingsService.getSettings();
+      const [res, assetsRes] = await Promise.all([
+        SettingsService.getSettings(),
+        AssetService.list(),
+      ]);
       setPerson1FirstName(res.data.person1_first_name || "");
       setPerson1LastName(res.data.person1_last_name || "");
       setPerson1Birthdate(res.data.person1_birthdate || "");
@@ -66,6 +72,8 @@ const ProfileSettingsPage = () => {
       setCity(res.data.city || "");
       setState(res.data.state || "");
       setZipCode(res.data.zip_code || "");
+      setSurplusAssetId(res.data.surplus_asset_id || null);
+      setAssets(assetsRes.data || []);
     } catch (e) {
       console.error('Failed to load profile settings', e);
       setError('Failed to load profile settings.');
@@ -95,6 +103,7 @@ const ProfileSettingsPage = () => {
         city: city,
         state: state,
         zip_code: zipCode,
+        surplus_asset_id: surplusAssetId || null,
       });
       setMessage('Profile settings saved successfully!');
       setTimeout(() => {
@@ -270,6 +279,26 @@ const ProfileSettingsPage = () => {
             onChange={(e) => setZipCode(e.target.value)}
             placeholder="Zip Code"
           />
+        </div>
+        <div className="form-group-horizontal">
+          <label htmlFor="surplus-asset">
+            Surplus Asset
+          </label>
+          <select
+            id="surplus-asset"
+            value={surplusAssetId || ''}
+            onChange={(e) => setSurplusAssetId(e.target.value ? parseInt(e.target.value) : null)}
+          >
+            <option value="">None (No automatic surplus/deficit handling)</option>
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.name} ({asset.category})
+              </option>
+            ))}
+          </select>
+          <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+            Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
+          </small>
         </div>
         <div className="form-group-horizontal">
             <button type="button" className="change-password-btn" onClick={() => setIsChangePasswordModalOpen(true)}>Change Password</button>

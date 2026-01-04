@@ -61,6 +61,13 @@ const AccountsSettingsPage = () => {
   };
 
   const handleUpdateAccount = async (accountId, updatedAccount) => {
+    // Validate required fields
+    if (!updatedAccount.broker || !updatedAccount.account_name) {
+      setMessage('Error: Broker and Account Name are required fields.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
     try {
       await AccountService.updateAccount(accountId, updatedAccount);
       setMessage('Account updated successfully!');
@@ -98,13 +105,13 @@ const AccountsSettingsPage = () => {
   }
 
   return (
-    <div className="settings-page-container">
+    <div className="settings-page-container" style={{ maxWidth: '1200px' }}>
       <h2>Accounts</h2>
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
-      <div className="setting-group">
+      <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
         <h3>Add New Account</h3>
-        <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px' }}>
+        <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px', width: '100%' }}>
           <div className="form-field">
             <label htmlFor="broker">Broker *</label>
             <input
