@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import globalSettingsService from '../services/globalSettings.service';
 import './SettingsPages.css'; // General CSS for settings pages
@@ -6,6 +7,7 @@ import AuthService from '../services/auth.service';
 
 const HelpPage = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [helpContent, setHelpContent] = useState('Loading help content...');
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
@@ -35,7 +37,18 @@ const HelpPage = () => {
 
   useEffect(() => {
     fetchHelpContent();
+    // Fix browser back button - replace history entry so back goes to home
+    window.history.replaceState(null, '', window.location.pathname);
   }, [fetchHelpContent]);
+
+  useEffect(() => {
+    // Intercept browser back button
+    const handlePopState = (e) => {
+      navigate('/', { replace: true });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
 
   const handleSave = async () => {
     setMessage('');
@@ -96,6 +109,9 @@ const HelpPage = () => {
         ) : (
           <div dangerouslySetInnerHTML={{ __html: helpContent }} />
         )}
+      </div>
+      <div className="settings-page-actions">
+        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
       </div>
     </div>
   );

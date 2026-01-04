@@ -339,4 +339,178 @@
     margin-top: 0; /* Override general button margin */
 }
 
+/* User Management Table Styles */
+.user-management-controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.sort-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.sort-controls label {
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.sort-controls select {
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+}
+
+.sort-direction-btn {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background-color: var(--color-background);
+    cursor: pointer;
+    font-size: 1.2em;
+}
+
+.sort-direction-btn:hover {
+    background-color: var(--color-primary-light);
+}
+
+.user-table-container {
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+.user-management-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.user-management-table th {
+    background-color: var(--color-primary-light);
+    color: var(--color-heading);
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.user-management-table th.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.user-management-table th.sortable-header:hover {
+    background-color: var(--color-primary);
+    color: var(--color-text-inverted);
+}
+
+.user-management-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.user-management-table tr:hover {
+    background-color: var(--color-background-soft);
+}
+
+.user-management-table .user-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.user-management-table .delete-user-btn,
+.user-management-table .set-admin-status-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.user-management-table .delete-user-btn {
+    background-color: var(--color-error-background);
+    color: var(--color-error-text);
+}
+
+.user-management-table .delete-user-btn:hover {
+    background-color: var(--color-error-text);
+    color: var(--color-error-background);
+}
+
+.user-management-table .set-admin-status-btn {
+    background-color: var(--color-primary);
+    color: var(--color-text-inverted);
+}
+
+.user-management-table .set-admin-status-btn:hover {
+    background-color: var(--color-primary-dark);
+}
+
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.pagination button {
+    padding: 8px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.pagination button:hover:not(:disabled) {
+    background-color: var(--color-primary-light);
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination span {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* Settings Page Actions */
+.settings-page-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+}
+
+.cancel-button {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    padding: 12px 25px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.cancel-button:hover {
+    background-color: var(--color-background-soft);
+}
+
+.save-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 

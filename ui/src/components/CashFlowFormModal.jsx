@@ -246,7 +246,7 @@ export default function CashFlowFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.description}` : `Add New ${type === 'income' ? 'Income' : 'Expense'} Item`}>
       <div className="cashflow-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Person, Description, Category, Value, Frequency */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency */} 
             <div className="form-field">
               <label htmlFor="person-select">Person</label>
               <select id="person-select" value={newItem.person || ""} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Select Person" ? "" : e.target.value === "Family" ? "" : e.target.value })}> 
@@ -282,6 +282,29 @@ export default function CashFlowFormModal({
             </div>
 
             <div className="form-field">
+              <label htmlFor="is-dynamic-select">Dynamic</label>
+              <select
+                id="is-dynamic-select"
+                value={isDynamic ? "Yes" : "No"}
+                onChange={(e) => {
+                  const newIsDynamic = e.target.value === "Yes";
+                  setIsDynamic(newIsDynamic);
+                  // Reset linked item fields when toggling dynamic status
+                  setLinkedItemType("");
+                  setLinkedItemId(null);
+                  setPercentage("");
+                  // If switching from dynamic to non-dynamic, re-enable value/frequency
+                  if (!newIsDynamic && !itemToEdit) {
+                    setNewItem(prev => ({...prev, value: "", frequency: ""}));
+                  }
+                }}
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+            </div>
+
+            <div className="form-field">
               <label htmlFor="value-input">Value</label>
               <input
                 id="value-input"
@@ -306,28 +329,6 @@ export default function CashFlowFormModal({
 
           {/* New row for dynamic item configuration */}
           <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(4, 1fr)' : 'repeat(5, 1fr)' }}>
-            <div className="form-field">
-              <label htmlFor="is-dynamic-select">Dynamic</label>
-              <select
-                id="is-dynamic-select"
-                value={isDynamic ? "Yes" : "No"}
-                onChange={(e) => {
-                  const newIsDynamic = e.target.value === "Yes";
-                  setIsDynamic(newIsDynamic);
-                  // Reset linked item fields when toggling dynamic status
-                  setLinkedItemType("");
-                  setLinkedItemId(null);
-                  setPercentage("");
-                  // If switching from dynamic to non-dynamic, re-enable value/frequency
-                  if (!newIsDynamic && !itemToEdit) {
-                    setNewItem(prev => ({...prev, value: "", frequency: ""}));
-                  }
-                }}
-              >
-                <option value="No">No</option>
-                <option value="Yes">Yes</option>
-              </select>
-            </div>
 
             {isDynamic && (
               <> 
@@ -427,7 +428,6 @@ export default function CashFlowFormModal({
                   value={newItem.inflation_percent}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, inflation_percent: e.target.value })}
-                  disabled={isDynamic} // Disable if dynamic
                 />
               </div>
             )}

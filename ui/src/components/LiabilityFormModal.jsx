@@ -235,8 +235,8 @@ export default function LiabilityFormModal({
         <div className="add-item-form">
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* Loan Type, Name, Category */}
             <div className="form-field">
-              <label htmlFor="loan-type">Loan Type</label>
-              <select id="loan-type" value={newItem.loan_type} onChange={handleInputChange}>
+              <label htmlFor="loan_type">Loan Type</label>
+              <select id="loan_type" value={newItem.loan_type} onChange={handleInputChange}>
                 <option value="ordinary">Ordinary/Revolving</option>
                 <option value="amortized">Amortized Loan</option>
               </select>

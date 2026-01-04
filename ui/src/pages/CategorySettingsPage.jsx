@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
 import CategoryEditorModal from '../components/CategoryEditorModal';
@@ -6,6 +7,7 @@ import './SettingsPages.css'; // General CSS for settings pages
 
 const CategorySettingsPage = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [assetCategoriesState, setAssetCategoriesState] = useState([]);
   const [liabilityCategoriesState, setLiabilityCategoriesState] = useState([]);
   const [incomeCategoriesState, setIncomeCategoriesState] = useState([]);
@@ -38,7 +40,18 @@ const CategorySettingsPage = () => {
 
   useEffect(() => {
     loadSettings();
+    // Fix browser back button - replace history entry so back goes to home
+    window.history.replaceState(null, '', window.location.pathname);
   }, [loadSettings]);
+
+  useEffect(() => {
+    // Intercept browser back button
+    const handlePopState = (e) => {
+      navigate('/', { replace: true });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
 
   const handleSaveCategories = async (categoryType, updatedCategories) => {
     setMessage('');
@@ -125,6 +138,9 @@ const CategorySettingsPage = () => {
         {renderCategorySection('Liability Categories', liabilityCategoriesState, setIsLiabilityModalOpen, 'liability')}
         {renderCategorySection('Income Categories', incomeCategoriesState, setIsIncomeModalOpen, 'income')}
         {renderCategorySection('Expense Categories', expenseCategoriesState, setIsExpenseModalOpen, 'expense')}
+      </div>
+      <div className="settings-page-actions">
+        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
       </div>
     </div>
   );

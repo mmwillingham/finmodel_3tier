@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming you have this component
@@ -28,6 +29,7 @@ const states = [
 
 const ProfileSettingsPage = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [person1FirstName, setPerson1FirstName] = useState("");
   const [person1LastName, setPerson1LastName] = useState("");
   const [person1Birthdate, setPerson1Birthdate] = useState("");
@@ -72,10 +74,22 @@ const ProfileSettingsPage = () => {
 
   useEffect(() => {
     loadSettings();
+    // Fix browser back button - replace history entry so back goes to home
+    window.history.replaceState(null, '', window.location.pathname);
   }, [loadSettings]);
+
+  useEffect(() => {
+    // Intercept browser back button
+    const handlePopState = (e) => {
+      navigate('/', { replace: true });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
 
   const handleSave = async () => {
     setMessage('');
+    setLoading(true);
     try {
       await SettingsService.updateSettings({
         person1_first_name: person1FirstName,
@@ -94,11 +108,13 @@ const ProfileSettingsPage = () => {
       setMessage('Profile settings saved successfully!');
       setTimeout(() => {
         setMessage('');
-      }, 1500);
+      }, 3000);
     } catch (e) {
       console.error('Failed to save profile settings', e);
       const errorMessage = e.response?.data?.detail || 'Error saving settings';
       setMessage(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -267,7 +283,12 @@ const ProfileSettingsPage = () => {
             <button type="button" className="change-password-btn" onClick={() => setIsChangePasswordModalOpen(true)}>Change Password</button>
         </div>
       </div>
-      <button onClick={handleSave} className="save-button">Save Profile Settings</button>
+      <div className="settings-page-actions">
+        <button onClick={handleSave} className="save-button" disabled={loading}>
+          {loading ? 'Saving...' : 'Save'}
+        </button>
+        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
+      </div>
 
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
