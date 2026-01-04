@@ -57,7 +57,7 @@ async def create_liability(
             inflation_percent=0.0,
             person=None,  # Liabilities don't have a person attribute
             start_date=db_liability.loan_start_date, # Start date of cash flow is loan start date
-            end_date=db_liability.loan_end_date, # End date of cash flow is loan end date
+            end_date=db_liability.end_date, # End date of cash flow is liability end date
             taxable=False,
             tax_deductible=db_liability.tax_deductible if db_liability.tax_deductible is not None else False,
             linked_item_id=db_liability.id,
@@ -129,9 +129,9 @@ async def update_liability(
                 cash_flow_item.category = db_liability.category or "Loan Payment"
                 cash_flow_item.description = f"Loan payment for {db_liability.name}"
                 cash_flow_item.yearly_value = monthly_payment_value * 12
-                cash_flow_item.person = db_liability.person
+                cash_flow_item.person = None  # Liabilities don't have a person attribute
                 cash_flow_item.start_date = db_liability.loan_start_date
-                cash_flow_item.end_date = db_liability.loan_end_date
+                cash_flow_item.end_date = db_liability.end_date
                 cash_flow_item.tax_deductible = db_liability.tax_deductible if db_liability.tax_deductible is not None else False
                 db.add(cash_flow_item)
             else:

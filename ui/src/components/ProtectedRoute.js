@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
     const { currentUser, isLoading } = useAuth();
+    const location = useLocation();
     
     // The AuthProvider should handle the loading state, but a check here is safer
     if (isLoading) {
@@ -11,8 +12,9 @@ const ProtectedRoute = ({ children }) => {
     }
 
     // If there is no authenticated user, redirect them to the login page
+    // Pass state to remember where we came from (for back button handling)
     if (!currentUser) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" state={{ from: location.pathname }} replace />;
     }
 
     // Otherwise, render the component they requested (children)

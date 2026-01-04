@@ -93,7 +93,7 @@
     font-size: 1em;
     font-weight: 600;
     transition: background-color 0.2s ease;
-    margin-top: 20px; /* Spacing from the form fields */
+    margin-top: 0; /* Remove margin, will be handled by actions container */
 }
 
 .settings-page-container .save-button:hover,

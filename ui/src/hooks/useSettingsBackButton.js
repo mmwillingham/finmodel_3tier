@@ -18,11 +18,13 @@ export const useSettingsBackButton = () => {
         // Small delay to let React Router process the navigation
         setTimeout(() => {
           const currentPath = window.location.pathname;
-          // If back button would take us to login or signup, redirect to home
+          // If back button would take us to login or signup from settings, redirect to home
           if (currentPath === '/login' || currentPath === '/signup') {
-            navigate('/', { replace: true });
+            // Cancel the navigation and go to home instead
+            window.history.pushState(null, '', currentPath); // Cancel current navigation
+            navigate('/', { replace: false });
           }
-        }, 10);
+        }, 50); // Increased delay to let React Router finish
       };
 
       window.addEventListener('popstate', handlePopState);
