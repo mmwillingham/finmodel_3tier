@@ -42,9 +42,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     if (targetDataType === 'liabilities') {
         const matchingLiability = liabilities.find(l => l.name === targetLabel && l.category === targetCategory);
         if (matchingLiability && matchingLiability.loan_type === 'amortized') {
-            // Assuming data_json will contain a key like "LoanName_PrincipalBalance" for each year
-            const principalBalanceKey = `${targetLabel}_PrincipalBalance`;
-            return dataPoint[principalBalanceKey] || 0;
+            // Backend stores amortized liability balance as "LoanName_Value"
+            const valueKey = `${targetLabel}_Value`;
+            const value = dataPoint[valueKey] || 0;
+            // Return absolute value since liabilities are displayed as positive
+            return Math.abs(value);
         }
     }
 

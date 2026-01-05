@@ -321,6 +321,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         account_values_for_year[f"{projected_account.name}_Principal"] = breakdown['principal_paid']
                         account_values_for_year[f"{projected_account.name}_Interest"] = breakdown['interest_paid']
                         account_values_for_year[f"{projected_account.name}_Payment"] = breakdown['total_payment']
+                        # Store the liability balance value for this year (needed for charts)
+                        account_values_for_year[f"{projected_account.name}_Value"] = new_balance
                         
                         # For amortized loans, the 'contribution' is the monthly payment, which is handled in the balance calculation itself.
                         adjusted_annual_contribution = 0.0
@@ -498,13 +500,41 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # Check if this expense is in the projection accounts (for dynamic items)
                     expense_account_name = exp_item.description
                     if exp_item.linked_item_id and exp_item.linked_item_type and exp_item.percentage is not None:
-                        # This is a dynamic expense - find the expense in annual_flow_values
-                        # The expense name might have a |LINKED: marker
-                        for flow_name, flow_value in annual_flow_values.items():
-                            base_name = flow_name.split("|LINKED:")[0]
-                            if base_name == exp_item.description:
-                                expense_amount = abs(flow_value)  # Use absolute value (flow_value is negative for expenses)
-                                break
+                        # This is a dynamic expense
+                        if exp_item.linked_item_type == "asset":
+                            # Linked to asset - find the expense in annual_flow_values
+                            # The expense name might have a |LINKED: marker
+                            for flow_name, flow_value in annual_flow_values.items():
+                                base_name = flow_name.split("|LINKED:")[0]
+                                if base_name == exp_item.description:
+                                    expense_amount = abs(flow_value)  # Use absolute value (flow_value is negative for expenses)
+                                    break
+                        elif exp_item.linked_item_type == "income":
+                            # Linked to income - calculate based on linked income item's annual flow value
+                            linked_income_item = db.query(models.CashFlowItem).filter(
+                                models.CashFlowItem.id == exp_item.linked_item_id,
+                                models.CashFlowItem.owner_id == owner_id,
+                                models.CashFlowItem.is_income == True
+                            ).first()
+                            if linked_income_item:
+                                # Find the linked income item's annual flow value
+                                linked_income_flow_value = 0.0
+                                for flow_name, flow_value in annual_flow_values.items():
+                                    base_name = flow_name.split("|LINKED:")[0]
+                                    if base_name == linked_income_item.description:
+                                        linked_income_flow_value = flow_value  # Income is positive
+                                        break
+                                
+                                # If not found in annual_flow_values, calculate it as fixed income
+                                if linked_income_flow_value == 0.0:
+                                    base_yearly_value = linked_income_item.yearly_value
+                                    effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
+                                    growth_factor = pow(1 + effective_growth_rate, year - 1)
+                                    linked_income_flow_value = base_yearly_value * growth_factor
+                                
+                                # Calculate expense as percentage of income
+                                expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
+                                print(f"--- DEBUG: Dynamic expense '{exp_item.description}' ({exp_item.percentage}% of '{linked_income_item.description}' = {expense_amount:.2f}) contributing to asset '{target_asset.name}' ---"); sys.stdout.flush()
                     else:
                         # Fixed expense - calculate with growth
                         base_yearly_value = exp_item.yearly_value
