@@ -260,7 +260,7 @@ const AutoDisbursementSettingsPage = () => {
           </div>
           <div className="form-group-horizontal">
             <label htmlFor="transfer_value">
-              Transfer Value * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'})
+              Transfer Value per year * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'})
             </label>
             <input
               id="transfer_value"
@@ -273,21 +273,27 @@ const AutoDisbursementSettingsPage = () => {
           </div>
           <div className="form-group-horizontal">
             <label htmlFor="start_date">Start Date</label>
-            <input
-              id="start_date"
-              type="date"
-              value={newAutoDisbursement.start_date}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, start_date: e.target.value })}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <input
+                id="start_date"
+                type="date"
+                value={newAutoDisbursement.start_date}
+                onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, start_date: e.target.value })}
+              />
+              <small style={{ fontSize: '0.75em', color: '#666', marginTop: '4px' }}>Optional - leave blank to start immediately</small>
+            </div>
           </div>
           <div className="form-group-horizontal">
             <label htmlFor="end_date">End Date</label>
-            <input
-              id="end_date"
-              type="date"
-              value={newAutoDisbursement.end_date}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, end_date: e.target.value })}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <input
+                id="end_date"
+                type="date"
+                value={newAutoDisbursement.end_date}
+                onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, end_date: e.target.value })}
+              />
+              <small style={{ fontSize: '0.75em', color: '#666', marginTop: '4px' }}>Optional - leave blank to continue indefinitely</small>
+            </div>
           </div>
         </div>
         <div style={{ marginTop: '20px' }}>
@@ -372,13 +378,18 @@ const AutoDisbursementSettingsPage = () => {
                         </select>
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          step={editingAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
-                          value={editingAutoDisbursement.transfer_value}
-                          onChange={(e) => setEditingAutoDisbursement({ ...editingAutoDisbursement, transfer_value: e.target.value })}
-                          style={{ width: '100%', padding: '5px' }}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <input
+                            type="number"
+                            step={editingAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
+                            value={editingAutoDisbursement.transfer_value}
+                            onChange={(e) => setEditingAutoDisbursement({ ...editingAutoDisbursement, transfer_value: e.target.value })}
+                            style={{ width: '100%', padding: '5px' }}
+                          />
+                          <span style={{ fontSize: '0.85em', color: '#666', whiteSpace: 'nowrap' }}>
+                            /year {editingAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'}
+                          </span>
+                        </div>
                       </td>
                       <td>
                         <input
@@ -411,7 +422,7 @@ const AutoDisbursementSettingsPage = () => {
                       <td>{getAssetName(ad.source_asset_id)}</td>
                       <td>{getAssetName(ad.target_asset_id)}</td>
                       <td>{ad.transfer_type === 'percentage' ? 'Percentage' : 'Dollar Amount'}</td>
-                      <td>{ad.transfer_type === 'percentage' ? `${ad.transfer_value}%` : `$${ad.transfer_value.toLocaleString()}`}</td>
+                      <td>{ad.transfer_type === 'percentage' ? `${ad.transfer_value}%` : `$${ad.transfer_value.toLocaleString()}`} per year</td>
                       <td>{ad.start_date || '-'}</td>
                       <td>{ad.end_date || '-'}</td>
                       <td>

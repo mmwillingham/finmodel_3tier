@@ -104,6 +104,7 @@ export default function CategoryEditorModal({ isOpen, onClose, onSave, categorie
     <div className="category-editor-modal-overlay" onClick={onClose}>
       <div className="category-editor-modal" onClick={(e) => e.stopPropagation()}>
         <h3>Manage {title}</h3>
+        <p style={{ fontSize: '0.85em', color: '#666', marginTop: '-10px', marginBottom: '15px' }}>Double click to rename</p>
 
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="droppable-categories">

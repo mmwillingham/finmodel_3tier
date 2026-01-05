@@ -56,10 +56,10 @@ const AuthService = {
     },
 
     /**
-     * Registers a new user via the FastAPI /signup route.
+     * Registers a new user via the FastAPI /users/ route.
      */
     async signup(email, password) {
-        const response = await axios.post(API_URL + "signup", {
+        const response = await axios.post(API_URL + "users/", {
             email: email,
             password: password,
         });
