@@ -815,13 +815,8 @@ def recalculate_all_charts(
     
     for db_chart in charts:
         try:
-            # Recalculate by calling update_custom_chart with empty update (just to trigger recalculation)
-            # We'll pass the chart's existing series_configurations to trigger recalculation
-            from schemas import CustomChartUpdate
-            chart_update = CustomChartUpdate(series_configurations=db_chart.series_configurations)
-            
-            # Call the recalculation logic from update_custom_chart
-            # We'll reuse the logic by directly updating the chart
+            # Recalculate the chart by rebuilding the projection from its series_configurations
+            # We reuse the logic from update_custom_chart by directly updating the chart
             if db_chart.series_configurations:
                 series_configs = json.loads(db_chart.series_configurations)
                 accounts_for_projection = []
