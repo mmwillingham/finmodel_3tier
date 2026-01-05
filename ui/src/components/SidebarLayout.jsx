@@ -88,17 +88,19 @@ export default function SidebarLayout() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [inc, exp, ast, lib, settingsRes] = await Promise.all([
+        const [inc, exp, ast, lib, accs, settingsRes] = await Promise.all([
           CashFlowService.list(true),
           CashFlowService.list(false),
           AssetService.list(),
           LiabilityService.list(),
+          AccountService.getAllAccounts().catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
           SettingsService.getSettings(),
         ]);
         setIncomeItems(inc.data || []);
         setExpenseItems(exp.data || []);
         setAssets(ast.data || []);
         setLiabilities(lib.data || []);
+        setAccounts(accs || []);
         setProjectionYears(settingsRes.data.projection_years || 30);
         setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
 
@@ -293,6 +295,8 @@ export default function SidebarLayout() {
             <BalanceSheetProjection 
               assets={assets}
               liabilities={liabilities}
+              incomeItems={incomeItems}
+              expenseItems={expenseItems}
               projectionYears={projectionYears}
               formatCurrency={formatCurrency}
               showChartTotals={showChartTotals}

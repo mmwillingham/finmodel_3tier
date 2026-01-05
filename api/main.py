@@ -562,7 +562,19 @@ def create_projection(
     db.commit()
     db.refresh(db_projection) # Refresh to load relationships
 
-    return db_projection
+    # Construct response with data_json from calculations
+    return schemas.ProjectionResponse(
+        id=db_projection.id,
+        name=db_projection.name,
+        years=db_projection.years,
+        final_value=db_projection.final_value,
+        total_contributed=db_projection.total_contributed,
+        total_growth=db_projection.total_growth,
+        timestamp=db_projection.timestamp,
+        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
+        time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in projection_results["time_series_data"]],
+        data_json=projection_results.get("data_json")  # Include data_json from calculations
+    )
 
 @app.get("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
 def get_projection_details(
@@ -651,7 +663,19 @@ def update_projection(
 
     db.commit()
     db.refresh(projection) # Refresh to load relationships
-    return projection
+    
+    # Construct response with data_json from calculations
+    return schemas.ProjectionDetailOut(
+        id=projection.id,
+        name=projection.name,
+        years=projection.years,
+        final_value=projection.final_value,
+        total_contributed=projection.total_contributed,
+        total_growth=projection.total_growth,
+        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in result["projected_accounts"]],
+        time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in result["time_series_data"]],
+        data_json=result.get("data_json")  # Include data_json from calculations
+    )
 
 @app.post("/debug-projection-calc", response_model=schemas.ProjectionResponse, tags=["debug"], summary="Debug: Directly run projection calculation")
 def debug_run_projection_calculation(

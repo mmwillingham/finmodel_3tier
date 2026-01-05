@@ -133,6 +133,7 @@ class ProjectionResponse(BaseModel):
     timestamp: Optional[datetime] = None
     accounts_data: List[ProjectedAccountOut] = [] # NEW
     time_series_data: List[ProjectionTimeSeriesDataOut] = [] # NEW
+    data_json: Optional[str] = None  # NEW: Include data_json from calculations
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -155,6 +156,7 @@ class ProjectionDetailOut(BaseModel):
     total_growth: float | None = None
     accounts_data: List[ProjectedAccountOut] = [] # NEW
     time_series_data: List[ProjectionTimeSeriesDataOut] = [] # NEW
+    data_json: Optional[str] = None  # NEW: Include data_json (reconstructed from time_series_data if needed)
     model_config = ConfigDict(from_attributes=True)
 
 # --- CASH FLOW SCHEMAS ---

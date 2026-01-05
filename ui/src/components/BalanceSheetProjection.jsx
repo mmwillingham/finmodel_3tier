@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 import ProjectionService from '../services/projection.service';
 
-export default function BalanceSheetProjection({ assets, liabilities, projectionYears, formatCurrency, showChartTotals }) {
+export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals }) {
   const { userSettings } = useAuth();
   const currentYear = new Date().getFullYear();
   const overallChartRef = useRef(null);
@@ -28,19 +28,31 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
     
     try {
       // Convert assets to ProjectedAccountCreate format
-      const assetAccounts = assets.map(asset => ({
-        name: asset.name,
-        account_type: 'asset',
-        initial_value: asset.value || 0,
-        contribution: 0.0,
-        growth_rate: asset.annual_increase_percent || 0,
-        loan_type: null,
-        principal_amount: null,
-        interest_rate: null,
-        loan_term_months: null,
-        loan_start_date: null,
-        monthly_payment: null
-      }));
+      // For each asset, calculate contributions from expenses that contribute to it
+      const assetAccounts = assets.map(asset => {
+        // Find expenses that contribute to this asset
+        const contributingExpenses = (expenseItems || []).filter(
+          exp => exp.contributes_to_asset_id === asset.id
+        );
+        const totalContributions = contributingExpenses.reduce(
+          (sum, exp) => sum + (exp.yearly_value || 0),
+          0
+        );
+        
+        return {
+          name: asset.name,
+          account_type: 'asset',
+          initial_value: asset.value || 0,
+          contribution: totalContributions / 12, // Convert yearly to monthly
+          growth_rate: asset.annual_increase_percent || 0,
+          loan_type: null,
+          principal_amount: null,
+          interest_rate: null,
+          loan_term_months: null,
+          loan_start_date: null,
+          monthly_payment: null
+        };
+      });
 
       // Convert liabilities to ProjectedAccountCreate format
       const liabilityAccounts = liabilities.map(liability => ({
@@ -57,7 +69,74 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
         monthly_payment: liability.monthly_payment || null
       }));
 
-      const allAccounts = [...assetAccounts, ...liabilityAccounts];
+      // Convert income items to ProjectedAccountCreate format
+      const incomeAccounts = (incomeItems || []).map(income => {
+        // Handle dynamic items (linked to asset)
+        let accountName = income.description;
+        let contribution = 0.0;
+        
+        if (income.linked_item_id && income.linked_item_type === "asset" && income.percentage !== null && income.percentage !== undefined) {
+          // This is a dynamic item - will be recalculated each year in backend
+          // Find the linked asset name
+          const linkedAsset = assets.find(a => a.id === income.linked_item_id);
+          if (linkedAsset) {
+            accountName = `${income.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${income.percentage}`;
+          }
+        } else {
+          // Fixed income item
+          contribution = income.yearly_value / 12; // Convert yearly to monthly
+        }
+        
+        return {
+          name: accountName,
+          account_type: 'income',
+          initial_value: 0.0,
+          contribution: contribution,
+          growth_rate: income.annual_increase_percent || 0,
+          loan_type: null,
+          principal_amount: null,
+          interest_rate: null,
+          loan_term_months: null,
+          loan_start_date: null,
+          monthly_payment: null
+        };
+      });
+
+      // Convert expense items to ProjectedAccountCreate format
+      // Include ALL expenses (even those that contribute to assets, as they reduce cash flow)
+      const expenseAccounts = (expenseItems || []).map(expense => {
+          // Handle dynamic items (linked to asset)
+          let accountName = expense.description;
+          let contribution = 0.0;
+          
+          if (expense.linked_item_id && expense.linked_item_type === "asset" && expense.percentage !== null && expense.percentage !== undefined) {
+            // This is a dynamic item - will be recalculated each year in backend
+            // Find the linked asset name
+            const linkedAsset = assets.find(a => a.id === expense.linked_item_id);
+            if (linkedAsset) {
+              accountName = `${expense.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${expense.percentage}`;
+            }
+          } else {
+            // Fixed expense item
+            contribution = -(expense.yearly_value / 12); // Negative for expenses, convert yearly to monthly
+          }
+          
+          return {
+            name: accountName,
+            account_type: 'expense',
+            initial_value: 0.0,
+            contribution: contribution,
+            growth_rate: expense.inflation_percent || 0,
+            loan_type: null,
+            principal_amount: null,
+            interest_rate: null,
+            loan_term_months: null,
+            loan_start_date: null,
+            monthly_payment: null
+          };
+        });
+
+      const allAccounts = [...assetAccounts, ...liabilityAccounts, ...incomeAccounts, ...expenseAccounts];
       
       // Create projection request
       const projectionRequest = {
@@ -105,7 +184,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
     } finally {
       setLoading(false);
     }
-  }, [assets, liabilities, projectionYears]);
+  }, [assets, liabilities, incomeItems, expenseItems, projectionYears]);
 
   useEffect(() => {
     fetchProjectionData();
