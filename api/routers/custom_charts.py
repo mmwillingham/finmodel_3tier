@@ -379,6 +379,38 @@ def create_custom_chart(
                     growth_rate=item.inflation_percent,
                 ))
                 included_expense_names.add(item.description)
+        
+        # Auto-include assets referenced in auto-disbursements (so transfers work correctly)
+        auto_disbursements = db.query(models.AutoDisbursement).filter(
+            models.AutoDisbursement.owner_id == current_user.id
+        ).all()
+        for disbursement in auto_disbursements:
+            source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
+            target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
+            if source_asset and source_asset.name not in added_account_names:
+                print(f"--- DEBUG: Auto-including source asset '{source_asset.name}' from auto-disbursement '{disbursement.name}' ---"); sys.stdout.flush()
+                asset_account = schemas.ProjectedAccountCreate(
+                    name=source_asset.name,
+                    account_type='asset',
+                    initial_value=source_asset.value,
+                    contribution=0.0,
+                    growth_rate=source_asset.annual_increase_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                )
+                accounts_for_projection.append(asset_account)
+                added_account_names.add(source_asset.name)
+            if target_asset and target_asset.name not in added_account_names:
+                print(f"--- DEBUG: Auto-including target asset '{target_asset.name}' from auto-disbursement '{disbursement.name}' ---"); sys.stdout.flush()
+                asset_account = schemas.ProjectedAccountCreate(
+                    name=target_asset.name,
+                    account_type='asset',
+                    initial_value=target_asset.value,
+                    contribution=0.0,
+                    growth_rate=target_asset.annual_increase_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                )
+                accounts_for_projection.append(asset_account)
+                added_account_names.add(target_asset.name)
 
         print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush() # NEW DEBUG LINE
         print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush() # NEW DEBUG LINE
@@ -432,6 +464,13 @@ def read_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    """
+    Retrieve a custom chart by ID.
+    
+    Note: Charts use cached projection data (data_json). If underlying data (assets, liabilities, 
+    income, expenses) is updated, the chart will not automatically reflect these changes. 
+    Users must update or recreate the chart to see updated projections.
+    """
     chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == current_user.id).first()
     if not chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
@@ -694,6 +733,38 @@ def update_custom_chart(
                     growth_rate=item.inflation_percent,
                 ))
                 included_expense_names.add(item.description)
+        
+        # Auto-include assets referenced in auto-disbursements (so transfers work correctly)
+        auto_disbursements = db.query(models.AutoDisbursement).filter(
+            models.AutoDisbursement.owner_id == current_user.id
+        ).all()
+        for disbursement in auto_disbursements:
+            source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
+            target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
+            if source_asset and source_asset.name not in added_account_names:
+                print(f"--- DEBUG: Auto-including source asset '{source_asset.name}' from auto-disbursement '{disbursement.name}' (update) ---"); sys.stdout.flush()
+                asset_account = schemas.ProjectedAccountCreate(
+                    name=source_asset.name,
+                    account_type='asset',
+                    initial_value=source_asset.value,
+                    contribution=0.0,
+                    growth_rate=source_asset.annual_increase_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                )
+                accounts_for_projection.append(asset_account)
+                added_account_names.add(source_asset.name)
+            if target_asset and target_asset.name not in added_account_names:
+                print(f"--- DEBUG: Auto-including target asset '{target_asset.name}' from auto-disbursement '{disbursement.name}' (update) ---"); sys.stdout.flush()
+                asset_account = schemas.ProjectedAccountCreate(
+                    name=target_asset.name,
+                    account_type='asset',
+                    initial_value=target_asset.value,
+                    contribution=0.0,
+                    growth_rate=target_asset.annual_increase_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                )
+                accounts_for_projection.append(asset_account)
+                added_account_names.add(target_asset.name)
 
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
 
