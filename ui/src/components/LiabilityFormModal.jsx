@@ -39,6 +39,7 @@ const initialNewItemState = {
   end_date: "",
   decrease_by_principal_yearly: false, // NEW
   create_payment_expense: false, // NEW
+  expense_category: "", // NEW: Category for the generated expense
 };
 
 export default function LiabilityFormModal({
@@ -48,6 +49,7 @@ export default function LiabilityFormModal({
   onSaveSuccess,
 }) {
   const [categories, setCategories] = useState([]);
+  const [expenseCategories, setExpenseCategories] = useState([]);
   const [newItem, setNewItem] = useState(initialNewItemState); // Initialize with initialState
 
   // Effect to load settings and populate item for editing or reset for new item
@@ -57,6 +59,8 @@ export default function LiabilityFormModal({
         const res = await SettingsService.getSettings();
         const cats = res.data.liability_categories || ["Other"];
         setCategories(cats);
+        const expCats = res.data.expense_categories || ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
+        setExpenseCategories(expCats);
 
         if (isOpen) {
         if (itemToEdit) {
@@ -79,6 +83,7 @@ export default function LiabilityFormModal({
             end_date: itemToEdit.end_date || '',
             decrease_by_principal_yearly: itemToEdit.decrease_by_principal_yearly || false,
             create_payment_expense: itemToEdit.create_payment_expense || false,
+            expense_category: itemToEdit.expense_category || "",
           });
         } else {
           // If adding a new item, reset to initial state and set default category
@@ -140,6 +145,12 @@ export default function LiabilityFormModal({
     };
 
     if (newItem.loan_type === "amortized") {
+      // Validate expense_category if create_payment_expense is checked
+      if (newItem.create_payment_expense && !newItem.expense_category) {
+        alert("Expense Category is required when 'Create corresponding expense for payment amount' is checked.");
+        return;
+      }
+      
       const principal = parseFloat(newItem.principal_amount);
       const interestRate = parseFloat(newItem.interest_rate);
       const loanTerm = parseInt(newItem.loan_term_months, 10);
@@ -180,6 +191,7 @@ export default function LiabilityFormModal({
         end_date: null,
         decrease_by_principal_yearly: newItem.decrease_by_principal_yearly || false,
         create_payment_expense: newItem.create_payment_expense || false,
+        expense_category: newItem.expense_category || null,
       });
     } else { // Ordinary loan validation and payload construction
       const value = parseFloat(newItem.value);
@@ -394,6 +406,23 @@ export default function LiabilityFormModal({
                   Create corresponding expense for payment amount
                 </label>
               </div>
+              {newItem.create_payment_expense && (
+                <div className="form-field">
+                  <label>
+                    Expense Category: *
+                    <select
+                      value={newItem.expense_category || ""}
+                      onChange={(e) => setNewItem({ ...newItem, expense_category: e.target.value })}
+                      required
+                    >
+                      <option value="">Select Category</option>
+                      {expenseCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
             </div>
             </>
           )}

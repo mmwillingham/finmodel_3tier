@@ -160,13 +160,13 @@ export default function CashFlowFormModal({
   const save = async () => {
     if (!newItem.category || !newItem.description) return; // Value can be dynamic or 0
 
-    // Validation for dynamic items
-    if (isDynamic) {
+    // Validation for dynamic items (but skip if linked_item_type is "liability" - these are generated expenses)
+    if (isDynamic && itemToEdit?.linked_item_type !== "liability") {
       if (!linkedItemType || !linkedItemId || percentage === "" || isNaN(parseFloat(percentage))) {
         alert("Please select a linked item type, an item, and enter a valid percentage.");
         return;
       }
-    } else if (newItem.value === "" || isNaN(parseFloat(newItem.value))) {
+    } else if (!isDynamic && (newItem.value === "" || isNaN(parseFloat(newItem.value)))) {
       // Regular item validation
       alert("Please enter a valid value.");
       return;
@@ -338,6 +338,7 @@ export default function CashFlowFormModal({
                     id="linked-item-type-select"
                     value={linkedItemType}
                     onChange={(e) => { setLinkedItemType(e.target.value); setLinkedItemId(null); /* Reset linked item on type change */ }}
+                    disabled={itemToEdit?.linked_item_type === "liability"} // Disable for generated expenses
                   >
                     <option value="">Select Type</option>
                     <option value="asset">Asset</option>

@@ -1,8 +1,9 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
+import ProjectionService from '../services/projection.service';
 
 export default function BalanceSheetProjection({ assets, liabilities, projectionYears, formatCurrency, showChartTotals }) {
   const { userSettings } = useAuth();
@@ -13,85 +14,156 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
   const individualAssetTableRef = useRef(null);
   const individualLiabilityChartRef = useRef(null);
   const individualLiabilityTableRef = useRef(null);
+  
+  const [loading, setLoading] = useState(true);
+  const [projectionData, setProjectionData] = useState(null);
+  const [error, setError] = useState(null);
 
-  const calculateProjections = () => {
-    const years = [];
-    const totalAssetValues = [];
-    const totalLiabilityValues = [];
-    const netWorthValues = [];
+  // Convert assets and liabilities to ProjectedAccountCreate format and call backend
+  const fetchProjectionData = useCallback(async () => {
+    if (!assets || !liabilities) return;
     
-    const individualAssetProjections = assets.map(asset => ({ 
-        ...asset, 
-        projectedValues: [] 
-    }));
-    const individualLiabilityProjections = liabilities.map(liability => ({
-        ...liability,
-        projectedValues: []
-    }));
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Convert assets to ProjectedAccountCreate format
+      const assetAccounts = assets.map(asset => ({
+        name: asset.name,
+        account_type: 'asset',
+        initial_value: asset.value || 0,
+        contribution: 0.0,
+        growth_rate: asset.annual_increase_percent || 0,
+        loan_type: null,
+        principal_amount: null,
+        interest_rate: null,
+        loan_term_months: null,
+        loan_start_date: null,
+        monthly_payment: null
+      }));
 
-    for (let yearIndex = 0; yearIndex <= projectionYears; yearIndex++) {
-      const currentProjectionYear = currentYear + yearIndex;
-      years.push(currentProjectionYear); 
+      // Convert liabilities to ProjectedAccountCreate format
+      const liabilityAccounts = liabilities.map(liability => ({
+        name: liability.name,
+        account_type: 'liability',
+        initial_value: -(Math.abs(liability.value || 0)), // Negative for liabilities
+        contribution: 0.0,
+        growth_rate: liability.annual_increase_percent || 0,
+        loan_type: liability.loan_type || null,
+        principal_amount: liability.principal_amount || null,
+        interest_rate: liability.interest_rate || null,
+        loan_term_months: liability.loan_term_months || null,
+        loan_start_date: liability.loan_start_date || null,
+        monthly_payment: liability.monthly_payment || null
+      }));
+
+      const allAccounts = [...assetAccounts, ...liabilityAccounts];
       
-      let yearTotalAssets = 0;
-      individualAssetProjections.forEach((asset) => {
-        const assetStartDate = asset.start_date ? new Date(asset.start_date) : null;
-        const assetEndDate = asset.end_date ? new Date(asset.end_date) : null;
+      // Create projection request
+      const projectionRequest = {
+        plan_name: "Balance Sheet Projection",
+        years: projectionYears,
+        accounts: allAccounts
+      };
 
-        let assetValue = 0;
-        const isActive = 
-          (!assetStartDate || currentProjectionYear >= assetStartDate.getFullYear()) &&
-          (!assetEndDate || currentProjectionYear <= assetEndDate.getFullYear());
-
-        if (isActive) {
-          const growthRate = asset.annual_increase_percent / 100;
-          assetValue = asset.value * Math.pow(1 + growthRate, yearIndex);
+      // Check if a "Balance Sheet Projection" already exists and update it, otherwise create new
+      let projectionId = null;
+      try {
+        const existingProjections = await ProjectionService.getProjections();
+        const existing = existingProjections.find(p => p.name === "Balance Sheet Projection");
+        if (existing) {
+          projectionId = existing.id;
         }
-        yearTotalAssets += assetValue;
-        asset.projectedValues.push(assetValue);
-      });
+      } catch (e) {
+        console.log("Could not check for existing projection, will create new one");
+      }
 
-      let yearTotalLiabilities = 0;
-      individualLiabilityProjections.forEach((liability) => {
-        const liabilityStartDate = liability.start_date ? new Date(liability.start_date) : null;
-        const liabilityEndDate = liability.end_date ? new Date(liability.end_date) : null;
+      let projection;
+      if (projectionId) {
+        // Update existing projection
+        projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
+      } else {
+        // Create new projection
+        projection = await ProjectionService.createProjection(projectionRequest);
+      }
 
-        let liabilityValue = 0;
-        const isActive = 
-          (!liabilityStartDate || currentProjectionYear >= liabilityStartDate.getFullYear()) &&
-          (!liabilityEndDate || currentProjectionYear <= liabilityEndDate.getFullYear());
-
-        if (isActive) {
-          const growthRate = liability.annual_increase_percent / 100;
-          liabilityValue = liability.value * Math.pow(1 + growthRate, yearIndex);
+      // Parse the data_json
+      if (projection.data_json) {
+        const parsedData = JSON.parse(projection.data_json);
+        setProjectionData(parsedData);
+      } else {
+        // Fetch full projection details if data_json not in response
+        const fullProjection = await ProjectionService.getProjectionDetails(projection.id || projectionId);
+        if (fullProjection.data_json) {
+          const parsedData = JSON.parse(fullProjection.data_json);
+          setProjectionData(parsedData);
         }
-        yearTotalLiabilities += liabilityValue;
-        liability.projectedValues.push(liabilityValue);
-      });
+      }
+    } catch (err) {
+      console.error("Error fetching projection data:", err);
+      setError(err.message || "Failed to calculate projections");
+    } finally {
+      setLoading(false);
+    }
+  }, [assets, liabilities, projectionYears]);
 
-      totalAssetValues.push(yearTotalAssets);
-      totalLiabilityValues.push(yearTotalLiabilities);
-      netWorthValues.push(yearTotalAssets - yearTotalLiabilities);
+  useEffect(() => {
+    fetchProjectionData();
+  }, [fetchProjectionData]);
+
+  // Parse projection data into the format needed for charts/tables
+  const parseProjectionData = () => {
+    if (!projectionData || !Array.isArray(projectionData) || projectionData.length === 0) {
+      return {
+        years: [],
+        totalAssetValues: [],
+        totalLiabilityValues: [],
+        netWorthValues: [],
+        individualAssetProjections: [],
+        individualLiabilityProjections: []
+      };
     }
 
-    return { 
-      years, 
-      totalAssetValues, 
-      totalLiabilityValues, 
-      netWorthValues, 
-      individualAssetProjections, 
-      individualLiabilityProjections 
+    const years = projectionData.map(dp => dp.Year || (currentYear + dp.year - 1));
+    const totalAssetValues = projectionData.map(dp => dp["Total Assets"] || 0);
+    const totalLiabilityValues = projectionData.map(dp => Math.abs(dp["Total Liabilities"] || 0)); // Convert to positive for display
+    const netWorthValues = projectionData.map(dp => dp["Net Worth"] || 0);
+
+    // Extract individual asset projections
+    const individualAssetProjections = assets.map(asset => {
+      const key = `${asset.name}_Value`;
+      const projectedValues = projectionData.map(dp => {
+        const value = dp[key] || 0;
+        return Math.max(0, value); // Ensure non-negative for assets
+      });
+      return {
+        ...asset,
+        projectedValues
+      };
+    });
+
+    // Extract individual liability projections
+    const individualLiabilityProjections = liabilities.map(liability => {
+      const key = `${liability.name}_Value`;
+      const projectedValues = projectionData.map(dp => {
+        const value = dp[key] || 0;
+        return Math.abs(value); // Convert to positive for display (backend stores as negative)
+      });
+      return {
+        ...liability,
+        projectedValues
+      };
+    });
+
+    return {
+      years,
+      totalAssetValues,
+      totalLiabilityValues,
+      netWorthValues,
+      individualAssetProjections,
+      individualLiabilityProjections
     };
   };
-
-  const { 
-    years, 
-    totalAssetValues, 
-    totalLiabilityValues, 
-    netWorthValues, 
-    individualAssetProjections, 
-    individualLiabilityProjections 
-  } = calculateProjections();
 
   const chartOptions = {
     responsive: true,
@@ -112,7 +184,14 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
   };
 
   // Show every 5th year in tables
-  const displayYearsIndices = years.map((_, index) => index).filter((y) => y % 5 === 0);
+  const displayYearsIndices = [];
+  if (projectionData && projectionData.length > 0) {
+    for (let i = 0; i < projectionData.length; i++) {
+      if (i % 5 === 0 || i === projectionData.length - 1) {
+        displayYearsIndices.push(i);
+      }
+    }
+  }
 
   // Download functions
   const handleDownloadChartPng = (chartRef, filename) => {
@@ -157,79 +236,88 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
     }
   };
 
-  const convertToCsv = (dataArray, headers, valueFormatter) => {
-    const csvRows = [];
-    csvRows.push(headers.join(','));
-
-    dataArray.forEach(row => {
-      const values = headers.map(header => {
-        let value = row[header] || '';
-        if (typeof value === 'number' && valueFormatter) {
-          return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
-        }
-        return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes for CSV
-      });
-      csvRows.push(values.join(','));
-    });
-    return csvRows.join('\n');
-  };
-
   const handleDownloadCombinedProjectionCsv = (filename) => {
-    if (years.length > 0) {
-      const headers = ['Year', 'Total Assets', 'Total Liabilities', 'Net Worth'];
-      const formattedData = displayYearsIndices.map(index => ({
-        Year: years[index],
-        'Total Assets': totalAssetValues[index],
-        'Total Liabilities': totalLiabilityValues[index],
-        'Net Worth': netWorthValues[index],
-      }));
-      const csvString = convertToCsv(formattedData, headers, formatCurrency);
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${filename.replace(/\s/g, '_')}.csv`;
-      link.click();
-    } else {
-      console.warn("No data available for combined projection CSV download.");
-    }
+    const { years, totalAssetValues, totalLiabilityValues, netWorthValues } = parseProjectionData();
+    if (years.length === 0) return;
+
+    const headers = ['Year', 'Total Assets', 'Total Liabilities', 'Net Worth'];
+    const csvRows = [headers.join(',')];
+
+    years.forEach((year, index) => {
+      const row = [
+        year,
+        totalAssetValues[index] || 0,
+        totalLiabilityValues[index] || 0,
+        netWorthValues[index] || 0
+      ].map(val => `"${val}"`);
+      csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename.replace(/\s/g, '_')}.csv`;
+    link.click();
   };
 
-  const handleDownloadIndividualProjectionsCsv = (projections, filename) => {
-    if (projections.length > 0 && years.length > 0) {
-      const headers = ['Name (Category)', ...displayYearsIndices.map(index => years[index])];
-      const csvRows = [];
-      csvRows.push(headers.join(','));
+  const handleDownloadIndividualProjectionsCsv = (items, filename) => {
+    const { years, individualAssetProjections, individualLiabilityProjections } = parseProjectionData();
+    if (years.length === 0) return;
 
-      projections.forEach(item => {
-        const row = [`"${(item.name || '') + (item.category ? ` (${item.category})` : '')}"`];
-        displayYearsIndices.forEach(index => {
-          row.push(`"${formatCurrency(item.projectedValues[index] || 0).replace(/"/g, '""')}"`);
-        });
-        csvRows.push(row.join(','));
-      });
+    const isAssets = items === individualAssetProjections;
+    const headers = ['Name', ...years.map(y => String(y))];
+    const csvRows = [headers.join(',')];
 
-      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${filename.replace(/\s/g, '_')}.csv`;
-      link.click();
-    } else {
-      console.warn("No data available for individual projections CSV download.");
-    }
+    items.forEach(item => {
+      const row = [
+        item.name,
+        ...(isAssets ? item.projectedValues : item.projectedValues).map(val => formatCurrency(val).replace(/[$,]/g, ''))
+      ].map(val => `"${val}"`);
+      csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename.replace(/\s/g, '_')}.csv`;
+    link.click();
   };
+
+  if (loading) {
+    return <div>Loading projections...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  const {
+    years,
+    totalAssetValues,
+    totalLiabilityValues,
+    netWorthValues,
+    individualAssetProjections,
+    individualLiabilityProjections
+  } = parseProjectionData();
+
+  if (years.length === 0) {
+    return <div>No projection data available</div>;
+  }
 
   return (
-    <div className="balance-sheet-projection-container">
+    <div className="balance-sheet-projection">
       <h2>Balance Sheet Projections</h2>
-      
-      {/* Combined Assets, Liabilities, Net Worth Chart and Table */}
+
+      {/* Overall Financial Snapshot Chart */}
       <h3>Overall Financial Snapshot</h3>
       <div style={{ marginBottom: "30px" }}>
         <div className="chart-actions">
           <button onClick={() => handleDownloadChartPng(overallChartRef, "Overall_Financial_Snapshot")}>Download PNG</button>
           <button onClick={() => handleDownloadChartPdf(overallChartRef, "Overall_Financial_Snapshot")}>Download PDF</button>
         </div>
-        <Line 
+        <Line
           ref={overallChartRef}
           data={{
             labels: years,
@@ -290,7 +378,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
           <button onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</button>
           <button onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</button>
         </div>
-        <Line 
+        <Line
           ref={individualAssetChartRef}
           data={{
             labels: years,
@@ -369,7 +457,7 @@ export default function BalanceSheetProjection({ assets, liabilities, projection
             <button onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</button>
             <button onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</button>
           </div>
-          <Line 
+          <Line
             ref={individualLiabilityChartRef}
             data={{
               labels: years,

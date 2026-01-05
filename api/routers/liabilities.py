@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime, timedelta
 import logging
 
 import models
@@ -46,10 +46,23 @@ async def create_liability(
             (1 - (1 + (db_liability.interest_rate / 12 / 100))**(-db_liability.loan_term_months)) if db_liability.loan_term_months and db_liability.principal_amount else 0
         )
 
+        # Calculate end_date: use liability end_date if set, otherwise calculate from loan_start_date + loan_term_months
+        expense_end_date = db_liability.end_date
+        if not expense_end_date and db_liability.loan_start_date and db_liability.loan_term_months:
+            try:
+                start_date_obj = datetime.strptime(db_liability.loan_start_date, "%Y-%m-%d").date()
+                # Simple calculation: add years and months
+                years_to_add = db_liability.loan_term_months // 12
+                months_to_add = db_liability.loan_term_months % 12
+                end_date_obj = date(start_date_obj.year + years_to_add, start_date_obj.month + months_to_add, start_date_obj.day)
+                expense_end_date = end_date_obj.strftime("%Y-%m-%d")
+            except (ValueError, OverflowError):
+                expense_end_date = None  # Fallback to None if calculation fails
+
         cash_flow_item = models.CashFlowItem(
             owner_id=current_user.id,
             is_income=False,
-            category=db_liability.category or "Loan Payment", # Use liability category or default
+            category=db_liability.expense_category if db_liability.expense_category else (db_liability.category or "Loan Payment"), # Use expense_category if set, otherwise liability category or default
             description=f"Loan payment for {db_liability.name}",
             frequency="monthly",
             yearly_value=monthly_payment_value * 12,
@@ -57,7 +70,7 @@ async def create_liability(
             inflation_percent=0.0,
             person=None,  # Liabilities don't have a person attribute
             start_date=db_liability.loan_start_date, # Start date of cash flow is loan start date
-            end_date=db_liability.end_date, # End date of cash flow is liability end date
+            end_date=expense_end_date, # End date calculated from loan term if not explicitly set
             taxable=False,
             tax_deductible=False,  # Liabilities don't have a tax_deductible attribute, set default to False
             linked_item_id=db_liability.id,
@@ -126,7 +139,7 @@ async def update_liability(
 
             if cash_flow_item:
                 # Update existing cash flow item
-                cash_flow_item.category = db_liability.category or "Loan Payment"
+                cash_flow_item.category = db_liability.expense_category if db_liability.expense_category else (db_liability.category or "Loan Payment")
                 cash_flow_item.description = f"Loan payment for {db_liability.name}"
                 cash_flow_item.yearly_value = monthly_payment_value * 12
                 cash_flow_item.person = None  # Liabilities don't have a person attribute
@@ -136,10 +149,23 @@ async def update_liability(
                 db.add(cash_flow_item)
             else:
                 # Create new cash flow item if it doesn't exist and should be included
-                new_cash_flow_item = models.CashFlowItem(
+                    # Calculate end_date: use liability end_date if set, otherwise calculate from loan_start_date + loan_term_months
+                    expense_end_date = db_liability.end_date
+                    if not expense_end_date and db_liability.loan_start_date and db_liability.loan_term_months:
+                        try:
+                            start_date_obj = datetime.strptime(db_liability.loan_start_date, "%Y-%m-%d").date()
+                            # Simple calculation: add years and months
+                            years_to_add = db_liability.loan_term_months // 12
+                            months_to_add = db_liability.loan_term_months % 12
+                            end_date_obj = date(start_date_obj.year + years_to_add, start_date_obj.month + months_to_add, start_date_obj.day)
+                            expense_end_date = end_date_obj.strftime("%Y-%m-%d")
+                        except (ValueError, OverflowError):
+                            expense_end_date = None  # Fallback to None if calculation fails
+                    
+                    new_cash_flow_item = models.CashFlowItem(
                     owner_id=current_user.id,
                     is_income=False,
-                    category=db_liability.category or "Loan Payment",
+                    category=db_liability.expense_category if db_liability.expense_category else (db_liability.category or "Loan Payment"),
                     description=f"Loan payment for {db_liability.name}",
                     frequency="monthly",
                     yearly_value=monthly_payment_value * 12,
@@ -147,7 +173,7 @@ async def update_liability(
                     inflation_percent=0.0,
                     person=None,  # Liabilities don't have a person attribute
                     start_date=db_liability.loan_start_date,
-                    end_date=db_liability.end_date,
+                    end_date=expense_end_date,
                     taxable=False,
                     tax_deductible=False,  # Liabilities don't have a tax_deductible attribute, set default to False
                     linked_item_id=db_liability.id,

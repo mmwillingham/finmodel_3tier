@@ -375,6 +375,7 @@ class LiabilityCreate(BaseModel):
     include_in_cash_flow: bool = True # New field to control if liability is included in cash flow
     decrease_by_principal_yearly: bool = False  # NEW: Option to decrease liability by principal amount each year
     create_payment_expense: bool = False  # NEW: Option to create corresponding expense for payment amount
+    expense_category: Optional[str] = None  # NEW: Category for the generated expense when create_payment_expense is true
 
 class LiabilityUpdate(LiabilityCreate):
     pass
@@ -397,6 +398,7 @@ class LiabilityOut(BaseModel):
     include_in_cash_flow: bool | None = None # New field to control if liability is included in cash flow
     decrease_by_principal_yearly: bool = False  # NEW
     create_payment_expense: bool = False  # NEW
+    expense_category: Optional[str] = None  # NEW: Category for the generated expense when create_payment_expense is true
     model_config = ConfigDict(from_attributes=True)
 
 # --- AUTO-DISBURSEMENT SCHEMAS ---

@@ -5,7 +5,7 @@ import AssetService from "../services/asset.service";
 import AssetFormModal from "./AssetFormModal"; // Import the new AssetFormModal
 import "./AssetView.css";
 
-export default function AssetView({ assets, refreshAssets }) {
+export default function AssetView({ assets, refreshAssets, accounts = [] }) {
   const [showAssetModal, setShowAssetModal] = useState(false); // State to control modal visibility
   const [selectedAsset, setSelectedAsset] = useState(null); // State to hold asset being edited
   const tableRef = useRef(null);
@@ -48,6 +48,13 @@ export default function AssetView({ assets, refreshAssets }) {
 
   const total = assets.reduce((sum, item) => sum + (item.value || 0), 0);
 
+  // Helper to get account name from account_id
+  const getAccountName = (accountId) => {
+    if (!accountId || !accounts || accounts.length === 0) return '-';
+    const account = accounts.find(acc => acc.id === accountId);
+    return account ? `${account.broker} - ${account.account_name}` : '-';
+  };
+
   // Download functions (unchanged)
   const handleDownloadTablePdf = async (tableRef, filename) => {
     if (tableRef.current) {
@@ -84,10 +91,11 @@ export default function AssetView({ assets, refreshAssets }) {
 
   const handleDownloadAssetsCsv = (filename) => {
     if (assets.length > 0) {
-      const headers = ['Name', 'Category', 'Value', 'Percent', 'Annual Change', 'Start Date', 'End Date'];
+      const headers = ['Name', 'Category', 'Account', 'Value', 'Percent', 'Annual Change', 'Start Date', 'End Date'];
       const formattedData = assets.map(asset => ({
         Name: asset.name,
         Category: asset.category,
+        Account: getAccountName(asset.account_id),
         Value: asset.value,
         'Percent': asset.annual_increase_percent,
         'Annual Change': asset.annual_change_type,
@@ -123,6 +131,7 @@ export default function AssetView({ assets, refreshAssets }) {
           <tr>
             <th className="cashflow-table-cell">Name</th>
             <th className="cashflow-table-cell">Category</th>
+            <th className="cashflow-table-cell">Account</th>
             <th className="cashflow-table-cell">Value</th>
             <th className="cashflow-table-cell">Annual Change</th>
             <th className="cashflow-table-cell">Percent</th>
@@ -136,6 +145,7 @@ export default function AssetView({ assets, refreshAssets }) {
             <tr key={item.id}>
               <td className="cashflow-table-cell">{item.name}</td>
               <td className="cashflow-table-cell">{item.category}</td>
+              <td className="cashflow-table-cell">{getAccountName(item.account_id)}</td>
               <td className="cashflow-table-cell">{formatCurrency(item.value)}</td>
               <td className="cashflow-table-cell">{item.annual_change_type}</td>
               <td className="cashflow-table-cell">{item.annual_increase_percent}%</td>

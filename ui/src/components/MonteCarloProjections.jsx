@@ -175,7 +175,60 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
     }
   };
 
-  const chartData = results ? {
+  const netWorthChartData = results ? {
+    labels: results.map(d => d.year),
+    datasets: [
+      {
+        label: '10th Percentile',
+        data: results.map(d => d.netWorth.p10),
+        borderColor: 'rgba(255, 99, 132, 0.5)',
+        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+        borderDash: [5, 5],
+        fill: false,
+      },
+      {
+        label: '25th Percentile',
+        data: results.map(d => d.netWorth.p25),
+        borderColor: 'rgba(255, 159, 64, 0.5)',
+        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+        borderDash: [3, 3],
+        fill: false,
+      },
+      {
+        label: 'Median (50th)',
+        data: results.map(d => d.netWorth.p50),
+        borderColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+        fill: false,
+      },
+      {
+        label: 'Mean',
+        data: results.map(d => d.netWorth.mean),
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+        borderDash: [2, 2],
+        fill: false,
+      },
+      {
+        label: '75th Percentile',
+        data: results.map(d => d.netWorth.p75),
+        borderColor: 'rgba(255, 159, 64, 0.5)',
+        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+        borderDash: [3, 3],
+        fill: false,
+      },
+      {
+        label: '90th Percentile',
+        data: results.map(d => d.netWorth.p90),
+        borderColor: 'rgba(255, 99, 132, 0.5)',
+        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+        borderDash: [5, 5],
+        fill: false,
+      },
+    ],
+  } : null;
+
+  const netCashFlowChartData = results ? {
     labels: results.map(d => d.year),
     datasets: [
       {
@@ -237,7 +290,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       },
       title: {
         display: true,
-        text: `Monte Carlo Cash Flow Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Monte Carlo Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
     },
     scales: {
@@ -322,13 +375,71 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
 
       {results && (
         <div ref={chartRef}>
-          <div style={{ height: '400px', marginBottom: '30px' }}>
-            <Line data={chartData} options={chartOptions} />
+          {/* Net Worth Chart */}
+          <h3>Net Worth Projections</h3>
+          <div style={{ height: '400px', marginBottom: '40px' }}>
+            <Line data={netWorthChartData} options={{
+              ...chartOptions,
+              plugins: {
+                ...chartOptions.plugins,
+                title: {
+                  ...chartOptions.plugins.title,
+                  text: `Monte Carlo Net Worth Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+                },
+              },
+            }} />
           </div>
 
-          <h3>Statistical Summary</h3>
-          <div style={{ overflowX: 'auto' }}>
+          {/* Net Worth Table */}
+          <h3>Statistical Summary - Net Worth</h3>
+          <div style={{ overflowX: 'auto', marginBottom: '40px' }}>
             <table ref={tableRef} style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f0f0f0' }}>
+                  <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>Year</th>
+                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>10th %ile</th>
+                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>25th %ile</th>
+                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Median</th>
+                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Mean</th>
+                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>75th %ile</th>
+                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>90th %ile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((stat, index) => (
+                  <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                    <td style={{ padding: '10px', border: '1px solid #ddd' }}>{stat.year}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p10)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p25)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd', fontWeight: 'bold' }}>{formatCurrency(stat.netWorth.p50)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.mean)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p75)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p90)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Net Cash Flow Chart */}
+          <h3>Net Cash Flow Projections</h3>
+          <div style={{ height: '400px', marginBottom: '40px' }}>
+            <Line data={netCashFlowChartData} options={{
+              ...chartOptions,
+              plugins: {
+                ...chartOptions.plugins,
+                title: {
+                  ...chartOptions.plugins.title,
+                  text: `Monte Carlo Net Cash Flow Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+                },
+              },
+            }} />
+          </div>
+
+          {/* Net Cash Flow Table */}
+          <h3>Statistical Summary - Net Cash Flow</h3>
+          <div style={{ overflowX: 'auto', marginBottom: '40px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f0f0f0' }}>
                   <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>Year</th>

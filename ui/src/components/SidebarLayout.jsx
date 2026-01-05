@@ -330,6 +330,7 @@ export default function SidebarLayout() {
             <AssetView 
               assets={assets}
               refreshAssets={refreshAssets}
+              accounts={accounts}
             />
           </div>
         )}
@@ -338,6 +339,7 @@ export default function SidebarLayout() {
             <LiabilityView 
               liabilities={liabilities}
               refreshLiabilities={refreshLiabilities}
+              refreshCashflow={refreshCashflow}
             />
           </div>
         )}

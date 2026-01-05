@@ -5,7 +5,7 @@ import LiabilityService from "../services/liability.service";
 import LiabilityFormModal from "./LiabilityFormModal"; // Import the new LiabilityFormModal
 import "./LiabilityView.css"; // Use a dedicated CSS file for LiabilityView
 
-export default function LiabilityView({ liabilities, refreshLiabilities }) {
+export default function LiabilityView({ liabilities, refreshLiabilities, refreshCashflow }) {
   const [showLiabilityModal, setShowLiabilityModal] = useState(false); // State to control modal visibility
   const [selectedLiability, setSelectedLiability] = useState(null); // State to hold liability being edited
   const tableRef = useRef(null);
@@ -42,6 +42,9 @@ export default function LiabilityView({ liabilities, refreshLiabilities }) {
 
   const handleSaveSuccess = async () => {
     await refreshLiabilities(); // Refresh liabilities after save
+    if (refreshCashflow) {
+      await refreshCashflow(); // Also refresh expenses if a payment expense was created
+    }
     handleCloseModal(); // Close modal on successful save
   };
 

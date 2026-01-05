@@ -235,6 +235,7 @@ class Liability(Base):
     include_in_cash_flow = Column(Boolean, default=True) # New field to control if liability is included in cash flow
     decrease_by_principal_yearly = Column(Boolean, default=False)  # NEW: Option to decrease liability by principal amount each year
     create_payment_expense = Column(Boolean, default=False)  # NEW: Option to create corresponding expense for payment amount
+    expense_category = Column(String, nullable=True)  # NEW: Category for the generated expense when create_payment_expense is true
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
