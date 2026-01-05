@@ -149,20 +149,20 @@ async def update_liability(
                 db.add(cash_flow_item)
             else:
                 # Create new cash flow item if it doesn't exist and should be included
-                    # Calculate end_date: use liability end_date if set, otherwise calculate from loan_start_date + loan_term_months
-                    expense_end_date = db_liability.end_date
-                    if not expense_end_date and db_liability.loan_start_date and db_liability.loan_term_months:
-                        try:
-                            start_date_obj = datetime.strptime(db_liability.loan_start_date, "%Y-%m-%d").date()
-                            # Simple calculation: add years and months
-                            years_to_add = db_liability.loan_term_months // 12
-                            months_to_add = db_liability.loan_term_months % 12
-                            end_date_obj = date(start_date_obj.year + years_to_add, start_date_obj.month + months_to_add, start_date_obj.day)
-                            expense_end_date = end_date_obj.strftime("%Y-%m-%d")
-                        except (ValueError, OverflowError):
-                            expense_end_date = None  # Fallback to None if calculation fails
-                    
-                    new_cash_flow_item = models.CashFlowItem(
+                # Calculate end_date: use liability end_date if set, otherwise calculate from loan_start_date + loan_term_months
+                expense_end_date = db_liability.end_date
+                if not expense_end_date and db_liability.loan_start_date and db_liability.loan_term_months:
+                    try:
+                        start_date_obj = datetime.strptime(db_liability.loan_start_date, "%Y-%m-%d").date()
+                        # Simple calculation: add years and months
+                        years_to_add = db_liability.loan_term_months // 12
+                        months_to_add = db_liability.loan_term_months % 12
+                        end_date_obj = date(start_date_obj.year + years_to_add, start_date_obj.month + months_to_add, start_date_obj.day)
+                        expense_end_date = end_date_obj.strftime("%Y-%m-%d")
+                    except (ValueError, OverflowError):
+                        expense_end_date = None  # Fallback to None if calculation fails
+                
+                new_cash_flow_item = models.CashFlowItem(
                     owner_id=current_user.id,
                     is_income=False,
                     category=db_liability.expense_category if db_liability.expense_category else (db_liability.category or "Loan Payment"),
