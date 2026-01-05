@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     # ALGORITHM is used to specify the hashing algorithm for JWTs.
     ALGORITHM: str = "HS256"
     
-    # Expiration time for access tokens.
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 
+    # Expiration time for access tokens (24 hours for better UX with financial planning tool)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours 
 
     # Email settings
     MAIL_USERNAME: str | None = os.getenv("MAIL_USERNAME", "")
