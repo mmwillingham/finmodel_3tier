@@ -223,8 +223,14 @@ const AccountsSettingsPage = () => {
                       <td>{account.account_number || '-'}</td>
                       <td>{account.is_retirement ? 'Yes' : 'No'}</td>
                       <td>
-                        <button onClick={() => setEditingAccount({ ...account })} className="edit-icon-btn" style={{ marginRight: '5px' }}>Edit</button>
-                        <button onClick={() => handleDeleteAccount(account.id)} className="delete-icon-btn">Delete</button>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <button onClick={() => setEditingAccount({ ...account })} className="edit-icon-btn" title="Edit">
+                            <span role="img" aria-label="edit">✏️</span>
+                          </button>
+                          <button onClick={() => handleDeleteAccount(account.id)} className="delete-icon-btn" title="Delete">
+                            <span role="img" aria-label="delete">🗑️</span>
+                          </button>
+                        </div>
                       </td>
                     </>
                   )}

@@ -3,7 +3,7 @@ import api from './api.service';
 const AutoDisbursementService = {
   async getAllAutoDisbursements() {
     try {
-      const response = await api.get('/auto_disbursements/');
+      const response = await api.get('/auto-disbursements/');
       return response.data;
     } catch (error) {
       console.error('Error fetching auto-disbursements:', error);
@@ -13,7 +13,7 @@ const AutoDisbursementService = {
 
   async getAutoDisbursement(autoDisbursementId) {
     try {
-      const response = await api.get(`/auto_disbursements/${autoDisbursementId}`);
+      const response = await api.get(`/auto-disbursements/${autoDisbursementId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching auto-disbursement:', error);
@@ -23,7 +23,7 @@ const AutoDisbursementService = {
 
   async createAutoDisbursement(autoDisbursement) {
     try {
-      const response = await api.post('/auto_disbursements/', autoDisbursement);
+      const response = await api.post('/auto-disbursements/', autoDisbursement);
       return response.data;
     } catch (error) {
       console.error('Error creating auto-disbursement:', error);
@@ -33,7 +33,7 @@ const AutoDisbursementService = {
 
   async updateAutoDisbursement(autoDisbursementId, autoDisbursement) {
     try {
-      const response = await api.put(`/auto_disbursements/${autoDisbursementId}`, autoDisbursement);
+      const response = await api.put(`/auto-disbursements/${autoDisbursementId}`, autoDisbursement);
       return response.data;
     } catch (error) {
       console.error('Error updating auto-disbursement:', error);
@@ -43,7 +43,7 @@ const AutoDisbursementService = {
 
   async deleteAutoDisbursement(autoDisbursementId) {
     try {
-      await api.delete(`/auto_disbursements/${autoDisbursementId}`);
+      await api.delete(`/auto-disbursements/${autoDisbursementId}`);
     } catch (error) {
       console.error('Error deleting auto-disbursement:', error);
       throw error;
