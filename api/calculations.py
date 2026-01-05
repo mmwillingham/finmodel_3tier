@@ -480,6 +480,43 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 current_year_growth_sum += (growth_on_balance + growth_on_contributions)
 
 
+            # Apply expenses that contribute to assets (must happen after expense flows are calculated)
+            # Query for expenses that contribute to assets and add their amounts to asset balances
+            contributing_expenses = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == owner_id,
+                models.CashFlowItem.is_income == False,
+                models.CashFlowItem.contributes_to_asset_id.isnot(None)
+            ).all() if db else []
+            
+            for exp_item in contributing_expenses:
+                # Find the target asset
+                target_asset = db.query(models.Asset).filter(models.Asset.id == exp_item.contributes_to_asset_id).first()
+                if target_asset and target_asset.name in account_current_balances:
+                    # Calculate the expense amount for this year
+                    expense_amount = 0.0
+                    
+                    # Check if this expense is in the projection accounts (for dynamic items)
+                    expense_account_name = exp_item.description
+                    if exp_item.linked_item_id and exp_item.linked_item_type and exp_item.percentage is not None:
+                        # This is a dynamic expense - find the expense in annual_flow_values
+                        # The expense name might have a |LINKED: marker
+                        for flow_name, flow_value in annual_flow_values.items():
+                            base_name = flow_name.split("|LINKED:")[0]
+                            if base_name == exp_item.description:
+                                expense_amount = abs(flow_value)  # Use absolute value (flow_value is negative for expenses)
+                                break
+                    else:
+                        # Fixed expense - calculate with growth
+                        base_yearly_value = exp_item.yearly_value
+                        effective_growth_rate = (exp_item.inflation_percent or 0) / 100.0
+                        growth_factor = pow(1 + effective_growth_rate, year - 1)
+                        expense_amount = base_yearly_value * growth_factor
+                    
+                    # Add the expense amount to the asset balance
+                    if expense_amount > 0:
+                        account_current_balances[target_asset.name] += expense_amount
+                        print(f"--- DEBUG: Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}' for year {year} ---"); sys.stdout.flush()
+            
             # Calculate cash flow surplus/deficit and apply to designated asset
             net_cash_flow = current_year_total_income_flow + current_year_total_expense_flow
             surplus_deficit = current_year_total_income_flow - abs(current_year_total_expense_flow)

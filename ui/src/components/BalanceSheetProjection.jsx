@@ -28,22 +28,15 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
     
     try {
       // Convert assets to ProjectedAccountCreate format
-      // For each asset, calculate contributions from expenses that contribute to it
+      // Note: Expenses that contribute to assets are now handled by the backend
+      // We no longer need to pre-calculate contributions here for fixed expenses
+      // The backend will query for expenses that contribute to assets and add them after calculating expense flows
       const assetAccounts = assets.map(asset => {
-        // Find expenses that contribute to this asset
-        const contributingExpenses = (expenseItems || []).filter(
-          exp => exp.contributes_to_asset_id === asset.id
-        );
-        const totalContributions = contributingExpenses.reduce(
-          (sum, exp) => sum + (exp.yearly_value || 0),
-          0
-        );
-        
         return {
           name: asset.name,
           account_type: 'asset',
           initial_value: asset.value || 0,
-          contribution: totalContributions / 12, // Convert yearly to monthly
+          contribution: 0.0, // Contributions from expenses are now handled by backend
           growth_rate: asset.annual_increase_percent || 0,
           loan_type: null,
           principal_amount: null,
