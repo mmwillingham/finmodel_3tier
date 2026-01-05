@@ -22,6 +22,10 @@ class CustomChartService {
   delete(id) {
     return axios.delete(`${API_URL}/${id}`);
   }
+
+  recalculateAll() {
+    return axios.post(`${API_URL}/recalculate-all`);
+  }
 }
 
 const customChartService = new CustomChartService();

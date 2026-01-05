@@ -6,6 +6,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [recalculating, setRecalculating] = useState(false);
 
   const fetchCharts = async () => {
     setLoading(true);
@@ -37,6 +38,24 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
     }
   };
 
+  const handleRecalculateAll = async () => {
+    if (window.confirm("This will recalculate all charts with current data. Continue?")) {
+      setRecalculating(true);
+      setMessage('');
+      try {
+        const response = await CustomChartService.recalculateAll();
+        const data = response.data;
+        setMessage(`Successfully recalculated ${data.recalculated_count} of ${data.total_charts} charts.${data.errors.length > 0 ? ` ${data.errors.length} error(s) occurred.` : ''}`);
+        fetchCharts(); // Refresh the list to show updated data
+      } catch (error) {
+        console.error("Error recalculating charts:", error);
+        setMessage("Failed to recalculate charts. Please try again.");
+      } finally {
+        setRecalculating(false);
+      }
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading custom charts...</div>;
   }
@@ -45,7 +64,17 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
     <div className="custom-chart-list-container">
       <h3>Your Custom Charts and Tables</h3>
       {message && <div className="message">{message}</div>}
-      <button className="create-chart-btn" onClick={onCreateNewChart}>Create New Charts and Tables</button>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <button className="create-chart-btn" onClick={onCreateNewChart}>Create New Charts and Tables</button>
+        <button 
+          className="create-chart-btn" 
+          onClick={handleRecalculateAll}
+          disabled={recalculating || charts.length === 0}
+          style={{ backgroundColor: recalculating ? '#ccc' : '#28a745', opacity: charts.length === 0 ? 0.5 : 1 }}
+        >
+          {recalculating ? 'Recalculating...' : 'Recalculate All Charts'}
+        </button>
+      </div>
 
       {charts.length === 0 ? (
         <p>You haven't created any custom charts yet.</p>

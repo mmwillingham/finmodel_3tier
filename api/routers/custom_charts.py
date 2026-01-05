@@ -797,6 +797,279 @@ def update_custom_chart(
     print(f"--- DEBUG: Custom chart {db_chart.name} (ID: {db_chart.id}) updated with projection results. ---"); sys.stdout.flush()
     return db_chart
 
+@router.post("/recalculate-all", response_model=dict, tags=["Custom Charts"])
+def recalculate_all_charts(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Recalculates projection data for all custom charts for the current user.
+    This updates data_json, final_value, total_contributed, and total_growth for each chart
+    based on current underlying data (assets, liabilities, income, expenses).
+    """
+    print(f"--- DEBUG: Entering recalculate_all_charts for user {current_user.id} ---"); sys.stdout.flush()
+    
+    charts = db.query(models.CustomChart).filter(models.CustomChart.user_id == current_user.id).all()
+    recalculated_count = 0
+    errors = []
+    
+    for db_chart in charts:
+        try:
+            # Recalculate by calling update_custom_chart with empty update (just to trigger recalculation)
+            # We'll pass the chart's existing series_configurations to trigger recalculation
+            from schemas import CustomChartUpdate
+            chart_update = CustomChartUpdate(series_configurations=db_chart.series_configurations)
+            
+            # Call the recalculation logic from update_custom_chart
+            # We'll reuse the logic by directly updating the chart
+            if db_chart.series_configurations:
+                series_configs = json.loads(db_chart.series_configurations)
+                accounts_for_projection = []
+                added_account_names = set()
+                linked_asset_ids_needed = set()
+                
+                user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
+                projection_years = user_settings.projection_years if user_settings else 30
+                
+                # Build accounts_for_projection (reusing logic from update_custom_chart)
+                # This is a simplified version - in production, extract this to a helper function
+                # For now, we'll use the same logic inline
+                for series_config in series_configs:
+                    item_type = series_config.get('data_type')
+                    item_id = series_config.get('item_id') or series_config.get('selected_item_id')
+                    if item_id == "" or item_id == 0:
+                        item_id = None
+                    elif item_id is not None:
+                        try:
+                            item_id = int(item_id)
+                        except (ValueError, TypeError):
+                            continue
+                    category = series_config.get('category')
+                    
+                    if item_type and item_id:
+                        account = fetch_and_convert_item(db, current_user, item_type, item_id)
+                        if account:
+                            accounts_for_projection.append(account)
+                            added_account_names.add(account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name)
+                            if item_type in ['income', 'expenses']:
+                                item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
+                                if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                                    linked_asset_ids_needed.add(item.linked_item_id)
+                    elif item_type and item_id is None:
+                        # Aggregate logic (simplified - see update_custom_chart for full implementation)
+                        if item_type == 'assets':
+                            query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
+                            if category:
+                                query = query.filter(models.Asset.category == category)
+                            items = query.all()
+                            for item in items:
+                                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                    name=item.name, account_type='asset', initial_value=item.value,
+                                    contribution=0.0, growth_rate=item.annual_increase_percent,
+                                    loan_type=None, principal_amount=None, interest_rate=None,
+                                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                ))
+                                added_account_names.add(item.name)
+                        elif item_type == 'liabilities':
+                            query = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id)
+                            if category:
+                                query = query.filter(models.Liability.category == category)
+                            items = query.all()
+                            for item in items:
+                                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                    name=item.name, account_type='liability', initial_value=-abs(item.value),
+                                    contribution=0.0, growth_rate=item.annual_increase_percent,
+                                    loan_type=item.loan_type, principal_amount=item.principal_amount,
+                                    interest_rate=item.interest_rate, loan_term_months=item.loan_term_months,
+                                    loan_start_date=item.loan_start_date, monthly_payment=item.monthly_payment
+                                ))
+                                added_account_names.add(item.name)
+                        elif item_type == 'income':
+                            query = db.query(models.CashFlowItem).filter(
+                                models.CashFlowItem.owner_id == current_user.id,
+                                models.CashFlowItem.is_income == True
+                            )
+                            if category:
+                                query = query.filter(models.CashFlowItem.category == category)
+                            items = query.all()
+                            for item in items:
+                                contribution = 0.0
+                                account_name = item.description
+                                if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                                    linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                                    if linked_asset:
+                                        account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                        linked_asset_ids_needed.add(item.linked_item_id)
+                                else:
+                                    contribution = item.yearly_value / 12
+                                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                    name=account_name, account_type='income', initial_value=0.0,
+                                    contribution=contribution, growth_rate=item.annual_increase_percent,
+                                    loan_type=None, principal_amount=None, interest_rate=None,
+                                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                ))
+                                added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
+                        elif item_type == 'expenses':
+                            query = db.query(models.CashFlowItem).filter(
+                                models.CashFlowItem.is_income == False,
+                                models.CashFlowItem.owner_id == current_user.id
+                            )
+                            if category:
+                                query = query.filter(models.CashFlowItem.category == category)
+                            items = query.all()
+                            for item in items:
+                                contribution = 0.0
+                                account_name = item.description
+                                if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                                    linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                                    if linked_asset:
+                                        account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                        linked_asset_ids_needed.add(item.linked_item_id)
+                                else:
+                                    contribution = -(item.yearly_value / 12)
+                                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                    name=account_name, account_type='expense', initial_value=0.0,
+                                    contribution=contribution, growth_rate=item.inflation_percent,
+                                    loan_type=None, principal_amount=None, interest_rate=None,
+                                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                ))
+                                added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
+                
+                # Auto-include linked assets
+                for linked_asset_id in linked_asset_ids_needed:
+                    linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_asset_id, models.Asset.owner_id == current_user.id).first()
+                    if linked_asset and linked_asset.name not in added_account_names:
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
+                            contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None,
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                        ))
+                        added_account_names.add(linked_asset.name)
+                
+                # Auto-include ALL income and expense items (simplified - see update_custom_chart for full logic)
+                included_income_names = {acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name 
+                                        for acc in accounts_for_projection if acc.account_type == "income"}
+                included_expense_names = {acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name 
+                                         for acc in accounts_for_projection if acc.account_type == "expense"}
+                
+                all_income_items = db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == True
+                ).all()
+                for item in all_income_items:
+                    if item.description not in included_income_names:
+                        contribution = 0.0
+                        account_name = item.description
+                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                            if linked_asset:
+                                account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                if linked_asset.name not in added_account_names:
+                                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                        name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
+                                        contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
+                                        loan_type=None, principal_amount=None, interest_rate=None,
+                                        loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                    ))
+                                    added_account_names.add(linked_asset.name)
+                        else:
+                            contribution = item.yearly_value / 12
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=account_name, account_type='income', initial_value=0.0,
+                            contribution=contribution, growth_rate=item.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None,
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                        ))
+                        included_income_names.add(item.description)
+                
+                all_expense_items = db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == False
+                ).all()
+                for item in all_expense_items:
+                    if item.description not in included_expense_names:
+                        contribution = 0.0
+                        account_name = item.description
+                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                            if linked_asset:
+                                account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                if linked_asset.name not in added_account_names:
+                                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                        name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
+                                        contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
+                                        loan_type=None, principal_amount=None, interest_rate=None,
+                                        loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                    ))
+                                    added_account_names.add(linked_asset.name)
+                        else:
+                            contribution = -(item.yearly_value / 12)
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=account_name, account_type='expense', initial_value=0.0,
+                            contribution=contribution, growth_rate=item.inflation_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None,
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                        ))
+                        included_expense_names.add(item.description)
+                
+                # Auto-include assets from auto-disbursements
+                auto_disbursements = db.query(models.AutoDisbursement).filter(
+                    models.AutoDisbursement.owner_id == current_user.id
+                ).all()
+                for disbursement in auto_disbursements:
+                    source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
+                    target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
+                    if source_asset and source_asset.name not in added_account_names:
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=source_asset.name, account_type='asset', initial_value=source_asset.value,
+                            contribution=0.0, growth_rate=source_asset.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None,
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                        ))
+                        added_account_names.add(source_asset.name)
+                    if target_asset and target_asset.name not in added_account_names:
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=target_asset.name, account_type='asset', initial_value=target_asset.value,
+                            contribution=0.0, growth_rate=target_asset.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None,
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                        ))
+                        added_account_names.add(target_asset.name)
+                
+                # Recalculate projection
+                import calculations
+                projection_results = calculations.calculate_projection(
+                    years=projection_years,
+                    accounts=accounts_for_projection,
+                    db=db,
+                    owner_id=current_user.id
+                )
+                
+                # Update chart
+                db_chart.data_json = projection_results["data_json"]
+                db_chart.final_value = projection_results["final_value"]
+                db_chart.total_contributed = projection_results["total_contributed"]
+                db_chart.total_growth = projection_results["total_growth"]
+                db.add(db_chart)
+                recalculated_count += 1
+                print(f"--- DEBUG: Recalculated chart '{db_chart.name}' (ID: {db_chart.id}) ---"); sys.stdout.flush()
+            else:
+                print(f"--- WARNING: Chart '{db_chart.name}' (ID: {db_chart.id}) has no series_configurations, skipping ---"); sys.stdout.flush()
+        except Exception as e:
+            error_msg = f"Error recalculating chart '{db_chart.name}' (ID: {db_chart.id}): {str(e)}"
+            print(f"--- ERROR: {error_msg} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+            errors.append(error_msg)
+    
+    db.commit()
+    print(f"--- DEBUG: Recalculated {recalculated_count} charts for user {current_user.id} ---"); sys.stdout.flush()
+    
+    return {
+        "recalculated_count": recalculated_count,
+        "total_charts": len(charts),
+        "errors": errors
+    }
+
 @router.delete("/{chart_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_custom_chart(
     chart_id: int,
