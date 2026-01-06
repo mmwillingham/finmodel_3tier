@@ -68,6 +68,8 @@ class Projection(Base):
     total_contributed = Column(Float)
     total_growth = Column(Float)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    data_json = Column(String, nullable=True)  # Pre-calculated projection data as JSON string for fast retrieval
+    last_calculated_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when projection was last calculated
 
     owner = relationship("User", back_populates="projections")
     accounts_data = relationship("ProjectedAccount", cascade="all, delete-orphan", back_populates="projection")
@@ -218,6 +220,7 @@ class Asset(Base):
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class Liability(Base):
@@ -242,6 +245,7 @@ class Liability(Base):
     create_payment_expense = Column(Boolean, default=False)  # NEW: Option to create corresponding expense for payment amount
     expense_category = Column(String, nullable=True)  # NEW: Category for the generated expense when create_payment_expense is true
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class CustomChart(Base):

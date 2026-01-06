@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Response, status, Backgroun
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import text
+from sqlalchemy import text, func
 from datetime import timedelta, datetime
 from typing import List
 from starlette.responses import RedirectResponse
@@ -538,6 +538,100 @@ def verify_email(
         raise e
     return confirmed_user
 
+def is_projection_stale(db: Session, projection: models.Projection, user_id: int) -> bool:
+    """
+    Check if a projection needs recalculation based on underlying data changes.
+    Returns True if projection is stale and needs recalculation.
+    """
+    if not projection.last_calculated_at:
+        return True  # Stale if never calculated
+    
+    # Get the latest modification time from all underlying data
+    from sqlalchemy import func as sql_func
+    
+    # Get max updated_at from assets, liabilities, and cash flow items
+    max_asset_update = db.query(sql_func.max(models.Asset.updated_at)).filter(
+        models.Asset.owner_id == user_id
+    ).scalar()
+    
+    max_liability_update = db.query(sql_func.max(models.Liability.updated_at)).filter(
+        models.Liability.owner_id == user_id
+    ).scalar()
+    
+    max_cashflow_update = db.query(sql_func.max(models.CashFlowItem.updated_at)).filter(
+        models.CashFlowItem.owner_id == user_id
+    ).scalar()
+    
+    # Also check auto-disbursements
+    max_disbursement_update = db.query(sql_func.max(models.AutoDisbursement.updated_at)).filter(
+        models.AutoDisbursement.owner_id == user_id
+    ).scalar() if hasattr(models.AutoDisbursement, 'updated_at') else None
+    
+    # Find the latest data change
+    latest_data_change = max(
+        date for date in [max_asset_update, max_liability_update, max_cashflow_update, max_disbursement_update]
+        if date is not None
+    )
+    
+    # Projection is stale if underlying data was modified after last calculation
+    if latest_data_change:
+        # Convert to timezone-aware datetime for comparison
+        if projection.last_calculated_at.tzinfo is None:
+            from datetime import timezone
+            last_calculated = projection.last_calculated_at.replace(tzinfo=timezone.utc)
+        else:
+            last_calculated = projection.last_calculated_at
+            
+        if latest_data_change.tzinfo is None:
+            from datetime import timezone
+            latest_data_change = latest_data_change.replace(tzinfo=timezone.utc)
+        
+        return latest_data_change > last_calculated
+    
+    return False  # Not stale if no data changes
+
+
+def rebuild_projection_from_stored_data(db: Session, projection: models.Projection, user_id: int) -> dict:
+    """
+    Rebuild projection data from stored accounts_data to recalculate.
+    This extracts the ProjectedAccountCreate schemas from stored ProjectedAccount models.
+    Note: For Balance Sheet Projections, this won't include auto-included items,
+    but the stored accounts_data should contain all relevant accounts.
+    """
+    accounts_for_recalculation = []
+    
+    # Convert stored ProjectedAccount models back to ProjectedAccountCreate schemas
+    for stored_account in projection.accounts_data:
+        # Reconstruct ProjectedAccountCreate from stored data
+        account_schema = schemas.ProjectedAccountCreate(
+            name=stored_account.name,
+            account_type=stored_account.account_type,
+            initial_value=stored_account.initial_value,
+            contribution=stored_account.contribution,
+            growth_rate=stored_account.growth_rate,
+            loan_type=stored_account.loan_type,
+            principal_amount=stored_account.principal_amount,
+            interest_rate=stored_account.interest_rate,
+            loan_term_months=stored_account.loan_term_months,
+            loan_start_date=stored_account.loan_start_date,
+            monthly_payment=stored_account.monthly_payment,
+            start_date=stored_account.start_date,
+            end_date=stored_account.end_date
+        )
+        accounts_for_recalculation.append(account_schema)
+    
+    # Recalculate projection with stored accounts
+    # Note: The calculation function will auto-include additional items (income/expenses/auto-disbursements) as needed
+    result = calculations.calculate_projection(
+        years=projection.years,
+        accounts=accounts_for_recalculation,
+        db=db,
+        owner_id=user_id
+    )
+    
+    return result
+
+
 @app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED, tags=["projections"])
 def create_projection(
     projection_data: schemas.ProjectionRequest,
@@ -565,6 +659,8 @@ def create_projection(
         final_value=projection_results["final_value"],
         total_contributed=projection_results["total_contributed"],
         total_growth=projection_results["total_growth"],
+        data_json=projection_results.get("data_json"),  # Store data_json in database for fast retrieval
+        last_calculated_at=datetime.utcnow()  # Track when projection was calculated
     )
     db.add(db_projection)
     db.commit()
@@ -617,42 +713,47 @@ def get_projection_details(
     if not projection:
         raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
     
-    # Reconstruct data_json from time_series_data query (memory-efficient)
-    # Query only the fields we need instead of loading full objects
-    from sqlalchemy import select
-    ts_data_list = db.query(
-        models.ProjectionTimeSeriesData.year,
-        models.ProjectionTimeSeriesData.value_type,
-        models.ProjectionTimeSeriesData.value,
-        models.ProjectionTimeSeriesData.account_id
-    ).filter(
-        models.ProjectionTimeSeriesData.projection_id == projection_id
-    ).all()
-    
-    # Build data_json from queried data
-    yearly_data = {}
-    account_id_to_name = {acc.id: acc.name for acc in projection.accounts_data}
-    
-    for ts in ts_data_list:
-        year = ts.year
-        if year not in yearly_data:
-            yearly_data[year] = {}
-        
-        account_name = None
-        if ts.account_id and ts.account_id in account_id_to_name:
-            account_name = account_id_to_name[ts.account_id]
-        
-        if account_name:
-            if account_name not in yearly_data[year]:
-                yearly_data[year][account_name] = {}
-            yearly_data[year][account_name][ts.value_type] = ts.value
-        else:
-            # Yearly totals
-            yearly_data[year][ts.value_type] = ts.value
-    
-    data_json = json.dumps(yearly_data) if yearly_data else None
+    # Auto-recalculate if projection is stale (transparent to user)
+    if is_projection_stale(db, projection, current_user.id):
+        logger.info(f"Projection {projection_id} is stale, auto-recalculating...")
+        try:
+            # Rebuild projection from stored accounts_data
+            result = rebuild_projection_from_stored_data(db, projection, current_user.id)
+            
+            # Update projection with new results
+            projection.final_value = result["final_value"]
+            projection.total_contributed = result["total_contributed"]
+            projection.total_growth = result["total_growth"]
+            projection.data_json = result.get("data_json")
+            projection.last_calculated_at = datetime.utcnow()
+            projection.timestamp = datetime.utcnow()
+            
+            # Delete old time series data and accounts
+            db.query(models.ProjectionTimeSeriesData).filter(
+                models.ProjectionTimeSeriesData.projection_id == projection_id
+            ).delete()
+            db.query(models.ProjectedAccount).filter(
+                models.ProjectedAccount.projection_id == projection_id
+            ).delete()
+            
+            # Add new data
+            for acc in result["projected_accounts"]:
+                acc.projection_id = projection.id
+                db.add(acc)
+            for ts_data in result["time_series_data"]:
+                ts_data.projection_id = projection.id
+                db.add(ts_data)
+            
+            db.commit()
+            db.refresh(projection)
+            logger.info(f"Projection {projection_id} auto-recalculated successfully")
+        except Exception as e:
+            logger.error(f"Error auto-recalculating projection {projection_id}: {e}", exc_info=True)
+            # Continue with stale data rather than failing
+            db.rollback()
     
     # Return response without time_series_data to save memory
+    # data_json is read directly from database (stored during calculation)
     return schemas.ProjectionDetailOut(
         id=projection.id,
         name=projection.name,
@@ -663,7 +764,7 @@ def get_projection_details(
         timestamp=projection.timestamp,
         accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection.accounts_data],
         time_series_data=[],  # Excluded to save memory - use data_json instead
-        data_json=data_json
+        data_json=projection.data_json  # Read directly from database
     )
 
 @app.get("/projections", response_model=List[schemas.ProjectionOut], tags=["projections"])
@@ -720,6 +821,8 @@ def update_projection(
     projection.total_contributed = result["total_contributed"]
     projection.total_growth = result["total_growth"]
     projection.timestamp = datetime.utcnow()
+    projection.data_json = result.get("data_json")  # Store data_json in database for fast retrieval
+    projection.last_calculated_at = datetime.utcnow()  # Update calculation timestamp
     
     # Add new associated data
     for acc in result["projected_accounts"]:
@@ -733,7 +836,7 @@ def update_projection(
     db.commit()
     db.refresh(projection) # Refresh to load relationships
     
-    # Construct response with data_json from calculations
+    # Construct response with data_json from database (stored during calculation)
     # Note: We exclude time_series_data from the response to save memory since data_json contains all the information
     return schemas.ProjectionDetailOut(
         id=projection.id,
@@ -744,7 +847,7 @@ def update_projection(
         total_growth=projection.total_growth,
         accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in result["projected_accounts"]],
         time_series_data=[],  # Excluded to save memory - use data_json instead
-        data_json=result.get("data_json")  # Include data_json from calculations
+        data_json=projection.data_json  # Read directly from database (already stored above)
     )
 
 @app.post("/debug-projection-calc", response_model=schemas.ProjectionResponse, tags=["debug"], summary="Debug: Directly run projection calculation")
