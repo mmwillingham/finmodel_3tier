@@ -347,65 +347,101 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         current_balance = -abs(current_balance)
                     
                     # Check if this is a dynamic cashflow item (linked to an asset)
-                    # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
-                    linked_asset_name = None
+                    # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0" (single asset)
+                    # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0" (multiple assets)
+                    linked_asset_names = []
                     linked_percentage = None
                     base_account_name = projected_account.name
                     
                     if "|LINKED:" in projected_account.name and "|PERCENTAGE:" in projected_account.name:
-                        # Extract linked asset name and percentage
+                        # Extract linked asset name(s) and percentage
                         parts = projected_account.name.split("|LINKED:")
                         if len(parts) == 2:
                             base_account_name = parts[0]
                             rest = parts[1]
                             percent_parts = rest.split("|PERCENTAGE:")
                             if len(percent_parts) == 2:
-                                linked_asset_name = percent_parts[0]
+                                linked_asset_names_str = percent_parts[0]
+                                # Split by comma to handle multiple assets
+                                linked_asset_names = [name.strip() for name in linked_asset_names_str.split(",") if name.strip()]
                                 try:
                                     linked_percentage = float(percent_parts[1])
                                 except ValueError:
                                     linked_percentage = None
                     
                     # Calculate contribution for this year
-                    if linked_asset_name and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
-                        # Dynamic item: recalculate contribution based on linked asset's current value
-                        if linked_asset_name in account_current_balances:
-                            linked_asset_value = account_current_balances[linked_asset_name]
-                            # Find the linked asset to check if it's in a retirement account
-                            linked_asset = None
-                            for asset in all_assets:
-                                if asset.name == linked_asset_name:
-                                    linked_asset = asset
-                                    break
+                    if linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
+                        # Dynamic item: recalculate contribution based on linked asset(s) current value
+                        # Sum up values from all linked assets
+                        total_linked_asset_value = 0.0
+                        linked_assets_found = []
+                        
+                        for linked_asset_name in linked_asset_names:
+                            if linked_asset_name in account_current_balances:
+                                asset_value = account_current_balances[linked_asset_name]
+                                total_linked_asset_value += abs(asset_value)
+                                
+                                # Find the linked asset to check if it's in a retirement account
+                                for asset in all_assets:
+                                    if asset.name == linked_asset_name:
+                                        linked_assets_found.append(asset)
+                                        break
+                        
+                        if total_linked_asset_value > 0:
+                            # Calculate yearly value as percentage of total linked asset values
+                            yearly_value = total_linked_asset_value * (linked_percentage / 100.0)
                             
-                            # Calculate yearly value as percentage of linked asset value
-                            yearly_value = abs(linked_asset_value) * (linked_percentage / 100.0)
+                            # Check if any linked asset is in a retirement account
+                            # If any asset is retirement, the income stays in those accounts
+                            has_retirement_assets = False
+                            retirement_assets = []
+                            non_retirement_assets = []
                             
-                            # Retirement account rules: In retirement accounts, dividends/interest stay in the account
-                            # In non-retirement accounts, they increase a linked asset and are available for spending
-                            is_retirement = False
-                            if linked_asset and linked_asset.account_id and linked_asset.account_id in account_to_retirement_map:
-                                is_retirement = account_to_retirement_map[linked_asset.account_id]
+                            for linked_asset in linked_assets_found:
+                                is_retirement = False
+                                if linked_asset.account_id and linked_asset.account_id in account_to_retirement_map:
+                                    is_retirement = account_to_retirement_map[linked_asset.account_id]
+                                
+                                if is_retirement:
+                                    has_retirement_assets = True
+                                    retirement_assets.append(linked_asset)
+                                else:
+                                    non_retirement_assets.append(linked_asset)
                             
                             if projected_account.account_type == "income":
-                                if is_retirement:
-                                    # For retirement accounts, dividends/interest stay in the account (don't create income flow)
-                                    adjusted_annual_contribution = 0.0
-                                    # Add the dividend/interest directly to the linked asset
-                                    account_current_balances[linked_asset_name] += yearly_value
-                                    print(f"--- DEBUG: Retirement account - {yearly_value:.2f} added to {linked_asset_name} (not available for spending) ---"); sys.stdout.flush()
+                                if has_retirement_assets:
+                                    # For retirement accounts, dividends/interest stay in the accounts
+                                    # Distribute proportionally to retirement assets only
+                                    retirement_total_value = sum([abs(account_current_balances[asset.name]) for asset in retirement_assets])
+                                    if retirement_total_value > 0:
+                                        for asset in retirement_assets:
+                                            asset_value = abs(account_current_balances[asset.name])
+                                            asset_portion = (asset_value / retirement_total_value) * yearly_value
+                                            account_current_balances[asset.name] += asset_portion
+                                    
+                                    # Income available for spending is based on non-retirement assets only
+                                    if non_retirement_assets:
+                                        non_retirement_total_value = sum([abs(account_current_balances[asset.name]) for asset in non_retirement_assets])
+                                        if total_linked_asset_value > 0:
+                                            adjusted_annual_contribution = (non_retirement_total_value / total_linked_asset_value) * yearly_value
+                                        else:
+                                            adjusted_annual_contribution = 0.0
+                                    else:
+                                        adjusted_annual_contribution = 0.0
+                                    
+                                    print(f"--- DEBUG: Retirement accounts - {yearly_value:.2f} distributed to retirement assets, {adjusted_annual_contribution:.2f} available for spending ---"); sys.stdout.flush()
                                 else:
                                     # For non-retirement accounts, dividends/interest are available for spending
                                     adjusted_annual_contribution = yearly_value
-                                    print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {linked_asset_name} value={linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} (available for spending) ---"); sys.stdout.flush()
+                                    print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {len(linked_asset_names)} assets total value={total_linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} (available for spending) ---"); sys.stdout.flush()
                             else:
                                 # Expenses (shouldn't normally be dynamic, but handle if needed)
                                 adjusted_annual_contribution = -yearly_value
-                                print(f"--- DEBUG: Dynamic expense item {base_account_name} recalculated: {linked_asset_name} value={linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} ---"); sys.stdout.flush()
+                                print(f"--- DEBUG: Dynamic expense item {base_account_name} recalculated: {len(linked_asset_names)} assets total value={total_linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} ---"); sys.stdout.flush()
                         else:
-                            # Linked asset not found in projection, use 0
+                            # Linked assets not found in projection, use 0
                             adjusted_annual_contribution = 0.0
-                            print(f"--- WARNING: Linked asset {linked_asset_name} not found for dynamic item {base_account_name} ---"); sys.stdout.flush()
+                            print(f"--- WARNING: Linked assets {linked_asset_names} not found for dynamic item {base_account_name} ---"); sys.stdout.flush()
                     else:
                         # Fixed contribution item
                         # Monthly contribution
@@ -424,7 +460,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     
                     # Calculate growth on contributions (assuming contributions occur mid-year on average for 0.5 factor)
                     # For dynamic items, growth on contributions is typically 0 since the value is recalculated each year
-                    growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not (linked_asset_name and linked_percentage is not None) else 0.0
+                    growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not (linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None) else 0.0
                     
                     # New balance for the end of the current year
                     # For income/expense items, we track the annual flow value (they don't accumulate like assets/liabilities)
@@ -468,6 +504,31 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     account=projected_account
                 ))
                 
+                # Check if income/expense item is active for this year (based on start_date and end_date)
+                is_active_for_year = True
+                if projected_account.account_type in ["income", "expense"]:
+                    current_year_date = date(current_year + year - 1, 1, 1)  # Start of current projection year
+                    if projected_account.start_date:
+                        try:
+                            start_date_obj = datetime.strptime(projected_account.start_date, "%Y-%m-%d").date()
+                            if current_year_date < start_date_obj:
+                                is_active_for_year = False
+                        except ValueError:
+                            pass
+                    if projected_account.end_date and is_active_for_year:
+                        try:
+                            end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
+                            if current_year_date > end_date_obj:
+                                is_active_for_year = False
+                        except ValueError:
+                            pass
+                    
+                    # If not active, set contribution to 0
+                    if not is_active_for_year:
+                        adjusted_annual_contribution = 0.0
+                        # Also update the time series data
+                        time_series_data_for_db[-1].value = 0.0  # Update the last contribution_flow entry
+                
                 # Accumulate yearly totals
                 if projected_account.account_type == "asset":
                     current_year_total_assets += new_balance
@@ -491,6 +552,27 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             ).all() if db else []
             
             for exp_item in contributing_expenses:
+                # Check if expense is active for this year (based on start_date and end_date)
+                current_year_date = date(current_year + year - 1, 1, 1)  # Start of current projection year
+                expense_active = True
+                if exp_item.start_date:
+                    try:
+                        start_date_obj = datetime.strptime(exp_item.start_date, "%Y-%m-%d").date()
+                        if current_year_date < start_date_obj:
+                            expense_active = False
+                    except ValueError:
+                        pass
+                if exp_item.end_date and expense_active:
+                    try:
+                        end_date_obj = datetime.strptime(exp_item.end_date, "%Y-%m-%d").date()
+                        if current_year_date > end_date_obj:
+                            expense_active = False
+                    except ValueError:
+                        pass
+                
+                if not expense_active:
+                    continue  # Skip this expense for this year
+                
                 # Find the target asset
                 target_asset = db.query(models.Asset).filter(models.Asset.id == exp_item.contributes_to_asset_id).first()
                 if target_asset and target_asset.name in account_current_balances:

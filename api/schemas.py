@@ -86,6 +86,9 @@ class ProjectedAccountBase(BaseModel):
     loan_term_months: Optional[int] = None
     loan_start_date: Optional[str] = None # YYYY-MM-DD format
     monthly_payment: Optional[float] = None # Calculated monthly payment
+    # Fields for cash flow items (income/expense)
+    start_date: Optional[str] = None  # YYYY-MM-DD format for income/expense start date
+    end_date: Optional[str] = None  # YYYY-MM-DD format for income/expense end date
 
 
 class ProjectedAccountCreate(ProjectedAccountBase):
@@ -184,6 +187,7 @@ class CashFlowCreate(BaseModel):
     linked_item_id: Optional[int] = None
     linked_item_type: Optional[str] = None
     percentage: Optional[float] = None
+    linked_asset_ids: Optional[List[int]] = None  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id: Optional[int] = None # NEW: For expense items that contribute to an asset
 
 class CashFlowUpdate(BaseModel):
@@ -202,6 +206,7 @@ class CashFlowUpdate(BaseModel):
     linked_item_id: Optional[int] = None
     linked_item_type: Optional[str] = None
     percentage: Optional[float] = None
+    linked_asset_ids: Optional[List[int]] = None  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id: Optional[int] = None # NEW: For expense items that contribute to an asset
 
 class CashFlowOut(BaseModel):
@@ -221,6 +226,7 @@ class CashFlowOut(BaseModel):
     linked_item_id: Optional[int] = None
     linked_item_type: Optional[str] = None
     percentage: Optional[float] = None
+    linked_asset_ids: Optional[List[int]] = None  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id: Optional[int] = None # NEW: For expense items that contribute to an asset
     model_config = ConfigDict(from_attributes=True)
 

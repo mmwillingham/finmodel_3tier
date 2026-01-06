@@ -68,12 +68,22 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         let accountName = income.description;
         let contribution = 0.0;
         
-        if (income.linked_item_id && income.linked_item_type === "asset" && income.percentage !== null && income.percentage !== undefined) {
+        if (income.linked_item_type === "asset" && income.percentage !== null && income.percentage !== undefined) {
           // This is a dynamic item - will be recalculated each year in backend
-          // Find the linked asset name
-          const linkedAsset = assets.find(a => a.id === income.linked_item_id);
-          if (linkedAsset) {
-            accountName = `${income.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${income.percentage}`;
+          // Check for multi-select linked assets first
+          if (income.linked_asset_ids && income.linked_asset_ids.length > 0) {
+            // Multi-select: Get all linked asset names
+            const linkedAssets = assets.filter(a => income.linked_asset_ids.includes(a.id));
+            if (linkedAssets.length > 0) {
+              const assetNames = linkedAssets.map(a => a.name).join(',');
+              accountName = `${income.description}|LINKED:${assetNames}|PERCENTAGE:${income.percentage}`;
+            }
+          } else if (income.linked_item_id) {
+            // Single linked asset (backward compatibility)
+            const linkedAsset = assets.find(a => a.id === income.linked_item_id);
+            if (linkedAsset) {
+              accountName = `${income.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${income.percentage}`;
+            }
           }
         } else {
           // Fixed income item
@@ -91,7 +101,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
           interest_rate: null,
           loan_term_months: null,
           loan_start_date: null,
-          monthly_payment: null
+          monthly_payment: null,
+          start_date: income.start_date || null,
+          end_date: income.end_date || null
         };
       });
 
@@ -122,6 +134,8 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             growth_rate: expense.inflation_percent || 0,
             loan_type: null,
             principal_amount: null,
+            start_date: expense.start_date || null,
+            end_date: expense.end_date || null,
             interest_rate: null,
             loan_term_months: null,
             loan_start_date: null,

@@ -135,6 +135,7 @@ class CashFlowItem(Base):
     linked_item_id = Column(Integer, nullable=True)
     linked_item_type = Column(String, nullable=True)  # 'asset', 'income', 'expense'
     percentage = Column(Float, nullable=True)
+    linked_asset_ids = Column(JSON, nullable=True)  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True) # NEW: For expense items that contribute to an asset
     contributes_to_asset = relationship("Asset", foreign_keys=[contributes_to_asset_id]) # NEW: Relationship to Asset
 

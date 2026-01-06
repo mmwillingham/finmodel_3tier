@@ -74,16 +74,31 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
             # For dynamic items (linked to asset), contribution will be recalculated each year in projection
             # Store initial contribution as 0 for dynamic items - it will be recalculated based on linked asset
             contribution = 0.0
-            if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                # This is a dynamic item - contribution will be recalculated each year
-                # For now, set to 0 - the projection calculation will handle the recalculation
-                linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
-                if linked_asset:
-                    # Store linked asset name in account name with special marker for projection calculation
-                    # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
-                    linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
-                    account_name = item.description + linked_marker
-                    print(f"--- DEBUG: Dynamic item {item.description} linked to asset {linked_asset.name} with {item.percentage}% ---"); sys.stdout.flush()
+            if item.linked_item_type == "asset" and item.percentage is not None:
+                # Check for multi-select linked assets first
+                if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
+                    # Multi-select: Get all linked asset names
+                    linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                    if linked_assets:
+                        # Store linked asset names (comma-separated) in account name with special marker
+                        # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0"
+                        asset_names = [asset.name for asset in linked_assets]
+                        linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                        account_name = item.description + linked_marker
+                        print(f"--- DEBUG: Dynamic item {item.description} linked to multiple assets {asset_names} with {item.percentage}% ---"); sys.stdout.flush()
+                    else:
+                        account_name = item.description
+                elif item.linked_item_id:
+                    # Single linked asset (backward compatibility)
+                    linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                    if linked_asset:
+                        # Store linked asset name in account name with special marker for projection calculation
+                        # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
+                        linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                        account_name = item.description + linked_marker
+                        print(f"--- DEBUG: Dynamic item {item.description} linked to asset {linked_asset.name} with {item.percentage}% ---"); sys.stdout.flush()
+                    else:
+                        account_name = item.description
                 else:
                     account_name = item.description
             else:
@@ -96,7 +111,8 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 initial_value=0.0,
                 contribution=contribution,
                 growth_rate=item.annual_increase_percent if is_income_item else item.inflation_percent,
-                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                start_date=item.start_date, end_date=item.end_date
             )
         else:
             print(f"--- WARNING: CashFlowItem with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()

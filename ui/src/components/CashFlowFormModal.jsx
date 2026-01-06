@@ -19,6 +19,7 @@ export default function CashFlowFormModal({
   const [isDynamic, setIsDynamic] = useState(false); // New state for dynamic item
   const [linkedItemType, setLinkedItemType] = useState(""); // New state for linked item type
   const [linkedItemId, setLinkedItemId] = useState(null); // New state for linked item ID
+  const [linkedAssetIds, setLinkedAssetIds] = useState([]); // NEW: Array of selected asset IDs for multi-select
   const [percentage, setPercentage] = useState(""); // New state for percentage
   const [availableLinkedItems, setAvailableLinkedItems] = useState({
     assets: [],
@@ -72,11 +73,19 @@ export default function CashFlowFormModal({
             ? (itemToEdit.yearly_value / 12).toString()
             : itemToEdit.yearly_value.toString();
 
+          // Map person: if null, use "Select Person", otherwise use the person name
+          let mappedPerson = "Select Person";
+          if (itemToEdit.person) {
+            // Check if person exists in personOptions (will be loaded from settings)
+            // For now, use the person name directly - it will be validated when personOptions loads
+            mappedPerson = itemToEdit.person;
+          }
+          
           setNewItem(prev => ({
             ...prev,
             ...itemToEdit,
             value: displayValue, // This will be ignored if isDynamic is true
-            person: itemToEdit.person || "", // Ensure person is empty string if null/undefined
+            person: mappedPerson, // Map null to "Select Person"
             annual_increase_percent: itemToEdit.annual_increase_percent ?? 0,
             inflation_percent: itemToEdit.inflation_percent ?? inflation,
             taxable: itemToEdit.taxable ?? false,
@@ -86,9 +95,10 @@ export default function CashFlowFormModal({
             contributes_to_asset_id: itemToEdit.contributes_to_asset_id || null, // NEW
           }));
           // Initialize dynamic fields if present in itemToEdit
-          setIsDynamic(!!itemToEdit.linked_item_id); // Set to true if linked_item_id exists
+          setIsDynamic(!!(itemToEdit.linked_item_id || (itemToEdit.linked_asset_ids && itemToEdit.linked_asset_ids.length > 0))); // Set to true if linked_item_id or linked_asset_ids exists
           setLinkedItemType(itemToEdit.linked_item_type || "");
           setLinkedItemId(itemToEdit.linked_item_id || null);
+          setLinkedAssetIds(itemToEdit.linked_asset_ids || []); // NEW: Initialize linked asset IDs
           setPercentage(itemToEdit.percentage !== null ? itemToEdit.percentage.toString() : "");
 
         } else {
@@ -112,6 +122,7 @@ export default function CashFlowFormModal({
           setIsDynamic(false);
           setLinkedItemType("");
           setLinkedItemId(null);
+          setLinkedAssetIds([]); // NEW: Reset linked asset IDs
           setPercentage("");
         }
       } catch (e) {
@@ -162,8 +173,12 @@ export default function CashFlowFormModal({
 
     // Validation for dynamic items (but skip if linked_item_type is "liability" - these are generated expenses)
     if (isDynamic && itemToEdit?.linked_item_type !== "liability") {
-      if (!linkedItemType || !linkedItemId || percentage === "" || isNaN(parseFloat(percentage))) {
-        alert("Please select a linked item type, an item, and enter a valid percentage.");
+      // For income items with asset type, check linkedAssetIds; otherwise check linkedItemId
+      const hasValidLink = (type === "income" && linkedItemType === "asset") 
+        ? (linkedAssetIds.length > 0)
+        : (linkedItemId !== null);
+      if (!linkedItemType || !hasValidLink || percentage === "" || isNaN(parseFloat(percentage))) {
+        alert("Please select a linked item type, an item (or assets for income), and enter a valid percentage.");
         return;
       }
     } else if (!isDynamic && (newItem.value === "" || isNaN(parseFloat(newItem.value)))) {
@@ -190,6 +205,7 @@ export default function CashFlowFormModal({
       linked_item_id: isDynamic ? linkedItemId : null,
       linked_item_type: isDynamic ? linkedItemType : null,
       percentage: isDynamic ? parseFloat(percentage) : null,
+      linked_asset_ids: (type === "income" && isDynamic && linkedItemType === "asset" && linkedAssetIds.length > 0) ? linkedAssetIds : null, // NEW: Multi-select asset IDs for income items
       contributes_to_asset_id: type === "expense" ? newItem.contributes_to_asset_id : null, // NEW: Only for expenses
     };
 
@@ -249,7 +265,7 @@ export default function CashFlowFormModal({
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency */} 
             <div className="form-field">
               <label htmlFor="person-select">Person</label>
-              <select id="person-select" value={newItem.person || ""} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Select Person" ? "" : e.target.value === "Family" ? "" : e.target.value })}> 
+              <select id="person-select" value={newItem.person || "Select Person"} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Select Person" ? "" : e.target.value === "Family" ? "" : e.target.value })}> 
                 {personOptions.map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
@@ -292,6 +308,7 @@ export default function CashFlowFormModal({
                   // Reset linked item fields when toggling dynamic status
                   setLinkedItemType("");
                   setLinkedItemId(null);
+                  setLinkedAssetIds([]); // NEW: Reset linked asset IDs
                   setPercentage("");
                   // If switching from dynamic to non-dynamic, re-enable value/frequency
                   if (!newIsDynamic && !itemToEdit) {
@@ -347,20 +364,54 @@ export default function CashFlowFormModal({
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="linked-item-select">Linked Item</label>
-                  <select
-                    id="linked-item-select"
-                    value={linkedItemId || ""}
-                    onChange={(e) => setLinkedItemId(parseInt(e.target.value))}
-                    disabled={!linkedItemType}
-                  >
-                    <option value="">Select Item</option>
-                    {getLinkedItemOptions().map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} ({item.category})
-                      </option>
-                    ))}
-                  </select>
+                  <label htmlFor="linked-item-select">
+                    {type === "income" && linkedItemType === "asset" ? "Linked Assets (Multi-select)" : "Linked Item"}
+                  </label>
+                  {type === "income" && linkedItemType === "asset" ? (
+                    <select
+                      id="linked-item-select"
+                      multiple
+                      size={4}
+                      value={linkedAssetIds.map(id => id.toString())}
+                      onChange={(e) => {
+                        const selectedIds = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                        setLinkedAssetIds(selectedIds);
+                        // Also set linkedItemId to first selected for backward compatibility
+                        setLinkedItemId(selectedIds.length > 0 ? selectedIds[0] : null);
+                      }}
+                      disabled={!linkedItemType}
+                      style={{ minHeight: '80px' }}
+                    >
+                      {getLinkedItemOptions().map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name} ({item.category})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      id="linked-item-select"
+                      value={linkedItemId || ""}
+                      onChange={(e) => {
+                        setLinkedItemId(e.target.value ? parseInt(e.target.value) : null);
+                        // Clear linkedAssetIds when using single select
+                        setLinkedAssetIds([]);
+                      }}
+                      disabled={!linkedItemType}
+                    >
+                      <option value="">Select Item</option>
+                      {getLinkedItemOptions().map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name} ({item.category})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {type === "income" && linkedItemType === "asset" && (
+                    <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                      Hold Ctrl/Cmd to select multiple assets
+                    </small>
+                  )}
                 </div>
 
                 <div className="form-field">

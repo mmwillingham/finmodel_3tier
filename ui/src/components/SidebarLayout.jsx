@@ -324,16 +324,6 @@ export default function SidebarLayout() {
                 </div>
                 
                 <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('automatic-transfers')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🔄 Setup Automatic Transfers</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Set up automatic transfers between accounts and surplus asset handling.
-                  </p>
-                </div>
-                
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
                      onClick={() => setWizardOpen('assets')}
                      onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
                      onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
@@ -370,6 +360,16 @@ export default function SidebarLayout() {
                   <h4 style={{ marginTop: 0, color: '#007bff' }}>💸 Setup Expenses</h4>
                   <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
                     Add your expenses (housing, food, transportation, etc.).
+                  </p>
+                </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('automatic-transfers')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🔄 Setup Automatic Transfers</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Set up automatic transfers between accounts and surplus asset handling.
                   </p>
                 </div>
               </div>
