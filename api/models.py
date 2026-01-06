@@ -92,6 +92,9 @@ class ProjectedAccount(Base):
     loan_term_months = Column(Integer, nullable=True)
     loan_start_date = Column(String, nullable=True) # YYYY-MM-DD format
     monthly_payment = Column(Float, nullable=True) # Calculated monthly payment
+    # Fields for cash flow items (income/expense)
+    start_date = Column(String, nullable=True)  # YYYY-MM-DD format for income/expense start date
+    end_date = Column(String, nullable=True)  # YYYY-MM-DD format for income/expense end date
     
     # Relationship back to the Projection
     projection = relationship("Projection", back_populates="accounts_data")

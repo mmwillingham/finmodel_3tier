@@ -221,7 +221,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 interest_rate=acc_schema.interest_rate,
                 loan_term_months=acc_schema.loan_term_months,
                 loan_start_date=acc_schema.loan_start_date,
-                monthly_payment=acc_schema.monthly_payment
+                monthly_payment=acc_schema.monthly_payment,
+                # Fields for cash flow items (income/expense)
+                start_date=acc_schema.start_date,
+                end_date=acc_schema.end_date
                 # projection_id will be set later
             )
             projected_accounts_for_db.append(projected_account)
