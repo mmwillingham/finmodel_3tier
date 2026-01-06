@@ -266,7 +266,7 @@ const AutoDisbursementSettingsPage = () => {
             <input
               id="name"
               type="text"
-              placeholder="e.g., Salary to Savings"
+              placeholder="e.g. IRA to Savings"
               value={newAutoDisbursement.name}
               onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, name: e.target.value })}
             />
