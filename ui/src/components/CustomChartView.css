@@ -56,3 +56,62 @@
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
+
+.custom-chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-chart-table thead {
+  background-color: #f8f9fa;
+}
+
+.custom-chart-table th,
+.custom-chart-table td {
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.custom-chart-table th {
+  font-weight: 600;
+  color: #495057;
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
+  z-index: 10;
+}
+
+.custom-chart-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.custom-chart-table tbody td {
+  color: #212529;
+}
+
+.table-container {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 20px 0;
+}
+
+.table-container h3 {
+  text-align: left;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.table-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}

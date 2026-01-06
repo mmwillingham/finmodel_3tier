@@ -21,7 +21,11 @@ export default function MultiSelectCheckbox({
   showCategory = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownHeight, setDropdownHeight] = useState(200);
   const containerRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const resizeHandleRef = useRef(null);
+  const isResizingRef = useRef(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -38,6 +42,46 @@ export default function MultiSelectCheckbox({
       };
     }
   }, [isOpen]);
+
+  // Handle resize functionality - always attach listeners, check ref inside
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current || !dropdownRef.current || !containerRef.current) return;
+      
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newHeight = e.clientY - containerRect.bottom;
+      const minHeight = 150;
+      const maxHeight = 500;
+      
+      if (newHeight >= minHeight && newHeight <= maxHeight) {
+        setDropdownHeight(newHeight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isResizingRef.current) {
+        isResizingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingRef.current = true;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   const toggleOption = (id) => {
     if (disabled) return;
@@ -96,8 +140,9 @@ export default function MultiSelectCheckbox({
       
       {isOpen && !disabled && (
         <div 
+          ref={dropdownRef}
           className="multi-select-checkbox-dropdown"
-          style={{ maxHeight: `${maxHeight}px` }}
+          style={{ height: `${dropdownHeight}px`, maxHeight: `${maxHeight}px` }}
         >
           {options.length > 0 && (
             <div className="multi-select-checkbox-header">
@@ -137,6 +182,11 @@ export default function MultiSelectCheckbox({
               })
             )}
           </div>
+          <div 
+            ref={resizeHandleRef}
+            className="multi-select-checkbox-resize-handle"
+            onMouseDown={handleResizeStart}
+          />
         </div>
       )}
     </div>

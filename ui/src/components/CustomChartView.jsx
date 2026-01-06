@@ -19,7 +19,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const chartRef = useRef(null);
   const tableRef = useRef(null); // New ref for the table
   const currentYear = new Date().getFullYear();
-  const [showChartTotals, setShowChartTotals] = useState(true); // State for individual chart totals
+  const [showChartTotals, setShowChartTotals] = useState(false); // State for individual chart totals
   const [showChartTotalsDisabled, setShowChartTotalsDisabled] = useState(false); // State to disable totals checkbox when data types differ
     const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type (chart, table, or both)
 

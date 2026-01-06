@@ -65,32 +65,37 @@
   margin-top: 4px;
   overflow-y: auto;
   overflow-x: hidden;
-  resize: vertical; /* Enable vertical resize handle */
   min-height: 150px;
   max-height: 500px;
   height: 200px; /* Default height */
+  display: flex;
+  flex-direction: column;
 }
 
-/* Add visual indicator for resize handle */
-.multi-select-checkbox-dropdown::-webkit-resizer {
-  background-color: #ddd;
-  border-bottom-right-radius: 4px;
-}
-
-.multi-select-checkbox-dropdown::after {
-  content: '';
+.multi-select-checkbox-resize-handle {
   position: absolute;
   bottom: 0;
   right: 0;
   width: 20px;
   height: 20px;
+  cursor: ns-resize;
   background: linear-gradient(135deg, transparent 0%, transparent 45%, #999 45%, #999 55%, transparent 55%, transparent 100%),
               linear-gradient(225deg, transparent 0%, transparent 45%, #999 45%, #999 55%, transparent 55%, transparent 100%);
   background-size: 8px 8px, 8px 8px;
   background-position: bottom right, bottom right;
   background-repeat: no-repeat;
-  pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.6;
+  z-index: 1001;
+  flex-shrink: 0;
+}
+
+.multi-select-checkbox-resize-handle:hover {
+  opacity: 1;
+  background: linear-gradient(135deg, transparent 0%, transparent 45%, #666 45%, #666 55%, transparent 55%, transparent 100%),
+              linear-gradient(225deg, transparent 0%, transparent 45%, #666 45%, #666 55%, transparent 55%, transparent 100%);
+  background-size: 8px 8px, 8px 8px;
+  background-position: bottom right, bottom right;
+  background-repeat: no-repeat;
 }
 
 .multi-select-checkbox-header {

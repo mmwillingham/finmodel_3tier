@@ -456,7 +456,7 @@ export default function CustomChartForm({
                       Itemize (show individual items)
                     </label>
                     <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
-                      When enabled, each {currentSeriesDataType.slice(0, -1)} item will be displayed as a separate series/slice
+                      When enabled, each {currentSeriesDataType === 'income' ? 'income' : 'expense'} item will be displayed as a separate series/slice
                     </small>
                   </div>
                 )}

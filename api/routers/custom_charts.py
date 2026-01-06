@@ -168,15 +168,22 @@ def create_custom_chart(
                 items = query.all()
                 print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 
-                # Create one series per item
-                for item in items:
+                # Predefined color palette for better visual distinction
+                color_palette = [
+                    '#0b57d0', '#ea4335', '#34a853', '#fbbc04', '#ff6d01',
+                    '#9c27b0', '#00bcd4', '#4caf50', '#ff9800', '#e91e63',
+                    '#2196f3', '#009688', '#8bc34a', '#ffc107', '#795548',
+                    '#607d8b', '#3f51b5', '#f44336', '#00e676', '#ff1744'
+                ]
+                
+                # Create one series per item with unique colors
+                for idx, item in enumerate(items):
                     new_series = series_config.copy()
                     new_series['selected_item_id'] = item.id
                     new_series['itemize'] = False  # Clear itemize flag for expanded series
                     new_series['label'] = item.description  # Set label to item name
-                    # Generate a random color if not explicitly set
-                    if 'color' not in new_series or not new_series.get('color'):
-                        new_series['color'] = f"#{''.join([random.choice('0123456789ABCDEF') for _ in range(6)])}"
+                    # Always assign a unique color from the palette (cycle if more items than colors)
+                    new_series['color'] = color_palette[idx % len(color_palette)]
                     expanded_series_configs.append(new_series)
             else:
                 # Keep the series as-is
@@ -598,15 +605,22 @@ def update_custom_chart(
                 items = query.all()
                 print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 
-                # Create one series per item
-                for item in items:
+                # Predefined color palette for better visual distinction
+                color_palette = [
+                    '#0b57d0', '#ea4335', '#34a853', '#fbbc04', '#ff6d01',
+                    '#9c27b0', '#00bcd4', '#4caf50', '#ff9800', '#e91e63',
+                    '#2196f3', '#009688', '#8bc34a', '#ffc107', '#795548',
+                    '#607d8b', '#3f51b5', '#f44336', '#00e676', '#ff1744'
+                ]
+                
+                # Create one series per item with unique colors
+                for idx, item in enumerate(items):
                     new_series = series_config.copy()
                     new_series['selected_item_id'] = item.id
                     new_series['itemize'] = False  # Clear itemize flag for expanded series
                     new_series['label'] = item.description  # Set label to item name
-                    # Generate a random color if not explicitly set
-                    if 'color' not in new_series or not new_series.get('color'):
-                        new_series['color'] = f"#{''.join([random.choice('0123456789ABCDEF') for _ in range(6)])}"
+                    # Always assign a unique color from the palette (cycle if more items than colors)
+                    new_series['color'] = color_palette[idx % len(color_palette)]
                     expanded_series_configs.append(new_series)
             else:
                 # Keep the series as-is

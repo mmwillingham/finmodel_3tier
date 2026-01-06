@@ -98,7 +98,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         const row = {
           Category: item.category,
           Description: item.description,
-          Person: item.person || '-',
+          Person: item.person || 'Family',
           Frequency: item.frequency === 'monthly' ? 'Monthly' : 'Yearly',
           'Yearly Value': item.yearly_value,
           'Start Date': item.start_date || '-',
@@ -163,7 +163,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
             <tr key={item.id}>
               <td className="cashflow-table-cell">{item.category}</td>
               <td className="cashflow-table-cell">{item.description}</td>
-              <td className="cashflow-table-cell">{item.person || '-'}</td>
+              <td className="cashflow-table-cell">{item.person || 'Family'}</td>
               <td className="cashflow-table-cell">{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
               <td className="cashflow-table-cell">{formatCurrency(item.yearly_value)}</td>
               <td className="cashflow-table-cell">{item.start_date || '-'}</td>
