@@ -20,37 +20,108 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import models
 import database
 
+def get_all_user_data_counts(db: Session) -> dict:
+    """Get counts of all data for all users in bulk (much faster)."""
+    # Use subqueries to get counts for all users at once
+    from sqlalchemy import select
+    
+    # Get all user IDs
+    user_ids = [u.id for u in db.query(models.User.id).all()]
+    
+    # Build counts dictionary using bulk queries
+    counts = {user_id: {
+        'projections': 0,
+        'assets': 0,
+        'liabilities': 0,
+        'cash_flow_items': 0,
+        'accounts': 0,
+        'custom_charts': 0,
+        'auto_disbursements': 0,
+    } for user_id in user_ids}
+    
+    # Get all counts in bulk using GROUP BY
+    projections = db.query(models.Projection.owner_id, func.count(models.Projection.id)).group_by(models.Projection.owner_id).all()
+    for owner_id, count in projections:
+        if owner_id in counts:
+            counts[owner_id]['projections'] = count
+    
+    assets = db.query(models.Asset.owner_id, func.count(models.Asset.id)).group_by(models.Asset.owner_id).all()
+    for owner_id, count in assets:
+        if owner_id in counts:
+            counts[owner_id]['assets'] = count
+    
+    liabilities = db.query(models.Liability.owner_id, func.count(models.Liability.id)).group_by(models.Liability.owner_id).all()
+    for owner_id, count in liabilities:
+        if owner_id in counts:
+            counts[owner_id]['liabilities'] = count
+    
+    cash_flow_items = db.query(models.CashFlowItem.owner_id, func.count(models.CashFlowItem.id)).group_by(models.CashFlowItem.owner_id).all()
+    for owner_id, count in cash_flow_items:
+        if owner_id in counts:
+            counts[owner_id]['cash_flow_items'] = count
+    
+    accounts = db.query(models.Account.owner_id, func.count(models.Account.id)).group_by(models.Account.owner_id).all()
+    for owner_id, count in accounts:
+        if owner_id in counts:
+            counts[owner_id]['accounts'] = count
+    
+    custom_charts = db.query(models.CustomChart.user_id, func.count(models.CustomChart.id)).group_by(models.CustomChart.user_id).all()
+    for user_id, count in custom_charts:
+        if user_id in counts:
+            counts[user_id]['custom_charts'] = count
+    
+    auto_disbursements = db.query(models.AutoDisbursement.owner_id, func.count(models.AutoDisbursement.id)).group_by(models.AutoDisbursement.owner_id).all()
+    for owner_id, count in auto_disbursements:
+        if owner_id in counts:
+            counts[owner_id]['auto_disbursements'] = count
+    
+    return counts
+
 def get_user_data_counts(db: Session, user_id: int) -> dict:
-    """Get counts of all data associated with a user."""
-    return {
-        'projections': db.query(func.count(models.Projection.id)).filter(models.Projection.owner_id == user_id).scalar() or 0,
-        'assets': db.query(func.count(models.Asset.id)).filter(models.Asset.owner_id == user_id).scalar() or 0,
-        'liabilities': db.query(func.count(models.Liability.id)).filter(models.Liability.owner_id == user_id).scalar() or 0,
-        'cash_flow_items': db.query(func.count(models.CashFlowItem.id)).filter(models.CashFlowItem.owner_id == user_id).scalar() or 0,
-        'accounts': db.query(func.count(models.Account.id)).filter(models.Account.owner_id == user_id).scalar() or 0,
-        'custom_charts': db.query(func.count(models.CustomChart.id)).filter(models.CustomChart.user_id == user_id).scalar() or 0,
-        'auto_disbursements': db.query(func.count(models.AutoDisbursement.id)).filter(models.AutoDisbursement.owner_id == user_id).scalar() or 0,
-    }
+    """Get counts of all data associated with a specific user."""
+    all_counts = get_all_user_data_counts(db)
+    return all_counts.get(user_id, {
+        'projections': 0,
+        'assets': 0,
+        'liabilities': 0,
+        'cash_flow_items': 0,
+        'accounts': 0,
+        'custom_charts': 0,
+        'auto_disbursements': 0,
+    })
 
 def list_users(db: Session):
     """List all users with their associated data counts."""
+    print("Loading users...")
     users = db.query(models.User).order_by(models.User.created_at.desc()).all()
+    
+    print(f"Calculating data counts for {len(users)} users (this may take a moment)...")
+    all_counts = get_all_user_data_counts(db)
     
     print(f"\n{'ID':<5} {'Email':<40} {'Created':<20} {'Active':<8} {'Confirmed':<10} {'Data Counts'}")
     print("-" * 150)
     
+    orphaned_count = 0
     for user in users:
-        counts = get_user_data_counts(db, user.id)
+        counts = all_counts.get(user.id, {
+            'projections': 0, 'assets': 0, 'liabilities': 0, 'cash_flow_items': 0,
+            'accounts': 0, 'custom_charts': 0, 'auto_disbursements': 0
+        })
         total_data = sum(counts.values())
         counts_str = f"P:{counts['projections']} A:{counts['assets']} L:{counts['liabilities']} CF:{counts['cash_flow_items']} Acc:{counts['accounts']} Ch:{counts['custom_charts']} AD:{counts['auto_disbursements']}"
         
-        print(f"{user.id:<5} {user.email:<40} {str(user.created_at)[:19]:<20} {str(user.is_active):<8} {str(user.is_confirmed):<10} {counts_str}")
-        if total_data == 0:
-            print(f"     ^ ORPHANED (no data)")
+        is_orphaned = total_data == 0
+        if is_orphaned:
+            orphaned_count += 1
+        
+        print(f"{user.id:<5} {user.email:<40} {str(user.created_at)[:19]:<20} {str(user.is_active):<8} {str(user.is_confirmed):<10} {counts_str}", end="")
+        if is_orphaned:
+            print(" [ORPHANED]")
+        else:
+            print()
     
     print(f"\nTotal users: {len(users)}")
-    orphaned = [u for u in users if sum(get_user_data_counts(db, u.id).values()) == 0]
-    print(f"Orphaned users (no data): {len(orphaned)}")
+    print(f"Orphaned users (no data): {orphaned_count}")
 
 def delete_user(db: Session, user_id: int, dry_run: bool = False):
     """Delete a specific user by ID."""
@@ -60,7 +131,12 @@ def delete_user(db: Session, user_id: int, dry_run: bool = False):
         print(f"Error: User with ID {user_id} not found.")
         return False
     
-    counts = get_user_data_counts(db, user_id)
+    print("Calculating data counts...")
+    all_counts = get_all_user_data_counts(db)
+    counts = all_counts.get(user_id, {
+        'projections': 0, 'assets': 0, 'liabilities': 0, 'cash_flow_items': 0,
+        'accounts': 0, 'custom_charts': 0, 'auto_disbursements': 0
+    })
     total_data = sum(counts.values())
     
     print(f"\nUser to delete:")
@@ -104,11 +180,16 @@ def delete_user(db: Session, user_id: int, dry_run: bool = False):
 
 def delete_orphaned_users(db: Session, dry_run: bool = False):
     """Delete all users with no associated data."""
+    print("Loading users and calculating data counts...")
     users = db.query(models.User).all()
+    all_counts = get_all_user_data_counts(db)
     orphaned = []
     
     for user in users:
-        counts = get_user_data_counts(db, user.id)
+        counts = all_counts.get(user.id, {
+            'projections': 0, 'assets': 0, 'liabilities': 0, 'cash_flow_items': 0,
+            'accounts': 0, 'custom_charts': 0, 'auto_disbursements': 0
+        })
         if sum(counts.values()) == 0:
             orphaned.append(user)
     

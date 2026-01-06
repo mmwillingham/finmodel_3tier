@@ -98,6 +98,12 @@ async def run_migrations_online() -> None:
     if connectable_url is None:
         raise ValueError("DATABASE_URL could not be determined from environment variables.")
 
+    # Sanitize URL for logging (remove password)
+    def sanitize_url(url: str) -> str:
+        import re
+        pattern = r'(://[^:]+:)([^@]+)(@)'
+        return re.sub(pattern, r'\1***\3', url)
+
     # Determine if we should use async or sync engine based on the URL scheme
     if "asyncpg" in connectable_url:
         connectable = async_engine_from_config(
@@ -108,7 +114,7 @@ async def run_migrations_online() -> None:
         async with connectable.connect() as connection:
             await connection.run_sync(do_run_migrations)
     else:
-        print(f"DEBUG (alembic/env.py): Using synchronous engine for URL: {connectable_url}") # NEW DEBUG
+        print(f"DEBUG (alembic/env.py): Using synchronous engine for URL: {sanitize_url(connectable_url)}") # NEW DEBUG
         connectable = engine_from_config(
             {'sqlalchemy.url': connectable_url},
             prefix="sqlalchemy.",

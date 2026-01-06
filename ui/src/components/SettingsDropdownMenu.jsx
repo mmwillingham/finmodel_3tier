@@ -14,16 +14,16 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
 
     return (
         <div className="settings-dropdown-menu" onMouseLeave={onClose}> {/* Close on mouse leave */}
-            <button onClick={(e) => handleItemClick(e, '/settings/application')}>Application</button>
             <button onClick={(e) => handleItemClick(e, '/settings/profile')}>Profile</button>
             <button onClick={(e) => handleItemClick(e, '/settings/categories')}>Categories</button>
             <button onClick={(e) => handleItemClick(e, '/settings/accounts')}>Accounts</button>
+            <button onClick={(e) => handleItemClick(e, '/settings/application')}>Application</button>
             <button onClick={(e) => handleItemClick(e, '/settings/auto-disbursements')}>Automatic Transfers</button>
             {currentUser && currentUser.is_admin && (
-                <button onClick={(e) => handleItemClick(e, '/settings/admin/users')}>User Management</button>
+                <button onClick={(e) => handleItemClick(e, '/settings/admin/global-categories')}>Default Categories</button>
             )}
             {currentUser && currentUser.is_admin && (
-                <button onClick={(e) => handleItemClick(e, '/settings/admin/global-categories')}>Default Categories</button>
+                <button onClick={(e) => handleItemClick(e, '/settings/admin/users')}>User Management</button>
             )}
             <button onClick={(e) => handleItemClick(e, '/settings/help')}>Help</button>
         </div>

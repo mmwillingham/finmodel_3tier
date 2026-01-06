@@ -1,5 +1,6 @@
 import os
 import time
+import re
 from functools import lru_cache
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
@@ -8,6 +9,13 @@ from typing import Any, Generator
 from sqlalchemy.exc import OperationalError
 
 _unix_socket_path: str | None = None # Global to store unix socket path if used
+
+def sanitize_database_url(url: str) -> str:
+    """Remove password from database URL for safe logging."""
+    # Pattern: postgresql://user:password@host/db or postgresql+pg8000://user:password@host/db
+    # Replace password with ***
+    pattern = r'(://[^:]+:)([^@]+)(@)'
+    return re.sub(pattern, r'\1***\3', url)
 
 def get_database_url() -> str:
     global _unix_socket_path # Declare intent to modify global variable
@@ -51,13 +59,13 @@ def get_database_url() -> str:
     if database_url is None:
         raise ValueError("DATABASE_URL could not be determined from environment variables.")
 
-    print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {database_url}")
+    print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {sanitize_database_url(database_url)}")
     return database_url
 
 def get_engine_instance():
     global _unix_socket_path # Access global variable
     DATABASE_URL = get_database_url()
-    print(f"DEBUG (database.py): Using DATABASE_URL for engine: {DATABASE_URL}")
+    print(f"DEBUG (database.py): Using DATABASE_URL for engine: {sanitize_database_url(DATABASE_URL)}")
 
     connect_args = {}
     print(f"DEBUG (database.py): Current _unix_socket_path before connect_args: {_unix_socket_path}") # NEW DEBUG
@@ -142,5 +150,5 @@ def get_async_database_url() -> str:
             )
     if database_url is None:
         raise ValueError("ASYNC DATABASE_URL could not be determined from environment variables.")
-    print(f"DEBUG (database.py): Constructed ASYNC SQLALCHEMY_DATABASE_URL: {database_url}")
+    print(f"DEBUG (database.py): Constructed ASYNC SQLALCHEMY_DATABASE_URL: {sanitize_database_url(database_url)}")
     return database_url
