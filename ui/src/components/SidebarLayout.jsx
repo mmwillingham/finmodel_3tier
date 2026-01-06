@@ -15,6 +15,9 @@ import CustomChartList from "./CustomChartList";
 import CustomChartForm from "./CustomChartForm";
 import CustomChartView from "./CustomChartView";
 import MonteCarloProjections from "./MonteCarloProjections";
+import ProfileSetupWizard from "./wizards/ProfileSetupWizard";
+import CategoriesSetupWizard from "./wizards/CategoriesSetupWizard";
+import AccountsSetupWizard from "./wizards/AccountsSetupWizard";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("new-home");
@@ -35,6 +38,7 @@ export default function SidebarLayout() {
   const [customChartView, setCustomChartView] = useState(null);
   const [selectedChartId, setSelectedChartId] = useState(null);
   const [chartToViewId, setChartToViewId] = useState(null);
+  const [wizardOpen, setWizardOpen] = useState(null); // 'profile', 'categories', 'accounts', or null
 
   const refreshSettings = useCallback(async () => {
     try {
@@ -276,8 +280,73 @@ export default function SidebarLayout() {
           <div className="dashboard-welcome">
             <h2>Welcome to the Financial Projector!</h2>
             <p>Use the navigation on the left to explore your financial data.</p>
+            
+            <div className="walk-me-through-section" style={{ marginTop: '40px', padding: '30px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#282c34' }}>Walk Me Through</h3>
+              <p style={{ marginBottom: '25px', color: '#666' }}>
+                New to the Financial Projector? Follow these guided wizards to set up your profile and organize your financial data.
+              </p>
+              
+              <div className="wizard-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('profile')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>📋 Setup Profile</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Enter your personal information, address, and tax filing status.
+                  </p>
+                </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('categories')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🏷️ Setup Categories</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Organize your assets, liabilities, income, and expenses with categories.
+                  </p>
+                </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('accounts')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🏦 Setup Accounts</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Add your financial institution accounts (banks, brokerages, etc.).
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
+        
+        {/* Wizard Modals */}
+        <ProfileSetupWizard
+          isOpen={wizardOpen === 'profile'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
+        <CategoriesSetupWizard
+          isOpen={wizardOpen === 'categories'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
+        <AccountsSetupWizard
+          isOpen={wizardOpen === 'accounts'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
 
         {/* Projection Detail might still be needed if accessed directly or via a new component */}
         {!loading && view === "detail" && selectedProjectionId && (
