@@ -18,6 +18,11 @@ import MonteCarloProjections from "./MonteCarloProjections";
 import ProfileSetupWizard from "./wizards/ProfileSetupWizard";
 import CategoriesSetupWizard from "./wizards/CategoriesSetupWizard";
 import AccountsSetupWizard from "./wizards/AccountsSetupWizard";
+import AutomaticTransfersSetupWizard from "./wizards/AutomaticTransfersSetupWizard";
+import AssetsSetupWizard from "./wizards/AssetsSetupWizard";
+import LiabilitiesSetupWizard from "./wizards/LiabilitiesSetupWizard";
+import IncomeSetupWizard from "./wizards/IncomeSetupWizard";
+import ExpensesSetupWizard from "./wizards/ExpensesSetupWizard";
 
 export default function SidebarLayout() {
   const [view, setView] = useState("new-home");
@@ -317,6 +322,56 @@ export default function SidebarLayout() {
                     Add your financial institution accounts (banks, brokerages, etc.).
                   </p>
                 </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('automatic-transfers')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🔄 Setup Automatic Transfers</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Set up automatic transfers between accounts and surplus asset handling.
+                  </p>
+                </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('assets')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>💰 Setup Assets</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Add your assets (checking, savings, investments, real estate, etc.).
+                  </p>
+                </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('liabilities')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>📉 Setup Liabilities</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Add your liabilities (mortgages, loans, credit cards, etc.).
+                  </p>
+                </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('income')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>💵 Setup Income</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Add your income sources (salary, rental income, investments, etc.).
+                  </p>
+                </div>
+                
+                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
+                     onClick={() => setWizardOpen('expenses')}
+                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
+                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
+                  <h4 style={{ marginTop: 0, color: '#007bff' }}>💸 Setup Expenses</h4>
+                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
+                    Add your expenses (housing, food, transportation, etc.).
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -341,6 +396,46 @@ export default function SidebarLayout() {
         />
         <AccountsSetupWizard
           isOpen={wizardOpen === 'accounts'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
+        <AutomaticTransfersSetupWizard
+          isOpen={wizardOpen === 'automatic-transfers'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
+        <AssetsSetupWizard
+          isOpen={wizardOpen === 'assets'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
+        <LiabilitiesSetupWizard
+          isOpen={wizardOpen === 'liabilities'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
+        <IncomeSetupWizard
+          isOpen={wizardOpen === 'income'}
+          onClose={() => setWizardOpen(null)}
+          onComplete={() => {
+            refreshAllData();
+            setWizardOpen(null);
+          }}
+        />
+        <ExpensesSetupWizard
+          isOpen={wizardOpen === 'expenses'}
           onClose={() => setWizardOpen(null)}
           onComplete={() => {
             refreshAllData();
