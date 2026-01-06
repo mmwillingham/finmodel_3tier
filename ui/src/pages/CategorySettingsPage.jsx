@@ -22,6 +22,7 @@ const CategorySettingsPage = () => {
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [loadingDefaults, setLoadingDefaults] = useState(false);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -69,6 +70,26 @@ const CategorySettingsPage = () => {
         setMessage(errorMessage);
     }
 };
+
+  const handleLoadDefaultCategories = async () => {
+    setMessage('');
+    setLoadingDefaults(true);
+    try {
+      await SettingsService.loadDefaultCategories();
+      setMessage('Default categories loaded successfully!');
+      // Refresh local state to reflect changes
+      loadSettings();
+      setTimeout(() => {
+        setMessage('');
+      }, 2000);
+    } catch (e) {
+      console.error('Failed to load default categories', e);
+      const errorMessage = e.response?.data?.detail || 'Error loading default categories';
+      setMessage(errorMessage);
+    } finally {
+      setLoadingDefaults(false);
+    }
+  };
 
   if (loading) {
     return <div className="loading-message">Loading categories...</div>;
@@ -123,6 +144,20 @@ const CategorySettingsPage = () => {
     <div className="settings-page-container">
       <h2>My Categories</h2>
       {message && <div className="message">{message}</div>}
+
+      <div style={{ marginBottom: '20px' }}>
+        <button 
+          onClick={handleLoadDefaultCategories} 
+          className="save-button" 
+          disabled={loadingDefaults}
+          style={{ backgroundColor: '#17a2b8', borderColor: '#17a2b8' }}
+        >
+          {loadingDefaults ? 'Loading...' : 'Load Default Categories'}
+        </button>
+        <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+          Adds all default categories to your existing categories (duplicates will be skipped).
+        </small>
+      </div>
 
       <div className="setting-group category-settings-group">
         {renderCategorySection('Asset Categories', assetCategoriesState, setIsAssetModalOpen, 'asset')}

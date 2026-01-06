@@ -7,6 +7,9 @@ const checkCategoryUsage = (categoryName, categoryType) => {
   return ApiService.post("/categories/check-usage", { category_name: categoryName, category_type: categoryType });
 };
 
-const SettingsService = { getSettings, updateSettings, checkCategoryUsage };
+const getDefaultCategories = () => ApiService.get("/settings/default-categories");
+const loadDefaultCategories = () => ApiService.post("/settings/load-default-categories");
+
+const SettingsService = { getSettings, updateSettings, checkCategoryUsage, getDefaultCategories, loadDefaultCategories };
 
 export default SettingsService;

@@ -303,9 +303,29 @@ def delete_user_by_admin(
     if not user_to_delete:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    db.delete(user_to_delete)
-    db.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    try:
+        # Delete the user - database-level CASCADE will handle related records
+        db.delete(user_to_delete)
+        db.commit()
+        
+        # Verify the user was actually deleted
+        verify_deleted = db.query(models.User).filter(models.User.id == user_id).first()
+        if verify_deleted:
+            logger.error(f"User {user_id} was not deleted from database after commit")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete user from database."
+            )
+        
+        logger.info(f"User {user_id} ({user_to_delete.email}) successfully deleted by admin {current_admin_user.id}")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting user {user_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete user: {str(e)}"
+        )
 
 @app.get("/admin/users", response_model=list[schemas.UserOut], tags=["admin"])
 def list_all_manageable_users(
