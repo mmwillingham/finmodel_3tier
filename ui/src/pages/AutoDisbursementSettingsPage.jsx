@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AutoDisbursementService from '../services/auto_disbursement.service';
 import AssetService from '../services/asset.service';
+import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css';
@@ -12,6 +13,7 @@ const AutoDisbursementSettingsPage = () => {
   useSettingsBackButton();
   const [autoDisbursements, setAutoDisbursements] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [surplusAssetId, setSurplusAssetId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
@@ -30,7 +32,7 @@ const AutoDisbursementSettingsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [autoDisbursementsData, assetsRes] = await Promise.all([
+      const [autoDisbursementsData, assetsRes, settingsRes] = await Promise.all([
         AutoDisbursementService.getAllAutoDisbursements().catch((err) => {
           console.error('Error loading auto-disbursements:', err);
           return [];
@@ -39,15 +41,20 @@ const AutoDisbursementSettingsPage = () => {
           console.error('Error loading assets:', err);
           return { data: [] };
         }),
+        SettingsService.getSettings().catch((err) => {
+          console.error('Error loading settings:', err);
+          return { data: {} };
+        }),
       ]);
       console.log('Auto-disbursements loaded:', autoDisbursementsData);
       console.log('Assets response:', assetsRes);
       console.log('Assets data:', assetsRes?.data);
       setAutoDisbursements(autoDisbursementsData || []);
       setAssets(assetsRes?.data || []);
+      setSurplusAssetId(settingsRes.data.surplus_asset_id || null);
     } catch (e) {
-      console.error('Failed to load auto-disbursements', e);
-      setError('Failed to load auto-disbursements.');
+      console.error('Failed to load data', e);
+      setError('Failed to load data.');
     } finally {
       setLoading(false);
     }
@@ -182,22 +189,77 @@ const AutoDisbursementSettingsPage = () => {
     return asset ? `${asset.name} (${asset.category})` : 'Unknown Asset';
   };
 
+  const handleSaveSurplusAsset = async () => {
+    setMessage('');
+    try {
+      await SettingsService.updateSettings({
+        surplus_asset_id: surplusAssetId || null,
+      });
+      setMessage('Surplus Asset saved successfully!');
+      setTimeout(() => setMessage(''), 2000);
+    } catch (e) {
+      console.error('Failed to save surplus asset', e);
+      const errorMessage = e.response?.data?.detail || 'Error saving surplus asset';
+      setMessage(errorMessage);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
   if (loading) {
-    return <div className="loading-message">Loading auto-disbursements...</div>;
+    return <div className="loading-message">Loading automatic transfers...</div>;
   }
 
   return (
     <div className="settings-page-container" style={{ maxWidth: '1200px' }}>
-      <h2>Auto-Disbursements</h2>
+      <h2>Automatic Transfers</h2>
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
       {assets.length === 0 && !loading && (
         <div className="message" style={{ marginBottom: '20px', backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7' }}>
-          <strong>Note:</strong> No assets found. Please create assets first before setting up auto-disbursements.
+          <strong>Note:</strong> No assets found. Please create assets first before setting up automatic transfers.
         </div>
       )}
+
+      {/* Surplus Asset Section */}
+      <div className="setting-group" style={{ maxWidth: '100%', width: '100%', marginBottom: '40px' }}>
+        <h3 style={{ color: 'var(--color-heading)', marginBottom: '20px', fontSize: '1.25em', borderBottom: '2px solid var(--color-border)', paddingBottom: '10px' }}>
+          Surplus Asset
+        </h3>
+        <div className="profile-settings-form">
+          <div className="form-group-horizontal">
+            <label htmlFor="surplus-asset">
+              Surplus Asset
+            </label>
+            <select
+              id="surplus-asset"
+              value={surplusAssetId || ''}
+              onChange={(e) => setSurplusAssetId(e.target.value ? parseInt(e.target.value) : null)}
+            >
+              <option value="">None (No automatic surplus/deficit handling)</option>
+              {assets.map((asset) => (
+                <option key={asset.id} value={asset.id}>
+                  {asset.name} ({asset.category})
+                </option>
+              ))}
+            </select>
+            <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+              Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
+            </small>
+          </div>
+        </div>
+        <div style={{ marginTop: '20px' }}>
+          <button onClick={handleSaveSurplusAsset} className="save-button">
+            Save Surplus Asset
+          </button>
+        </div>
+      </div>
+
+      {/* Auto-Disbursements Section */}
       <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
-        <h3>Add New Auto-Disbursement {assets.length > 0 && <span style={{ fontSize: '0.8em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}</h3>
+        <h3 style={{ color: 'var(--color-heading)', marginBottom: '20px', fontSize: '1.25em', borderBottom: '2px solid var(--color-border)', paddingBottom: '10px' }}>
+          Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.8em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
+        </h3>
+        <h4 style={{ fontSize: '1em', color: '#666', marginBottom: '15px', fontWeight: 'normal' }}>Add New Auto-Disbursement</h4>
         <div className="profile-settings-form">
           <div className="form-group-horizontal">
             <label htmlFor="name">Name *</label>

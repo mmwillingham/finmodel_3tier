@@ -245,6 +245,7 @@ class UserSettingsBase(BaseModel):
     projection_years: int = 30
     show_chart_totals: bool = True
     surplus_asset_id: Optional[int] = None  # Designated asset for surplus/deficit
+    tax_filing_status: str = "Single"  # Tax filing status: Single, Married Filing Jointly, etc.
 
 class UserSettingsCreate(UserSettingsBase):
     pass
@@ -270,6 +271,7 @@ class UserSettingsUpdate(BaseModel):
     projection_years: Optional[int] = None
     show_chart_totals: Optional[bool] = None
     surplus_asset_id: Optional[int] = None
+    tax_filing_status: Optional[str] = None
 
 class UserSettingsOut(UserSettingsBase):
     id: int
