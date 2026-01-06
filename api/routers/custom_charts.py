@@ -864,8 +864,14 @@ def recalculate_all_charts(
                             added_account_names.add(account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name)
                             if item_type in ['income', 'expenses']:
                                 item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
-                                if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                                    linked_asset_ids_needed.add(item.linked_item_id)
+                                if item and item.linked_item_type == "asset" and item.percentage is not None:
+                                    # Handle multi-select linked_asset_ids first
+                                    if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
+                                        for asset_id in item.linked_asset_ids:
+                                            linked_asset_ids_needed.add(asset_id)
+                                    # Fall back to single linked_item_id for backward compatibility
+                                    elif item.linked_item_id:
+                                        linked_asset_ids_needed.add(item.linked_item_id)
                     elif item_type and item_id is None:
                         # Aggregate logic (simplified - see update_custom_chart for full implementation)
                         if item_type == 'assets':
@@ -906,11 +912,21 @@ def recalculate_all_charts(
                             for item in items:
                                 contribution = 0.0
                                 account_name = item.description
-                                if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                                    linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
-                                    if linked_asset:
-                                        account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
-                                        linked_asset_ids_needed.add(item.linked_item_id)
+                                if item.linked_item_type == "asset" and item.percentage is not None:
+                                    # Handle multi-select linked_asset_ids first
+                                    if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
+                                        linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                                        if linked_assets:
+                                            asset_names = [asset.name for asset in linked_assets]
+                                            account_name = f"{item.description}|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                                            for asset_id in item.linked_asset_ids:
+                                                linked_asset_ids_needed.add(asset_id)
+                                    # Fall back to single linked_item_id for backward compatibility
+                                    elif item.linked_item_id:
+                                        linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                                        if linked_asset:
+                                            account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                            linked_asset_ids_needed.add(item.linked_item_id)
                                 else:
                                     contribution = item.yearly_value / 12
                                 accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -931,11 +947,21 @@ def recalculate_all_charts(
                             for item in items:
                                 contribution = 0.0
                                 account_name = item.description
-                                if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                                    linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
-                                    if linked_asset:
-                                        account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
-                                        linked_asset_ids_needed.add(item.linked_item_id)
+                                if item.linked_item_type == "asset" and item.percentage is not None:
+                                    # Handle multi-select linked_asset_ids first
+                                    if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
+                                        linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                                        if linked_assets:
+                                            asset_names = [asset.name for asset in linked_assets]
+                                            account_name = f"{item.description}|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                                            for asset_id in item.linked_asset_ids:
+                                                linked_asset_ids_needed.add(asset_id)
+                                    # Fall back to single linked_item_id for backward compatibility
+                                    elif item.linked_item_id:
+                                        linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                                        if linked_asset:
+                                            account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                            linked_asset_ids_needed.add(item.linked_item_id)
                                 else:
                                     contribution = -(item.yearly_value / 12)
                                 accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -972,18 +998,36 @@ def recalculate_all_charts(
                     if item.description not in included_income_names:
                         contribution = 0.0
                         account_name = item.description
-                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                            linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
-                            if linked_asset:
-                                account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
-                                if linked_asset.name not in added_account_names:
-                                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
-                                        name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
-                                        contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
-                                        loan_type=None, principal_amount=None, interest_rate=None,
-                                        loan_term_months=None, loan_start_date=None, monthly_payment=None
-                                    ))
-                                    added_account_names.add(linked_asset.name)
+                        if item.linked_item_type == "asset" and item.percentage is not None:
+                            # Handle multi-select linked_asset_ids first
+                            if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
+                                linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                                if linked_assets:
+                                    asset_names = [asset.name for asset in linked_assets]
+                                    account_name = f"{item.description}|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                                    # Add all linked assets if not already included
+                                    for linked_asset in linked_assets:
+                                        if linked_asset.name not in added_account_names:
+                                            accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                                name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
+                                                contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
+                                                loan_type=None, principal_amount=None, interest_rate=None,
+                                                loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                            ))
+                                            added_account_names.add(linked_asset.name)
+                            # Fall back to single linked_item_id for backward compatibility
+                            elif item.linked_item_id:
+                                linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                                if linked_asset:
+                                    account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                    if linked_asset.name not in added_account_names:
+                                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                            name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
+                                            contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
+                                            loan_type=None, principal_amount=None, interest_rate=None,
+                                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                        ))
+                                        added_account_names.add(linked_asset.name)
                         else:
                             contribution = item.yearly_value / 12
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -1002,18 +1046,36 @@ def recalculate_all_charts(
                     if item.description not in included_expense_names:
                         contribution = 0.0
                         account_name = item.description
-                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                            linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
-                            if linked_asset:
-                                account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
-                                if linked_asset.name not in added_account_names:
-                                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
-                                        name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
-                                        contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
-                                        loan_type=None, principal_amount=None, interest_rate=None,
-                                        loan_term_months=None, loan_start_date=None, monthly_payment=None
-                                    ))
-                                    added_account_names.add(linked_asset.name)
+                        if item.linked_item_type == "asset" and item.percentage is not None:
+                            # Handle multi-select linked_asset_ids first (if ever used for expenses)
+                            if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
+                                linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                                if linked_assets:
+                                    asset_names = [asset.name for asset in linked_assets]
+                                    account_name = f"{item.description}|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                                    # Add all linked assets if not already included
+                                    for linked_asset in linked_assets:
+                                        if linked_asset.name not in added_account_names:
+                                            accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                                name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
+                                                contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
+                                                loan_type=None, principal_amount=None, interest_rate=None,
+                                                loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                            ))
+                                            added_account_names.add(linked_asset.name)
+                            # Fall back to single linked_item_id for backward compatibility
+                            elif item.linked_item_id:
+                                linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                                if linked_asset:
+                                    account_name = f"{item.description}|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
+                                    if linked_asset.name not in added_account_names:
+                                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                            name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
+                                            contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
+                                            loan_type=None, principal_amount=None, interest_rate=None,
+                                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                        ))
+                                        added_account_names.add(linked_asset.name)
                         else:
                             contribution = -(item.yearly_value / 12)
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(

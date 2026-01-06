@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CustomChartService from '../services/customChart.service';
 import AccountService from '../services/account.service';
+import MultiSelectCheckbox from './MultiSelectCheckbox'; // Import the multi-select checkbox component
 import './CustomChartForm.css'; // We will create this CSS file
 
 const chartTypes = ["line", "bar", "pie"];
@@ -332,23 +333,20 @@ export default function CustomChartForm({
                 {currentSeriesDataType === 'assets' && accounts && accounts.length > 0 && (
                   <div className="form-group">
                     <label>Account(s):</label>
-                    <select
-                      multiple
-                      value={series.selected_account_ids || []}
-                      onChange={(e) => {
-                        const selectedValues = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                    <MultiSelectCheckbox
+                      options={accounts.map(account => ({
+                        id: account.id,
+                        broker: account.broker,
+                        account_name: account.account_name,
+                      }))}
+                      selectedValues={series.selected_account_ids || []}
+                      onChange={(selectedValues) => {
                         handleSeriesChange(index, 'selected_account_ids', selectedValues);
                       }}
-                      style={{ minHeight: '100px' }}
-                    >
-                      <option value="">All Accounts</option>
-                      {accounts.map(account => (
-                        <option key={account.id} value={account.id}>
-                          {account.broker} - {account.account_name}
-                        </option>
-                      ))}
-                    </select>
-                    <small>Hold Ctrl/Cmd to select multiple accounts</small>
+                      placeholder="Select accounts..."
+                      maxHeight={200}
+                      showCategory={false}
+                    />
                   </div>
                 )}
 

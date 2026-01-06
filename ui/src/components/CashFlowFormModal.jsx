@@ -4,6 +4,7 @@ import SettingsService from "../services/settings.service";
 import AssetService from "../services/asset.service"; // New import
 import LiabilityService from "../services/liability.service"; // New import
 import Modal from "./Modal"; // Import the generic Modal component
+import MultiSelectCheckbox from "./MultiSelectCheckbox"; // Import the multi-select checkbox component
 import "./CashFlowFormModal.css"; // Specific styling for this form
 
 export default function CashFlowFormModal({
@@ -368,26 +369,19 @@ export default function CashFlowFormModal({
                     {type === "income" && linkedItemType === "asset" ? "Linked Assets (Multi-select)" : "Linked Item"}
                   </label>
                   {type === "income" && linkedItemType === "asset" ? (
-                    <select
-                      id="linked-item-select"
-                      multiple
-                      size={4}
-                      value={linkedAssetIds.map(id => id.toString())}
-                      onChange={(e) => {
-                        const selectedIds = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                    <MultiSelectCheckbox
+                      options={getLinkedItemOptions()}
+                      selectedValues={linkedAssetIds}
+                      onChange={(selectedIds) => {
                         setLinkedAssetIds(selectedIds);
                         // Also set linkedItemId to first selected for backward compatibility
                         setLinkedItemId(selectedIds.length > 0 ? selectedIds[0] : null);
                       }}
+                      placeholder="Select assets..."
                       disabled={!linkedItemType}
-                      style={{ minHeight: '80px' }}
-                    >
-                      {getLinkedItemOptions().map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name} ({item.category})
-                        </option>
-                      ))}
-                    </select>
+                      maxHeight={200}
+                      showCategory={true}
+                    />
                   ) : (
                     <select
                       id="linked-item-select"
@@ -406,11 +400,6 @@ export default function CashFlowFormModal({
                         </option>
                       ))}
                     </select>
-                  )}
-                  {type === "income" && linkedItemType === "asset" && (
-                    <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                      Hold Ctrl/Cmd to select multiple assets
-                    </small>
                   )}
                 </div>
 
