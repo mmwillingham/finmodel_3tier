@@ -254,6 +254,8 @@ def create_custom_chart(
                             initial_value=0.0,
                             contribution=contribution,
                             growth_rate=item.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                 elif item_type == 'expenses':
@@ -283,6 +285,8 @@ def create_custom_chart(
                             initial_value=0.0,
                             contribution=contribution,
                             growth_rate=item.inflation_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
@@ -355,6 +359,8 @@ def create_custom_chart(
                     initial_value=0.0,
                     contribution=contribution,
                     growth_rate=item.annual_increase_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=item.start_date, end_date=item.end_date
                 ))
                 included_income_names.add(item.description)
         
@@ -393,6 +399,8 @@ def create_custom_chart(
                     initial_value=0.0,
                     contribution=contribution,
                     growth_rate=item.inflation_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=item.start_date, end_date=item.end_date
                 ))
                 included_expense_names.add(item.description)
         
@@ -608,6 +616,8 @@ def update_custom_chart(
                             initial_value=0.0,
                             contribution=contribution,
                             growth_rate=item.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
@@ -637,6 +647,8 @@ def update_custom_chart(
                             initial_value=0.0,
                             contribution=contribution,
                             growth_rate=item.inflation_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
@@ -709,6 +721,8 @@ def update_custom_chart(
                     initial_value=0.0,
                     contribution=contribution,
                     growth_rate=item.annual_increase_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=item.start_date, end_date=item.end_date
                 ))
                 included_income_names.add(item.description)
         
@@ -747,6 +761,8 @@ def update_custom_chart(
                     initial_value=0.0,
                     contribution=contribution,
                     growth_rate=item.inflation_percent,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=item.start_date, end_date=item.end_date
                 ))
                 included_expense_names.add(item.description)
         
@@ -933,7 +949,8 @@ def recalculate_all_charts(
                                     name=account_name, account_type='income', initial_value=0.0,
                                     contribution=contribution, growth_rate=item.annual_increase_percent,
                                     loan_type=None, principal_amount=None, interest_rate=None,
-                                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                    loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                    start_date=item.start_date, end_date=item.end_date
                                 ))
                                 added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         elif item_type == 'expenses':
@@ -968,7 +985,8 @@ def recalculate_all_charts(
                                     name=account_name, account_type='expense', initial_value=0.0,
                                     contribution=contribution, growth_rate=item.inflation_percent,
                                     loan_type=None, principal_amount=None, interest_rate=None,
-                                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                    loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                    start_date=item.start_date, end_date=item.end_date
                                 ))
                                 added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                 
@@ -1034,7 +1052,8 @@ def recalculate_all_charts(
                             name=account_name, account_type='income', initial_value=0.0,
                             contribution=contribution, growth_rate=item.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
-                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         included_income_names.add(item.description)
                 
@@ -1082,7 +1101,8 @@ def recalculate_all_charts(
                             name=account_name, account_type='expense', initial_value=0.0,
                             contribution=contribution, growth_rate=item.inflation_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
-                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         included_expense_names.add(item.description)
                 

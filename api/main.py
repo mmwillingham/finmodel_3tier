@@ -583,6 +583,7 @@ def create_projection(
     db.refresh(db_projection) # Refresh to load relationships
 
     # Construct response with data_json from calculations
+    # Note: We exclude time_series_data from the response to save memory since data_json contains all the information
     return schemas.ProjectionResponse(
         id=db_projection.id,
         name=db_projection.name,
@@ -592,7 +593,7 @@ def create_projection(
         total_growth=db_projection.total_growth,
         timestamp=db_projection.timestamp,
         accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
-        time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in projection_results["time_series_data"]],
+        time_series_data=[],  # Excluded to save memory - use data_json instead
         data_json=projection_results.get("data_json")  # Include data_json from calculations
     )
 
@@ -605,9 +606,10 @@ def get_projection_details(
     """
     Retrieves a single projection if the user is the owner."""
     
+    # Don't eagerly load time_series_data to save memory - we'll reconstruct data_json if needed
     projection = (
         db.query(models.Projection)
-        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
+        .options(joinedload(models.Projection.accounts_data))
         .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
         .first()
     )
@@ -615,7 +617,54 @@ def get_projection_details(
     if not projection:
         raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
     
-    return projection
+    # Reconstruct data_json from time_series_data query (memory-efficient)
+    # Query only the fields we need instead of loading full objects
+    from sqlalchemy import select
+    ts_data_list = db.query(
+        models.ProjectionTimeSeriesData.year,
+        models.ProjectionTimeSeriesData.value_type,
+        models.ProjectionTimeSeriesData.value,
+        models.ProjectionTimeSeriesData.account_id
+    ).filter(
+        models.ProjectionTimeSeriesData.projection_id == projection_id
+    ).all()
+    
+    # Build data_json from queried data
+    yearly_data = {}
+    account_id_to_name = {acc.id: acc.name for acc in projection.accounts_data}
+    
+    for ts in ts_data_list:
+        year = ts.year
+        if year not in yearly_data:
+            yearly_data[year] = {}
+        
+        account_name = None
+        if ts.account_id and ts.account_id in account_id_to_name:
+            account_name = account_id_to_name[ts.account_id]
+        
+        if account_name:
+            if account_name not in yearly_data[year]:
+                yearly_data[year][account_name] = {}
+            yearly_data[year][account_name][ts.value_type] = ts.value
+        else:
+            # Yearly totals
+            yearly_data[year][ts.value_type] = ts.value
+    
+    data_json = json.dumps(yearly_data) if yearly_data else None
+    
+    # Return response without time_series_data to save memory
+    return schemas.ProjectionDetailOut(
+        id=projection.id,
+        name=projection.name,
+        years=projection.years,
+        final_value=projection.final_value,
+        total_contributed=projection.total_contributed,
+        total_growth=projection.total_growth,
+        timestamp=projection.timestamp,
+        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection.accounts_data],
+        time_series_data=[],  # Excluded to save memory - use data_json instead
+        data_json=data_json
+    )
 
 @app.get("/projections", response_model=List[schemas.ProjectionOut], tags=["projections"])
 def list_projections(
@@ -685,6 +734,7 @@ def update_projection(
     db.refresh(projection) # Refresh to load relationships
     
     # Construct response with data_json from calculations
+    # Note: We exclude time_series_data from the response to save memory since data_json contains all the information
     return schemas.ProjectionDetailOut(
         id=projection.id,
         name=projection.name,
@@ -693,7 +743,7 @@ def update_projection(
         total_contributed=projection.total_contributed,
         total_growth=projection.total_growth,
         accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in result["projected_accounts"]],
-        time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in result["time_series_data"]],
+        time_series_data=[],  # Excluded to save memory - use data_json instead
         data_json=result.get("data_json")  # Include data_json from calculations
     )
 
