@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AccountService from '../services/account.service';
 import { useAuth } from '../context/AuthContext';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
+import ConfirmDialog from '../components/ConfirmDialog';
 import './SettingsPages.css'; // General CSS for settings pages
 
 const AccountsSettingsPage = () => {
@@ -14,6 +15,7 @@ const AccountsSettingsPage = () => {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [editingAccount, setEditingAccount] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const [newAccount, setNewAccount] = useState({
     broker: '',
     account_name: '',
@@ -83,21 +85,24 @@ const AccountsSettingsPage = () => {
   };
 
   const handleDeleteAccount = async (accountId) => {
-    if (!window.confirm('Are you sure you want to delete this account? Assets linked to this account will have their account link removed.')) {
-      return;
-    }
-
-    try {
-      await AccountService.deleteAccount(accountId);
-      setMessage('Account deleted successfully!');
-      loadAccounts();
-      setTimeout(() => setMessage(''), 2000);
-    } catch (e) {
-      console.error('Failed to delete account', e);
-      const errorMessage = e.response?.data?.detail || 'Error deleting account';
-      setMessage(errorMessage);
-      setTimeout(() => setMessage(''), 3000);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Account',
+      message: 'Are you sure you want to delete this account? Assets linked to this account will have their account link removed.',
+      onConfirm: async () => {
+        try {
+          await AccountService.deleteAccount(accountId);
+          setMessage('Account deleted successfully!');
+          loadAccounts();
+          setTimeout(() => setMessage(''), 2000);
+        } catch (e) {
+          console.error('Failed to delete account', e);
+          const errorMessage = e.response?.data?.detail || 'Error deleting account';
+          setMessage(errorMessage);
+          setTimeout(() => setMessage(''), 3000);
+        }
+      }
+    });
   };
 
   if (loading) {
@@ -244,6 +249,14 @@ const AccountsSettingsPage = () => {
       <div className="settings-page-actions">
         <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+      />
     </div>
   );
 };

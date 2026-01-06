@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
+import ConfirmDialog from '../components/ConfirmDialog';
 import './SettingsPages.css'; // General CSS for settings pages
 
 const UserManagementPage = () => {
@@ -13,6 +14,7 @@ const UserManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [sortField, setSortField] = useState('created_at');
@@ -43,39 +45,47 @@ const UserManagementPage = () => {
   }, [fetchUsers]);
 
   const handleDeleteUser = async (userId, userEmail) => {
-    if (!window.confirm(`Are you sure you want to delete user ${userEmail} (ID: ${userId})? This action cannot be undone.`)) {
-      return;
-    }
-    setLoading(true);
-    setMessage('');
-    try {
-      await AuthService.deleteUser(userId);
-      setMessage(`User ${userEmail} deleted successfully.`);
-      fetchUsers(); // Refresh the list
-    } catch (error) {
-      console.error("Failed to delete user:", error);
-      setMessage(`Failed to delete user ${userEmail}: ${error.response?.data?.detail || error.message}`);
-    } finally {
-      setLoading(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete User',
+      message: `Are you sure you want to delete user ${userEmail} (ID: ${userId})? This action cannot be undone.`,
+      onConfirm: async () => {
+        setLoading(true);
+        setMessage('');
+        try {
+          await AuthService.deleteUser(userId);
+          setMessage(`User ${userEmail} deleted successfully.`);
+          fetchUsers(); // Refresh the list
+        } catch (error) {
+          console.error("Failed to delete user:", error);
+          setMessage(`Failed to delete user ${userEmail}: ${error.response?.data?.detail || error.message}`);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleSetAdminStatus = async (userId, userEmail, isAdmin) => {
-    if (!window.confirm(`Are you sure you want to ${isAdmin ? 'make' : 'revoke'} admin status for user ${userEmail} (ID: ${userId})?`)) {
-      return;
-    }
-    setLoading(true);
-    setMessage('');
-    try {
-      await AuthService.setUserAdminStatus(userId, isAdmin);
-      setMessage(`User ${userEmail} ${isAdmin ? 'made' : 'admin status revoked for'} successfully.`);
-      fetchUsers(); // Refresh the list
-    } catch (error) {
-      console.error("Failed to update admin status:", error);
-      setMessage(`Failed to update admin status for user ${userEmail}: ${error.response?.data?.detail || error.message}`);
-    } finally {
-      setLoading(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: isAdmin ? 'Make Admin' : 'Revoke Admin Status',
+      message: `Are you sure you want to ${isAdmin ? 'make' : 'revoke'} admin status for user ${userEmail} (ID: ${userId})?`,
+      onConfirm: async () => {
+        setLoading(true);
+        setMessage('');
+        try {
+          await AuthService.setUserAdminStatus(userId, isAdmin);
+          setMessage(`User ${userEmail} ${isAdmin ? 'made' : 'admin status revoked for'} successfully.`);
+          fetchUsers(); // Refresh the list
+        } catch (error) {
+          console.error("Failed to update admin status:", error);
+          setMessage(`Failed to update admin status for user ${userEmail}: ${error.response?.data?.detail || error.message}`);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   if (error) {
@@ -238,6 +248,14 @@ const UserManagementPage = () => {
       <div className="settings-page-actions">
         <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+      />
     </div>
   );
 };

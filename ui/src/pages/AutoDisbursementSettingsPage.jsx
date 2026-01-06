@@ -5,6 +5,7 @@ import AssetService from '../services/asset.service';
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
+import ConfirmDialog from '../components/ConfirmDialog';
 import './SettingsPages.css';
 
 const AutoDisbursementSettingsPage = () => {
@@ -18,6 +19,7 @@ const AutoDisbursementSettingsPage = () => {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [editingAutoDisbursement, setEditingAutoDisbursement] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const [newAutoDisbursement, setNewAutoDisbursement] = useState({
     name: '',
     source_asset_id: null,
@@ -167,21 +169,24 @@ const AutoDisbursementSettingsPage = () => {
   };
 
   const handleDeleteAutoDisbursement = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this auto-disbursement?')) {
-      return;
-    }
-
-    try {
-      await AutoDisbursementService.deleteAutoDisbursement(id);
-      setMessage('Auto-disbursement deleted successfully!');
-      loadData();
-      setTimeout(() => setMessage(''), 2000);
-    } catch (e) {
-      console.error('Failed to delete auto-disbursement', e);
-      const errorMessage = e.response?.data?.detail || 'Error deleting auto-disbursement';
-      setMessage(errorMessage);
-      setTimeout(() => setMessage(''), 3000);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Auto-Disbursement',
+      message: 'Are you sure you want to delete this auto-disbursement?',
+      onConfirm: async () => {
+        try {
+          await AutoDisbursementService.deleteAutoDisbursement(id);
+          setMessage('Auto-disbursement deleted successfully!');
+          loadData();
+          setTimeout(() => setMessage(''), 2000);
+        } catch (e) {
+          console.error('Failed to delete auto-disbursement', e);
+          const errorMessage = e.response?.data?.detail || 'Error deleting auto-disbursement';
+          setMessage(errorMessage);
+          setTimeout(() => setMessage(''), 3000);
+        }
+      }
+    });
   };
 
   const getAssetName = (assetId) => {
@@ -510,6 +515,14 @@ const AutoDisbursementSettingsPage = () => {
       <div className="settings-page-actions">
         <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import CashFlowService from "../services/cashflow.service";
 import CashFlowFormModal from "./CashFlowFormModal"; // Import the new modal form
+import ConfirmDialog from "./ConfirmDialog";
 import "./CashFlowView.css";
 
 export default function CashFlowView({ type, incomeItems, expenseItems, refreshCashflow }) {
@@ -10,6 +11,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null); // State to hold item being edited
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
 
   const tableRef = useRef(null);
 
@@ -17,10 +19,15 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
 
   const remove = async (id) => {
-    const ok = window.confirm("Delete this item?");
-    if (!ok) return;
-    await CashFlowService.delete(id);
-    await refreshCashflow();
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Item',
+      message: 'Delete this item?',
+      onConfirm: async () => {
+        await CashFlowService.delete(id);
+        await refreshCashflow();
+      }
+    });
   };
 
   const handleEditClick = (item) => {
@@ -187,6 +194,14 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         item={editingItem}
         type={type}
         onSaveSuccess={handleSaveSuccess}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
       />
     </div>
   );

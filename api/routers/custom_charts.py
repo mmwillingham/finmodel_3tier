@@ -1,5 +1,6 @@
 import json
 import logging
+import random
 import traceback
 import sys
 
@@ -137,6 +138,55 @@ def create_custom_chart(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"A chart with the name '{chart.name}' already exists. Please choose a different name.")
 
         series_configs = json.loads(chart.series_configurations)
+        
+        # Expand itemized series: if itemize is true and no specific item is selected, create one series per item
+        expanded_series_configs = []
+        for series_config in series_configs:
+            itemize = series_config.get('itemize', False)
+            item_type = series_config.get('data_type')
+            item_id = series_config.get('item_id') or series_config.get('selected_item_id')
+            if item_id == "" or item_id == 0:
+                item_id = None
+            category = series_config.get('category', '')
+            selected_account_ids = series_config.get('selected_account_ids', [])
+            if isinstance(selected_account_ids, str):
+                try:
+                    selected_account_ids = json.loads(selected_account_ids) if selected_account_ids else []
+                except:
+                    selected_account_ids = []
+            
+            # If itemize is true, no specific item is selected, and data type is income or expenses, expand the series
+            if itemize and item_id is None and item_type in ['income', 'expenses']:
+                # Fetch all matching items
+                query = db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == (item_type == 'income')
+                )
+                if category:
+                    query = query.filter(models.CashFlowItem.category == category)
+                
+                items = query.all()
+                print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                
+                # Create one series per item
+                for item in items:
+                    new_series = series_config.copy()
+                    new_series['selected_item_id'] = item.id
+                    new_series['itemize'] = False  # Clear itemize flag for expanded series
+                    new_series['label'] = item.description  # Set label to item name
+                    # Generate a random color if not explicitly set
+                    if 'color' not in new_series or not new_series.get('color'):
+                        new_series['color'] = f"#{''.join([random.choice('0123456789ABCDEF') for _ in range(6)])}"
+                    expanded_series_configs.append(new_series)
+            else:
+                # Keep the series as-is
+                expanded_series_configs.append(series_config)
+        
+        # Replace original series configs with expanded ones
+        series_configs = expanded_series_configs
+        # Update the chart's series_configurations with the expanded version
+        chart.series_configurations = json.dumps(series_configs)
+        
         accounts_for_projection = []
         # Track which accounts we've added to avoid duplicates
         added_account_names = set()
@@ -146,7 +196,7 @@ def create_custom_chart(
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
         projection_years = user_settings.projection_years if user_settings else 30
 
-        print(f"--- DEBUG: Parsed series configurations: {series_configs} ---"); sys.stdout.flush()
+        print(f"--- DEBUG: Parsed series configurations (after expansion): {series_configs} ---"); sys.stdout.flush()
         print(f"--- DEBUG: Projection years from user settings: {projection_years} ---"); sys.stdout.flush()
         
         # First pass: Add all selected accounts and track dynamic items that need linked assets
@@ -518,6 +568,55 @@ def update_custom_chart(
     
     if chart_update.series_configurations:
         series_configs = json.loads(chart_update.series_configurations)
+        
+        # Expand itemized series: if itemize is true and no specific item is selected, create one series per item
+        expanded_series_configs = []
+        for series_config in series_configs:
+            itemize = series_config.get('itemize', False)
+            item_type = series_config.get('data_type')
+            item_id = series_config.get('item_id') or series_config.get('selected_item_id')
+            if item_id == "" or item_id == 0:
+                item_id = None
+            category = series_config.get('category', '')
+            selected_account_ids = series_config.get('selected_account_ids', [])
+            if isinstance(selected_account_ids, str):
+                try:
+                    selected_account_ids = json.loads(selected_account_ids) if selected_account_ids else []
+                except:
+                    selected_account_ids = []
+            
+            # If itemize is true, no specific item is selected, and data type is income or expenses, expand the series
+            if itemize and item_id is None and item_type in ['income', 'expenses']:
+                # Fetch all matching items
+                query = db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == (item_type == 'income')
+                )
+                if category:
+                    query = query.filter(models.CashFlowItem.category == category)
+                
+                items = query.all()
+                print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                
+                # Create one series per item
+                for item in items:
+                    new_series = series_config.copy()
+                    new_series['selected_item_id'] = item.id
+                    new_series['itemize'] = False  # Clear itemize flag for expanded series
+                    new_series['label'] = item.description  # Set label to item name
+                    # Generate a random color if not explicitly set
+                    if 'color' not in new_series or not new_series.get('color'):
+                        new_series['color'] = f"#{''.join([random.choice('0123456789ABCDEF') for _ in range(6)])}"
+                    expanded_series_configs.append(new_series)
+            else:
+                # Keep the series as-is
+                expanded_series_configs.append(series_config)
+        
+        # Replace original series configs with expanded ones
+        series_configs = expanded_series_configs
+        # Update the chart_update with expanded series configurations
+        chart_update.series_configurations = json.dumps(series_configs)
+        
         accounts_for_projection = []
         # Track which accounts we've added to avoid duplicates
         added_account_names = set()
@@ -527,7 +626,7 @@ def update_custom_chart(
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
         projection_years = user_settings.projection_years if user_settings else 30
         
-        print(f"--- DEBUG: Parsed series configurations for update: {series_configs} ---"); sys.stdout.flush()
+        print(f"--- DEBUG: Parsed series configurations for update (after expansion): {series_configs} ---"); sys.stdout.flush()
 
         for series_config in series_configs:
             item_type = series_config.get('data_type')

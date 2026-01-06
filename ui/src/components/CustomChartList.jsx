@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomChartService from '../services/customChart.service';
+import ConfirmDialog from './ConfirmDialog';
 import './CustomChartList.css'; // We will create this CSS file
 
 export default function CustomChartList({ onEditChart, onCreateNewChart, onViewChart }) {
@@ -7,6 +8,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [recalculating, setRecalculating] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
 
   const fetchCharts = async () => {
     setLoading(true);
@@ -26,34 +28,44 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   }, []);
 
   const handleDelete = async (chartId) => {
-    if (window.confirm("Are you sure you want to delete this chart?")) {
-      try {
-        await CustomChartService.delete(chartId);
-        setMessage("Chart deleted successfully!");
-        fetchCharts(); // Refresh the list
-      } catch (error) {
-        console.error("Error deleting custom chart:", error);
-        setMessage("Failed to delete chart.");
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Chart',
+      message: 'Are you sure you want to delete this chart?',
+      onConfirm: async () => {
+        try {
+          await CustomChartService.delete(chartId);
+          setMessage("Chart deleted successfully!");
+          fetchCharts(); // Refresh the list
+        } catch (error) {
+          console.error("Error deleting custom chart:", error);
+          setMessage("Failed to delete chart.");
+        }
       }
-    }
+    });
   };
 
   const handleRecalculateAll = async () => {
-    if (window.confirm("This will recalculate all charts with current data. Continue?")) {
-      setRecalculating(true);
-      setMessage('');
-      try {
-        const response = await CustomChartService.recalculateAll();
-        const data = response.data;
-        setMessage(`Successfully recalculated ${data.recalculated_count} of ${data.total_charts} charts.${data.errors.length > 0 ? ` ${data.errors.length} error(s) occurred.` : ''}`);
-        fetchCharts(); // Refresh the list to show updated data
-      } catch (error) {
-        console.error("Error recalculating charts:", error);
-        setMessage("Failed to recalculate charts. Please try again.");
-      } finally {
-        setRecalculating(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Recalculate All Charts',
+      message: 'This will recalculate all charts with current data. Continue?',
+      onConfirm: async () => {
+        setRecalculating(true);
+        setMessage('');
+        try {
+          const response = await CustomChartService.recalculateAll();
+          const data = response.data;
+          setMessage(`Successfully recalculated ${data.recalculated_count} of ${data.total_charts} charts.${data.errors.length > 0 ? ` ${data.errors.length} error(s) occurred.` : ''}`);
+          fetchCharts(); // Refresh the list to show updated data
+        } catch (error) {
+          console.error("Error recalculating charts:", error);
+          setMessage("Failed to recalculate charts. Please try again.");
+        } finally {
+          setRecalculating(false);
+        }
       }
-    }
+    });
   };
 
   if (loading) {
@@ -94,6 +106,14 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+      />
     </div>
   );
 }

@@ -3,11 +3,13 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import AssetService from "../services/asset.service";
 import AssetFormModal from "./AssetFormModal"; // Import the new AssetFormModal
+import ConfirmDialog from "./ConfirmDialog";
 import "./AssetView.css";
 
 export default function AssetView({ assets, refreshAssets, accounts = [] }) {
   const [showAssetModal, setShowAssetModal] = useState(false); // State to control modal visibility
   const [selectedAsset, setSelectedAsset] = useState(null); // State to hold asset being edited
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const tableRef = useRef(null);
 
 
@@ -20,10 +22,15 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     }).format(v ?? 0);
 
   const remove = async (id) => {
-    const ok = window.confirm("Delete this asset?");
-    if (!ok) return;
-    await AssetService.delete(id);
-    await refreshAssets();
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Asset',
+      message: 'Delete this asset?',
+      onConfirm: async () => {
+        await AssetService.delete(id);
+        await refreshAssets();
+      }
+    });
   };
 
   const handleAddAsset = () => {
@@ -170,6 +177,14 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
         onClose={handleCloseModal}
         item={selectedAsset}
         onSaveSuccess={handleSaveSuccess}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
       />
     </div>
   );

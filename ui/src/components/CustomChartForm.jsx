@@ -86,7 +86,8 @@ export default function CustomChartForm({
             ...series, 
             category: series.category || '', 
             selected_item_id: series.selected_item_id || null,
-            selected_account_ids: series.selected_account_ids || [] // Load account filter if present
+            selected_account_ids: series.selected_account_ids || [], // Load account filter if present
+            itemize: series.itemize || false, // Load itemize flag if present
           })));
           setXAxisLabel(chart.x_axis_label || "");
           setYAxisLabel(chart.y_axis_label || "");
@@ -126,11 +127,11 @@ export default function CustomChartForm({
       field: "value", // Default field, will need to be dynamic later
       aggregation: "sum",
       label: defaultLabel, // Initialize with capitalized data type name
-
       color: getRandomColor(),
       category: "", // New category field
       selected_item_id: null, // Initialize selected_item_id
       selected_account_ids: [], // Initialize account filter
+      itemize: false, // Initialize itemize flag
     }]);
   };
 
@@ -375,7 +376,14 @@ export default function CustomChartForm({
                     <label>{currentSeriesDataType.charAt(0).toUpperCase() + currentSeriesDataType.slice(1)}:</label>
                     <select
                       value={series.selected_item_id || ''}
-                      onChange={(e) => handleSeriesChange(index, 'selected_item_id', e.target.value)}
+                      onChange={(e) => {
+                        handleSeriesChange(index, 'selected_item_id', e.target.value);
+                        // Clear itemize if a specific item is selected
+                        if (e.target.value && e.target.value !== '') {
+                          handleSeriesChange(index, 'itemize', false);
+                        }
+                      }}
+                      disabled={series.itemize}
                     >
                       <option value="">All Items</option>
                       {getDataSourceItemOptions(
@@ -390,6 +398,11 @@ export default function CustomChartForm({
                         <option key={item.id} value={item.id}>{item.name}</option>
                       ))}
                     </select>
+                    {series.itemize && (
+                      <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
+                        Item selection is disabled when itemize is enabled
+                      </small>
+                    )}
                   </div>
                 )}
 
@@ -430,6 +443,23 @@ export default function CustomChartForm({
                     onChange={(e) => handleSeriesChange(index, 'color', e.target.value)}
                   />
                 </div>
+
+                {/* Itemize option - only show if no specific item is selected and data type is income or expenses */}
+                {(currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && !series.selected_item_id && (
+                  <div className="form-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={series.itemize || false}
+                        onChange={(e) => handleSeriesChange(index, 'itemize', e.target.checked)}
+                      />
+                      Itemize (show individual items)
+                    </label>
+                    <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
+                      When enabled, each {currentSeriesDataType.slice(0, -1)} item will be displayed as a separate series/slice
+                    </small>
+                  </div>
+                )}
 
                 <button type="button" onClick={() => handleRemoveSeries(index)}>Remove</button>
               </div>

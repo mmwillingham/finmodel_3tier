@@ -3,11 +3,13 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import LiabilityService from "../services/liability.service";
 import LiabilityFormModal from "./LiabilityFormModal"; // Import the new LiabilityFormModal
+import ConfirmDialog from "./ConfirmDialog";
 import "./LiabilityView.css"; // Use a dedicated CSS file for LiabilityView
 
 export default function LiabilityView({ liabilities, refreshLiabilities, refreshCashflow }) {
   const [showLiabilityModal, setShowLiabilityModal] = useState(false); // State to control modal visibility
   const [selectedLiability, setSelectedLiability] = useState(null); // State to hold liability being edited
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const tableRef = useRef(null);
 
   const formatCurrency = (v) =>
@@ -19,10 +21,15 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
     }).format(v ?? 0);
 
   const remove = async (id) => {
-    const ok = window.confirm("Delete this liability?");
-    if (!ok) return;
-    await LiabilityService.delete(id);
-    await refreshLiabilities();
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Liability',
+      message: 'Delete this liability?',
+      onConfirm: async () => {
+        await LiabilityService.delete(id);
+        await refreshLiabilities();
+      }
+    });
   };
 
   const handleAddLiability = () => {
@@ -199,6 +206,14 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
         onClose={handleCloseModal}
         item={selectedLiability}
         onSaveSuccess={handleSaveSuccess}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
       />
     </div>
   );
