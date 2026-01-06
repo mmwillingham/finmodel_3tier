@@ -562,16 +562,29 @@ def is_projection_stale(db: Session, projection: models.Projection, user_id: int
         models.CashFlowItem.owner_id == user_id
     ).scalar()
     
-    # Also check auto-disbursements
-    max_disbursement_update = db.query(sql_func.max(models.AutoDisbursement.updated_at)).filter(
-        models.AutoDisbursement.owner_id == user_id
-    ).scalar() if hasattr(models.AutoDisbursement, 'updated_at') else None
+    # Also check auto-disbursements (they might not have updated_at, use created_at instead)
+    try:
+        if hasattr(models.AutoDisbursement, 'updated_at'):
+            max_disbursement_update = db.query(sql_func.max(models.AutoDisbursement.updated_at)).filter(
+                models.AutoDisbursement.owner_id == user_id
+            ).scalar()
+        elif hasattr(models.AutoDisbursement, 'created_at'):
+            max_disbursement_update = db.query(sql_func.max(models.AutoDisbursement.created_at)).filter(
+                models.AutoDisbursement.owner_id == user_id
+            ).scalar()
+        else:
+            max_disbursement_update = None
+    except Exception:
+        max_disbursement_update = None
     
-    # Find the latest data change
-    latest_data_change = max(
-        date for date in [max_asset_update, max_liability_update, max_cashflow_update, max_disbursement_update]
-        if date is not None
-    )
+    # Find the latest data change (handle case where all might be None)
+    dates_list = [date for date in [max_asset_update, max_liability_update, max_cashflow_update, max_disbursement_update] if date is not None]
+    
+    if not dates_list:
+        # No data exists yet, so projection is not stale
+        return False
+    
+    latest_data_change = max(dates_list)
     
     # Projection is stale if underlying data was modified after last calculation
     if latest_data_change:
@@ -599,6 +612,10 @@ def rebuild_projection_from_stored_data(db: Session, projection: models.Projecti
     but the stored accounts_data should contain all relevant accounts.
     """
     accounts_for_recalculation = []
+    
+    # Check if we have accounts_data to rebuild from
+    if not projection.accounts_data or len(projection.accounts_data) == 0:
+        raise ValueError(f"Cannot rebuild projection {projection.id}: no accounts_data stored. Projection may need to be recreated.")
     
     # Convert stored ProjectedAccount models back to ProjectedAccountCreate schemas
     for stored_account in projection.accounts_data:
@@ -714,7 +731,8 @@ def get_projection_details(
         raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
     
     # Auto-recalculate if projection is stale (transparent to user)
-    if is_projection_stale(db, projection, current_user.id):
+    # Only auto-recalculate if we have accounts_data to rebuild from
+    if is_projection_stale(db, projection, current_user.id) and projection.accounts_data and len(projection.accounts_data) > 0:
         logger.info(f"Projection {projection_id} is stale, auto-recalculating...")
         try:
             # Rebuild projection from stored accounts_data
@@ -789,9 +807,10 @@ def update_projection(
 ):
     """
     Updates an existing projection if user is the owner."""
+    # Don't eagerly load time_series_data to save memory
     projection = (
         db.query(models.Projection)
-        .options(joinedload(models.Projection.accounts_data), joinedload(models.Projection.time_series_data))
+        .options(joinedload(models.Projection.accounts_data))
         .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
         .first()
     )
@@ -807,12 +826,16 @@ def update_projection(
     db.commit()
 
     # Recalculate projection
-    result = calculations.calculate_projection(
-        years=req.years,
-        accounts=req.accounts,
-        db=db,
-        owner_id=current_user.id
-    )
+    try:
+        result = calculations.calculate_projection(
+            years=req.years,
+            accounts=req.accounts,
+            db=db,
+            owner_id=current_user.id
+        )
+    except Exception as e:
+        logger.error(f"Error during projection calculation in update_projection for user {current_user.id}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Projection calculation failed: {str(e)}")
     
     # Update projection header details
     projection.name = req.plan_name
@@ -825,16 +848,24 @@ def update_projection(
     projection.last_calculated_at = datetime.utcnow()  # Update calculation timestamp
     
     # Add new associated data
-    for acc in result["projected_accounts"]:
-        acc.projection_id = projection.id
-        db.add(acc)
+    try:
+        # Add projected accounts
+        for acc in result["projected_accounts"]:
+            acc.projection_id = projection.id
+            db.add(acc)
 
-    for ts_data in result["time_series_data"]:
-        ts_data.projection_id = projection.id
-        db.add(ts_data)
+        # Note: We still save time_series_data for historical tracking, but we don't return it in the response
+        # This is a trade-off: database storage (cheap) vs memory during response (expensive)
+        for ts_data in result["time_series_data"]:
+            ts_data.projection_id = projection.id
+            db.add(ts_data)
 
-    db.commit()
-    db.refresh(projection) # Refresh to load relationships
+        db.commit()
+        db.refresh(projection) # Refresh to load relationships
+    except Exception as e:
+        logger.error(f"Error saving projection data for user {current_user.id}: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save projection data: {str(e)}")
     
     # Construct response with data_json from database (stored during calculation)
     # Note: We exclude time_series_data from the response to save memory since data_json contains all the information

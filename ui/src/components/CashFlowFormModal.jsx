@@ -62,9 +62,10 @@ export default function CashFlowFormModal({
           res.data.person2_first_name && res.data.person2_first_name !== "Person 2" ? res.data.person2_first_name : null,
         ].filter(Boolean);
 
-        let newPersonOptions = ["Select Person"];
+        // Always include "Family" as the first option, then individual persons
+        let newPersonOptions = ["Family"];
         if (persons.length > 0) {
-          newPersonOptions.push("Family", ...persons);
+          newPersonOptions.push(...persons);
         }
         setPersonOptions(newPersonOptions);
 
@@ -74,11 +75,10 @@ export default function CashFlowFormModal({
             ? (itemToEdit.yearly_value / 12).toString()
             : itemToEdit.yearly_value.toString();
 
-          // Map person: if null, use "Select Person", otherwise use the person name
-          let mappedPerson = "Select Person";
+          // Map person: if null, use "Family", otherwise use the person name
+          let mappedPerson = "Family";
           if (itemToEdit.person) {
-            // Check if person exists in personOptions (will be loaded from settings)
-            // For now, use the person name directly - it will be validated when personOptions loads
+            // Use the person name directly - it will be validated when personOptions loads
             mappedPerson = itemToEdit.person;
           }
           
@@ -86,7 +86,7 @@ export default function CashFlowFormModal({
             ...prev,
             ...itemToEdit,
             value: displayValue, // This will be ignored if isDynamic is true
-            person: mappedPerson, // Map null to "Select Person"
+            person: mappedPerson, // Map null to "Family"
             annual_increase_percent: itemToEdit.annual_increase_percent ?? 0,
             inflation_percent: itemToEdit.inflation_percent ?? inflation,
             taxable: itemToEdit.taxable ?? false,
@@ -112,7 +112,7 @@ export default function CashFlowFormModal({
             frequency: "",
             annual_increase_percent: 0,
             inflation_percent: inflation, // Default to fetched inflation for new expenses
-            person: "",
+            person: "Family",
             start_date: "",
             end_date: "",
             taxable: true, // Default to true for new income items
@@ -132,9 +132,9 @@ export default function CashFlowFormModal({
           ? ["Salary", "Bonus", "Investment Income", "Other"]
           : ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
         setTypeOptions(defaultCategories);
-        setPersonOptions(["Select Person", "Person 1", "Person 2"]);
+        setPersonOptions(["Family", "Person 1", "Person 2"]);
         if (!itemToEdit) {
-          setNewItem(prev => ({ ...prev, category: "", person: "", frequency: "", inflation_percent: 0 }));
+          setNewItem(prev => ({ ...prev, category: "", person: "Family", frequency: "", inflation_percent: 0 }));
         }
         setIsDynamic(false);
         setLinkedItemType("");
@@ -197,7 +197,7 @@ export default function CashFlowFormModal({
       value: isDynamic ? 0.0 : parseFloat(newItem.value),
       annual_increase_percent: type === "income" ? parseFloat(newItem.annual_increase_percent || 0) : 0,
       inflation_percent: type === "expense" ? parseFloat(newItem.inflation_percent || defaultInflation) : 0,
-      person: newItem.person === "Select Person" || newItem.person === "Family" ? null : newItem.person || null,
+      person: newItem.person === "Family" ? null : (newItem.person || null),
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
       taxable: type === "income" ? newItem.taxable : false,
@@ -266,7 +266,7 @@ export default function CashFlowFormModal({
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency */} 
             <div className="form-field">
               <label htmlFor="person-select">Person</label>
-              <select id="person-select" value={newItem.person || "Select Person"} onChange={(e) => setNewItem({ ...newItem, person: e.target.value === "Select Person" ? "" : e.target.value === "Family" ? "" : e.target.value })}> 
+              <select id="person-select" value={newItem.person || "Family"} onChange={(e) => setNewItem({ ...newItem, person: e.target.value })}> 
                 {personOptions.map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
