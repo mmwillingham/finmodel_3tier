@@ -16,3 +16,13 @@
 .add-new-item-btn:hover {
   background-color: #084399;
 }
+
+.cashflow-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.cashflow-table th.sortable:hover {
+  background-color: #e9ecef;
+}

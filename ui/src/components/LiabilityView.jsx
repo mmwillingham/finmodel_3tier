@@ -10,6 +10,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
   const [showLiabilityModal, setShowLiabilityModal] = useState(false); // State to control modal visibility
   const [selectedLiability, setSelectedLiability] = useState(null); // State to hold liability being edited
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const tableRef = useRef(null);
 
   const formatCurrency = (v) =>
@@ -54,6 +55,42 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
     }
     handleCloseModal(); // Close modal on successful save
   };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedLiabilities = [...liabilities].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
+
+    // Handle null/undefined values
+    if (aValue == null) aValue = '';
+    if (bValue == null) bValue = '';
+
+    // Handle numeric values
+    if (['principal_amount', 'value', 'interest_rate', 'loan_term_months', 'monthly_payment'].includes(sortConfig.key)) {
+      aValue = parseFloat(aValue) || 0;
+      bValue = parseFloat(bValue) || 0;
+    }
+
+    // Handle loan_type sorting (convert to sortable string)
+    if (sortConfig.key === 'loan_type') {
+      aValue = a.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving';
+      bValue = b.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving';
+    }
+
+    // Compare values
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   // Calculate total liabilities based on loan_type
   const total = liabilities.reduce((sum, item) => {
@@ -149,20 +186,38 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
       <table ref={tableRef} className="cashflow-table">
         <thead>
           <tr>
-            <th className="cashflow-table-cell">Name</th>
-            <th className="cashflow-table-cell">Type</th> {/* NEW: Type Column */}
-            <th className="cashflow-table-cell">Category</th>
-            <th className="cashflow-table-cell">Current Balance</th> {/* Consolidated column */}
-            <th className="cashflow-table-cell">Annual Rate</th> {/* Now always visible */}
-            <th className="cashflow-table-cell">Principal Amount</th> {/* Now always visible */}
-            <th className="cashflow-table-cell">Interest Rate</th> {/* Now always visible */}
-            <th className="cashflow-table-cell">Loan Term (Months)</th> {/* Now always visible */}
-            <th className="cashflow-table-cell">Monthly Payment</th> {/* Now always visible */}
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('name')}>
+              Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('loan_type')}>
+              Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('category')}>
+              Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('principal_amount')}>
+              Current Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('annual_increase_percent')}>
+              Annual Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('principal_amount')}>
+              Principal Amount {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('interest_rate')}>
+              Interest Rate {sortConfig.key === 'interest_rate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('loan_term_months')}>
+              Loan Term (Months) {sortConfig.key === 'loan_term_months' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('monthly_payment')}>
+              Monthly Payment {sortConfig.key === 'monthly_payment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
             <th className="cashflow-table-cell">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {liabilities.map((item) => (
+          {sortedLiabilities.map((item) => (
             <tr key={item.id}>
               <td className="cashflow-table-cell">{item.name}</td>
               <td className="cashflow-table-cell">

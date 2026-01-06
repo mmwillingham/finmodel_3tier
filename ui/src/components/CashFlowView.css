@@ -70,6 +70,16 @@
   font-weight: 600 !important;
 }
 
+.main-content .cashflow-table th.sortable {
+  cursor: pointer !important;
+  user-select: none !important;
+  position: relative !important;
+}
+
+.main-content .cashflow-table th.sortable:hover {
+  background-color: #e9ecef !important;
+}
+
 /* Highly specific rule for table cells to ensure text wrapping and overflow handling */
 .main-content .cashflow-table .cashflow-table-cell {
   white-space: nowrap !important;

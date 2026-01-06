@@ -10,6 +10,7 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
   const [showAssetModal, setShowAssetModal] = useState(false); // State to control modal visibility
   const [selectedAsset, setSelectedAsset] = useState(null); // State to hold asset being edited
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const tableRef = useRef(null);
 
 
@@ -52,6 +53,42 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     await refreshAssets(); // Refresh assets after save
     handleCloseModal(); // Close modal on successful save
   };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedAssets = [...assets].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
+
+    // Handle account name sorting
+    if (sortConfig.key === 'account') {
+      aValue = getAccountName(a.account_id);
+      bValue = getAccountName(b.account_id);
+    }
+
+    // Handle null/undefined values
+    if (aValue == null) aValue = '';
+    if (bValue == null) bValue = '';
+
+    // Handle numeric values
+    if (sortConfig.key === 'value' || sortConfig.key === 'annual_increase_percent') {
+      aValue = parseFloat(aValue) || 0;
+      bValue = parseFloat(bValue) || 0;
+    }
+
+    // Compare values
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const total = assets.reduce((sum, item) => sum + (item.value || 0), 0);
 
@@ -136,19 +173,35 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
       <table ref={tableRef} className="cashflow-table">
         <thead>
           <tr>
-            <th className="cashflow-table-cell">Name</th>
-            <th className="cashflow-table-cell">Category</th>
-            <th className="cashflow-table-cell">Account</th>
-            <th className="cashflow-table-cell">Value</th>
-            <th className="cashflow-table-cell">Annual Change</th>
-            <th className="cashflow-table-cell">Percent</th>
-            <th className="cashflow-table-cell">Start Date</th>
-            <th className="cashflow-table-cell">End Date</th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('name')}>
+              Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('category')}>
+              Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('account')}>
+              Account {sortConfig.key === 'account' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('value')}>
+              Value {sortConfig.key === 'value' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('annual_change_type')}>
+              Annual Change {sortConfig.key === 'annual_change_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('annual_increase_percent')}>
+              Percent {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('start_date')}>
+              Start Date {sortConfig.key === 'start_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('end_date')}>
+              End Date {sortConfig.key === 'end_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
             <th className="cashflow-table-cell">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {assets.map((item) => (
+          {sortedAssets.map((item) => (
             <tr key={item.id}>
               <td className="cashflow-table-cell">{item.name}</td>
               <td className="cashflow-table-cell">{item.category}</td>

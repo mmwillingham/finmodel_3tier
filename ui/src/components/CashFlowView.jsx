@@ -12,6 +12,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null); // State to hold item being edited
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const tableRef = useRef(null);
 
@@ -48,6 +49,60 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
   const handleSaveSuccess = () => {
     refreshCashflow(); // Refresh the list after a successful save/update
   };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedItems = [...items].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
+
+    // Handle null/undefined values
+    if (aValue == null) aValue = '';
+    if (bValue == null) bValue = '';
+
+    // Handle person field - treat null as 'Family'
+    if (sortConfig.key === 'person') {
+      aValue = aValue || 'Family';
+      bValue = bValue || 'Family';
+    }
+
+    // Handle numeric values
+    if (['yearly_value', 'annual_increase_percent', 'inflation_percent'].includes(sortConfig.key)) {
+      aValue = parseFloat(aValue) || 0;
+      bValue = parseFloat(bValue) || 0;
+    }
+
+    // Handle boolean values
+    if (sortConfig.key === 'taxable' || sortConfig.key === 'tax_deductible') {
+      aValue = aValue ? 'Yes' : 'No';
+      bValue = bValue ? 'Yes' : 'No';
+    }
+
+    // Handle dynamic field
+    if (sortConfig.key === 'linked_item_id') {
+      aValue = aValue ? 'Yes' : 'No';
+      bValue = bValue ? 'Yes' : 'No';
+    }
+
+    // Handle frequency
+    if (sortConfig.key === 'frequency') {
+      aValue = aValue === 'monthly' ? 'Monthly' : 'Yearly';
+      bValue = bValue === 'monthly' ? 'Monthly' : 'Yearly';
+    }
+
+    // Compare values
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const total = items.reduce((sum, item) => sum + (item.yearly_value || 0), 0);
 
@@ -143,23 +198,55 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       <table ref={tableRef} className="cashflow-table">
         <thead>
           <tr>
-            <th className="cashflow-table-cell">Category</th>
-            <th className="cashflow-table-cell">Description</th>
-            <th className="cashflow-table-cell">Person</th>
-            <th className="cashflow-table-cell">Frequency</th>
-            <th className="cashflow-table-cell">Yearly Value</th>
-            <th className="cashflow-table-cell">Start Date</th>
-            <th className="cashflow-table-cell">End Date</th>
-            <th className="cashflow-table-cell">Dynamic</th> {/* NEW: Dynamic Column */}
-            {type === 'income' && <th className="cashflow-table-cell">Annual Increase %</th>}
-            {type === 'income' && <th className="cashflow-table-cell">Taxable</th>}
-            {type === 'expense' && <th className="cashflow-table-cell">Inflation %</th>}
-            {type === 'expense' && <th className="cashflow-table-cell">Tax Deductible</th>}
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('category')}>
+              Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('description')}>
+              Description {sortConfig.key === 'description' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('person')}>
+              Person {sortConfig.key === 'person' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('frequency')}>
+              Frequency {sortConfig.key === 'frequency' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('yearly_value')}>
+              Yearly Value {sortConfig.key === 'yearly_value' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('start_date')}>
+              Start Date {sortConfig.key === 'start_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('end_date')}>
+              End Date {sortConfig.key === 'end_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell sortable" onClick={() => handleSort('linked_item_id')}>
+              Dynamic {sortConfig.key === 'linked_item_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            {type === 'income' && (
+              <th className="cashflow-table-cell sortable" onClick={() => handleSort('annual_increase_percent')}>
+                Annual Increase % {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+            )}
+            {type === 'income' && (
+              <th className="cashflow-table-cell sortable" onClick={() => handleSort('taxable')}>
+                Taxable {sortConfig.key === 'taxable' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+            )}
+            {type === 'expense' && (
+              <th className="cashflow-table-cell sortable" onClick={() => handleSort('inflation_percent')}>
+                Inflation % {sortConfig.key === 'inflation_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+            )}
+            {type === 'expense' && (
+              <th className="cashflow-table-cell sortable" onClick={() => handleSort('tax_deductible')}>
+                Tax Deductible {sortConfig.key === 'tax_deductible' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+            )}
             <th className="cashflow-table-cell">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {items.map(item => (
+          {sortedItems.map(item => (
             <tr key={item.id}>
               <td className="cashflow-table-cell">{item.category}</td>
               <td className="cashflow-table-cell">{item.description}</td>
