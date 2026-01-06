@@ -262,6 +262,31 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
                 
+                # Check if income/expense item is active for this year (based on start_date and end_date)
+                # This check must happen BEFORE calculating contributions so inactive items are skipped
+                is_active_for_year = True
+                if projected_account.account_type in ["income", "expense"]:
+                    year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
+                    year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
+                    
+                    if projected_account.start_date:
+                        try:
+                            start_date_obj = datetime.strptime(projected_account.start_date, "%Y-%m-%d").date()
+                            # Item is not active if the year ends before the start_date
+                            if year_end_date < start_date_obj:
+                                is_active_for_year = False
+                        except ValueError:
+                            pass
+                    
+                    if projected_account.end_date and is_active_for_year:
+                        try:
+                            end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
+                            # Item is not active if the year starts after the end_date
+                            if year_start_date > end_date_obj:
+                                is_active_for_year = False
+                        except ValueError:
+                            pass
+                
                 # Special handling for amortized loans
                 if projected_account.account_type == "liability" and projected_account.loan_type == "amortized" and projected_account.principal_amount is not None and projected_account.interest_rate is not None and projected_account.loan_term_months is not None and projected_account.loan_start_date is not None:
                     try:
@@ -373,8 +398,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     linked_percentage = None
                     
                     # Calculate contribution for this year
-                    if linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
+                    # Skip calculation if item is not active for this year (for income/expense items)
+                    if not is_active_for_year and projected_account.account_type in ["income", "expense"]:
+                        adjusted_annual_contribution = 0.0
+                    elif linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
                         # Dynamic item: recalculate contribution based on linked asset(s) current value
+                        # Only calculate if item is active for this year
                         # Sum up values from all linked assets
                         total_linked_asset_value = 0.0
                         linked_assets_found = []
@@ -447,13 +476,17 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             print(f"--- WARNING: Linked assets {linked_asset_names} not found for dynamic item {base_account_name} ---"); sys.stdout.flush()
                     else:
                         # Fixed contribution item
-                        # Monthly contribution
-                        adjusted_annual_contribution = projected_account.contribution * 12
-                        # Contributions to liabilities/expenses are negative cash flow
-                        if projected_account.account_type in ["liability", "expense"]:
-                            adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution
-                        elif projected_account.account_type == "income":
-                             adjusted_annual_contribution = abs(adjusted_annual_contribution)
+                        # Skip calculation if item is not active for this year (for income/expense items)
+                        if not is_active_for_year and projected_account.account_type in ["income", "expense"]:
+                            adjusted_annual_contribution = 0.0
+                        else:
+                            # Monthly contribution
+                            adjusted_annual_contribution = projected_account.contribution * 12
+                            # Contributions to liabilities/expenses are negative cash flow
+                            if projected_account.account_type in ["liability", "expense"]:
+                                adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution
+                            elif projected_account.account_type == "income":
+                                 adjusted_annual_contribution = abs(adjusted_annual_contribution)
 
                     # Annual increase/decrease rate
                     effective_growth_rate = projected_account.growth_rate / 100.0
@@ -507,30 +540,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     account=projected_account
                 ))
                 
-                # Check if income/expense item is active for this year (based on start_date and end_date)
-                is_active_for_year = True
-                if projected_account.account_type in ["income", "expense"]:
-                    current_year_date = date(current_year + year - 1, 1, 1)  # Start of current projection year
-                    if projected_account.start_date:
-                        try:
-                            start_date_obj = datetime.strptime(projected_account.start_date, "%Y-%m-%d").date()
-                            if current_year_date < start_date_obj:
-                                is_active_for_year = False
-                        except ValueError:
-                            pass
-                    if projected_account.end_date and is_active_for_year:
-                        try:
-                            end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
-                            if current_year_date > end_date_obj:
-                                is_active_for_year = False
-                        except ValueError:
-                            pass
-                    
-                    # If not active, set contribution to 0
-                    if not is_active_for_year:
-                        adjusted_annual_contribution = 0.0
-                        # Also update the time series data
-                        time_series_data_for_db[-1].value = 0.0  # Update the last contribution_flow entry
+                # Note: Date checking for income/expense items is now done at the start of the loop
+                # If item is not active, adjusted_annual_contribution is already set to 0.0
                 
                 # Accumulate yearly totals
                 if projected_account.account_type == "asset":
@@ -556,19 +567,22 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             
             for exp_item in contributing_expenses:
                 # Check if expense is active for this year (based on start_date and end_date)
-                current_year_date = date(current_year + year - 1, 1, 1)  # Start of current projection year
+                year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
+                year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
                 expense_active = True
                 if exp_item.start_date:
                     try:
                         start_date_obj = datetime.strptime(exp_item.start_date, "%Y-%m-%d").date()
-                        if current_year_date < start_date_obj:
+                        # Item is not active if the year ends before the start_date
+                        if year_end_date < start_date_obj:
                             expense_active = False
                     except ValueError:
                         pass
                 if exp_item.end_date and expense_active:
                     try:
                         end_date_obj = datetime.strptime(exp_item.end_date, "%Y-%m-%d").date()
-                        if current_year_date > end_date_obj:
+                        # Item is not active if the year starts after the end_date
+                        if year_start_date > end_date_obj:
                             expense_active = False
                     except ValueError:
                         pass
@@ -642,21 +656,25 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 print(f"--- DEBUG: Applied surplus/deficit of {surplus_deficit:.2f} to {surplus_asset_name} for year {year} ---"); sys.stdout.flush()
 
             # Apply auto-disbursement transfers
-            current_year_date = date(current_year + year - 1, 1, 1)  # Start of current projection year
+            year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
+            year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
+            
             for disbursement in auto_disbursements:
                 # Check if disbursement is active for this year
                 active = True
                 if disbursement.start_date:
                     try:
                         start_date_obj = datetime.strptime(disbursement.start_date, "%Y-%m-%d").date()
-                        if current_year_date < start_date_obj:
+                        # Disbursement is not active if the year ends before the start_date
+                        if year_end_date < start_date_obj:
                             active = False
                     except ValueError:
                         pass
                 if disbursement.end_date and active:
                     try:
                         end_date_obj = datetime.strptime(disbursement.end_date, "%Y-%m-%d").date()
-                        if current_year_date > end_date_obj:
+                        # Disbursement is not active if the year starts after the end_date
+                        if year_start_date > end_date_obj:
                             active = False
                     except ValueError:
                         pass
