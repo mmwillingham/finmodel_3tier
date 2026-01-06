@@ -76,23 +76,33 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   cursor: ns-resize;
   background: linear-gradient(135deg, transparent 0%, transparent 45%, #999 45%, #999 55%, transparent 55%, transparent 100%),
               linear-gradient(225deg, transparent 0%, transparent 45%, #999 45%, #999 55%, transparent 55%, transparent 100%);
   background-size: 8px 8px, 8px 8px;
   background-position: bottom right, bottom right;
   background-repeat: no-repeat;
-  opacity: 0.6;
+  opacity: 0.7;
   z-index: 1001;
   flex-shrink: 0;
+  pointer-events: auto;
 }
 
 .multi-select-checkbox-resize-handle:hover {
   opacity: 1;
   background: linear-gradient(135deg, transparent 0%, transparent 45%, #666 45%, #666 55%, transparent 55%, transparent 100%),
               linear-gradient(225deg, transparent 0%, transparent 45%, #666 45%, #666 55%, transparent 55%, transparent 100%);
+  background-size: 8px 8px, 8px 8px;
+  background-position: bottom right, bottom right;
+  background-repeat: no-repeat;
+}
+
+.multi-select-checkbox-resize-handle:active {
+  opacity: 1;
+  background: linear-gradient(135deg, transparent 0%, transparent 45%, #333 45%, #333 55%, transparent 55%, transparent 100%),
+              linear-gradient(225deg, transparent 0%, transparent 45%, #333 45%, #333 55%, transparent 55%, transparent 100%);
   background-size: 8px 8px, 8px 8px;
   background-position: bottom right, bottom right;
   background-repeat: no-repeat;

@@ -115,3 +115,48 @@
   gap: 10px;
   justify-content: flex-start;
 }
+
+.chart-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.download-btn,
+.edit-btn {
+  background-color: #0b57d0;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s;
+}
+
+.download-btn:hover,
+.edit-btn:hover {
+  background-color: #094aa0;
+}
+
+.edit-btn {
+  background-color: #6c757d;
+}
+
+.edit-btn:hover {
+  background-color: #5a6268;
+}
+
+.show-totals-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.show-totals-toggle input[type="checkbox"] {
+  cursor: pointer;
+}

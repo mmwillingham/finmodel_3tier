@@ -10,7 +10,7 @@ import './CustomChartView.css'; // We will create this CSS file
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
-export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack }) {
+export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack, onEdit }) {
   const { userSettings } = useAuth();
   const [chartConfig, setChartConfig] = useState(null);
   const [chartData, setChartData] = useState({ labels: [], datasets: [] });
@@ -432,6 +432,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     <div className="custom-chart-view-container">
       <button onClick={onBack} className="back-btn">← Back to Custom Charts and Tables</button>
       <div className="chart-actions">
+        {onEdit && (
+          <button onClick={() => onEdit(chartId)} className="edit-btn">Edit Chart</button>
+        )}
         {(currentDisplayType === "chart" || currentDisplayType === "both") && (
           <>
             <button onClick={handleDownloadPng} className="download-btn">Download Chart PNG</button>

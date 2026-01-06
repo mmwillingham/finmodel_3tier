@@ -561,6 +561,7 @@ export default function SidebarLayout() {
               projectionYears={projectionYears}
               formatCurrency={formatCurrency}
               onBack={() => { setView('custom-charts'); setCustomChartView('list'); setChartToViewId(null); }}
+              onEdit={(chartId) => { setChartToEditId(chartId); setView('custom-charts'); setCustomChartView('edit'); }}
             />
           </div>
         )}

@@ -30,6 +30,12 @@ export default function MultiSelectCheckbox({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Don't close if we're resizing
+      if (isResizingRef.current) return;
+      
+      // Don't close if clicking on the resize handle
+      if (resizeHandleRef.current && resizeHandleRef.current.contains(event.target)) return;
+      
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setIsOpen(false);
       }
@@ -63,6 +69,10 @@ export default function MultiSelectCheckbox({
         isResizingRef.current = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
+        document.body.style.pointerEvents = '';
+        if (dropdownRef.current) {
+          dropdownRef.current.style.pointerEvents = '';
+        }
       }
     };
 
@@ -78,9 +88,16 @@ export default function MultiSelectCheckbox({
   const handleResizeStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
     isResizingRef.current = true;
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
+    document.body.style.pointerEvents = 'none';
+    
+    // Re-enable pointer events on the dropdown so we can still resize
+    if (dropdownRef.current) {
+      dropdownRef.current.style.pointerEvents = 'auto';
+    }
   };
 
   const toggleOption = (id) => {
