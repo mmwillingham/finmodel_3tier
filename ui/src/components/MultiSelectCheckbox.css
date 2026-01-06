@@ -1,0 +1,142 @@
+.multi-select-checkbox-container {
+  position: relative;
+  width: 100%;
+}
+
+.multi-select-checkbox-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  min-height: 50px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  user-select: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.multi-select-checkbox-trigger:hover:not(.disabled) {
+  border-color: #0b57d0;
+}
+
+.multi-select-checkbox-trigger.disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  color: #999;
+}
+
+.multi-select-checkbox-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #222;
+}
+
+.multi-select-checkbox-trigger.disabled .multi-select-checkbox-value {
+  color: #999;
+}
+
+.multi-select-checkbox-arrow {
+  margin-left: 10px;
+  color: #666;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.multi-select-checkbox-trigger.disabled .multi-select-checkbox-arrow {
+  color: #999;
+}
+
+.multi-select-checkbox-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.multi-select-checkbox-header {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.multi-select-checkbox-select-all {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.multi-select-checkbox-select-all input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.multi-select-checkbox-options {
+  max-height: inherit;
+  overflow-y: auto;
+}
+
+.multi-select-checkbox-option {
+  display: flex;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.6rem;
+  transition: background-color 0.15s;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.multi-select-checkbox-option:last-child {
+  border-bottom: none;
+}
+
+.multi-select-checkbox-option:hover {
+  background-color: #f0f7ff;
+}
+
+.multi-select-checkbox-option.selected {
+  background-color: #e8f0fe;
+}
+
+.multi-select-checkbox-option input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.multi-select-checkbox-option span {
+  flex: 1;
+  color: #222;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.multi-select-checkbox-empty {
+  padding: 1rem;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+}
