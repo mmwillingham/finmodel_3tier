@@ -68,7 +68,7 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-            docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=https://api.ordaxium.com .
+            docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=https://finmodel-backend-service-msdi7jcivq-ue.a.run.app .
     dir: 'ui'
     waitFor: ['Update Backend Traffic']
 
