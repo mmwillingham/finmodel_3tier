@@ -201,7 +201,7 @@ const DocumentsPage = () => {
           </section>
 
           <section className="nav-section">
-            <h3>Documents</h3>
+            <h3>Document Vault</h3>
             <button 
               className="nav-btn active" 
             >
