@@ -1,0 +1,132 @@
+.points-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.points-modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.points-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.points-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.points-modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.points-modal-close:hover {
+  color: #333;
+}
+
+.points-modal-body {
+  padding: 20px;
+}
+
+.points-loading,
+.points-error {
+  text-align: center;
+  padding: 20px;
+}
+
+.points-error {
+  color: #dc3545;
+}
+
+.points-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.points-total-label {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.points-total-value {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.points-breakdown {
+  margin-top: 20px;
+}
+
+.points-breakdown h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.points-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.points-breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.points-breakdown-item-bonus {
+  background-color: #f8f9fa;
+  padding: 12px;
+  border-radius: 4px;
+  margin-top: 10px;
+  border-bottom: none;
+}
+
+.points-breakdown-label {
+  font-weight: 500;
+  color: #555;
+}
+
+.points-breakdown-value {
+  color: #333;
+  font-family: monospace;
+}
+

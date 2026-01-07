@@ -1,0 +1,341 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
+import ExportImportService from '../services/exportImport.service';
+import './SettingsPages.css';
+
+const ExportImportPage = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  useSettingsBackButton();
+  
+  const [exportOptions, setExportOptions] = useState({
+    include_accounts: true,
+    include_assets: true,
+    include_liabilities: true,
+    include_income: true,
+    include_expenses: true,
+    include_projections: true,
+    include_charts: true,
+  });
+
+  const [importFile, setImportFile] = useState(null);
+  const [importOptions, setImportOptions] = useState({
+    include_accounts: true,
+    include_assets: true,
+    include_liabilities: true,
+    include_income: true,
+    include_expenses: true,
+    include_projections: true,
+    include_charts: true,
+  });
+
+  const [exportMessage, setExportMessage] = useState('');
+  const [importMessage, setImportMessage] = useState('');
+  const [importResult, setImportResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleExport = async () => {
+    setLoading(true);
+    setExportMessage('');
+    try {
+      await ExportImportService.exportData(exportOptions);
+      setExportMessage('Data exported successfully! Check your downloads folder.');
+      setTimeout(() => setExportMessage(''), 3000);
+    } catch (error) {
+      console.error('Export failed:', error);
+      setExportMessage('Error exporting data. Please try again.');
+      setTimeout(() => setExportMessage(''), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/json') {
+      setImportFile(file);
+    } else {
+      setImportMessage('Please select a valid JSON file.');
+      setTimeout(() => setImportMessage(''), 3000);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      setImportMessage('Please select a file to import.');
+      setTimeout(() => setImportMessage(''), 3000);
+      return;
+    }
+
+    setLoading(true);
+    setImportMessage('');
+    setImportResult(null);
+
+    try {
+      const fileContent = await importFile.text();
+      const importData = JSON.parse(fileContent);
+
+      // Filter the data based on import options
+      const filteredData = {
+        data: {}
+      };
+
+      if (importOptions.include_accounts && importData.data?.accounts) {
+        filteredData.data.accounts = importData.data.accounts;
+      }
+      if (importOptions.include_assets && importData.data?.assets) {
+        filteredData.data.assets = importData.data.assets;
+      }
+      if (importOptions.include_liabilities && importData.data?.liabilities) {
+        filteredData.data.liabilities = importData.data.liabilities;
+      }
+      if (importOptions.include_income && importData.data?.income) {
+        filteredData.data.income = importData.data.income;
+      }
+      if (importOptions.include_expenses && importData.data?.expenses) {
+        filteredData.data.expenses = importData.data.expenses;
+      }
+      if (importOptions.include_projections && importData.data?.projections) {
+        filteredData.data.projections = importData.data.projections;
+      }
+      if (importOptions.include_charts && importData.data?.charts) {
+        filteredData.data.charts = importData.data.charts;
+      }
+
+      const result = await ExportImportService.importData(filteredData);
+      setImportResult(result);
+      setImportMessage(`Import completed! ${result.accounts || 0} accounts, ${result.assets || 0} assets, ${result.liabilities || 0} liabilities, ${result.income || 0} income items, ${result.expenses || 0} expense items imported.`);
+      
+      if (result.errors && result.errors.length > 0) {
+        setImportMessage(prev => prev + ` ${result.errors.length} error(s) occurred.`);
+      }
+      
+      setTimeout(() => {
+        setImportMessage('');
+        setImportResult(null);
+      }, 10000);
+    } catch (error) {
+      console.error('Import failed:', error);
+      setImportMessage('Error importing data. Please check the file format and try again.');
+      setTimeout(() => setImportMessage(''), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleExportOption = (option) => {
+    setExportOptions(prev => ({
+      ...prev,
+      [option]: !prev[option]
+    }));
+  };
+
+  const toggleImportOption = (option) => {
+    setImportOptions(prev => ({
+      ...prev,
+      [option]: !prev[option]
+    }));
+  };
+
+  return (
+    <div className="settings-page-container">
+      <h2>Export / Import Data</h2>
+
+      {/* Export Section */}
+      <div className="setting-group" style={{ marginBottom: '40px' }}>
+        <h3>Export Data</h3>
+        <p style={{ marginBottom: '20px', color: '#666' }}>
+          Export your financial data to a JSON file. You can select which types of data to include.
+        </p>
+        
+        <div className="checkbox-group" style={{ marginBottom: '20px' }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={exportOptions.include_accounts}
+              onChange={() => toggleExportOption('include_accounts')}
+            />
+            Accounts
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={exportOptions.include_assets}
+              onChange={() => toggleExportOption('include_assets')}
+            />
+            Assets
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={exportOptions.include_liabilities}
+              onChange={() => toggleExportOption('include_liabilities')}
+            />
+            Liabilities
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={exportOptions.include_income}
+              onChange={() => toggleExportOption('include_income')}
+            />
+            Income Items
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={exportOptions.include_expenses}
+              onChange={() => toggleExportOption('include_expenses')}
+            />
+            Expense Items
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={exportOptions.include_projections}
+              onChange={() => toggleExportOption('include_projections')}
+            />
+            Projections
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={exportOptions.include_charts}
+              onChange={() => toggleExportOption('include_charts')}
+            />
+            Custom Charts
+          </label>
+        </div>
+
+        <button 
+          onClick={handleExport} 
+          className="save-button"
+          disabled={loading}
+        >
+          {loading ? 'Exporting...' : 'Export Data'}
+        </button>
+        {exportMessage && (
+          <div className={`message ${exportMessage.includes('Error') ? 'error' : 'success'}`} style={{ marginTop: '15px' }}>
+            {exportMessage}
+          </div>
+        )}
+      </div>
+
+      {/* Import Section */}
+      <div className="setting-group">
+        <h3>Import Data</h3>
+        <p style={{ marginBottom: '20px', color: '#666' }}>
+          Import financial data from a JSON file. You can select which types of data to import.
+        </p>
+        <p style={{ marginBottom: '20px', color: '#999', fontSize: '0.9em' }}>
+          Note: Existing items with the same name will be skipped to avoid duplicates.
+        </p>
+
+        <div className="checkbox-group" style={{ marginBottom: '20px' }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={importOptions.include_accounts}
+              onChange={() => toggleImportOption('include_accounts')}
+            />
+            Accounts
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={importOptions.include_assets}
+              onChange={() => toggleImportOption('include_assets')}
+            />
+            Assets
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={importOptions.include_liabilities}
+              onChange={() => toggleImportOption('include_liabilities')}
+            />
+            Liabilities
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={importOptions.include_income}
+              onChange={() => toggleImportOption('include_income')}
+            />
+            Income Items
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={importOptions.include_expenses}
+              onChange={() => toggleImportOption('include_expenses')}
+            />
+            Expense Items
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={importOptions.include_projections}
+              onChange={() => toggleImportOption('include_projections')}
+            />
+            Projections
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={importOptions.include_charts}
+              onChange={() => toggleImportOption('include_charts')}
+            />
+            Custom Charts
+          </label>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={handleFileSelect}
+            style={{ marginBottom: '10px' }}
+          />
+          {importFile && (
+            <p style={{ color: '#666', fontSize: '0.9em' }}>
+              Selected: {importFile.name}
+            </p>
+          )}
+        </div>
+
+        <button 
+          onClick={handleImport} 
+          className="save-button"
+          disabled={loading || !importFile}
+        >
+          {loading ? 'Importing...' : 'Import Data'}
+        </button>
+        {importMessage && (
+          <div className={`message ${importMessage.includes('Error') ? 'error' : 'success'}`} style={{ marginTop: '15px' }}>
+            {importMessage}
+          </div>
+        )}
+        {importResult && importResult.errors && importResult.errors.length > 0 && (
+          <div className="error" style={{ marginTop: '15px', padding: '10px', backgroundColor: '#ffe0e0', borderRadius: '4px' }}>
+            <strong>Import Errors:</strong>
+            <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+              {importResult.errors.map((error, idx) => (
+                <li key={idx} style={{ fontSize: '0.9em' }}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <div className="settings-page-actions">
+        <button onClick={() => navigate('/')} className="cancel-button">Back</button>
+      </div>
+    </div>
+  );
+};
+
+export default ExportImportPage;
+
