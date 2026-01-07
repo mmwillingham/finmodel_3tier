@@ -1,25 +1,39 @@
-import axios from 'axios';
-import authHeader from './auth-header';
+import api from './api.service';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const ReferralService = {
+  async createReferral(friendName, friendEmail) {
+    try {
+      const response = await api.post('/referrals/', {
+        friend_name: friendName,
+        friend_email: friendEmail
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating referral:', error);
+      throw error;
+    }
+  },
 
-class ReferralService {
-  createReferral(friendName, friendEmail) {
-    return axios.post(
-      `${API_URL}/referrals/`,
-      { friend_name: friendName, friend_email: friendEmail },
-      { headers: authHeader() }
-    );
+  async getMyReferrals() {
+    try {
+      const response = await api.get('/referrals/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching referrals:', error);
+      throw error;
+    }
+  },
+
+  async getReferralStats() {
+    try {
+      const response = await api.get('/referrals/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching referral stats:', error);
+      throw error;
+    }
   }
+};
 
-  getMyReferrals() {
-    return axios.get(`${API_URL}/referrals/`, { headers: authHeader() });
-  }
-
-  getReferralStats() {
-    return axios.get(`${API_URL}/referrals/stats`, { headers: authHeader() });
-  }
-}
-
-export default new ReferralService();
+export default ReferralService;
 
