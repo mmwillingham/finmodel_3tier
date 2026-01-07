@@ -8,7 +8,10 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
   const [message, setMessage] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [newAccount, setNewAccount] = useState({
-    broker: '',
+    brokerage: '',
+    broker_name: '',
+    broker_phone: '',
+    broker_email: '',
     account_name: '',
     account_number: '',
     is_retirement: false,
@@ -50,8 +53,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
   };
 
   const handleAddAccount = async () => {
-    if (!newAccount.broker || !newAccount.account_name) {
-      setMessage('Broker and Account Name are required');
+    if (!newAccount.brokerage || !newAccount.account_name) {
+      setMessage('Brokerage and Account Name are required');
       setTimeout(() => setMessage(''), 3000);
       return;
     }
@@ -60,7 +63,7 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
     try {
       await AccountService.createAccount(newAccount);
       setMessage('Account added successfully!');
-      setNewAccount({ broker: '', account_name: '', account_number: '', is_retirement: false });
+      setNewAccount({ brokerage: '', broker_name: '', broker_phone: '', broker_email: '', account_name: '', account_number: '', is_retirement: false });
       await loadAccounts();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
@@ -117,12 +120,39 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
               
               <div className="wizard-form">
                 <div className="form-group">
-                  <label>Broker/Institution *</label>
+                  <label>Brokerage *</label>
                   <input
                     type="text"
-                    value={newAccount.broker}
-                    onChange={(e) => setNewAccount({ ...newAccount, broker: e.target.value })}
+                    value={newAccount.brokerage}
+                    onChange={(e) => setNewAccount({ ...newAccount, brokerage: e.target.value })}
                     placeholder="e.g., Chase, Fidelity, Merrill Lynch"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Broker Name (Optional)</label>
+                  <input
+                    type="text"
+                    value={newAccount.broker_name}
+                    onChange={(e) => setNewAccount({ ...newAccount, broker_name: e.target.value })}
+                    placeholder="Name of your broker/advisor"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Broker Phone (Optional)</label>
+                  <input
+                    type="text"
+                    value={newAccount.broker_phone}
+                    onChange={(e) => setNewAccount({ ...newAccount, broker_phone: e.target.value })}
+                    placeholder="Phone number"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Broker Email (Optional)</label>
+                  <input
+                    type="email"
+                    value={newAccount.broker_email}
+                    onChange={(e) => setNewAccount({ ...newAccount, broker_email: e.target.value })}
+                    placeholder="Email address"
                   />
                 </div>
                 <div className="form-group">
@@ -156,7 +186,7 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
                 <button 
                   className="wizard-btn wizard-btn-primary" 
                   onClick={handleAddAccount}
-                  disabled={loading || !newAccount.broker || !newAccount.account_name}
+                  disabled={loading || !newAccount.brokerage || !newAccount.account_name}
                 >
                   {loading ? 'Adding...' : 'Add Account'}
                 </button>
@@ -169,7 +199,7 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
                     <table>
                       <thead>
                         <tr>
-                          <th>Broker</th>
+                          <th>Brokerage</th>
                           <th>Account Name</th>
                           <th>Type</th>
                         </tr>
@@ -177,7 +207,7 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
                       <tbody>
                         {accounts.map((acc) => (
                           <tr key={acc.id}>
-                            <td>{acc.broker}</td>
+                            <td>{acc.brokerage}</td>
                             <td>{acc.account_name}</td>
                             <td>{acc.is_retirement ? 'Retirement' : 'Regular'}</td>
                           </tr>
@@ -201,7 +231,7 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
                       <table>
                         <thead>
                           <tr>
-                            <th>Broker</th>
+                            <th>Brokerage</th>
                             <th>Account Name</th>
                             <th>Account Number</th>
                             <th>Type</th>
@@ -210,7 +240,7 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
                         <tbody>
                           {accounts.map((acc) => (
                             <tr key={acc.id}>
-                              <td>{acc.broker}</td>
+                              <td>{acc.brokerage}</td>
                               <td>{acc.account_name}</td>
                               <td>{acc.account_number || '-'}</td>
                               <td>{acc.is_retirement ? 'Retirement' : 'Regular'}</td>

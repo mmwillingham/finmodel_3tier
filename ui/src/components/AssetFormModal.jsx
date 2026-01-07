@@ -142,7 +142,7 @@ export default function AssetFormModal({
                 <option value="">None</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {account.broker} - {account.account_name}
+                    {account.brokerage} - {account.account_name}
                   </option>
                 ))}
               </select>

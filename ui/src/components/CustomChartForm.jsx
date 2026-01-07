@@ -337,7 +337,7 @@ export default function CustomChartForm({
                     <MultiSelectCheckbox
                       options={accounts.map(account => ({
                         id: account.id,
-                        broker: account.broker,
+                        brokerage: account.brokerage,
                         account_name: account.account_name,
                       }))}
                       selectedValues={series.selected_account_ids || []}

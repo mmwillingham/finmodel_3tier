@@ -21,7 +21,7 @@ def list_accounts(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """List all accounts for the current user."""
-    accounts = db.query(models.Account).filter(models.Account.owner_id == current_user.id).order_by(models.Account.broker, models.Account.account_name).all()
+    accounts = db.query(models.Account).filter(models.Account.owner_id == current_user.id).order_by(models.Account.brokerage, models.Account.account_name).all()
     return accounts
 
 @router.post("/", response_model=schemas.AccountOut, status_code=status.HTTP_201_CREATED)

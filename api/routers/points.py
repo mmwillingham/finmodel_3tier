@@ -1,0 +1,113 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from pydantic import BaseModel
+from pydantic import ConfigDict
+import models
+import schemas
+import auth
+import database
+import logging
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/points",
+    tags=["points"],
+    responses={404: {"description": "Not found"}},
+)
+
+class PointsBreakdown(BaseModel):
+    accounts: int = 0
+    assets: int = 0
+    liabilities: int = 0
+    cashflow_items: int = 0
+    referrals_sent: int = 0
+    referrals_registered: int = 0
+
+class PointsResponse(BaseModel):
+    total_points: int
+    breakdown: PointsBreakdown
+    model_config = ConfigDict(from_attributes=True)
+
+@router.get("/", response_model=PointsResponse)
+def get_user_points(
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    """
+    Calculate and return the total points for the current user.
+    Points are calculated based on:
+    - Number of accounts
+    - Number of assets
+    - Number of liabilities
+    - Number of cash flow items (income + expenses)
+    - Number of referrals sent
+    - Number of referrals that registered
+    """
+    try:
+        # Get user ID from the current_user schema
+        user_id = current_user.id
+
+        # Count accounts
+        accounts_count = db.query(func.count(models.Account.id)).filter(
+            models.Account.owner_id == user_id
+        ).scalar() or 0
+
+        # Count assets
+        assets_count = db.query(func.count(models.Asset.id)).filter(
+            models.Asset.owner_id == user_id
+        ).scalar() or 0
+
+        # Count liabilities
+        liabilities_count = db.query(func.count(models.Liability.id)).filter(
+            models.Liability.owner_id == user_id
+        ).scalar() or 0
+
+        # Count cash flow items (income + expenses)
+        cashflow_count = db.query(func.count(models.CashFlowItem.id)).filter(
+            models.CashFlowItem.owner_id == user_id
+        ).scalar() or 0
+
+        # Count referrals sent
+        referrals_sent_count = db.query(func.count(models.Referral.id)).filter(
+            models.Referral.referrer_id == user_id
+        ).scalar() or 0
+
+        # Count referrals that registered (friends who actually registered)
+        referrals_registered_count = db.query(func.count(models.Referral.id)).filter(
+            models.Referral.referrer_id == user_id,
+            models.Referral.registered_user_id.isnot(None)
+        ).scalar() or 0
+
+        # Calculate total points (you can adjust the weighting here)
+        total_points = (
+            accounts_count * 10 +
+            assets_count * 15 +
+            liabilities_count * 10 +
+            cashflow_count * 5 +
+            referrals_sent_count * 25 +
+            referrals_registered_count * 100  # Bonus points for successful referrals
+        )
+
+        breakdown = PointsBreakdown(
+            accounts=accounts_count,
+            assets=assets_count,
+            liabilities=liabilities_count,
+            cashflow_items=cashflow_count,
+            referrals_sent=referrals_sent_count,
+            referrals_registered=referrals_registered_count
+        )
+
+        return PointsResponse(
+            total_points=total_points,
+            breakdown=breakdown
+        )
+
+    except Exception as e:
+        logger.error(f"Error calculating points for user {current_user.id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error calculating points: {str(e)}"
+        )
+

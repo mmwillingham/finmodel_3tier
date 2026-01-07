@@ -31,6 +31,10 @@ from routers import liabilities
 from routers.settings import router as settings_router
 from routers.accounts import router as accounts_router
 from routers.auto_disbursements import router as auto_disbursements_router
+from routers.export_import import router as export_import_router
+from routers.referrals import router as referrals_router
+from routers.points import router as points_router
+from routers.documents import router as documents_router
 from utils.email import send_email
 from config import settings
 
@@ -64,6 +68,10 @@ app.include_router(assets.router)
 app.include_router(liabilities.router)
 app.include_router(accounts_router)
 app.include_router(auto_disbursements_router)
+app.include_router(export_import_router)
+app.include_router(referrals_router)
+app.include_router(points_router)
+app.include_router(documents_router)
 
 # New router for admin global settings
 admin_router = APIRouter()
@@ -222,16 +230,40 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
             detail=f"Password did not meet requirements: {e}"
         )
     
+    # Check if this user was referred by someone
+    # First, check if there's a pending referral for this email
+    pending_referral = db.query(models.Referral).filter(
+        models.Referral.friend_email == user.email.lower(),
+        models.Referral.registered_user_id.is_(None)
+    ).first()
+    
+    referred_by_id = None
+    if pending_referral:
+        # Use the referrer from the pending referral
+        referred_by_id = pending_referral.referrer_id
+    elif user.referred_by_email:
+        # User explicitly provided a referral email
+        referrer = db.query(models.User).filter(models.User.email == user.referred_by_email).first()
+        if referrer:
+            referred_by_id = referrer.id
+    
     db_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
         is_active=True,
-        is_confirmed=False
+        is_confirmed=False,
+        referred_by_id=referred_by_id
     )
     
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    # Now update the referral record with the new user ID if it exists
+    if pending_referral:
+        pending_referral.registered_user_id = db_user.id
+        pending_referral.registered_at = datetime.now()
+        db.commit()
     
     # Initialize UserSettings with global defaults if available, otherwise use schema defaults
     global_settings = db.query(models.GlobalSettings).first()

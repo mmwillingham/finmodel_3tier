@@ -26,6 +26,8 @@ export default function MultiSelectCheckbox({
   const dropdownRef = useRef(null);
   const resizeHandleRef = useRef(null);
   const isResizingRef = useRef(false);
+  const resizeStartYRef = useRef(0);
+  const resizeStartHeightRef = useRef(0);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -54,8 +56,9 @@ export default function MultiSelectCheckbox({
     const handleMouseMove = (e) => {
       if (!isResizingRef.current || !dropdownRef.current || !containerRef.current) return;
       
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const newHeight = e.clientY - containerRect.bottom;
+      // Calculate the height change based on mouse movement
+      const deltaY = e.clientY - resizeStartYRef.current;
+      const newHeight = resizeStartHeightRef.current + deltaY;
       const minHeight = 150;
       const maxHeight = 500;
       
@@ -89,6 +92,8 @@ export default function MultiSelectCheckbox({
       e.nativeEvent.stopImmediatePropagation();
     }
     isResizingRef.current = true;
+    resizeStartYRef.current = e.clientY;
+    resizeStartHeightRef.current = dropdownHeight;
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
   };
@@ -133,7 +138,7 @@ export default function MultiSelectCheckbox({
     if (showCategory && option.category) {
       return `${option.name || option.label} (${option.category})`;
     }
-    return option.name || option.label || option.broker ? `${option.broker} - ${option.account_name}` : String(option.id);
+    return option.name || option.label || option.brokerage ? `${option.brokerage} - ${option.account_name}` : String(option.id);
   };
 
   return (

@@ -39,6 +39,8 @@ steps:
           --platform managed \
           --allow-unauthenticated \
           --project financial-model-cloud \
+          --service-account app-docs-sa@financial-model-cloud.iam.gserviceaccount.com \
+          --set-env-vars GCS_BUCKET_NAME=finmodel-documents,GCS_PROJECT_ID=financial-model-cloud \
           --set-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
           --cpu=1 \
           --memory=512Mi \

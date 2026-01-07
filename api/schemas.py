@@ -10,6 +10,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
+    referred_by_email: Optional[str] = None  # Optional: Email of the user who referred them
 
     @field_validator('password')
     @classmethod
@@ -316,20 +317,29 @@ class GlobalSettingsOut(GlobalSettingsBase):
 # --- ACCOUNT SCHEMAS ---
 
 class AccountCreate(BaseModel):
-    broker: str
+    brokerage: str
+    broker_name: str | None = None
+    broker_phone: str | None = None
+    broker_email: str | None = None
     account_name: str
     account_number: str | None = None
     is_retirement: bool = False
 
 class AccountUpdate(BaseModel):
-    broker: str | None = None
+    brokerage: str | None = None
+    broker_name: str | None = None
+    broker_phone: str | None = None
+    broker_email: str | None = None
     account_name: str | None = None
     account_number: str | None = None
     is_retirement: bool | None = None
 
 class AccountOut(BaseModel):
     id: int
-    broker: str
+    brokerage: str
+    broker_name: str | None = None
+    broker_phone: str | None = None
+    broker_email: str | None = None
     account_name: str
     account_number: str | None = None
     is_retirement: bool

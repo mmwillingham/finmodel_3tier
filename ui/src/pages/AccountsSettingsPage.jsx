@@ -17,7 +17,10 @@ const AccountsSettingsPage = () => {
   const [editingAccount, setEditingAccount] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const [newAccount, setNewAccount] = useState({
-    broker: '',
+    brokerage: '',
+    broker_name: '',
+    broker_phone: '',
+    broker_email: '',
     account_name: '',
     account_number: '',
     is_retirement: false,
@@ -42,8 +45,8 @@ const AccountsSettingsPage = () => {
   }, [loadAccounts]);
 
   const handleCreateAccount = async () => {
-    if (!newAccount.broker || !newAccount.account_name) {
-      setMessage('Broker and Account Name are required');
+    if (!newAccount.brokerage || !newAccount.account_name) {
+      setMessage('Brokerage and Account Name are required');
       setTimeout(() => setMessage(''), 3000);
       return;
     }
@@ -51,7 +54,7 @@ const AccountsSettingsPage = () => {
     try {
       await AccountService.createAccount(newAccount);
       setMessage('Account created successfully!');
-      setNewAccount({ broker: '', account_name: '', account_number: '', is_retirement: false });
+      setNewAccount({ brokerage: '', broker_name: '', broker_phone: '', broker_email: '', account_name: '', account_number: '', is_retirement: false });
       loadAccounts();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
@@ -64,8 +67,8 @@ const AccountsSettingsPage = () => {
 
   const handleUpdateAccount = async (accountId, updatedAccount) => {
     // Validate required fields
-    if (!updatedAccount.broker || !updatedAccount.account_name) {
-      setMessage('Error: Broker and Account Name are required fields.');
+    if (!updatedAccount.brokerage || !updatedAccount.account_name) {
+      setMessage('Error: Brokerage and Account Name are required fields.');
       setTimeout(() => setMessage(''), 3000);
       return;
     }
@@ -116,17 +119,49 @@ const AccountsSettingsPage = () => {
 
       <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
         <h3>Add New Account</h3>
-        <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px', width: '100%' }}>
+        <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px', width: '100%' }}>
           <div className="form-field">
-            <label htmlFor="broker">Broker *</label>
+            <label htmlFor="brokerage">Brokerage *</label>
             <input
-              id="broker"
+              id="brokerage"
               type="text"
               placeholder="e.g., Merrill Lynch"
-              value={newAccount.broker}
-              onChange={(e) => setNewAccount({ ...newAccount, broker: e.target.value })}
+              value={newAccount.brokerage}
+              onChange={(e) => setNewAccount({ ...newAccount, brokerage: e.target.value })}
             />
           </div>
+          <div className="form-field">
+            <label htmlFor="broker_name">Broker Name</label>
+            <input
+              id="broker_name"
+              type="text"
+              placeholder="Optional"
+              value={newAccount.broker_name}
+              onChange={(e) => setNewAccount({ ...newAccount, broker_name: e.target.value })}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="broker_phone">Broker Phone</label>
+            <input
+              id="broker_phone"
+              type="text"
+              placeholder="Optional"
+              value={newAccount.broker_phone}
+              onChange={(e) => setNewAccount({ ...newAccount, broker_phone: e.target.value })}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="broker_email">Broker Email</label>
+            <input
+              id="broker_email"
+              type="email"
+              placeholder="Optional"
+              value={newAccount.broker_email}
+              onChange={(e) => setNewAccount({ ...newAccount, broker_email: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px', width: '100%' }}>
           <div className="form-field">
             <label htmlFor="account_name">Account Name *</label>
             <input
@@ -170,7 +205,10 @@ const AccountsSettingsPage = () => {
           <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
             <thead>
               <tr>
-                <th>Broker</th>
+                <th>Brokerage</th>
+                <th>Broker Name</th>
+                <th>Broker Phone</th>
+                <th>Broker Email</th>
                 <th>Account Name</th>
                 <th>Account Number</th>
                 <th>Retirement</th>
@@ -185,8 +223,32 @@ const AccountsSettingsPage = () => {
                       <td>
                         <input
                           type="text"
-                          value={editingAccount.broker}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, broker: e.target.value })}
+                          value={editingAccount.brokerage || ''}
+                          onChange={(e) => setEditingAccount({ ...editingAccount, brokerage: e.target.value })}
+                          style={{ width: '100%', padding: '5px' }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={editingAccount.broker_name || ''}
+                          onChange={(e) => setEditingAccount({ ...editingAccount, broker_name: e.target.value })}
+                          style={{ width: '100%', padding: '5px' }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={editingAccount.broker_phone || ''}
+                          onChange={(e) => setEditingAccount({ ...editingAccount, broker_phone: e.target.value })}
+                          style={{ width: '100%', padding: '5px' }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="email"
+                          value={editingAccount.broker_email || ''}
+                          onChange={(e) => setEditingAccount({ ...editingAccount, broker_email: e.target.value })}
                           style={{ width: '100%', padding: '5px' }}
                         />
                       </td>
@@ -223,7 +285,10 @@ const AccountsSettingsPage = () => {
                     </>
                   ) : (
                     <>
-                      <td>{account.broker}</td>
+                      <td>{account.brokerage}</td>
+                      <td>{account.broker_name || '-'}</td>
+                      <td>{account.broker_phone || '-'}</td>
+                      <td>{account.broker_email || '-'}</td>
                       <td>{account.account_name}</td>
                       <td>{account.account_number || '-'}</td>
                       <td>{account.is_retirement ? 'Yes' : 'No'}</td>

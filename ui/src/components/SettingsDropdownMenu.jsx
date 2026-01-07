@@ -25,6 +25,8 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
             {currentUser && currentUser.is_admin && (
                 <button onClick={(e) => handleItemClick(e, '/settings/admin/users')}>User Management</button>
             )}
+            <button onClick={(e) => handleItemClick(e, '/settings/export-import')}>Export/Import</button>
+            <button onClick={(e) => handleItemClick(e, '/settings/refer-a-friend')}>Refer a Friend</button>
             <button onClick={(e) => handleItemClick(e, '/settings/help')}>Help</button>
         </div>
     );

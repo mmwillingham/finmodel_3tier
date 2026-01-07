@@ -96,7 +96,7 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
   const getAccountName = (accountId) => {
     if (!accountId || !accounts || accounts.length === 0) return '-';
     const account = accounts.find(acc => acc.id === accountId);
-    return account ? `${account.broker} - ${account.account_name}` : '-';
+    return account ? `${account.brokerage} - ${account.account_name}` : '-';
   };
 
   // Download functions (unchanged)

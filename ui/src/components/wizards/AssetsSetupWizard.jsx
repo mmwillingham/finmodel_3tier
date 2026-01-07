@@ -192,7 +192,7 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }) => {
                         <option value="">None</option>
                         {accounts.map((acc) => (
                           <option key={acc.id} value={acc.id}>
-                            {acc.broker} - {acc.account_name}
+                            {acc.brokerage} - {acc.account_name}
                           </option>
                         ))}
                       </select>

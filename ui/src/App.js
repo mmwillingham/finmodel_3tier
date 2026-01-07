@@ -22,6 +22,9 @@ import AutoDisbursementSettingsPage from './pages/AutoDisbursementSettingsPage.j
 import UserManagementPage from './pages/UserManagementPage.jsx';
 import DefaultCategoriesPage from './pages/DefaultCategoriesPage.jsx';
 import HelpPage from './pages/HelpPage.jsx';
+import ExportImportPage from './pages/ExportImportPage.jsx';
+import ReferAFriendPage from './pages/ReferAFriendPage.jsx';
+import DocumentsPage from './pages/DocumentsPage.jsx';
 
 // The Main Application Structure
 function App() {
@@ -58,6 +61,9 @@ function App() {
                         <Route path="/settings/auto-disbursements" element={<ProtectedRoute><AutoDisbursementSettingsPage /></ProtectedRoute>} />
                         <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>} />
                         <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><DefaultCategoriesPage /></ProtectedRoute>} />
+                        <Route path="/settings/export-import" element={<ProtectedRoute><ExportImportPage /></ProtectedRoute>} />
+                        <Route path="/settings/refer-a-friend" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
+                        <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
                         <Route path="/settings/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
 
                         {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}

@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Header.css'; // NEW: Import Header-specific CSS
 import SettingsDropdownMenu from './SettingsDropdownMenu'; // New component for the dropdown menu
+import PointsModal from './PointsModal'; // Points modal component
 
 const Header = () => { // Removed setIsSettingsModalOpen prop
     const { currentUser, logout } = useAuth();
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false); // State to manage dropdown visibility
+    const [showPointsModal, setShowPointsModal] = useState(false); // State for points modal
     
     const handleLogout = () => {
         logout();
@@ -38,6 +40,13 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                             <div className="user-info">
                                 Logged in as: <strong>{currentUser.email}</strong>
                             </div>
+                            <button 
+                                onClick={() => setShowPointsModal(true)} 
+                                className="points-button"
+                                title="View Points"
+                            >
+                                ⭐
+                            </button>
                             <button onClick={handleLogout} className="logout-button">
                                 Logout
                             </button>
@@ -62,6 +71,10 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                     )}
                 </div>
             </nav>
+            <PointsModal 
+                isOpen={showPointsModal} 
+                onClose={() => setShowPointsModal(false)} 
+            />
         </header>
     );
 };

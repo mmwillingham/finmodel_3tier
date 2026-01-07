@@ -17,6 +17,7 @@ class User(Base):
     is_confirmed = Column(Boolean, default=False) # NEW FIELD
     is_admin = Column(Boolean, default=False) # NEW FIELD
     google_id = Column(String, unique=True, index=True, nullable=True) # NEW FIELD for Google OAuth
+    referred_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # NEW: Track who referred this user
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner", cascade="all, delete-orphan")
     # Relationship to PasswordResetToken: one user can have many reset tokens (though we'll only allow one active)
@@ -25,6 +26,9 @@ class User(Base):
     email_confirmation_tokens = relationship("EmailConfirmationToken", back_populates="user_owner", cascade="all, delete-orphan") # NEW RELATIONSHIP
     # Relationship to UserSettings: one user has one settings record
     settings = relationship("UserSettings", back_populates="owner", uselist=False, cascade="all, delete-orphan") # NEW RELATIONSHIP
+    # Referral relationships
+    referrals = relationship("Referral", foreign_keys="Referral.referrer_id", back_populates="referrer", cascade="all, delete-orphan")
+    referred_by = relationship("User", remote_side=[id], foreign_keys=[referred_by_id])
 
 class PasswordResetToken(Base):
     """
@@ -199,7 +203,10 @@ class Account(Base):
     __tablename__ = "accounts"
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    broker = Column(String, nullable=False)  # e.g., "Merrill Lynch", "Fidelity"
+    brokerage = Column(String, nullable=False)  # Renamed from broker, e.g., "Merrill Lynch", "Fidelity"
+    broker_name = Column(String, nullable=True)  # Name of the broker/advisor
+    broker_phone = Column(String, nullable=True)  # Phone number of the broker/advisor
+    broker_email = Column(String, nullable=True)  # Email of the broker/advisor
     account_name = Column(String, nullable=False)  # e.g., "Investment Account", "Checking Account"
     account_number = Column(String, nullable=True)  # Account number (optional)
     is_retirement = Column(Boolean, default=False)  # True for retirement accounts (IRA, 401k, etc.)
@@ -291,3 +298,61 @@ class AutoDisbursement(Base):
     end_date = Column(String, nullable=True)  # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class Referral(Base):
+    """
+    SQLAlchemy Model for tracking user referrals.
+    """
+    __tablename__ = "referrals"
+    id = Column(Integer, primary_key=True, index=True)
+    referrer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # User who made the referral
+    friend_name = Column(String, nullable=False)  # Name of the referred friend
+    friend_email = Column(String, nullable=False, index=True)  # Email of the referred friend
+    registered_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # User ID if they registered
+    registered_at = Column(DateTime(timezone=True), nullable=True)  # When the friend registered
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)  # When the referral was created
+    
+    referrer = relationship("User", foreign_keys=[referrer_id], back_populates="referrals")
+    registered_user = relationship("User", foreign_keys=[registered_user_id])
+
+
+class DocumentFolder(Base):
+    """
+    SQLAlchemy Model for document folders.
+    Users can organize their documents into folders.
+    """
+    __tablename__ = "document_folders"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    parent_folder_id = Column(Integer, ForeignKey("document_folders.id", ondelete="CASCADE"), nullable=True)  # For nested folders
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    owner = relationship("User")
+    parent_folder = relationship("DocumentFolder", remote_side=[id], backref="subfolders")
+    documents = relationship("Document", back_populates="folder", cascade="all, delete-orphan")
+
+
+class Document(Base):
+    """
+    SQLAlchemy Model for documents.
+    Documents are stored in Google Cloud Storage, with metadata in the database.
+    """
+    __tablename__ = "documents"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    folder_id = Column(Integer, ForeignKey("document_folders.id", ondelete="CASCADE"), nullable=True)
+    name = Column(String, nullable=False)  # Original filename
+    description = Column(String, nullable=True)
+    file_type = Column(String, nullable=True)  # MIME type
+    file_size = Column(Integer, nullable=True)  # Size in bytes
+    gcs_path = Column(String, nullable=False)  # Path in Google Cloud Storage bucket
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    owner = relationship("User")
+    folder = relationship("DocumentFolder", back_populates="documents")
