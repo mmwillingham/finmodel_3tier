@@ -35,7 +35,10 @@ from routers.export_import import router as export_import_router
 from routers.referrals import router as referrals_router
 from routers.points import router as points_router
 from routers.documents import router as documents_router
+from routers.authorized_users import router as authorized_users_router
 from utils.email import send_email
+from utils.permission_dependencies import get_accessible_user_ids
+from utils.permissions import check_permission
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -72,6 +75,7 @@ app.include_router(export_import_router)
 app.include_router(referrals_router)
 app.include_router(points_router)
 app.include_router(documents_router)
+app.include_router(authorized_users_router)
 
 # New router for admin global settings
 admin_router = APIRouter()
@@ -749,18 +753,30 @@ def get_projection_details(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Retrieves a single projection if the user is the owner."""
+    Retrieves a single projection if the user has view permission."""
     
     # Don't eagerly load time_series_data to save memory - we'll reconstruct data_json if needed
     projection = (
         db.query(models.Projection)
         .options(joinedload(models.Projection.accounts_data))
-        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
+        .filter(models.Projection.id == projection_id)
         .first()
     )
     
     if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
+        raise HTTPException(status_code=404, detail="Projection not found")
+    
+    # Check view permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=projection.owner_id,
+        permission_type="projections",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this projection")
     
     # Auto-recalculate if projection is stale (transparent to user)
     # Only auto-recalculate if we have accounts_data to rebuild from
@@ -823,10 +839,15 @@ def list_projections(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Lists all projections owned by the current user."""
+    Lists all projections the current user can access (own or authorized)."""
+    
+    # Get accessible user IDs (own + authorized)
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "projections")
     
     # Only load basic projection data for the list view, details will be fetched by get_projection_details
-    projections = db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
+    projections = db.query(models.Projection).filter(
+        models.Projection.owner_id.in_(accessible_user_ids)
+    ).all()
     
     return projections
 
@@ -838,17 +859,29 @@ def update_projection(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Updates an existing projection if user is the owner."""
+    Updates an existing projection if user has edit permission."""
     # Don't eagerly load time_series_data to save memory
     projection = (
         db.query(models.Projection)
         .options(joinedload(models.Projection.accounts_data))
-        .filter(models.Projection.id == projection_id, models.Projection.owner_id == current_user.id)
+        .filter(models.Projection.id == projection_id)
         .first()
     )
     
     if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found or not authorized.")
+        raise HTTPException(status_code=404, detail="Projection not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=projection.owner_id,
+        permission_type="projections",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
     logger.debug(f"Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.")
     
@@ -956,13 +989,22 @@ def delete_projection(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """
-    Delete a projection if the current user is the owner."""
+    """Delete a projection (requires edit permission)."""
     projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
     if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found.")
-    if projection.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=404, detail="Projection not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=projection.owner_id,
+        permission_type="projections",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this projection")
     
 
     db.delete(projection)
@@ -975,10 +1017,12 @@ def list_cashflow(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
+    """List all cash flow items the current user can access (own or authorized)."""
     logger.debug(f"list_cashflow: User ID: {current_user.id}, Is Income: {is_income}")
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
     cashflow_items = (
         db.query(models.CashFlowItem)
-        .filter(models.CashFlowItem.owner_id == current_user.id)
+        .filter(models.CashFlowItem.owner_id.in_(accessible_user_ids))
         .filter(models.CashFlowItem.is_income == is_income)
         .order_by(models.CashFlowItem.id.desc())
         .all()
@@ -1045,11 +1089,22 @@ def update_cashflow(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
+    """Update a cash flow item (requires edit permission)."""
     item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    if item.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=item.owner_id,
+        permission_type="items",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this item")
     
     yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
     
@@ -1067,11 +1122,22 @@ def delete_cashflow(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
+    """Delete a cash flow item (requires edit permission)."""
     item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    if item.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=item.owner_id,
+        permission_type="items",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this item")
     
 
     db.delete(item)

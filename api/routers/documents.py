@@ -11,6 +11,8 @@ from schemas_documents import (
     DocumentCreate, DocumentUpdate, DocumentOut
 )
 from utils import gcs_storage
+from utils.permission_dependencies import get_accessible_user_ids
+from utils.permissions import check_permission
 import logging
 import io
 from datetime import datetime
@@ -67,11 +69,12 @@ def list_folders(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    List all folders for the current user.
+    List all folders the current user can access (own or authorized).
     If parent_folder_id is specified, only return subfolders of that folder.
     """
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
     query = db.query(models.DocumentFolder).filter(
-        models.DocumentFolder.owner_id == current_user.id
+        models.DocumentFolder.owner_id.in_(accessible_user_ids)
     )
     
     if parent_folder_id is not None:
@@ -91,17 +94,31 @@ def get_folder(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Get a specific folder by ID.
+    Get a specific folder by ID (requires view permission).
     """
     folder = db.query(models.DocumentFolder).filter(
-        models.DocumentFolder.id == folder_id,
-        models.DocumentFolder.owner_id == current_user.id
+        models.DocumentFolder.id == folder_id
     ).first()
     
     if not folder:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Folder not found"
+        )
+    
+    # Check view permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=folder.owner_id,
+        permission_type="documents",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view this folder"
         )
     
     return folder
@@ -165,17 +182,31 @@ def delete_folder(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Delete a folder and all its contents (subfolders and documents).
+    Delete a folder and all its contents (subfolders and documents) - requires edit permission.
     """
     folder = db.query(models.DocumentFolder).filter(
-        models.DocumentFolder.id == folder_id,
-        models.DocumentFolder.owner_id == current_user.id
+        models.DocumentFolder.id == folder_id
     ).first()
     
     if not folder:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Folder not found"
+        )
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=folder.owner_id,
+        permission_type="documents",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this folder"
         )
     
     # Delete all documents in this folder from GCS
@@ -280,11 +311,12 @@ def list_documents(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    List all documents for the current user.
+    List all documents the current user can access (own or authorized).
     If folder_id is specified, only return documents in that folder.
     """
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
     query = db.query(models.Document).filter(
-        models.Document.owner_id == current_user.id
+        models.Document.owner_id.in_(accessible_user_ids)
     )
     
     if folder_id is not None:
@@ -304,17 +336,29 @@ def get_document(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Get a specific document by ID.
+    Get a specific document by ID (requires view permission).
     """
-    document = db.query(models.Document).filter(
-        models.Document.id == document_id,
-        models.Document.owner_id == current_user.id
-    ).first()
+    document = db.query(models.Document).filter(models.Document.id == document_id).first()
     
     if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found"
+        )
+    
+    # Check view permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=document.owner_id,
+        permission_type="documents",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view this document"
         )
     
     return document
@@ -327,17 +371,29 @@ async def download_document(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Download a document from GCS.
+    Download a document from GCS (requires view permission).
     """
-    document = db.query(models.Document).filter(
-        models.Document.id == document_id,
-        models.Document.owner_id == current_user.id
-    ).first()
+    document = db.query(models.Document).filter(models.Document.id == document_id).first()
     
     if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found"
+        )
+    
+    # Check view permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=document.owner_id,
+        permission_type="documents",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to download this document"
         )
     
     try:
@@ -368,17 +424,29 @@ def get_document_url(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Get a signed URL for temporary access to a document.
+    Get a signed URL for temporary access to a document (requires view permission).
     """
-    document = db.query(models.Document).filter(
-        models.Document.id == document_id,
-        models.Document.owner_id == current_user.id
-    ).first()
+    document = db.query(models.Document).filter(models.Document.id == document_id).first()
     
     if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found"
+        )
+    
+    # Check view permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=document.owner_id,
+        permission_type="documents",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this document"
         )
     
     try:
@@ -400,17 +468,29 @@ def update_document(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Update a document's metadata (name, description, folder).
+    Update a document's metadata (name, description, folder) - requires edit permission.
     """
-    document = db.query(models.Document).filter(
-        models.Document.id == document_id,
-        models.Document.owner_id == current_user.id
-    ).first()
+    document = db.query(models.Document).filter(models.Document.id == document_id).first()
     
     if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found"
+        )
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=document.owner_id,
+        permission_type="documents",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to edit this document"
         )
     
     # Validate folder if being changed
@@ -447,17 +527,29 @@ def delete_document(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Delete a document from both the database and GCS.
+    Delete a document from both the database and GCS (requires edit permission).
     """
-    document = db.query(models.Document).filter(
-        models.Document.id == document_id,
-        models.Document.owner_id == current_user.id
-    ).first()
+    document = db.query(models.Document).filter(models.Document.id == document_id).first()
     
     if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found"
+        )
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=document.owner_id,
+        permission_type="documents",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this document"
         )
     
     # Delete from GCS

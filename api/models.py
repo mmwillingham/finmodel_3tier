@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON
+from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -356,3 +356,34 @@ class Document(Base):
     # Relationships
     owner = relationship("User")
     folder = relationship("DocumentFolder", back_populates="documents")
+
+
+class AuthorizedUser(Base):
+    """
+    SQLAlchemy Model for authorized users.
+    Allows a primary user to grant access to another user with granular permissions.
+    """
+    __tablename__ = "authorized_users"
+    id = Column(Integer, primary_key=True, index=True)
+    primary_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # Owner who grants access
+    authorized_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # User who receives access
+    authorized_user_email = Column(String, nullable=False, index=True)  # Email of authorized user (for reference)
+    
+    # Granular permissions: "view", "edit", or None (no access)
+    accounts_permission = Column(String, nullable=True)  # "view" or "edit"
+    items_permission = Column(String, nullable=True)  # "view" or "edit" (applies to assets, liabilities, cashflow)
+    projections_permission = Column(String, nullable=True)  # "view" or "edit"
+    charts_permission = Column(String, nullable=True)  # "view" or "edit" (custom charts)
+    documents_permission = Column(String, nullable=True)  # "view" or "edit"
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    primary_user = relationship("User", foreign_keys=[primary_user_id], backref="authorized_users_granted")
+    authorized_user = relationship("User", foreign_keys=[authorized_user_id], backref="authorized_access_received")
+    
+    # Ensure unique combination of primary_user_id and authorized_user_id
+    __table_args__ = (
+        UniqueConstraint('primary_user_id', 'authorized_user_id', name='uq_primary_authorized_user'),
+    )

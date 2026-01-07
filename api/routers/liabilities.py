@@ -8,6 +8,8 @@ import models
 import schemas
 import auth
 import database
+from utils.permission_dependencies import get_accessible_user_ids
+from utils.permissions import check_permission
 from calculations import calculate_amortized_loan_balance
 
 logger = logging.getLogger(__name__)
@@ -88,8 +90,10 @@ def list_liabilities(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
+    """List all liabilities the current user can access (own or authorized)."""
     logger.debug(f"list_liabilities: User ID: {current_user.id}")
-    liabilities = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id).all()
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
+    liabilities = db.query(models.Liability).filter(models.Liability.owner_id.in_(accessible_user_ids)).all()
     logger.debug(f"list_liabilities: Found {len(liabilities)} liabilities for user {current_user.id}")
     return liabilities
 
@@ -99,9 +103,23 @@ def get_liability(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    liability = db.query(models.Liability).filter(models.Liability.id == liability_id, models.Liability.owner_id == current_user.id).first()
+    """Get a specific liability by ID (requires view permission)."""
+    liability = db.query(models.Liability).filter(models.Liability.id == liability_id).first()
     if not liability:
         raise HTTPException(status_code=404, detail="Liability not found")
+    
+    # Check permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=liability.owner_id,
+        permission_type="items",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this liability")
+    
     return liability
 
 @router.put("/{liability_id}", response_model=schemas.LiabilityOut)
@@ -112,9 +130,22 @@ async def update_liability(
     current_user: schemas.UserOut = Depends(auth.get_current_user),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    db_liability = db.query(models.Liability).filter(models.Liability.id == liability_id, models.Liability.owner_id == current_user.id).first()
+    """Update an existing liability (requires edit permission)."""
+    db_liability = db.query(models.Liability).filter(models.Liability.id == liability_id).first()
     if not db_liability:
         raise HTTPException(status_code=404, detail="Liability not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=db_liability.owner_id,
+        permission_type="items",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this liability")
 
     update_data = liability_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -200,9 +231,22 @@ def delete_liability(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    db_liability = db.query(models.Liability).filter(models.Liability.id == liability_id, models.Liability.owner_id == current_user.id).first()
+    """Delete a liability (requires edit permission)."""
+    db_liability = db.query(models.Liability).filter(models.Liability.id == liability_id).first()
     if not db_liability:
         raise HTTPException(status_code=404, detail="Liability not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=db_liability.owner_id,
+        permission_type="items",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this liability")
     
     # Delete any linked cash flow item
     cash_flow_item = db.query(models.CashFlowItem).filter(

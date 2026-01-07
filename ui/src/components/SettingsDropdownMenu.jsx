@@ -27,6 +27,7 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
             )}
             <button onClick={(e) => handleItemClick(e, '/settings/export-import')}>Export/Import</button>
             <button onClick={(e) => handleItemClick(e, '/settings/refer-a-friend')}>Refer a Friend</button>
+            <button onClick={(e) => handleItemClick(e, '/settings/authorized-users')}>Authorized Users</button>
             <button onClick={(e) => handleItemClick(e, '/settings/help')}>Help</button>
         </div>
     );

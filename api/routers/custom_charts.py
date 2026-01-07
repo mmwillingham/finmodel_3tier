@@ -14,6 +14,8 @@ import models
 import schemas
 from database import get_db
 from auth import get_current_user
+from utils.permission_dependencies import get_accessible_user_ids
+from utils.permissions import check_permission
 # Removed: from api import calculations # This will now be lazy-loaded inside functions
 
 
@@ -536,7 +538,9 @@ def read_custom_charts(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    charts = db.query(models.CustomChart).filter(models.CustomChart.user_id == current_user.id).all()
+    """List all custom charts the current user can access (own or authorized)."""
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "charts")
+    charts = db.query(models.CustomChart).filter(models.CustomChart.user_id.in_(accessible_user_ids)).all()
     return charts
 
 @router.get("/{chart_id}", response_model=schemas.CustomChartOut)
@@ -546,15 +550,28 @@ def read_custom_chart(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Retrieve a custom chart by ID.
+    Retrieve a custom chart by ID (requires view permission).
     
     Note: Charts use cached projection data (data_json). If underlying data (assets, liabilities, 
     income, expenses) is updated, the chart will not automatically reflect these changes. 
     Users must update or recreate the chart to see updated projections.
     """
-    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == current_user.id).first()
+    chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id).first()
     if not chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
+    
+    # Check view permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=chart.user_id,
+        permission_type="charts",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this chart")
+    
     print(f"--- DEBUG: data_json content AFTER retrieval from DB in read_custom_chart (ID: {chart_id}): {chart.data_json} ---"); sys.stdout.flush()
     return chart
 
@@ -565,13 +582,25 @@ def update_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    """Update a custom chart (requires edit permission)."""
     print(f"--- DEBUG: Entering update_custom_chart for chart ID {chart_id}, user {current_user.id} ---"); sys.stdout.flush()
 
-    chart_query = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == current_user.id)
-    db_chart = chart_query.first()
+    db_chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id).first()
 
     if not db_chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=db_chart.user_id,
+        permission_type="charts",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to edit this chart")
     
     if chart_update.series_configurations:
         series_configs = json.loads(chart_update.series_configurations)
@@ -1282,10 +1311,23 @@ def delete_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    """Delete a custom chart (requires edit permission)."""
     print(f"--- DEBUG: Entering delete_custom_chart for chart ID {chart_id}, user {current_user.id} ---"); sys.stdout.flush()
-    db_chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id, models.CustomChart.user_id == current_user.id).first()
+    db_chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id).first()
     if not db_chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=db_chart.user_id,
+        permission_type="charts",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to delete this chart")
     db.delete(db_chart)
     db.commit()
     print(f"--- DEBUG: Custom chart {chart_id} deleted. ---"); sys.stdout.flush()

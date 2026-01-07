@@ -6,6 +6,8 @@ import models
 import schemas
 import auth
 import database
+from utils.permission_dependencies import get_accessible_user_ids
+from utils.permissions import check_permission
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,8 +36,10 @@ def list_assets(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
+    """List all assets the current user can access (own or authorized)."""
     logger.debug(f"list_assets: User ID: {current_user.id}")
-    assets = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id).all()
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
+    assets = db.query(models.Asset).filter(models.Asset.owner_id.in_(accessible_user_ids)).all()
     logger.debug(f"list_assets: Found {len(assets)} assets for user {current_user.id}")
     return assets
 
@@ -45,9 +49,23 @@ def get_asset(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    asset = db.query(models.Asset).filter(models.Asset.id == asset_id, models.Asset.owner_id == current_user.id).first()
+    """Get a specific asset by ID (requires view permission)."""
+    asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
+    
+    # Check permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=asset.owner_id,
+        permission_type="items",
+        required_permission="view"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this asset")
+    
     return asset
 
 @router.put("/{asset_id}", response_model=schemas.AssetOut)
@@ -57,9 +75,22 @@ def update_asset(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    db_asset = db.query(models.Asset).filter(models.Asset.id == asset_id, models.Asset.owner_id == current_user.id).first()
+    """Update an existing asset (requires edit permission)."""
+    db_asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
     if not db_asset:
         raise HTTPException(status_code=404, detail="Asset not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=db_asset.owner_id,
+        permission_type="items",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this asset")
     
     update_data = asset.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -76,9 +107,23 @@ def delete_asset(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    db_asset = db.query(models.Asset).filter(models.Asset.id == asset_id, models.Asset.owner_id == current_user.id).first()
+    """Delete an asset (requires edit permission)."""
+    db_asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
     if not db_asset:
         raise HTTPException(status_code=404, detail="Asset not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=db_asset.owner_id,
+        permission_type="items",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this asset")
+    
     db.delete(db_asset)
     db.commit()
     return {"message": "Asset deleted successfully"}

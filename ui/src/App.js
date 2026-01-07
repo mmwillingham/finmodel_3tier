@@ -25,6 +25,7 @@ import HelpPage from './pages/HelpPage.jsx';
 import ExportImportPage from './pages/ExportImportPage.jsx';
 import ReferAFriendPage from './pages/ReferAFriendPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
+import AuthorizedUsersPage from './pages/AuthorizedUsersPage.jsx';
 
 // The Main Application Structure
 function App() {
@@ -63,6 +64,7 @@ function App() {
                         <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><DefaultCategoriesPage /></ProtectedRoute>} />
                         <Route path="/settings/export-import" element={<ProtectedRoute><ExportImportPage /></ProtectedRoute>} />
                         <Route path="/settings/refer-a-friend" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
+                        <Route path="/settings/authorized-users" element={<ProtectedRoute><AuthorizedUsersPage /></ProtectedRoute>} />
                         <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
                         <Route path="/settings/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
 
