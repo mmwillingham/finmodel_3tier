@@ -610,4 +610,167 @@
   background-color: #ffe0e0 !important;
 }
 
+/* Export/Import Page Styles */
+.export-import-page {
+  max-width: 800px;
+}
+
+.export-import-section {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 30px;
+}
+
+.export-import-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.export-import-section .section-header {
+  margin-bottom: 20px;
+}
+
+.export-import-section h3 {
+  color: var(--color-heading);
+  margin: 0 0 10px 0;
+  font-size: 1.3em;
+}
+
+.export-import-section .section-description {
+  color: var(--color-text);
+  margin: 0 0 8px 0;
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+.export-import-section .section-note {
+  color: var(--color-text-secondary);
+  margin: 8px 0 0 0;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.data-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: var(--color-background-soft);
+  border-radius: 6px;
+}
+
+.data-type-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.data-type-checkbox:hover {
+  background-color: var(--color-background);
+}
+
+.data-type-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.data-type-checkbox span {
+  font-size: 0.95em;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 20px;
+}
+
+.file-input-section {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: var(--color-background-soft);
+  border-radius: 6px;
+  border: 1px dashed var(--color-border);
+}
+
+.file-input-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.file-input-label span {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.95em;
+}
+
+.file-input {
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  font-size: 0.9em;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.file-input:hover {
+  border-color: var(--color-accent);
+}
+
+.file-selected {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: var(--color-success-background);
+  color: var(--color-success-text);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.file-selected strong {
+  font-weight: 600;
+}
+
+.export-import-section .message {
+  margin-top: 15px;
+}
+
+.export-import-section .error-message {
+  padding: 15px;
+  background-color: var(--color-error-background);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
+  border-radius: 6px;
+  margin-top: 15px;
+}
+
+.export-import-section .error-message strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.export-import-section .error-message ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.export-import-section .error-message li {
+  margin-bottom: 4px;
+  font-size: 0.9em;
+}
+
 

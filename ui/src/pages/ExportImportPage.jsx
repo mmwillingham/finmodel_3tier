@@ -140,190 +140,203 @@ const ExportImportPage = () => {
   };
 
   return (
-    <div className="settings-page-container">
+    <div className="settings-page-container export-import-page">
       <h2>Export / Import Data</h2>
 
       {/* Export Section */}
-      <div className="setting-group" style={{ marginBottom: '40px' }}>
-        <h3>Export Data</h3>
-        <p style={{ marginBottom: '20px', color: '#666' }}>
-          Export your financial data to a JSON file. You can select which types of data to include.
-        </p>
+      <div className="export-import-section">
+        <div className="section-header">
+          <h3>Export Data</h3>
+          <p className="section-description">
+            Export your financial data to a JSON file. Select which types of data to include.
+          </p>
+        </div>
         
-        <div className="checkbox-group" style={{ marginBottom: '20px' }}>
-          <label>
+        <div className="data-types-grid">
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={exportOptions.include_accounts}
               onChange={() => toggleExportOption('include_accounts')}
             />
-            Accounts
+            <span>Accounts</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={exportOptions.include_assets}
               onChange={() => toggleExportOption('include_assets')}
             />
-            Assets
+            <span>Assets</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={exportOptions.include_liabilities}
               onChange={() => toggleExportOption('include_liabilities')}
             />
-            Liabilities
+            <span>Liabilities</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={exportOptions.include_income}
               onChange={() => toggleExportOption('include_income')}
             />
-            Income Items
+            <span>Income Items</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={exportOptions.include_expenses}
               onChange={() => toggleExportOption('include_expenses')}
             />
-            Expense Items
+            <span>Expense Items</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={exportOptions.include_projections}
               onChange={() => toggleExportOption('include_projections')}
             />
-            Projections
+            <span>Projections</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={exportOptions.include_charts}
               onChange={() => toggleExportOption('include_charts')}
             />
-            Custom Charts
+            <span>Custom Charts</span>
           </label>
         </div>
 
-        <button 
-          onClick={handleExport} 
-          className="save-button"
-          disabled={loading}
-        >
-          {loading ? 'Exporting...' : 'Export Data'}
-        </button>
+        <div className="section-actions">
+          <button 
+            onClick={handleExport} 
+            className="save-button"
+            disabled={loading}
+          >
+            {loading ? 'Exporting...' : 'Export Data'}
+          </button>
+        </div>
+        
         {exportMessage && (
-          <div className={`message ${exportMessage.includes('Error') ? 'error' : 'success'}`} style={{ marginTop: '15px' }}>
+          <div className={`message ${exportMessage.includes('Error') ? 'error' : 'success'}`}>
             {exportMessage}
           </div>
         )}
       </div>
 
       {/* Import Section */}
-      <div className="setting-group">
-        <h3>Import Data</h3>
-        <p style={{ marginBottom: '20px', color: '#666' }}>
-          Import financial data from a JSON file. You can select which types of data to import.
-        </p>
-        <p style={{ marginBottom: '20px', color: '#999', fontSize: '0.9em' }}>
-          Note: Existing items with the same name will be skipped to avoid duplicates.
-        </p>
+      <div className="export-import-section">
+        <div className="section-header">
+          <h3>Import Data</h3>
+          <p className="section-description">
+            Import financial data from a JSON file. Select which types of data to import.
+          </p>
+          <p className="section-note">
+            Note: Existing items with the same name will be skipped to avoid duplicates.
+          </p>
+        </div>
 
-        <div className="checkbox-group" style={{ marginBottom: '20px' }}>
-          <label>
+        <div className="data-types-grid">
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={importOptions.include_accounts}
               onChange={() => toggleImportOption('include_accounts')}
             />
-            Accounts
+            <span>Accounts</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={importOptions.include_assets}
               onChange={() => toggleImportOption('include_assets')}
             />
-            Assets
+            <span>Assets</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={importOptions.include_liabilities}
               onChange={() => toggleImportOption('include_liabilities')}
             />
-            Liabilities
+            <span>Liabilities</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={importOptions.include_income}
               onChange={() => toggleImportOption('include_income')}
             />
-            Income Items
+            <span>Income Items</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={importOptions.include_expenses}
               onChange={() => toggleImportOption('include_expenses')}
             />
-            Expense Items
+            <span>Expense Items</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={importOptions.include_projections}
               onChange={() => toggleImportOption('include_projections')}
             />
-            Projections
+            <span>Projections</span>
           </label>
-          <label>
+          <label className="data-type-checkbox">
             <input
               type="checkbox"
               checked={importOptions.include_charts}
               onChange={() => toggleImportOption('include_charts')}
             />
-            Custom Charts
+            <span>Custom Charts</span>
           </label>
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <input
-            type="file"
-            accept=".json,application/json"
-            onChange={handleFileSelect}
-            style={{ marginBottom: '10px' }}
-          />
+        <div className="file-input-section">
+          <label className="file-input-label">
+            <span>Select JSON File:</span>
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={handleFileSelect}
+              className="file-input"
+            />
+          </label>
           {importFile && (
-            <p style={{ color: '#666', fontSize: '0.9em' }}>
-              Selected: {importFile.name}
+            <p className="file-selected">
+              Selected: <strong>{importFile.name}</strong>
             </p>
           )}
         </div>
 
-        <button 
-          onClick={handleImport} 
-          className="save-button"
-          disabled={loading || !importFile}
-        >
-          {loading ? 'Importing...' : 'Import Data'}
-        </button>
+        <div className="section-actions">
+          <button 
+            onClick={handleImport} 
+            className="save-button"
+            disabled={loading || !importFile}
+          >
+            {loading ? 'Importing...' : 'Import Data'}
+          </button>
+        </div>
+        
         {importMessage && (
-          <div className={`message ${importMessage.includes('Error') ? 'error' : 'success'}`} style={{ marginTop: '15px' }}>
+          <div className={`message ${importMessage.includes('Error') ? 'error' : 'success'}`}>
             {importMessage}
           </div>
         )}
         {importResult && importResult.errors && importResult.errors.length > 0 && (
-          <div className="error" style={{ marginTop: '15px', padding: '10px', backgroundColor: '#ffe0e0', borderRadius: '4px' }}>
+          <div className="error-message" style={{ marginTop: '15px' }}>
             <strong>Import Errors:</strong>
-            <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+            <ul>
               {importResult.errors.map((error, idx) => (
-                <li key={idx} style={{ fontSize: '0.9em' }}>{error}</li>
+                <li key={idx}>{error}</li>
               ))}
             </ul>
           </div>
