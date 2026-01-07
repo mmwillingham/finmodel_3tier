@@ -9,11 +9,21 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .documents-header h1 {
   margin: 0;
   font-size: 2rem;
+  color: #333;
+}
+
+.documents-header .btn-primary {
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 .documents-actions {
@@ -193,11 +203,29 @@
   text-align: center;
   padding: 60px 20px;
   color: #666;
+  background: #fff;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+  margin-top: 20px;
 }
 
 .empty-state p {
   margin: 10px 0;
   font-size: 1.1rem;
+}
+
+.empty-state-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+.empty-state-button {
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 /* Modal styles */

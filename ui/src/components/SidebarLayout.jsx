@@ -280,7 +280,7 @@ export default function SidebarLayout() {
             <h3>Documents</h3>
             <button 
               className="nav-btn" 
-              onClick={() => window.location.href = '/documents'}
+              onClick={() => { window.location.href = '/documents'; }}
             >
               📁 My Documents
             </button>

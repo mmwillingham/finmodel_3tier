@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DocumentsService from '../services/documents.service';
 import ConfirmDialog from '../components/ConfirmDialog';
 import './DocumentsPage.css';
+import '../components/SidebarLayout.css';
 
 const DocumentsPage = () => {
   const [folders, setFolders] = useState([]);
@@ -181,19 +183,46 @@ const DocumentsPage = () => {
     return new Date(dateString).toLocaleDateString() + ' ' + new Date(dateString).toLocaleTimeString();
   };
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
   return (
-    <div className="documents-page">
-      <div className="documents-header">
-        <h1>📁 Documents</h1>
-        <div className="documents-actions">
-          <button onClick={() => setShowNewFolderModal(true)} className="btn-primary">
-            + New Folder
-          </button>
-          <button onClick={() => setShowUploadModal(true)} className="btn-primary">
-            📤 Upload Document
-          </button>
-        </div>
-      </div>
+    <div className="sidebar-layout" style={{ display: 'flex', height: 'calc(100vh - 60px)', marginTop: '60px' }}>
+      <aside className="sidebar">
+        <nav className="sidebar-nav">
+          <section className="nav-section">
+            <h3>Dashboard</h3>
+            <button 
+              className="nav-btn" 
+              onClick={() => navigate('/')}
+            >
+              Home
+            </button>
+          </section>
+
+          <section className="nav-section">
+            <h3>Documents</h3>
+            <button 
+              className="nav-btn active" 
+            >
+              📁 My Documents
+            </button>
+          </section>
+        </nav>
+      </aside>
+      <main className="main-content">
+        <div className="documents-page">
+          <div className="documents-header">
+            <h1>📁 Documents</h1>
+            <div className="documents-actions">
+              <button onClick={() => setShowNewFolderModal(true)} className="btn-primary">
+                + New Folder
+              </button>
+              <button onClick={() => setShowUploadModal(true)} className="btn-primary">
+                📤 Upload Document
+              </button>
+            </div>
+          </div>
 
       {/* Breadcrumb navigation */}
       <div className="breadcrumb">
@@ -287,6 +316,14 @@ const DocumentsPage = () => {
             <div className="empty-state">
               <p>This folder is empty</p>
               <p>Create a folder or upload a document to get started</p>
+              <div className="empty-state-actions">
+                <button onClick={() => setShowNewFolderModal(true)} className="btn-primary empty-state-button">
+                  📁 Create Folder
+                </button>
+                <button onClick={() => setShowUploadModal(true)} className="btn-primary empty-state-button">
+                  📤 Upload Document
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -392,6 +429,8 @@ const DocumentsPage = () => {
         title={confirmDialog.title}
         message={confirmDialog.message}
       />
+        </div>
+      </main>
     </div>
   );
 };
