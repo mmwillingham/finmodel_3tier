@@ -29,10 +29,12 @@ const ReferAFriendPage = () => {
         ReferralService.getMyReferrals(),
         ReferralService.getReferralStats()
       ]);
-      setReferrals(referralsRes.data);
-      setStats(statsRes.data);
+      setReferrals(referralsRes || []);
+      setStats(statsRes || { total_referrals: 0, registered_referrals: 0, pending_referrals: 0 });
     } catch (error) {
       console.error('Failed to load referrals', error);
+      setReferrals([]);
+      setStats({ total_referrals: 0, registered_referrals: 0, pending_referrals: 0 });
     } finally {
       setLoadingData(false);
     }
