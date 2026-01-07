@@ -9,11 +9,21 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .page-header h1 {
   margin: 0;
   font-size: 2rem;
+  color: #333;
+}
+
+.page-header .btn-primary {
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 .tabs {
@@ -144,6 +154,12 @@
 
 .empty-state p {
   margin: 10px 0;
+  font-size: 1.1rem;
+}
+
+.empty-state-button {
+  margin-top: 20px;
+  padding: 12px 24px;
   font-size: 1.1rem;
 }
 

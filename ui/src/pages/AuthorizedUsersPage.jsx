@@ -177,7 +177,10 @@ const AuthorizedUsersPage = () => {
             authorizedUsers.length === 0 ? (
               <div className="empty-state">
                 <p>No authorized users yet</p>
-                <p>Click "Add Authorized User" to grant access to another user</p>
+                <p>Click the button below to grant access to another user</p>
+                <button onClick={() => setShowAddModal(true)} className="btn-primary empty-state-button">
+                  + Add Authorized User
+                </button>
               </div>
             ) : (
               <table className="users-table">
