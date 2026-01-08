@@ -86,11 +86,16 @@ def create_referral(
         referral_link = f"{settings.FRONTEND_URL or 'https://ordaxium.com'}/signup?ref={current_user.id}"
         
         email_subject = f"You've been referred to {settings.APP_NAME}"
+        if existing_user:
+            referral_message = "You're already registered, and we've linked your account to this referral."
+        else:
+            referral_message = f"Click the link below to sign up and get started:\n\n{referral_link}"
+        
         email_body = f"""Hello {referral.friend_name},
 
 {referrer_name} has referred you to {settings.APP_NAME}!
 
-{"You're already registered, and we've linked your account to this referral." if existing_user else f"Click the link below to sign up and get started:\n\n{referral_link}"}
+{referral_message}
 
 Thank you!
 The {settings.APP_NAME} Team
