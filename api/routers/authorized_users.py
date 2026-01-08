@@ -91,11 +91,16 @@ def create_authorized_user(
         signup_link = f"{settings.FRONTEND_URL or 'https://ordaxium.com'}/signup"
         
         email_subject = f"You've been granted access to {current_user.email}'s financial data"
+        if target_user:
+            invitation_message = "Your account has been linked and you can now access their data."
+        else:
+            invitation_message = f"To accept this invitation and access their data, please sign up at:\n\n{signup_link}\n\nOnce you register with this email address, your access will be automatically activated."
+        
         email_body = f"""Hello,
 
 {primary_user_name} ({current_user.email}) has granted you access to their financial data in {settings.APP_NAME}.
 
-{"Your account has been linked and you can now access their data." if target_user else f"To accept this invitation and access their data, please sign up at:\n\n{signup_link}\n\nOnce you register with this email address, your access will be automatically activated."}
+{invitation_message}
 
 Permissions granted:
 - Accounts: {authorized_user.accounts_permission or 'None'}
