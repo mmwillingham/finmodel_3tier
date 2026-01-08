@@ -24,6 +24,8 @@ class PointsBreakdown(BaseModel):
     cashflow_items: int = 0
     referrals_sent: int = 0
     referrals_registered: int = 0
+    folders: int = 0
+    documents: int = 0
 
 class PointsResponse(BaseModel):
     total_points: int
@@ -80,6 +82,16 @@ def get_user_points(
             models.Referral.registered_user_id.isnot(None)
         ).scalar() or 0
 
+        # Count document folders
+        folders_count = db.query(func.count(models.DocumentFolder.id)).filter(
+            models.DocumentFolder.owner_id == user_id
+        ).scalar() or 0
+
+        # Count documents
+        documents_count = db.query(func.count(models.Document.id)).filter(
+            models.Document.owner_id == user_id
+        ).scalar() or 0
+
         # Calculate total points (you can adjust the weighting here)
         total_points = (
             accounts_count * 10 +
@@ -87,7 +99,9 @@ def get_user_points(
             liabilities_count * 10 +
             cashflow_count * 5 +
             referrals_sent_count * 25 +
-            referrals_registered_count * 100  # Bonus points for successful referrals
+            referrals_registered_count * 100 +  # Bonus points for successful referrals
+            folders_count * 5 +  # Points for folders
+            documents_count * 10  # Points for documents
         )
 
         breakdown = PointsBreakdown(
@@ -96,7 +110,9 @@ def get_user_points(
             liabilities=liabilities_count,
             cashflow_items=cashflow_count,
             referrals_sent=referrals_sent_count,
-            referrals_registered=referrals_registered_count
+            referrals_registered=referrals_registered_count,
+            folders=folders_count,
+            documents=documents_count
         )
 
         return PointsResponse(

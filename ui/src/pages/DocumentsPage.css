@@ -281,3 +281,38 @@
   margin-top: 20px;
 }
 
+/* Walkthrough Modal Styles */
+.walkthrough-modal {
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.walkthrough-content {
+  padding: 20px 0;
+}
+
+.walkthrough-step {
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #0b57d0;
+}
+
+.walkthrough-step h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #0b57d0;
+  font-size: 1.2em;
+}
+
+.walkthrough-step p {
+  margin: 0;
+  line-height: 1.6;
+  color: #333;
+}
+
+.walkthrough-step strong {
+  color: #0b57d0;
+}

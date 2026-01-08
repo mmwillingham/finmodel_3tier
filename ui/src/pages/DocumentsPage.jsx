@@ -29,6 +29,9 @@ const DocumentsPage = () => {
   
   // Confirm dialog
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+  
+  // Walkthrough
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   useEffect(() => {
     loadFolderContents(currentFolderId);
@@ -215,6 +218,9 @@ const DocumentsPage = () => {
           <div className="documents-header">
             <h1>📁 Documents</h1>
             <div className="documents-actions">
+              <button onClick={() => setShowWalkthrough(true)} className="btn-secondary" title="Show Tutorial">
+                ❓ Tutorial
+              </button>
               <button onClick={() => setShowNewFolderModal(true)} className="btn-primary">
                 + New Folder
               </button>
@@ -429,6 +435,71 @@ const DocumentsPage = () => {
         title={confirmDialog.title}
         message={confirmDialog.message}
       />
+
+      {/* Walkthrough Modal */}
+      {showWalkthrough && (
+        <div className="modal-overlay" onClick={() => setShowWalkthrough(false)}>
+          <div className="modal-content walkthrough-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>📚 Document Vault Tutorial</h2>
+            <div className="walkthrough-content">
+              <div className="walkthrough-step">
+                <h3>Step 1: Create a Folder</h3>
+                <p>
+                  1. Click the <strong>"+ New Folder"</strong> button at the top right<br/>
+                  2. Enter a name for your folder (e.g., "Tax Documents", "Financial Statements")<br/>
+                  3. Click "Create" to save the folder<br/>
+                  4. Folders help you organize your documents into categories
+                </p>
+              </div>
+              
+              <div className="walkthrough-step">
+                <h3>Step 2: Upload a Document</h3>
+                <p>
+                  1. Click the <strong>"📤 Upload Document"</strong> button<br/>
+                  2. Click "Choose File" to select a document from your computer<br/>
+                  3. (Optional) Enter a custom name for the document<br/>
+                  4. (Optional) Add a description to help you find it later<br/>
+                  5. Select a folder to upload to, or leave it in the root folder<br/>
+                  6. Click "Upload" to save your document
+                </p>
+              </div>
+              
+              <div className="walkthrough-step">
+                <h3>Step 3: Navigate Your Documents</h3>
+                <p>
+                  • Click on any folder to open it and see its contents<br/>
+                  • Use the breadcrumb trail at the top to navigate back to previous folders<br/>
+                  • Click the folder name in the breadcrumb to jump to that folder
+                </p>
+              </div>
+              
+              <div className="walkthrough-step">
+                <h3>Step 4: Manage Your Documents</h3>
+                <p>
+                  • Click the <strong>✏️</strong> icon to edit a document or folder name<br/>
+                  • Click the <strong>⬇️</strong> icon to download a document<br/>
+                  • Click the <strong>🗑️</strong> icon to delete a document or folder<br/>
+                  • All documents are securely stored in Google Cloud Storage
+                </p>
+              </div>
+              
+              <div className="walkthrough-step">
+                <h3>💡 Tips</h3>
+                <p>
+                  • Create folders to organize documents by year, category, or purpose<br/>
+                  • Add descriptions to documents to make them easier to search<br/>
+                  • You earn points for creating folders and uploading documents!
+                </p>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setShowWalkthrough(false)} className="btn-primary">
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </div>
       </main>
     </div>

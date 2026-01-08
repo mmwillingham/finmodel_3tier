@@ -20,6 +20,9 @@ const ExportImportPage = () => {
     include_charts: true,
   });
 
+  const [exportFormat, setExportFormat] = useState('json'); // 'json' or 'csv'
+  const [exportFilename, setExportFilename] = useState('');
+
   const [importFile, setImportFile] = useState(null);
   const [importOptions, setImportOptions] = useState({
     include_accounts: true,
@@ -40,8 +43,10 @@ const ExportImportPage = () => {
     setLoading(true);
     setExportMessage('');
     try {
-      await ExportImportService.exportData(exportOptions);
-      setExportMessage('Data exported successfully! Check your downloads folder.');
+      const dateStr = new Date().toISOString().split('T')[0];
+      const defaultFilename = exportFilename || `financial_data_export_${dateStr}.${exportFormat}`;
+      await ExportImportService.exportData(exportOptions, exportFormat, defaultFilename);
+      setExportMessage(`Data exported successfully as ${exportFormat.toUpperCase()}! Check your downloads folder.`);
       setTimeout(() => setExportMessage(''), 3000);
     } catch (error) {
       console.error('Export failed:', error);
@@ -211,13 +216,44 @@ const ExportImportPage = () => {
           </label>
         </div>
 
+        <div className="export-format-section">
+          <div className="format-selection">
+            <label className="format-label">
+              <span>Export Format:</span>
+              <select 
+                value={exportFormat} 
+                onChange={(e) => setExportFormat(e.target.value)}
+                className="format-select"
+              >
+                <option value="json">JSON</option>
+                <option value="csv">CSV</option>
+              </select>
+            </label>
+          </div>
+          <div className="filename-input">
+            <label className="filename-label">
+              <span>Filename (optional):</span>
+              <input
+                type="text"
+                value={exportFilename}
+                onChange={(e) => setExportFilename(e.target.value)}
+                placeholder={`financial_data_export_${new Date().toISOString().split('T')[0]}.${exportFormat}`}
+                className="filename-input-field"
+              />
+            </label>
+            <p className="filename-hint">
+              If left empty, a default filename will be used.
+            </p>
+          </div>
+        </div>
+
         <div className="section-actions">
           <button 
             onClick={handleExport} 
             className="save-button"
             disabled={loading}
           >
-            {loading ? 'Exporting...' : 'Export Data'}
+            {loading ? 'Exporting...' : `Export Data as ${exportFormat.toUpperCase()}`}
           </button>
         </div>
         

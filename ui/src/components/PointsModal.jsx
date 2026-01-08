@@ -71,6 +71,14 @@ const PointsModal = ({ isOpen, onClose }) => {
                   <span className="points-breakdown-label">Referrals Registered:</span>
                   <span className="points-breakdown-value">{points.breakdown.referrals_registered} × 100 = {points.breakdown.referrals_registered * 100} pts</span>
                 </div>
+                <div className="points-breakdown-item">
+                  <span className="points-breakdown-label">Document Folders:</span>
+                  <span className="points-breakdown-value">{points.breakdown.folders || 0} × 5 = {(points.breakdown.folders || 0) * 5} pts</span>
+                </div>
+                <div className="points-breakdown-item">
+                  <span className="points-breakdown-label">Documents:</span>
+                  <span className="points-breakdown-value">{points.breakdown.documents || 0} × 10 = {(points.breakdown.documents || 0) * 10} pts</span>
+                </div>
               </div>
             </>
           )}

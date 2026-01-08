@@ -87,9 +87,9 @@ export default function MultiSelectCheckbox({
   const handleResizeStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Use native event for stopImmediatePropagation
-    if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
-      e.nativeEvent.stopImmediatePropagation();
+    // Stop event from bubbling to parent elements
+    if (e.stopImmediatePropagation) {
+      e.stopImmediatePropagation();
     }
     isResizingRef.current = true;
     resizeStartYRef.current = e.clientY;

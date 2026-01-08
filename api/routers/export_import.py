@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import models
@@ -7,6 +8,8 @@ import auth
 import database
 import json
 import logging
+import csv
+import io
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -17,7 +20,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/export", response_model=dict)
+@router.get("/export")
 def export_user_data(
     include_accounts: bool = True,
     include_assets: bool = True,
@@ -26,11 +29,12 @@ def export_user_data(
     include_expenses: bool = True,
     include_projections: bool = True,
     include_charts: bool = True,
+    format: str = "json",  # "json" or "csv"
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Export user data as JSON. Can selectively include/exclude data types.
+    Export user data as JSON or CSV. Can selectively include/exclude data types.
     """
     try:
         export_data = {
@@ -92,7 +96,7 @@ def export_user_data(
         if include_income:
             income_items = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.owner_id == current_user.id,
-                models.CashFlowItem.type == "income"
+                models.CashFlowItem.is_income == True
             ).all()
             export_data["data"]["income"] = [
                 {
@@ -105,7 +109,8 @@ def export_user_data(
                     "end_date": item.end_date,
                     "linked_item_type": item.linked_item_type,
                     "linked_item_id": item.linked_item_id,
-                    "linked_asset_ids": item.linked_asset_ids if hasattr(item, 'linked_asset_ids') else None,
+                    "linked_asset_ids": item.linked_asset_ids if item.linked_asset_ids is not None else None,
+                    "percentage": item.percentage,
                     "annual_increase_percent": item.annual_increase_percent,
                     "taxable": item.taxable,
                 }
@@ -115,7 +120,7 @@ def export_user_data(
         if include_expenses:
             expense_items = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.owner_id == current_user.id,
-                models.CashFlowItem.type == "expense"
+                models.CashFlowItem.is_income == False
             ).all()
             export_data["data"]["expenses"] = [
                 {
@@ -128,7 +133,8 @@ def export_user_data(
                     "end_date": item.end_date,
                     "linked_item_type": item.linked_item_type,
                     "linked_item_id": item.linked_item_id,
-                    "linked_asset_ids": item.linked_asset_ids if hasattr(item, 'linked_asset_ids') else None,
+                    "linked_asset_ids": item.linked_asset_ids if item.linked_asset_ids is not None else None,
+                    "percentage": item.percentage,
                     "inflation_percent": item.inflation_percent,
                     "tax_deductible": item.tax_deductible,
                     "contributes_to_asset_id": item.contributes_to_asset_id,
@@ -164,6 +170,108 @@ def export_user_data(
                 for chart in charts
             ]
 
+        # Return CSV format if requested
+        if format.lower() == "csv":
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Write metadata
+            writer.writerow(["Field", "Value"])
+            writer.writerow(["Export Date", export_data["export_date"]])
+            writer.writerow(["User Email", export_data["user_email"]])
+            writer.writerow([])
+            
+            # Write each data section
+            if export_data["data"].get("accounts"):
+                writer.writerow(["ACCOUNTS"])
+                accounts = export_data["data"]["accounts"]
+                if accounts:
+                    headers = list(accounts[0].keys())
+                    writer.writerow(headers)
+                    for acc in accounts:
+                        writer.writerow([acc.get(h, "") for h in headers])
+                writer.writerow([])
+            
+            if export_data["data"].get("assets"):
+                writer.writerow(["ASSETS"])
+                assets = export_data["data"]["assets"]
+                if assets:
+                    headers = list(assets[0].keys())
+                    writer.writerow(headers)
+                    for ast in assets:
+                        writer.writerow([ast.get(h, "") for h in headers])
+                writer.writerow([])
+            
+            if export_data["data"].get("liabilities"):
+                writer.writerow(["LIABILITIES"])
+                liabilities = export_data["data"]["liabilities"]
+                if liabilities:
+                    headers = list(liabilities[0].keys())
+                    writer.writerow(headers)
+                    for lib in liabilities:
+                        writer.writerow([lib.get(h, "") for h in headers])
+                writer.writerow([])
+            
+            if export_data["data"].get("income"):
+                writer.writerow(["INCOME"])
+                income = export_data["data"]["income"]
+                if income:
+                    headers = list(income[0].keys())
+                    writer.writerow(headers)
+                    for inc in income:
+                        writer.writerow([inc.get(h, "") for h in headers])
+                writer.writerow([])
+            
+            if export_data["data"].get("expenses"):
+                writer.writerow(["EXPENSES"])
+                expenses = export_data["data"]["expenses"]
+                if expenses:
+                    headers = list(expenses[0].keys())
+                    writer.writerow(headers)
+                    for exp in expenses:
+                        writer.writerow([exp.get(h, "") for h in headers])
+                writer.writerow([])
+            
+            if export_data["data"].get("projections"):
+                writer.writerow(["PROJECTIONS"])
+                projections = export_data["data"]["projections"]
+                if projections:
+                    headers = list(projections[0].keys())
+                    writer.writerow(headers)
+                    for proj in projections:
+                        writer.writerow([proj.get(h, "") for h in headers])
+                writer.writerow([])
+            
+            if export_data["data"].get("charts"):
+                writer.writerow(["CHARTS"])
+                charts = export_data["data"]["charts"]
+                if charts:
+                    # Flatten series_configurations for CSV
+                    headers = ["name", "chart_type", "display_type", "years", "show_chart_totals", "series_configurations"]
+                    writer.writerow(headers)
+                    for chart in charts:
+                        series_config_str = json.dumps(chart.get("series_configurations", [])) if chart.get("series_configurations") else ""
+                        writer.writerow([
+                            chart.get("name", ""),
+                            chart.get("chart_type", ""),
+                            chart.get("display_type", ""),
+                            chart.get("years", ""),
+                            chart.get("show_chart_totals", ""),
+                            series_config_str
+                        ])
+            
+            csv_content = output.getvalue()
+            output.close()
+            
+            return Response(
+                content=csv_content,
+                media_type="text/csv",
+                headers={
+                    "Content-Disposition": f'attachment; filename="financial_data_export_{datetime.now().strftime("%Y%m%d")}.csv"'
+                }
+            )
+        
+        # Return JSON format (default)
         return export_data
 
     except Exception as e:

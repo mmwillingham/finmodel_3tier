@@ -1,7 +1,7 @@
 import api from './api.service';
 
 const ExportImportService = {
-  async exportData(includeOptions = {}) {
+  async exportData(includeOptions = {}, format = 'json', filename = null) {
     try {
       const params = new URLSearchParams();
       Object.keys(includeOptions).forEach(key => {
@@ -9,15 +9,30 @@ const ExportImportService = {
           params.append(key, includeOptions[key]);
         }
       });
+      params.append('format', format);
       
-      const response = await api.get(`/export-import/export?${params.toString()}`);
+      const response = await api.get(`/export-import/export?${params.toString()}`, {
+        responseType: format === 'csv' ? 'blob' : 'json'
+      });
+      
+      // Determine default filename if not provided
+      if (!filename) {
+        const dateStr = new Date().toISOString().split('T')[0];
+        filename = `financial_data_export_${dateStr}.${format === 'csv' ? 'csv' : 'json'}`;
+      }
       
       // Create a blob and download
-      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      let blob;
+      if (format === 'csv') {
+        blob = response.data;
+      } else {
+        blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `financial_data_export_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 import models
@@ -9,6 +9,8 @@ from schemas_authorized_users import (
     AuthorizedUserCreate, AuthorizedUserUpdate, AuthorizedUserOut
 )
 from utils.permissions import get_authorized_users_for_primary
+from utils.email import send_email
+from config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,36 +25,40 @@ router = APIRouter(
 @router.post("/", response_model=AuthorizedUserOut, status_code=status.HTTP_201_CREATED)
 def create_authorized_user(
     authorized_user: AuthorizedUserCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
     Create a new authorized user entry.
     The current user (primary_user) grants access to another user (authorized_user).
+    If the user doesn't exist yet, create the entry with just the email (authorized_user_id will be null).
+    When they register, they'll be automatically linked.
     """
     # Find the authorized user by email
     target_user = db.query(models.User).filter(
         models.User.email == authorized_user.authorized_user_email.lower()
     ).first()
     
-    if not target_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with email {authorized_user.authorized_user_email} not found. They must register first."
-        )
-    
     # Cannot authorize yourself
-    if target_user.id == current_user.id:
+    if target_user and target_user.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot authorize yourself"
         )
     
-    # Check if this authorization already exists
-    existing = db.query(models.AuthorizedUser).filter(
-        models.AuthorizedUser.primary_user_id == current_user.id,
-        models.AuthorizedUser.authorized_user_id == target_user.id
-    ).first()
+    # Check if this authorization already exists (by email if user doesn't exist, by user_id if they do)
+    if target_user:
+        existing = db.query(models.AuthorizedUser).filter(
+            models.AuthorizedUser.primary_user_id == current_user.id,
+            models.AuthorizedUser.authorized_user_id == target_user.id
+        ).first()
+    else:
+        existing = db.query(models.AuthorizedUser).filter(
+            models.AuthorizedUser.primary_user_id == current_user.id,
+            models.AuthorizedUser.authorized_user_email == authorized_user.authorized_user_email.lower(),
+            models.AuthorizedUser.authorized_user_id.is_(None)
+        ).first()
     
     if existing:
         raise HTTPException(
@@ -61,9 +67,10 @@ def create_authorized_user(
         )
     
     # Create the authorized user entry
+    # If user exists, link them. If not, authorized_user_id will be None until they register
     db_authorized_user = models.AuthorizedUser(
         primary_user_id=current_user.id,
-        authorized_user_id=target_user.id,
+        authorized_user_id=target_user.id if target_user else None,
         authorized_user_email=authorized_user.authorized_user_email.lower(),
         accounts_permission=authorized_user.accounts_permission,
         items_permission=authorized_user.items_permission,
@@ -76,7 +83,36 @@ def create_authorized_user(
     db.commit()
     db.refresh(db_authorized_user)
     
-    logger.info(f"Created authorized user {target_user.id} for primary user {current_user.id}")
+    logger.info(f"Created authorized user entry for {authorized_user.authorized_user_email} (user_id: {target_user.id if target_user else 'pending'}) for primary user {current_user.id}")
+    
+    # Send email notification in the background
+    try:
+        primary_user_name = current_user.email.split('@')[0]
+        signup_link = f"{settings.FRONTEND_URL}/signup"
+        
+        email_subject = f"You've been granted access to {current_user.email}'s financial data"
+        email_body = f"""
+Hello,
+
+{primary_user_name} ({current_user.email}) has granted you access to their financial data in {settings.APP_NAME or 'Financial Projector'}.
+
+{"Your account has been linked and you can now access their data." if target_user else f"To accept this invitation and access their data, please sign up at:\n\n{signup_link}\n\nOnce you register with this email address, your access will be automatically activated."}
+
+Permissions granted:
+- Accounts: {authorized_user.accounts_permission or 'None'}
+- Items (Assets/Liabilities): {authorized_user.items_permission or 'None'}
+- Projections: {authorized_user.projections_permission or 'None'}
+- Charts: {authorized_user.charts_permission or 'None'}
+- Documents: {authorized_user.documents_permission or 'None'}
+
+Thank you!
+The {settings.APP_NAME or 'Financial Projector'} Team
+        """.strip()
+        
+        background_tasks.add_task(send_email, authorized_user.authorized_user_email, email_subject, email_body)
+    except Exception as e:
+        logger.error(f"Failed to queue authorized user email: {e}")
+    
     return db_authorized_user
 
 

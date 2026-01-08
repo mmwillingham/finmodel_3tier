@@ -269,6 +269,16 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
         pending_referral.registered_at = datetime.now()
         db.commit()
     
+    # Link any pending authorized user entries for this email
+    pending_authorized_users = db.query(models.AuthorizedUser).filter(
+        models.AuthorizedUser.authorized_user_email == user.email.lower(),
+        models.AuthorizedUser.authorized_user_id.is_(None)
+    ).all()
+    
+    for auth_entry in pending_authorized_users:
+        auth_entry.authorized_user_id = db_user.id
+    db.commit()
+    
     # Initialize UserSettings with global defaults if available, otherwise use schema defaults
     global_settings = db.query(models.GlobalSettings).first()
     if global_settings:

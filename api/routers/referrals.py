@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -10,6 +10,8 @@ import schemas
 import auth
 import database
 import logging
+from utils.email import send_email
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +37,12 @@ class ReferralOut(BaseModel):
 @router.post("/", response_model=ReferralOut, status_code=status.HTTP_201_CREATED)
 def create_referral(
     referral: ReferralCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
-    Create a new referral entry.
+    Create a new referral entry. If the email is already registered, link them to the referral.
     """
     # Check if this email was already referred by this user
     existing = db.query(models.Referral).filter(
@@ -58,21 +61,45 @@ def create_referral(
         models.User.email == referral.friend_email.lower()
     ).first()
     
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This email is already registered."
-        )
-    
+    # Create the referral entry
     new_referral = models.Referral(
         referrer_id=current_user.id,
         friend_name=referral.friend_name,
         friend_email=referral.friend_email.lower(),
     )
     
+    # If the user already exists, link them to the referral
+    if existing_user:
+        new_referral.registered_user_id = existing_user.id
+        new_referral.registered_at = datetime.now()
+        # Also set the user's referred_by_id if not already set
+        if not existing_user.referred_by_id:
+            existing_user.referred_by_id = current_user.id
+    
     db.add(new_referral)
     db.commit()
     db.refresh(new_referral)
+    
+    # Send email notification in the background
+    try:
+        referrer_name = current_user.email.split('@')[0]  # Use email username as name
+        referral_link = f"{settings.FRONTEND_URL}/signup?ref={current_user.id}"
+        
+        email_subject = f"You've been referred to {settings.APP_NAME or 'Financial Projector'}"
+        email_body = f"""
+Hello {referral.friend_name},
+
+{referrer_name} has referred you to {settings.APP_NAME or 'Financial Projector'}!
+
+{"You're already registered, and we've linked your account to this referral." if existing_user else f"Click the link below to sign up and get started:\n\n{referral_link}"}
+
+Thank you!
+The {settings.APP_NAME or 'Financial Projector'} Team
+        """.strip()
+        
+        background_tasks.add_task(send_email, referral.friend_email, email_subject, email_body)
+    except Exception as e:
+        logger.error(f"Failed to queue referral email: {e}")
     
     return new_referral
 
