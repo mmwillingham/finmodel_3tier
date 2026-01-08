@@ -88,13 +88,12 @@ def create_authorized_user(
     # Send email notification in the background
     try:
         primary_user_name = current_user.email.split('@')[0]
-        signup_link = f"{settings.FRONTEND_URL}/signup"
+        signup_link = f"{settings.FRONTEND_URL or 'https://ordaxium.com'}/signup"
         
         email_subject = f"You've been granted access to {current_user.email}'s financial data"
-        email_body = f"""
-Hello,
+        email_body = f"""Hello,
 
-{primary_user_name} ({current_user.email}) has granted you access to their financial data in {settings.APP_NAME or 'Financial Projector'}.
+{primary_user_name} ({current_user.email}) has granted you access to their financial data in {settings.APP_NAME}.
 
 {"Your account has been linked and you can now access their data." if target_user else f"To accept this invitation and access their data, please sign up at:\n\n{signup_link}\n\nOnce you register with this email address, your access will be automatically activated."}
 
@@ -106,12 +105,13 @@ Permissions granted:
 - Documents: {authorized_user.documents_permission or 'None'}
 
 Thank you!
-The {settings.APP_NAME or 'Financial Projector'} Team
+The {settings.APP_NAME} Team
         """.strip()
         
         background_tasks.add_task(send_email, authorized_user.authorized_user_email, email_subject, email_body)
+        logger.info(f"Queued authorized user email to {authorized_user.authorized_user_email}")
     except Exception as e:
-        logger.error(f"Failed to queue authorized user email: {e}")
+        logger.error(f"Failed to queue authorized user email to {authorized_user.authorized_user_email}: {e}", exc_info=True)
     
     return db_authorized_user
 

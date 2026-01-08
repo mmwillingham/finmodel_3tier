@@ -1,10 +1,26 @@
 import os
 import sys
 
+# Read environment variables for the database connection
+# These should be set in your environment or .env file for local development
+# For Cloud Run, these are set via environment variables or secrets
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")  # Support secret manager format
+DB_NAME = os.getenv("DB_NAME")
+
+if not all([DB_USER, DB_PASSWORD, DB_NAME]):
+    print("ERROR: Missing required environment variables: DB_USER, DB_PASSWORD, DB_NAME")
+    print("Please set these environment variables before running this script.")
+    print("Example:")
+    print("  export DB_USER=dbadmin")
+    print("  export DB_PASSWORD=your_password")
+    print("  export DB_NAME=finmodel1")
+    sys.exit(1)
+
 # Set the environment variables for the database connection before any imports that use them
-os.environ["DB_USER"] = "dbadmin"
-os.environ["DB_PASSWORD"] = "bolaudersez88"
-os.environ["DB_NAME"] = "finmodel1"
+os.environ["DB_USER"] = DB_USER
+os.environ["DB_PASSWORD"] = DB_PASSWORD
+os.environ["DB_NAME"] = DB_NAME
 
 # Add the 'api' directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'api')))

@@ -83,23 +83,23 @@ def create_referral(
     # Send email notification in the background
     try:
         referrer_name = current_user.email.split('@')[0]  # Use email username as name
-        referral_link = f"{settings.FRONTEND_URL}/signup?ref={current_user.id}"
+        referral_link = f"{settings.FRONTEND_URL or 'https://ordaxium.com'}/signup?ref={current_user.id}"
         
-        email_subject = f"You've been referred to {settings.APP_NAME or 'Financial Projector'}"
-        email_body = f"""
-Hello {referral.friend_name},
+        email_subject = f"You've been referred to {settings.APP_NAME}"
+        email_body = f"""Hello {referral.friend_name},
 
-{referrer_name} has referred you to {settings.APP_NAME or 'Financial Projector'}!
+{referrer_name} has referred you to {settings.APP_NAME}!
 
 {"You're already registered, and we've linked your account to this referral." if existing_user else f"Click the link below to sign up and get started:\n\n{referral_link}"}
 
 Thank you!
-The {settings.APP_NAME or 'Financial Projector'} Team
+The {settings.APP_NAME} Team
         """.strip()
         
         background_tasks.add_task(send_email, referral.friend_email, email_subject, email_body)
+        logger.info(f"Queued referral email to {referral.friend_email}")
     except Exception as e:
-        logger.error(f"Failed to queue referral email: {e}")
+        logger.error(f"Failed to queue referral email to {referral.friend_email}: {e}", exc_info=True)
     
     return new_referral
 

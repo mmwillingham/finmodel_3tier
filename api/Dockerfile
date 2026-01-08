@@ -36,6 +36,8 @@ ARG CACHEBUSTER
 COPY . /app/api
 
 # Set static environment variables directly in the Docker image
+# NOTE: DB_PASSWORD should be set via Cloud Run secrets/environment variables, not hardcoded here
+# DB_USER and DB_NAME can be set here as defaults, but should be overridden via Cloud Run if different
 ENV DB_USER=dbadmin
 ENV DB_NAME=finmodel1
 ENV CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance

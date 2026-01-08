@@ -123,5 +123,5 @@ options:
 # Adding a cachebuster to ensure fresh builds: Dec 29 2025 (Attempt 2)
 availableSecrets:
   secretManager:
-    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/1'
+    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/2'
       env: '_DB_PASSWORD'

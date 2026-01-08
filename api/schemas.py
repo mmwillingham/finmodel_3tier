@@ -343,6 +343,8 @@ class AccountOut(BaseModel):
     account_name: str
     account_number: str | None = None
     is_retirement: bool
+    owner_id: int  # Added to show ownership
+    owner_email: str | None = None  # Added to show owner email
     created_at: datetime
     updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)

@@ -205,6 +205,7 @@ const AccountsSettingsPage = () => {
           <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
             <thead>
               <tr>
+                <th>Owner</th>
                 <th>Brokerage</th>
                 <th>Broker Name</th>
                 <th>Broker Phone</th>
@@ -220,6 +221,13 @@ const AccountsSettingsPage = () => {
                 <tr key={account.id}>
                   {editingAccount?.id === account.id ? (
                     <>
+                      <td>
+                        {account.owner_id === currentUser?.id ? (
+                          <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
+                        ) : (
+                          <span style={{ color: '#6c757d' }}>{account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}</span>
+                        )}
+                      </td>
                       <td>
                         <input
                           type="text"
@@ -285,6 +293,15 @@ const AccountsSettingsPage = () => {
                     </>
                   ) : (
                     <>
+                      <td>
+                        {account.owner_id === currentUser?.id ? (
+                          <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
+                        ) : (
+                          <span style={{ color: '#6c757d' }} title={account.owner_email || 'Authorized Access'}>
+                            {account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}
+                          </span>
+                        )}
+                      </td>
                       <td>{account.brokerage}</td>
                       <td>{account.broker_name || '-'}</td>
                       <td>{account.broker_phone || '-'}</td>
@@ -294,12 +311,18 @@ const AccountsSettingsPage = () => {
                       <td>{account.is_retirement ? 'Yes' : 'No'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <button onClick={() => setEditingAccount({ ...account })} className="edit-icon-btn" title="Edit">
-                            <span role="img" aria-label="edit">✏️</span>
-                          </button>
-                          <button onClick={() => handleDeleteAccount(account.id)} className="delete-icon-btn" title="Delete">
-                            <span role="img" aria-label="delete">🗑️</span>
-                          </button>
+                          {account.owner_id === currentUser?.id ? (
+                            <>
+                              <button onClick={() => setEditingAccount({ ...account })} className="edit-icon-btn" title="Edit">
+                                <span role="img" aria-label="edit">✏️</span>
+                              </button>
+                              <button onClick={() => handleDeleteAccount(account.id)} className="delete-icon-btn" title="Delete">
+                                <span role="img" aria-label="delete">🗑️</span>
+                              </button>
+                            </>
+                          ) : (
+                            <span style={{ color: '#6c757d', fontSize: '0.9em' }} title="You can only edit your own accounts">View Only</span>
+                          )}
                         </div>
                       </td>
                     </>

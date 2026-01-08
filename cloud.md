@@ -112,7 +112,7 @@ gcloud sql instances create finmodel-postgres-instance \
   --database-version=POSTGRES_13 \
   --region=us-east1 \
   --tier=db-f1-micro \
-  --root-password=bolaudersez88 \
+  --root-password=<redacted>> \
   --storage-size=20GB \
   --storage-type=SSD \
   --availability-type=REGIONAL
@@ -126,7 +126,7 @@ gcloud sql databases create finmodel1 \ --instance=finmodel-postgres-instance
 gcloud sql users create dbadmin \
   --host=% \
   --instance=finmodel-postgres-instance \
-  --password=bolaudersez88
+  --password=<redacted>
 
 # Phase 1, Task 5: Configure Cloud SQL connectivity.
 ## NOTE:

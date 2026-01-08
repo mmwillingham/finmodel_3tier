@@ -4,7 +4,7 @@
   "description": "FastAPI backend for the financial modeling application",
   "main": "main.py",
   "scripts": {
-    "start": "export DB_USER=\"dbadmin\" && export DB_PASSWORD=\"bolaudersez88\" && export DB_NAME=\"finmodel1\" && uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "start": "uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

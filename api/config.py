@@ -11,9 +11,10 @@ class Settings(BaseSettings):
     CLOUD_SQL_CONNECTION_NAME: str | None = os.getenv("CLOUD_SQL_CONNECTION_NAME", None)
 
     # Database credentials (used if not connecting via Cloud SQL connector)
-    DB_USER: str = os.getenv("DB_USER", "bolauder")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "iamhe123")
-    DB_NAME: str = os.getenv("DB_NAME", "finmodel")
+    # These must be set via environment variables - no default values for security
+    DB_USER: str = os.getenv("DB_USER", "")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "") or os.getenv("_DB_PASSWORD", "")  # Support Cloud Run secret format
+    DB_NAME: str = os.getenv("DB_NAME", "")
     DB_HOST: str = os.getenv("DB_HOST", "localhost") # Used for local docker-compose setup
     DB_PORT: str = os.getenv("DB_PORT", "5432")
 
@@ -47,6 +48,9 @@ class Settings(BaseSettings):
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
     MAIL_SERVER: str | None = os.getenv("MAIL_SERVER", "")
     CORS_ORIGINS_REGEX: str = os.getenv("CORS_ORIGINS_REGEX", r"^(http://localhost:3000|https://[^/]+\.run\.app|https://ordaxium\.com|https://www\.ordaxium\.com)$")
+    
+    # Application name for emails
+    APP_NAME: str = os.getenv("APP_NAME", "Financial Projector")
     
 
     # Method to generate DATABASE_URL after validation

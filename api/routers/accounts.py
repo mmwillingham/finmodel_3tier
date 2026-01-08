@@ -28,7 +28,28 @@ def list_accounts(
     accounts = db.query(models.Account).filter(
         models.Account.owner_id.in_(accessible_user_ids)
     ).order_by(models.Account.brokerage, models.Account.account_name).all()
-    return accounts
+    
+    # Add owner email to each account
+    result = []
+    for account in accounts:
+        owner = db.query(models.User).filter(models.User.id == account.owner_id).first()
+        account_dict = {
+            "id": account.id,
+            "brokerage": account.brokerage,
+            "broker_name": account.broker_name,
+            "broker_phone": account.broker_phone,
+            "broker_email": account.broker_email,
+            "account_name": account.account_name,
+            "account_number": account.account_number,
+            "is_retirement": account.is_retirement,
+            "owner_id": account.owner_id,
+            "owner_email": owner.email if owner else None,
+            "created_at": account.created_at,
+            "updated_at": account.updated_at,
+        }
+        result.append(account_dict)
+    
+    return result
 
 @router.post("/", response_model=schemas.AccountOut, status_code=status.HTTP_201_CREATED)
 def create_account(
@@ -41,7 +62,22 @@ def create_account(
     db.add(db_account)
     db.commit()
     db.refresh(db_account)
-    return db_account
+    
+    # Return with owner email
+    return {
+        "id": db_account.id,
+        "brokerage": db_account.brokerage,
+        "broker_name": db_account.broker_name,
+        "broker_phone": db_account.broker_phone,
+        "broker_email": db_account.broker_email,
+        "account_name": db_account.account_name,
+        "account_number": db_account.account_number,
+        "is_retirement": db_account.is_retirement,
+        "owner_id": db_account.owner_id,
+        "owner_email": current_user.email,
+        "created_at": db_account.created_at,
+        "updated_at": db_account.updated_at,
+    }
 
 @router.get("/{account_id}", response_model=schemas.AccountOut)
 def get_account(
@@ -66,7 +102,22 @@ def get_account(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to view this account")
     
-    return account
+    # Add owner email
+    owner = db.query(models.User).filter(models.User.id == account.owner_id).first()
+    return {
+        "id": account.id,
+        "brokerage": account.brokerage,
+        "broker_name": account.broker_name,
+        "broker_phone": account.broker_phone,
+        "broker_email": account.broker_email,
+        "account_name": account.account_name,
+        "account_number": account.account_number,
+        "is_retirement": account.is_retirement,
+        "owner_id": account.owner_id,
+        "owner_email": owner.email if owner else None,
+        "created_at": account.created_at,
+        "updated_at": account.updated_at,
+    }
 
 @router.put("/{account_id}", response_model=schemas.AccountOut)
 def update_account(
@@ -98,7 +149,23 @@ def update_account(
     
     db.commit()
     db.refresh(db_account)
-    return db_account
+    
+    # Return with owner email
+    owner = db.query(models.User).filter(models.User.id == db_account.owner_id).first()
+    return {
+        "id": db_account.id,
+        "brokerage": db_account.brokerage,
+        "broker_name": db_account.broker_name,
+        "broker_phone": db_account.broker_phone,
+        "broker_email": db_account.broker_email,
+        "account_name": db_account.account_name,
+        "account_number": db_account.account_number,
+        "is_retirement": db_account.is_retirement,
+        "owner_id": db_account.owner_id,
+        "owner_email": owner.email if owner else None,
+        "created_at": db_account.created_at,
+        "updated_at": db_account.updated_at,
+    }
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_account(
