@@ -44,6 +44,14 @@
   background-color: #2563eb;
   color: white;
   box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  padding: 8px 16px;
+  display: inline-block;
+  width: auto;
+  transition: all 0.2s ease;
 }
 
 .btn-primary-modern:hover {

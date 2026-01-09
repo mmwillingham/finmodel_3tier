@@ -117,6 +117,8 @@
     cursor: pointer;
     padding: 5px;
     flex-shrink: 0;
+    background-color: transparent;
+    border: none;
 }
 
 .hamburger-menu .bar {
@@ -125,6 +127,11 @@
     background-color: white;
     border-radius: 2px;
     display: block;
+    transition: all 0.3s ease;
+}
+
+.hamburger-menu:hover .bar {
+    background-color: rgba(255, 255, 255, 0.8);
 }
 
 /* Nav links for unauthenticated users (direct children of .nav-links) */

@@ -279,8 +279,8 @@ const AccountsSettingsPage = () => {
       </div>
 
       <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Add New Account</h3>
-        <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Add New Account</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div className="form-field">
             <label htmlFor="brokerage_select">Brokerage *</label>
             <select
@@ -316,42 +316,49 @@ const AccountsSettingsPage = () => {
               />
             )}
           </div>
-          <div className="form-field">
-            <label htmlFor="account_name">Account Name *</label>
-            <input
-              id="account_name"
-              type="text"
-              placeholder="e.g., Investment Account"
-              value={newAccount.account_name}
-              onChange={(e) => setNewAccount({ ...newAccount, account_name: e.target.value })}
-              className="input-modern"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
+            <div className="form-field">
+              <label htmlFor="account_name">Account Name *</label>
+              <input
+                id="account_name"
+                type="text"
+                placeholder="e.g., Investment Account or Master CMA - Savings"
+                value={newAccount.account_name}
+                onChange={(e) => setNewAccount({ ...newAccount, account_name: e.target.value })}
+                className="input-modern"
+              />
+              <small style={{ color: '#666', fontSize: '0.85em', marginTop: '4px', display: 'block' }}>
+                Tip: For accounts with subaccounts (like Merrill Lynch CMA), create separate accounts for each subaccount (e.g., "Master CMA - Savings", "Master CMA - Checking")
+              </small>
+            </div>
+            <div className="form-field">
+              <label htmlFor="is_retirement">Account Type</label>
+              <select
+                id="is_retirement"
+                value={newAccount.is_retirement ? 'yes' : 'no'}
+                onChange={(e) => setNewAccount({ ...newAccount, is_retirement: e.target.value === 'yes' })}
+                className="input-modern"
+              >
+                <option value="no">Standard</option>
+                <option value="yes">Retirement</option>
+              </select>
+            </div>
           </div>
           <div className="form-field">
             <label htmlFor="account_number">Account Number</label>
             <input
               id="account_number"
               type="text"
-              placeholder="Optional"
+              placeholder="Optional - account number or identifier"
               value={newAccount.account_number}
               onChange={(e) => setNewAccount({ ...newAccount, account_number: e.target.value })}
               className="input-modern"
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="is_retirement">Retirement</label>
-            <select
-              id="is_retirement"
-              value={newAccount.is_retirement ? 'yes' : 'no'}
-              onChange={(e) => setNewAccount({ ...newAccount, is_retirement: e.target.value === 'yes' })}
-              className="input-modern"
-            >
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '4px' }}>
+            <button onClick={handleCreateAccount} className="btn-primary-modern">Add Account</button>
           </div>
         </div>
-        <button onClick={handleCreateAccount} className="btn-primary-modern" style={{ padding: '8px 16px', fontSize: '0.9em' }}>Add Account</button>
       </div>
 
       <div className="setting-group">

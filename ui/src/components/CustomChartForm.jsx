@@ -30,14 +30,17 @@ const getDataSourceItemOptions = (dataType, assets, liabilities, incomeItems, ex
   }
 
   // Filter by account if accounts are selected (only for assets which have account_id)
-  // Note: If accounts are selected, show assets with matching accounts OR assets without accounts
-  // This ensures all assets are available when no account filter is set
+  // When accounts are selected, show ONLY assets that belong to those accounts
+  // When NO accounts are selected, show ALL assets (no filtering)
   if (dataType === 'assets' && selectedAccountIds && selectedAccountIds.length > 0) {
     items = items.filter(item => {
-      // Include assets with matching accounts OR assets without accounts
-      return !item.account_id || selectedAccountIds.includes(item.account_id);
+      // Include assets that belong to one of the selected accounts
+      // This means if an asset has an account_id, it must match one of the selected accounts
+      // Assets without account_id are excluded when accounts are selected (they would show when no accounts are selected)
+      return item.account_id && selectedAccountIds.includes(item.account_id);
     });
   }
+  // When selectedAccountIds is empty or not provided, show ALL assets (no filtering)
 
   // Map to a consistent format for options
   return items.map(item => ({
@@ -385,7 +388,7 @@ export default function CustomChartForm({
                           handleSeriesChange(index, 'itemize', false);
                         }
                       }}
-                      disabled={series.itemize}
+                      disabled={!!series.itemize}
                     >
                       <option value="">All Items</option>
                       {getDataSourceItemOptions(
@@ -446,19 +449,28 @@ export default function CustomChartForm({
                   />
                 </div>
 
-                {/* Itemize option - only show if no specific item is selected and data type is income or expenses */}
-                {(currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && !series.selected_item_id && (
+                {/* Itemize option - show if no specific item is selected */}
+                {!series.selected_item_id && (
                   <div className="form-group">
                     <label>
                       <input
                         type="checkbox"
                         checked={series.itemize || false}
-                        onChange={(e) => handleSeriesChange(index, 'itemize', e.target.checked)}
+                        onChange={(e) => {
+                          handleSeriesChange(index, 'itemize', e.target.checked);
+                          // When enabling itemize, clear any account or category filters to show all items
+                          if (e.target.checked) {
+                            handleSeriesChange(index, 'category', '');
+                            handleSeriesChange(index, 'selected_account_ids', []);
+                          }
+                        }}
                       />
                       Itemize (show individual items)
                     </label>
                     <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
-                      When enabled, each {currentSeriesDataType === 'income' ? 'income' : 'expense'} item will be displayed as a separate series/slice
+                      When enabled, each {currentSeriesDataType === 'assets' ? 'asset' : 
+                                            currentSeriesDataType === 'liabilities' ? 'liability' : 
+                                            currentSeriesDataType === 'income' ? 'income' : 'expense'} item will be displayed as a separate series/slice
                     </small>
                   </div>
                 )}
