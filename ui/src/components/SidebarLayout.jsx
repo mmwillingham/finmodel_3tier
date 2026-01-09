@@ -26,9 +26,10 @@ import AssetsSetupWizard from "./wizards/AssetsSetupWizard";
 import LiabilitiesSetupWizard from "./wizards/LiabilitiesSetupWizard";
 import IncomeSetupWizard from "./wizards/IncomeSetupWizard";
 import ExpensesSetupWizard from "./wizards/ExpensesSetupWizard";
+import AutoDisbursementService from "../services/auto_disbursement.service";
 
 export default function SidebarLayout() {
-  const { viewingUserId } = useAuth();
+  const { viewingUserId, userSettings } = useAuth();
   const [view, setView] = useState("new-home");
   const [cashFlowView, setCashFlowView] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,7 @@ export default function SidebarLayout() {
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [autoDisbursements, setAutoDisbursements] = useState([]); // NEW: For cash flow transfers
   const [projectionYears, setProjectionYears] = useState(30);
   const [showChartTotals, setShowChartTotals] = useState(true);
   const [customChartView, setCustomChartView] = useState(null);
@@ -62,13 +64,14 @@ export default function SidebarLayout() {
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [inc, exp, ast, lib, accs, settingsRes] = await Promise.all([
+      const [inc, exp, ast, lib, accs, settingsRes, autoDisburs] = await Promise.all([
         CashFlowService.list(true),
         CashFlowService.list(false),
         AssetService.list(viewingUserId),
         LiabilityService.list(viewingUserId),
         AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
         SettingsService.getSettings(),
+        AutoDisbursementService.getAllAutoDisbursements().catch(() => []), // NEW: Load auto-disbursements
       ]);
 
       setIncomeItems(inc.data || []);
@@ -76,6 +79,7 @@ export default function SidebarLayout() {
       setAssets(ast.data || []);
       setLiabilities(lib.data || []);
       setAccounts(accs || []);
+      setAutoDisbursements(autoDisburs || []); // NEW: Set auto-disbursements
       setProjectionYears(settingsRes.data.projection_years || 30);
       setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
 
@@ -101,19 +105,21 @@ export default function SidebarLayout() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [inc, exp, ast, lib, accs, settingsRes] = await Promise.all([
-          CashFlowService.list(true),
-          CashFlowService.list(false),
-          AssetService.list(viewingUserId),
-          LiabilityService.list(viewingUserId),
-          AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
-          SettingsService.getSettings(),
-        ]);
+      const [inc, exp, ast, lib, accs, settingsRes, autoDisburs] = await Promise.all([
+        CashFlowService.list(true),
+        CashFlowService.list(false),
+        AssetService.list(viewingUserId),
+        LiabilityService.list(viewingUserId),
+        AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
+        SettingsService.getSettings(),
+        AutoDisbursementService.getAllAutoDisbursements().catch(() => []), // NEW: Load auto-disbursements
+      ]);
         setIncomeItems(inc.data || []);
         setExpenseItems(exp.data || []);
         setAssets(ast.data || []);
         setLiabilities(lib.data || []);
         setAccounts(accs || []);
+        setAutoDisbursements(autoDisburs || []); // NEW: Set auto-disbursements
         setProjectionYears(settingsRes.data.projection_years || 30);
         setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
 
@@ -583,6 +589,8 @@ export default function SidebarLayout() {
               projectionYears={projectionYears}
               formatCurrency={formatCurrency}
               assets={assets}
+              userSettings={userSettings}
+              autoDisbursements={autoDisbursements}
             />
           </div>
         )}

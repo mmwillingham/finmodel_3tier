@@ -226,7 +226,7 @@ const AutoDisbursementSettingsPage = () => {
       )}
 
       {/* Surplus Asset Section */}
-      <div className="setting-group" style={{ marginBottom: '30px' }}>
+      <div className="setting-group">
         <h3 style={{ color: 'var(--color-heading)', marginBottom: '15px', fontSize: '1.1em', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
           Surplus Asset
         </h3>
@@ -263,7 +263,7 @@ const AutoDisbursementSettingsPage = () => {
       </div>
 
       {/* Auto-Disbursements Section */}
-      <div className="setting-group" style={{ marginBottom: '30px' }}>
+      <div className="setting-group">
         <h3 style={{ color: 'var(--color-heading)', marginBottom: '15px', fontSize: '1.1em', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
           Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
         </h3>
@@ -378,7 +378,7 @@ const AutoDisbursementSettingsPage = () => {
         </div>
       </div>
 
-      <div className="setting-group" style={{ marginTop: '30px' }}>
+      <div className="setting-group">
         <h3 style={{ color: 'var(--color-heading)', marginBottom: '15px', fontSize: '1.1em', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
           Existing Auto-Disbursements
         </h3>

@@ -26,6 +26,8 @@ export default function AssetFormModal({
   });
 
   useEffect(() => {
+    if (!isOpen) return; // Only load when modal is open
+    
     const loadSettings = async () => {
       try {
         const [settingsRes, accountsRes] = await Promise.all([
@@ -70,7 +72,7 @@ export default function AssetFormModal({
       }
     };
     loadSettings();
-  }, [itemToEdit]);
+  }, [itemToEdit, isOpen]); // Reload categories when modal opens
 
   const save = async () => {
     if (!newItem.name || !newItem.category || !newItem.value || !newItem.annual_change_type) return;

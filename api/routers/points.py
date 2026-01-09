@@ -98,7 +98,7 @@ def get_user_points(
 
         # Check if surplus asset is set
         user_settings = db.query(models.UserSettings).filter(
-            models.UserSettings.user_id == user_id
+            models.UserSettings.owner_id == user_id
         ).first()
         surplus_asset_set = 1 if user_settings and user_settings.surplus_asset_id is not None else 0
 

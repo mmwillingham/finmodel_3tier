@@ -246,12 +246,14 @@ const AuthorizedUsersPage = () => {
                   {receivedAccess.map((access) => (
                     <tr key={access.id}>
                       <td>
-                        <div>User ID: {access.primary_user_id}</div>
                         {(access.primary_user_email || access.primary_user?.email) && (
-                          <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
+                          <div style={{ fontWeight: '600', marginBottom: '4px' }}>
                             {access.primary_user_email || access.primary_user?.email}
                           </div>
                         )}
+                        <div style={{ fontSize: '0.9em', color: '#666' }}>
+                          User ID: {access.primary_user_id}
+                        </div>
                       </td>
                       <td>{access.accounts_permission || '-'}</td>
                       <td>{access.items_permission || '-'}</td>

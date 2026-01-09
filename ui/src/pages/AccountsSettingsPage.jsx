@@ -182,7 +182,7 @@ const AccountsSettingsPage = () => {
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
       {/* Brokerage Management Section */}
-      <div className="setting-group" style={{ maxWidth: '100%', width: '100%', marginBottom: '30px' }}>
+      <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h3>Brokerages</h3>
           <button onClick={() => setShowNewBrokerageForm(!showNewBrokerageForm)} className="save-button">

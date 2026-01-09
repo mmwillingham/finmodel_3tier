@@ -195,7 +195,8 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         <button onClick={() => handleDownloadTablePdf(tableRef, `${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download PDF</button>
         <button onClick={() => handleDownloadCashFlowTableCsv(`${type === 'income' ? 'Income' : 'Expenses'}_Table`)}>Download CSV</button>
       </div>
-      <table ref={tableRef} className="cashflow-table">
+      <div style={{ overflowX: 'auto', width: '100%' }}>
+        <table ref={tableRef} className="cashflow-table">
         <thead>
           <tr>
             <th className="cashflow-table-cell sortable" onClick={() => handleSort('category')}>
@@ -269,6 +270,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         </tbody>
         
       </table>
+      </div>
 
       <div className="total">
         <strong>Total {type === 'income' ? 'Income' : 'Expenses'} (Yearly): {formatCurrency(total)}</strong>

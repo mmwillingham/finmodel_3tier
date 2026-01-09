@@ -30,10 +30,12 @@ const getDataSourceItemOptions = (dataType, assets, liabilities, incomeItems, ex
   }
 
   // Filter by account if accounts are selected (only for assets which have account_id)
+  // Note: If accounts are selected, show assets with matching accounts OR assets without accounts
+  // This ensures all assets are available when no account filter is set
   if (dataType === 'assets' && selectedAccountIds && selectedAccountIds.length > 0) {
     items = items.filter(item => {
-      if (!item.account_id) return false; // Exclude assets without accounts if filtering by account
-      return selectedAccountIds.includes(item.account_id);
+      // Include assets with matching accounts OR assets without accounts
+      return !item.account_id || selectedAccountIds.includes(item.account_id);
     });
   }
 

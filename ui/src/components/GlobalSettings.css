@@ -24,8 +24,8 @@
 .global-categories-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 12px; /* Reduced gap */
+    margin-bottom: 15px; /* Reduced margin */
 }
 
 @media (min-width: 1200px) {
@@ -38,10 +38,10 @@
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    padding: 16px;
+    padding: 14px; /* Reduced padding */
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px; /* Reduced gap */
 }
 
 .global-category-header {
@@ -54,6 +54,7 @@
 .global-category-section h4 {
     margin: 0;
     font-size: 1.1em;
+    font-weight: 700; /* Make category types bold */
     color: var(--color-heading);
 }
 
@@ -62,11 +63,13 @@
     background-color: var(--color-accent); /* Use theme accent color */
     color: var(--color-text-inverted); /* Ensure text is visible */
     border: none; /* Remove default button border */
-    padding: 8px 15px; /* Increase padding to make it look like a button */
-    border-radius: 4px; /* Standard border radius */
+    padding: 8px 16px; /* Increase padding to make it look like a button */
+    border-radius: 6px; /* Standard border radius */
     cursor: pointer;
     font-size: 0.9em; /* Standard font size */
-    transition: background-color 0.2s ease;
+    font-weight: 600; /* Make button text bolder */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Add shadow to make button more visible */
+    transition: all 0.2s ease;
 }
 
 .global-category-section .global-manage-button:hover {

@@ -1,5 +1,5 @@
 .settings-page-container {
-    padding: 20px;
+    padding: 15px 20px; /* Reduced vertical padding */
     max-width: 600px;
     margin: 20px auto;
     background-color: var(--color-background-soft);
@@ -16,6 +16,30 @@
 .settings-page-container:has(.accounts-table),
 .settings-page-container.auto-disbursements-page {
     max-width: 900px;
+}
+
+/* Reduce white space for Accounts and Auto-Disbursements pages */
+.settings-page-container:has(.accounts-table) .setting-group,
+.settings-page-container.auto-disbursements-page .setting-group {
+    gap: 12px; /* Reduced gap */
+    margin-bottom: 15px; /* Reduced margin */
+}
+
+.settings-page-container:has(.accounts-table) .form-row,
+.settings-page-container.auto-disbursements-page .form-row {
+    gap: 10px; /* Reduced gap */
+    margin-bottom: 12px; /* Reduced margin */
+}
+
+.settings-page-container:has(.accounts-table) .form-field,
+.settings-page-container.auto-disbursements-page .form-field {
+    gap: 4px; /* Reduced gap between label and input */
+}
+
+.settings-page-container:has(.accounts-table) .form-field label,
+.settings-page-container.auto-disbursements-page .form-field label {
+    margin-bottom: 4px; /* Reduced margin */
+    font-size: 0.9em; /* Slightly smaller labels */
 }
 
 /* Refer a Friend page styling */
@@ -156,17 +180,22 @@
 
 .settings-page-container h2 {
     color: var(--color-heading);
-    margin-bottom: 25px;
+    margin-bottom: 15px; /* Reduced margin */
     border-bottom: none;
-    padding-bottom: 15px;
+    padding-bottom: 10px; /* Reduced padding */
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.settings-page-container h3 {
+    margin-top: 10px; /* Reduced top margin */
+    margin-bottom: 12px; /* Reduced bottom margin */
 }
 
 .settings-page-container .setting-group {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
+    gap: 15px; /* Reduced gap */
+    margin-bottom: 20px; /* Reduced margin */
 }
 
 .settings-page-container .setting-group > div {
@@ -668,6 +697,58 @@
 .save-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* Export/Import page styles */
+.export-import-page .export-format-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.export-import-page .format-selection,
+.export-import-page .filename-input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.export-import-page .format-label,
+.export-import-page .filename-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.export-import-page .format-label span,
+.export-import-page .filename-label span {
+    font-weight: 600;
+    color: var(--color-label);
+    font-size: 0.95em;
+}
+
+.export-import-page .format-select,
+.export-import-page .filename-input-field {
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 400px;
+}
+
+.export-import-page .filename-input-field {
+    width: 100%;
+    max-width: 500px;
+}
+
+.export-import-page .filename-hint {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 4px;
 }
 
 

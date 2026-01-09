@@ -1,56 +1,56 @@
 .asset-form-modal-content {
-  width: 1580px; /* Adjusted width for the form wrapper to fit new modal width */
+  width: 100%;
+  max-width: 900px; /* More reasonable width */
   box-sizing: border-box;
-  min-height: fit-content; /* Ensure container expands to fit content */
-  padding-bottom: 50px; /* Increased padding at the bottom to ensure space for buttons */
+  min-height: fit-content;
+  padding-bottom: 20px; /* Reduced padding */
 }
 
 .asset-form-modal-content .add-item-form {
-  display: flex !important; /* FORCE flex display to override rogue inline grid */
-  flex-direction: column !important; /* FORCE column direction */
-  gap: 2rem; /* Increased Vertical spacing between the rows and the checkbox/buttons */
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem; /* Reduced vertical spacing */
   box-sizing: border-box;
-  min-height: fit-content; /* Ensure container expands to fit content */
-  align-items: flex-start; /* Align children (form-rows) to the start */
+  min-height: fit-content;
+  align-items: flex-start;
 }
 
 .asset-form-modal-content .form-row {
   display: grid;
-  /* grid-template-columns is now controlled by inline style in JSX - removed from here */
-  gap: 40px; /* Increased horizontal spacing between fields within a row */
+  gap: 12px; /* Reduced horizontal spacing */
   box-sizing: border-box;
-  flex-grow: 1; /* Allow form rows to grow and fill vertical space */
-  width: 100%; /* Ensure rows take full width */
+  flex-grow: 1;
+  width: 100%;
 }
 
 .asset-form-modal-content .add-item-form .form-field {
-  display: flex; /* Re-enable flex to stack label and input */
-  flex-direction: column; /* Stack label and input vertically */
-  padding: 1rem; /* Increased padding to form fields */
-  gap: 0.5rem; /* Increased gap between label and input */
-  width: 100%; /* Ensure it fills its grid cell */
-  height: auto; /* Allow fields to take natural height, flex items will dictate max height */
-  min-width: 250px; /* Explicit minimum width for fields */
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem; /* Reduced padding */
+  gap: 0.3rem; /* Reduced gap */
+  width: 100%;
+  height: auto;
+  min-width: 150px; /* Reduced minimum width */
   max-width: 100%;
-  overflow: visible; /* Corrected to visible to prevent truncation */
-  position: relative; /* For potential future absolute positioning */
+  overflow: visible;
+  position: relative;
   box-sizing: border-box;
 }
 
 .asset-form-modal-content .add-item-form .form-field label {
-  font-size: 1.1rem; /* Increased font size for labels */
-  min-height: 1.5rem; /* Minimum height for labels */
+  font-size: 0.9rem; /* Reduced font size */
+  min-height: 1.2rem;
   font-weight: 500;
-  color: #222; /* Darker color for better readability */
-  display: block; /* Force label to take its own line */
-  margin-bottom: 0.3rem; /* Spacing below the label */
-  height: auto; /* Allow label to take its natural height */
-  line-height: 1.3; /* Line height for label text */
-  white-space: normal; /* Allow label text to wrap */
-  overflow: visible; /* Corrected to visible to prevent truncation */
-  text-overflow: clip; /* Clip text that overflows, but content should be visible */
-  word-break: break-word; /* Fallback for word breaking */
-  flex-shrink: 0; /* Prevent labels from shrinking */
+  color: #222;
+  display: block;
+  margin-bottom: 0.2rem;
+  height: auto;
+  line-height: 1.3;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  flex-shrink: 0;
   box-sizing: border-box;
 }
 
@@ -58,33 +58,33 @@
 .asset-form-modal-content .add-item-form input[type="text"],
 .asset-form-modal-content .add-item-form input[type="number"],
 .asset-form-modal-content .add-item-form input[type="date"] {
-  padding: 0.8rem; /* Increased padding */
+  padding: 0.5rem; /* Reduced padding */
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 1rem; /* Increased font size */
-  display: block; /* Force input to take its own line */
-  width: 100%; /* Ensure inputs/selects take full width of their column */
+  font-size: 0.9rem; /* Reduced font size */
+  display: block;
+  width: 100%;
   max-width: 100%;
-  height: 50px; /* Explicit height for consistency and visibility */
-  min-width: 200px; /* Explicit minimum width for inputs */
-  flex-grow: 1; /* Allow inputs to grow and fill space */
-  box-sizing: border-box; /* Force box-sizing on inputs/selects */
-  white-space: normal; /* Allow content to wrap */
-  overflow: visible; /* Corrected to visible to prevent truncation */
-  text-overflow: clip; /* Clip text that overflows, but content should be visible */
+  height: 38px; /* Reduced height */
+  min-width: 150px; /* Reduced minimum width */
+  flex-grow: 1;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .asset-form-modal-content .form-actions {
   display: flex;
-  gap: 1rem; /* Slightly reduced gap between buttons for a more compact look */
+  gap: 0.75rem; /* Reduced gap */
   align-items: center;
-  margin-top: 3rem; /* Spacing from form fields */
+  margin-top: 1rem; /* Reduced spacing */
   justify-content: flex-end;
-  align-self: flex-end; /* Ensure buttons are aligned to the end of the flex column */
-  width: fit-content; /* Allow actions to take natural width */
-  padding: 1rem; /* Padding for actions container */
-  min-height: fit-content; /* Ensure buttons container expands */
-  background-color: transparent; /* Removed temporary background */
+  align-self: flex-end;
+  width: fit-content;
+  padding: 0.5rem; /* Reduced padding */
+  min-height: fit-content;
+  background-color: transparent;
 }
 
 /* Explicit button styling (ID specific for max specificity) */

@@ -4,8 +4,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 
-export default function CashFlowOverview({ incomeItems, expenseItems, projectionYears, formatCurrency, assets = [] }) {
-  const { currentUser, userSettings } = useAuth();
+export default function CashFlowOverview({ incomeItems, expenseItems, projectionYears, formatCurrency, assets = [], userSettings = null, autoDisbursements = [] }) {
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
   const tableRef = useRef(null);
@@ -15,15 +14,40 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
     const incomeValues = [];
     const expenseValues = [];
     const surplus = [];
+    const surplusAssetTransfers = []; // NEW: Transfers to surplus asset
+    const autoDisbursementTransfers = {}; // NEW: Track each auto-disbursement
 
-    // Pre-calculate asset projections for all years (needed for dynamic items)
+    // Initialize auto-disbursement transfer arrays
+    autoDisbursements.forEach(ad => {
+      autoDisbursementTransfers[ad.id] = [];
+    });
+
+    // Pre-calculate asset projections for all years (needed for dynamic items and transfers)
     const assetProjections = {};
     assets.forEach(asset => {
-      assetProjections[asset.name] = [];
+      assetProjections[asset.id] = [];
       for (let year = 0; year <= projectionYears; year++) {
         const growthRate = (asset.annual_increase_percent || 0) / 100;
-        const assetValue = asset.value * Math.pow(1 + growthRate, year);
-        assetProjections[asset.name].push(assetValue);
+        let assetValue = asset.value;
+        
+        // Apply date filters if present
+        if (asset.start_date) {
+          const startYear = new Date(asset.start_date).getFullYear();
+          if (currentYear + year < startYear) {
+            assetValue = 0;
+          }
+        }
+        if (asset.end_date) {
+          const endYear = new Date(asset.end_date).getFullYear();
+          if (currentYear + year > endYear) {
+            assetValue = 0;
+          }
+        }
+        
+        if (assetValue > 0) {
+          assetValue = assetValue * Math.pow(1 + growthRate, year);
+        }
+        assetProjections[asset.id].push(assetValue);
       }
     });
 
@@ -38,9 +62,9 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
           // Find the linked asset
           const linkedAsset = assets.find(a => a.id === item.linked_item_id);
-          if (linkedAsset && assetProjections[linkedAsset.name]) {
+          if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
             // Recalculate based on projected asset value for this year
-            const projectedAssetValue = assetProjections[linkedAsset.name][year];
+            const projectedAssetValue = assetProjections[linkedAsset.id][year];
             itemValue = projectedAssetValue * (item.percentage / 100.0);
           }
         } else {
@@ -60,9 +84,9 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
           // Find the linked asset
           const linkedAsset = assets.find(a => a.id === item.linked_item_id);
-          if (linkedAsset && assetProjections[linkedAsset.name]) {
+          if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
             // Recalculate based on projected asset value for this year
-            const projectedAssetValue = assetProjections[linkedAsset.name][year];
+            const projectedAssetValue = assetProjections[linkedAsset.id][year];
             itemValue = projectedAssetValue * (item.percentage / 100.0);
           }
         } else {
@@ -74,38 +98,116 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         totalExpenses += itemValue;
       });
 
+      const yearSurplus = totalIncome - totalExpenses;
+      
+      // Calculate surplus asset transfer (surplus/deficit goes to surplus asset)
+      let surplusTransfer = 0;
+      if (userSettings && userSettings.surplus_asset_id) {
+        surplusTransfer = yearSurplus; // Positive = surplus, negative = deficit
+      }
+      
+      // Calculate auto-disbursement transfers
+      autoDisbursements.forEach(ad => {
+        if (!autoDisbursementTransfers[ad.id]) {
+          autoDisbursementTransfers[ad.id] = [];
+        }
+        
+        // Check if disbursement is active for this year
+        const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
+        const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
+        const currentProjectionYear = currentYear + year;
+        
+        if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
+          const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+          if (sourceAsset && assetProjections[sourceAsset.id] && assetProjections[sourceAsset.id][year] !== undefined) {
+            const sourceValue = assetProjections[sourceAsset.id][year];
+            let transferAmount = 0;
+            
+            if (ad.transfer_type === 'percentage') {
+              transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
+            } else if (ad.transfer_type === 'fixed') {
+              transferAmount = ad.transfer_value || 0;
+            }
+            
+            autoDisbursementTransfers[ad.id].push(transferAmount);
+          } else {
+            autoDisbursementTransfers[ad.id].push(0);
+          }
+        } else {
+          // Ensure array exists even if outside date range
+          if (!autoDisbursementTransfers[ad.id]) {
+            autoDisbursementTransfers[ad.id] = [];
+          }
+          autoDisbursementTransfers[ad.id].push(0);
+        }
+      });
+
       incomeValues.push(totalIncome);
       expenseValues.push(totalExpenses);
-      surplus.push(totalIncome - totalExpenses);
+      surplus.push(yearSurplus);
+      surplusAssetTransfers.push(surplusTransfer);
     }
 
-    return { years, incomeValues, expenseValues, surplus };
+    return { years, incomeValues, expenseValues, surplus, surplusAssetTransfers, autoDisbursementTransfers };
   };
 
   const cashFlowProjection = calculateCashFlowProjection();
 
+  // Build datasets array dynamically
+  const datasets = [
+    {
+      label: "Income",
+      data: cashFlowProjection.incomeValues,
+      borderColor: "rgb(75, 192, 75)",
+      backgroundColor: "rgba(75, 192, 75, 0.2)",
+    },
+    {
+      label: "Expenses",
+      data: cashFlowProjection.expenseValues,
+      borderColor: "rgb(255, 99, 99)",
+      backgroundColor: "rgba(255, 99, 99, 0.2)",
+    },
+    {
+      label: "Surplus",
+      data: cashFlowProjection.surplus,
+      borderColor: "rgb(153, 102, 255)",
+      backgroundColor: "rgba(153, 102, 255, 0.2)",
+    },
+  ];
+
+  // Add surplus asset transfer if configured
+  if (userSettings && userSettings.surplus_asset_id) {
+    const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
+    const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
+    datasets.push({
+      label: `Transfer to ${surplusAssetName}`,
+      data: cashFlowProjection.surplusAssetTransfers,
+      borderColor: "rgb(255, 165, 0)",
+      backgroundColor: "rgba(255, 165, 0, 0.2)",
+      borderDash: [5, 5], // Dashed line to differentiate from income/expenses
+    });
+  }
+
+  // Add auto-disbursement transfers
+  autoDisbursements.forEach(ad => {
+    if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id] && cashFlowProjection.autoDisbursementTransfers[ad.id].length > 0) {
+      const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+      const targetAsset = assets.find(a => a.id === ad.target_asset_id);
+      const sourceName = sourceAsset ? sourceAsset.name : 'Source';
+      const targetName = targetAsset ? targetAsset.name : 'Target';
+      datasets.push({
+        label: `Auto-Disbursement: ${sourceName} → ${targetName}`,
+        data: cashFlowProjection.autoDisbursementTransfers[ad.id],
+        borderColor: "rgb(128, 128, 128)",
+        backgroundColor: "rgba(128, 128, 128, 0.2)",
+        borderDash: [3, 3], // Dashed line for transfers
+      });
+    }
+  });
+
   const cashFlowChartData = {
     labels: cashFlowProjection.years.map(year => currentYear + year), // Adjust labels to current year
-    datasets: [
-    {
-        label: "Income",
-        data: cashFlowProjection.incomeValues,
-        borderColor: "rgb(75, 192, 75)",
-        backgroundColor: "rgba(75, 192, 75, 0.2)",
-    },
-    {
-        label: "Expenses",
-        data: cashFlowProjection.expenseValues,
-        borderColor: "rgb(255, 99, 99)",
-        backgroundColor: "rgba(255, 99, 99, 0.2)",
-    },
-    {
-        label: "Surplus",
-        data: cashFlowProjection.surplus,
-        borderColor: "rgb(153, 102, 255)",
-        backgroundColor: "rgba(153, 102, 255, 0.2)",
-    },
-    ],
+    datasets: datasets,
   };
 
   const chartOptions = {
