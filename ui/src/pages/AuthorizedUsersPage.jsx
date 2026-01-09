@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AuthorizedUsersService from '../services/authorizedUsers.service';
 import ConfirmDialog from '../components/ConfirmDialog';
+import AccountSwitcher from '../components/AccountSwitcher';
 import './AuthorizedUsersPage.css';
 
 const AuthorizedUsersPage = () => {
@@ -146,6 +147,7 @@ const AuthorizedUsersPage = () => {
 
   return (
     <div className="authorized-users-page">
+      <AccountSwitcher />
       <div className="page-header">
         <h1>🔐 Authorized Users</h1>
         <button onClick={() => setShowAddModal(true)} className="btn-primary">
@@ -186,7 +188,7 @@ const AuthorizedUsersPage = () => {
               <table className="users-table">
                 <thead>
                   <tr>
-                    <th>Email</th>
+                    <th>User</th>
                     <th>Accounts</th>
                     <th>Items</th>
                     <th>Projections</th>
@@ -198,7 +200,14 @@ const AuthorizedUsersPage = () => {
                 <tbody>
                   {authorizedUsers.map((user) => (
                     <tr key={user.id}>
-                      <td>{user.authorized_user_email}</td>
+                      <td>
+                        <div>{user.authorized_user_email}</div>
+                        {user.authorized_user_id && (
+                          <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
+                            User ID: {user.authorized_user_id}
+                          </div>
+                        )}
+                      </td>
                       <td>{user.accounts_permission || '-'}</td>
                       <td>{user.items_permission || '-'}</td>
                       <td>{user.projections_permission || '-'}</td>
@@ -227,7 +236,7 @@ const AuthorizedUsersPage = () => {
               <table className="users-table">
                 <thead>
                   <tr>
-                    <th>Primary User ID</th>
+                    <th>Primary User</th>
                     <th>Accounts</th>
                     <th>Items</th>
                     <th>Projections</th>
@@ -238,7 +247,14 @@ const AuthorizedUsersPage = () => {
                 <tbody>
                   {receivedAccess.map((access) => (
                     <tr key={access.id}>
-                      <td>User ID: {access.primary_user_id}</td>
+                      <td>
+                        <div>User ID: {access.primary_user_id}</div>
+                        {access.primary_user_email && (
+                          <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
+                            {access.primary_user_email}
+                          </div>
+                        )}
+                      </td>
                       <td>{access.accounts_permission || '-'}</td>
                       <td>{access.items_permission || '-'}</td>
                       <td>{access.projections_permission || '-'}</td>

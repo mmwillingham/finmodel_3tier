@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
@@ -203,16 +203,24 @@ export default function SidebarLayout() {
 
   const [sidebarWidth, setSidebarWidth] = useState(250);
   const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef(null);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
 
   const handleMouseDown = (e) => {
+    if (!sidebarRef.current) return;
     setIsResizing(true);
+    startXRef.current = e.clientX;
+    startWidthRef.current = sidebarRef.current.offsetWidth;
     e.preventDefault();
+    e.stopPropagation();
   };
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing) return;
-      const newWidth = e.clientX;
+      const deltaX = e.clientX - startXRef.current;
+      const newWidth = startWidthRef.current + deltaX;
       // Constrain between 150px and 600px
       if (newWidth >= 150 && newWidth <= 600) {
         setSidebarWidth(newWidth);
@@ -226,20 +234,23 @@ export default function SidebarLayout() {
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
       };
     }
   }, [isResizing]);
 
   return (
     <div className="sidebar-layout">
-      <aside className="sidebar" style={{ width: `${sidebarWidth}px` }}>
+      <aside className="sidebar" ref={sidebarRef} style={{ width: `${sidebarWidth}px` }}>
         <div 
           className="sidebar-resize-handle"
           onMouseDown={handleMouseDown}
-          style={{ cursor: 'ew-resize' }}
         />
         <nav className="sidebar-nav">
           <section className="nav-section">

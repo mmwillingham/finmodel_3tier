@@ -130,7 +130,26 @@ def list_authorized_users(
     List all users authorized by the current user (primary user).
     """
     authorized_users = get_authorized_users_for_primary(db, current_user.id)
-    return authorized_users
+    
+    # Return as dicts with all fields for frontend compatibility
+    result = []
+    for user in authorized_users:
+        user_dict = {
+            "id": user.id,
+            "primary_user_id": user.primary_user_id,
+            "authorized_user_id": user.authorized_user_id,
+            "authorized_user_email": user.authorized_user_email,
+            "accounts_permission": user.accounts_permission,
+            "items_permission": user.items_permission,
+            "projections_permission": user.projections_permission,
+            "charts_permission": user.charts_permission,
+            "documents_permission": user.documents_permission,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at,
+        }
+        result.append(user_dict)
+    
+    return result
 
 
 @router.get("/received", response_model=List[AuthorizedUserOut])

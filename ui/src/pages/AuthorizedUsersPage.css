@@ -1,5 +1,6 @@
 .authorized-users-page {
   padding: 20px;
+  padding-top: 80px; /* Account for fixed header */
   max-width: 1400px;
   margin: 0 auto;
 }
