@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     MAIL_FROM: str | None = os.getenv("MAIL_FROM", "")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
     MAIL_SERVER: str | None = os.getenv("MAIL_SERVER", "")
-    CORS_ORIGINS_REGEX: str = os.getenv("CORS_ORIGINS_REGEX", r"^(http://localhost:3000|https://www\.ordaxium\.com)$")
+    CORS_ORIGINS_REGEX: str = os.getenv("CORS_ORIGINS_REGEX", r"^(http://localhost:3000|https://www\.ordaxium\.com|https://finmodel-frontend-service-.*\.run\.app)$")
     
     # Application name for emails
     APP_NAME: str = os.getenv("APP_NAME", "Financial Projector")

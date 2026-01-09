@@ -52,7 +52,7 @@ ENV MAIL_SSL=False
 ENV USE_CREDENTIALS=True
 ENV VALIDATE_CERTS=True
 # Allow all origins for now, to be refined later if needed
-ENV CORS_ORIGINS_REGEX=^(http://localhost:3000|https://www\.ordaxium\.com)$
+ENV CORS_ORIGINS_REGEX=^(http://localhost:3000|https://www\.ordaxium\.com|https://finmodel-frontend-service-.*\.run\.app)$
 
 # Command to run the FastAPI application with Uvicorn (Alembic handled in Cloud Build step)
 # Explicitly pass the PORT environment variable using bash -c

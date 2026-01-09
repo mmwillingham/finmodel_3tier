@@ -40,7 +40,7 @@ steps:
           --allow-unauthenticated \
           --project financial-model-cloud \
           --service-account app-docs-sa@financial-model-cloud.iam.gserviceaccount.com \
-          --set-env-vars GCS_BUCKET_NAME=finmodel-documents,GCS_PROJECT_ID=financial-model-cloud,PUBLIC_BACKEND_URL=https://api.ordaxium.com,FRONTEND_URL=https://www.ordaxium.com \
+          --set-env-vars GCS_BUCKET_NAME=finmodel-documents,GCS_PROJECT_ID=financial-model-cloud,PUBLIC_BACKEND_URL=https://api.ordaxium.com,FRONTEND_URL=https://www.ordaxium.com,CORS_ORIGINS_REGEX=^(http://localhost:3000|https://www\.ordaxium\.com|https://finmodel-frontend-service-.*\.run\.app)$ \
           --set-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
           --update-secrets=DB_PASSWORD=_DB_PASSWORD:2,SECRET_KEY=_SECRET_KEY:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1 \
           --cpu=1 \
