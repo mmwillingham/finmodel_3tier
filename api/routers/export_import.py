@@ -157,7 +157,7 @@ def export_user_data(
             ]
 
         if include_charts:
-            charts = db.query(models.CustomChart).filter(models.CustomChart.owner_id == current_user.id).all()
+            charts = db.query(models.CustomChart).filter(models.CustomChart.user_id == current_user.id).all()
             export_data["data"]["charts"] = [
                 {
                     "name": chart.name,
@@ -461,12 +461,12 @@ def import_user_data(
                 try:
                     # Only import if name doesn't already exist
                     existing = db.query(models.CustomChart).filter(
-                        models.CustomChart.owner_id == current_user.id,
+                        models.CustomChart.user_id == current_user.id,
                         models.CustomChart.name == chart_data.get("name")
                     ).first()
                     if not existing:
                         new_chart = models.CustomChart(
-                            owner_id=current_user.id,
+                            user_id=current_user.id,
                             name=chart_data.get("name", ""),
                             chart_type=chart_data.get("chart_type", "line"),
                             series_configurations=json.dumps(chart_data.get("series_configurations", [])) if isinstance(chart_data.get("series_configurations"), list) else chart_data.get("series_configurations", "[]"),

@@ -87,12 +87,21 @@ async def create_liability(
 
 @router.get("/", response_model=List[schemas.LiabilityOut])
 def list_liabilities(
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """List all liabilities the current user can access (own or authorized)."""
-    logger.debug(f"list_liabilities: User ID: {current_user.id}")
+    """List all liabilities the current user can access (own or authorized).
+    If viewing_user_id is provided, filter to that specific user's liabilities (must be accessible)."""
+    logger.debug(f"list_liabilities: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
     accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
+    
+    # If viewing_user_id is specified, validate it's accessible and filter to it
+    if viewing_user_id is not None:
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
+        accessible_user_ids = [viewing_user_id]
+    
     liabilities = db.query(models.Liability).filter(models.Liability.owner_id.in_(accessible_user_ids)).all()
     logger.debug(f"list_liabilities: Found {len(liabilities)} liabilities for user {current_user.id}")
     return liabilities

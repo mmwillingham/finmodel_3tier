@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 import models
 import schemas
@@ -33,12 +33,21 @@ def create_asset(
 
 @router.get("/", response_model=List[schemas.AssetOut])
 def list_assets(
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """List all assets the current user can access (own or authorized)."""
-    logger.debug(f"list_assets: User ID: {current_user.id}")
+    """List all assets the current user can access (own or authorized).
+    If viewing_user_id is provided, filter to that specific user's assets (must be accessible)."""
+    logger.debug(f"list_assets: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
     accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
+    
+    # If viewing_user_id is specified, validate it's accessible and filter to it
+    if viewing_user_id is not None:
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
+        accessible_user_ids = [viewing_user_id]
+    
     assets = db.query(models.Asset).filter(models.Asset.owner_id.in_(accessible_user_ids)).all()
     logger.debug(f"list_assets: Found {len(assets)} assets for user {current_user.id}")
     return assets

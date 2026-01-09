@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from typing import List
+from typing import List, Optional
 import models
 import schemas
 import auth
@@ -20,11 +20,19 @@ router = APIRouter(
 
 @router.get("/", response_model=List[schemas.AccountOut])
 def list_accounts(
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """List all accounts the current user can access (own or authorized)."""
+    """List all accounts the current user can access (own or authorized).
+    If viewing_user_id is provided, filter to that specific user's accounts (must be accessible)."""
     accessible_user_ids = get_accessible_user_ids(db, current_user.id, "accounts")
+    
+    # If viewing_user_id is specified, validate it's accessible and filter to it
+    if viewing_user_id is not None:
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
+        accessible_user_ids = [viewing_user_id]
     accounts = db.query(models.Account).filter(
         models.Account.owner_id.in_(accessible_user_ids)
     ).order_by(models.Account.brokerage, models.Account.account_name).all()

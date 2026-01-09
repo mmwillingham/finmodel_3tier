@@ -1,9 +1,10 @@
 import api from './api.service';
 
 const AccountService = {
-  async getAllAccounts() {
+  async getAllAccounts(viewingUserId = null) {
     try {
-      const response = await api.get('/accounts/');
+      const params = viewingUserId ? { viewing_user_id: viewingUserId } : {};
+      const response = await api.get('/accounts/', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching accounts:', error);

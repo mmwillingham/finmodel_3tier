@@ -144,7 +144,28 @@ def list_authorized_access_received(
     authorized_access = db.query(models.AuthorizedUser).filter(
         models.AuthorizedUser.authorized_user_id == current_user.id
     ).all()
-    return authorized_access
+    
+    # Add primary_user_email to each response
+    result = []
+    for access in authorized_access:
+        primary_user = db.query(models.User).filter(models.User.id == access.primary_user_id).first()
+        access_dict = {
+            "id": access.id,
+            "primary_user_id": access.primary_user_id,
+            "authorized_user_id": access.authorized_user_id,
+            "authorized_user_email": access.authorized_user_email,
+            "primary_user_email": primary_user.email if primary_user else None,
+            "accounts_permission": access.accounts_permission,
+            "items_permission": access.items_permission,
+            "projections_permission": access.projections_permission,
+            "charts_permission": access.charts_permission,
+            "documents_permission": access.documents_permission,
+            "created_at": access.created_at,
+            "updated_at": access.updated_at,
+        }
+        result.append(access_dict)
+    
+    return result
 
 
 @router.get("/{authorized_user_id}", response_model=AuthorizedUserOut)

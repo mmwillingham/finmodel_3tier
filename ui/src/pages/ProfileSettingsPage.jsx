@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming you have this component
+import AccountSwitcher from '../components/AccountSwitcher';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 
@@ -123,6 +124,7 @@ const ProfileSettingsPage = () => {
 
   return (
     <div className="settings-page-container">
+      <AccountSwitcher />
       <h2>Profile Settings</h2>
       {message && <div className="message">{message}</div>}
 

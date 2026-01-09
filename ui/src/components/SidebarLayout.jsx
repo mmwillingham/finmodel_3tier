@@ -3,6 +3,7 @@ import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
 import AccountService from "../services/account.service";
+import { useAuth } from "../context/AuthContext";
 import ProjectionDetail from "./ProjectionDetail";
 import CashFlowView from "./CashFlowView";
 import AssetView from "./AssetView";
@@ -25,6 +26,7 @@ import IncomeSetupWizard from "./wizards/IncomeSetupWizard";
 import ExpensesSetupWizard from "./wizards/ExpensesSetupWizard";
 
 export default function SidebarLayout() {
+  const { viewingUserId } = useAuth();
   const [view, setView] = useState("new-home");
   const [cashFlowView, setCashFlowView] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,9 +63,9 @@ export default function SidebarLayout() {
       const [inc, exp, ast, lib, accs, settingsRes] = await Promise.all([
         CashFlowService.list(true),
         CashFlowService.list(false),
-        AssetService.list(),
-        LiabilityService.list(),
-        AccountService.getAllAccounts().catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
+        AssetService.list(viewingUserId),
+        LiabilityService.list(viewingUserId),
+        AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
         SettingsService.getSettings(),
       ]);
 
@@ -100,9 +102,9 @@ export default function SidebarLayout() {
         const [inc, exp, ast, lib, accs, settingsRes] = await Promise.all([
           CashFlowService.list(true),
           CashFlowService.list(false),
-          AssetService.list(),
-          LiabilityService.list(),
-          AccountService.getAllAccounts().catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
+          AssetService.list(viewingUserId),
+          LiabilityService.list(viewingUserId),
+          AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
           SettingsService.getSettings(),
         ]);
         setIncomeItems(inc.data || []);
@@ -131,7 +133,7 @@ export default function SidebarLayout() {
       }
     };
     load();
-  }, [refreshSettings, refreshAllData]);
+  }, [refreshSettings, refreshAllData, viewingUserId]); // Refresh when viewingUserId changes
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {
@@ -161,7 +163,7 @@ export default function SidebarLayout() {
 
   const refreshAssets = async () => {
     if (!loading) setLoading(true);
-    const ast = await AssetService.list();
+    const ast = await AssetService.list(viewingUserId);
     setAssets(ast.data || []);
     
     const uniqueAssetCategories = [...new Set((ast.data || []).map(item => item.category))].filter(Boolean);
@@ -172,7 +174,7 @@ export default function SidebarLayout() {
 
   const refreshLiabilities = async () => {
     if (!loading) setLoading(true);
-    const lib = await LiabilityService.list();
+    const lib = await LiabilityService.list(viewingUserId);
     setLiabilities(lib.data || []);
     
     const uniqueLiabilityCategories = [...new Set((lib.data || []).map(item => item.category || ''))];
@@ -199,9 +201,46 @@ export default function SidebarLayout() {
     setChartToViewId(chartId);
   }, []);
 
+  const [sidebarWidth, setSidebarWidth] = useState(250);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const handleMouseDown = (e) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+      const newWidth = e.clientX;
+      // Constrain between 150px and 600px
+      if (newWidth >= 150 && newWidth <= 600) {
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing]);
+
   return (
     <div className="sidebar-layout">
-      <aside className="sidebar">
+      <aside className="sidebar" style={{ width: `${sidebarWidth}px` }}>
+        <div 
+          className="sidebar-resize-handle"
+          onMouseDown={handleMouseDown}
+          style={{ cursor: 'ew-resize' }}
+        />
         <nav className="sidebar-nav">
           <section className="nav-section">
             <h3>Dashboard</h3>

@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [userSettings, setUserSettings] = useState(null);
+    const [viewingUserId, setViewingUserId] = useState(null); // null means view own data
 
     const navigate = useNavigate();
 
@@ -78,6 +79,13 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Reset viewingUserId when user changes
+    useEffect(() => {
+        if (currentUser) {
+            setViewingUserId(null); // Default to viewing own data
+        }
+    }, [currentUser]);
+
     const value = {
         currentUser,
         isLoading,
@@ -85,6 +93,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         userSettings,
         refreshUserSettings, // Expose refresh function via context
+        viewingUserId,
+        setViewingUserId,
     };
 
     return (

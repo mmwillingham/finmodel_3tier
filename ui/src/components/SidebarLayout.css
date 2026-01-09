@@ -9,6 +9,8 @@
 
 .sidebar {
   width: 250px;
+  min-width: 150px;
+  max-width: 600px;
   padding: 16px;
   background: #ffffff;
   border-right: 1px solid rgba(0,0,0,0.06);
@@ -17,6 +19,27 @@
   flex-direction: column;
   gap: 8px;
   overflow-y: auto; /* Enable vertical scrolling for sidebar content */
+  position: relative;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  cursor: ew-resize;
+  z-index: 10;
+  transition: background-color 0.2s;
+}
+
+.sidebar-resize-handle:hover {
+  background: #0b57d0;
+}
+
+.sidebar-resize-handle:active {
+  background: #0b57d0;
 }
 
 .main-content {
