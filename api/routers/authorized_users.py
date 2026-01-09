@@ -104,7 +104,7 @@ def create_authorized_user(
 
 Permissions granted:
 - Accounts: {authorized_user.accounts_permission or 'None'}
-- Items (Assets/Liabilities): {authorized_user.items_permission or 'None'}
+- Items (Assets/Liabilities/Income/Expenses): {authorized_user.items_permission or 'None'}
 - Projections: {authorized_user.projections_permission or 'None'}
 - Charts: {authorized_user.charts_permission or 'None'}
 - Documents: {authorized_user.documents_permission or 'None'}
