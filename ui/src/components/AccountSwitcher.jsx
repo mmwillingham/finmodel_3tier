@@ -58,8 +58,17 @@ const AccountSwitcher = () => {
         loadAccessibleAccounts();
     }, [currentUser]);
 
-    if (loading || accessibleAccounts.length <= 1) {
-        // Don't show switcher if only one account or still loading
+    // Show switcher even if loading (for debugging) or if there are multiple accounts
+    if (loading) {
+        return (
+            <div className="account-switcher">
+                <label>Loading accounts...</label>
+            </div>
+        );
+    }
+    
+    if (accessibleAccounts.length <= 1) {
+        // Don't show switcher if only one account
         return null;
     }
 

@@ -152,13 +152,14 @@ def list_authorized_users(
     return result
 
 
-@router.get("/received", response_model=List[AuthorizedUserOut])
+@router.get("/received")
 def list_authorized_access_received(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
     List all primary users that have granted access to the current user.
+    Returns dicts with primary_user_email included (not using AuthorizedUserOut schema).
     """
     authorized_access = db.query(models.AuthorizedUser).filter(
         models.AuthorizedUser.authorized_user_id == current_user.id

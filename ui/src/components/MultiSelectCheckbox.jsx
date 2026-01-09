@@ -51,13 +51,26 @@ export default function MultiSelectCheckbox({
     }
   }, [isOpen]);
 
-  // Handle resize functionality - always attach listeners, check ref inside
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isResizingRef.current || !dropdownRef.current || !containerRef.current) return;
+  // Resize functionality is handled directly in handleResizeStart
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.stopImmediatePropagation) {
+      e.stopImmediatePropagation();
+    }
+    
+    isResizingRef.current = true;
+    resizeStartYRef.current = e.clientY;
+    resizeStartHeightRef.current = dropdownHeight;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+
+    // Attach move and up handlers directly
+    const handleMouseMove = (moveEvent) => {
+      if (!isResizingRef.current) return;
       
-      // Calculate the height change based on mouse movement
-      const deltaY = e.clientY - resizeStartYRef.current;
+      const deltaY = moveEvent.clientY - resizeStartYRef.current;
       const newHeight = resizeStartHeightRef.current + deltaY;
       const minHeight = 150;
       const maxHeight = 500;
@@ -68,34 +81,15 @@ export default function MultiSelectCheckbox({
     };
 
     const handleMouseUp = () => {
-      if (isResizingRef.current) {
-        isResizingRef.current = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, []);
 
-  const handleResizeStart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Stop event from bubbling to parent elements
-    if (e.stopImmediatePropagation) {
-      e.stopImmediatePropagation();
-    }
-    isResizingRef.current = true;
-    resizeStartYRef.current = e.clientY;
-    resizeStartHeightRef.current = dropdownHeight;
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove, { passive: false });
+    document.addEventListener('mouseup', handleMouseUp, { passive: false });
   };
 
   const toggleOption = (id) => {

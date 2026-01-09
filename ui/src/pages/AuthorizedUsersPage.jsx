@@ -249,9 +249,9 @@ const AuthorizedUsersPage = () => {
                     <tr key={access.id}>
                       <td>
                         <div>User ID: {access.primary_user_id}</div>
-                        {access.primary_user_email && (
+                        {(access.primary_user_email || access.primary_user?.email) && (
                           <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                            {access.primary_user_email}
+                            {access.primary_user_email || access.primary_user?.email}
                           </div>
                         )}
                       </td>
