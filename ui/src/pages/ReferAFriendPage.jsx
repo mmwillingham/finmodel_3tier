@@ -78,7 +78,7 @@ const ReferAFriendPage = () => {
   };
 
   return (
-    <div className="settings-page-container">
+    <div className="settings-page-container refer-a-friend-page">
       <h2>Refer a Friend</h2>
       {message && (
         <div className={`message ${message.includes('Error') || message.includes('Please') ? 'error' : 'success'}`}>
@@ -87,34 +87,28 @@ const ReferAFriendPage = () => {
       )}
 
       {stats && (
-        <div style={{ 
-          marginBottom: '30px', 
-          padding: '20px', 
-          backgroundColor: '#f0f7ff', 
-          borderRadius: '8px',
-          border: '1px solid #b3d9ff'
-        }}>
-          <h3 style={{ marginTop: 0 }}>Your Referral Statistics</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-            <div>
-              <div style={{ fontSize: '2em', fontWeight: 'bold', color: '#0b57d0' }}>{stats.total_referrals}</div>
-              <div style={{ color: '#666' }}>Total Referrals</div>
+        <div className="referral-stats-box">
+          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Your Referral Statistics</h3>
+          <div className="referral-stats-grid">
+            <div className="stat-item">
+              <div className="stat-number stat-blue">{stats.total_referrals}</div>
+              <div className="stat-label">Total Referrals</div>
             </div>
-            <div>
-              <div style={{ fontSize: '2em', fontWeight: 'bold', color: '#28a745' }}>{stats.registered_referrals}</div>
-              <div style={{ color: '#666' }}>Registered</div>
+            <div className="stat-item">
+              <div className="stat-number stat-green">{stats.registered_referrals}</div>
+              <div className="stat-label">Registered</div>
             </div>
-            <div>
-              <div style={{ fontSize: '2em', fontWeight: 'bold', color: '#ffc107' }}>{stats.pending_referrals}</div>
-              <div style={{ color: '#666' }}>Pending</div>
+            <div className="stat-item">
+              <div className="stat-number stat-yellow">{stats.pending_referrals}</div>
+              <div className="stat-label">Pending</div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="setting-group" style={{ marginBottom: '40px' }}>
+      <div className="setting-group" style={{ marginBottom: '30px' }}>
         <h3>Submit a Referral</h3>
-        <p style={{ marginBottom: '20px', color: '#666' }}>
+        <p className="referral-description">
           Enter your friend's information below. When they register, we'll track that they were referred by you.
           You can use this information to provide credits or discounts for successful referrals.
         </p>
@@ -161,7 +155,8 @@ const ReferAFriendPage = () => {
         ) : referrals.length === 0 ? (
           <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
         ) : (
-          <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', minWidth: '600px' }}>
             <thead>
               <tr>
                 <th>Friend's Name</th>
@@ -194,6 +189,7 @@ const ReferAFriendPage = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

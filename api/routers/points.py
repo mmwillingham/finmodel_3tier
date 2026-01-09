@@ -26,6 +26,8 @@ class PointsBreakdown(BaseModel):
     referrals_registered: int = 0
     folders: int = 0
     documents: int = 0
+    surplus_asset: int = 0  # 1 if surplus asset is set, 0 otherwise
+    auto_disbursements: int = 0  # Count of auto-disbursements
 
 class PointsResponse(BaseModel):
     total_points: int
@@ -46,6 +48,8 @@ def get_user_points(
     - Number of cash flow items (income + expenses)
     - Number of referrals sent
     - Number of referrals that registered
+    - Surplus asset configured (1 point if set)
+    - Number of auto-disbursements configured
     """
     try:
         # Get user ID from the current_user schema
@@ -92,6 +96,17 @@ def get_user_points(
             models.Document.owner_id == user_id
         ).scalar() or 0
 
+        # Check if surplus asset is set
+        user_settings = db.query(models.UserSettings).filter(
+            models.UserSettings.user_id == user_id
+        ).first()
+        surplus_asset_set = 1 if user_settings and user_settings.surplus_asset_id is not None else 0
+
+        # Count auto-disbursements
+        auto_disbursements_count = db.query(func.count(models.AutoDisbursement.id)).filter(
+            models.AutoDisbursement.owner_id == user_id
+        ).scalar() or 0
+
         # Calculate total points (you can adjust the weighting here)
         total_points = (
             accounts_count * 10 +
@@ -101,7 +116,9 @@ def get_user_points(
             referrals_sent_count * 25 +
             referrals_registered_count * 100 +  # Bonus points for successful referrals
             folders_count * 5 +  # Points for folders
-            documents_count * 10  # Points for documents
+            documents_count * 10 +  # Points for documents
+            surplus_asset_set * 50 +  # Points for setting surplus asset
+            auto_disbursements_count * 30  # Points per auto-disbursement
         )
 
         breakdown = PointsBreakdown(
@@ -112,7 +129,9 @@ def get_user_points(
             referrals_sent=referrals_sent_count,
             referrals_registered=referrals_registered_count,
             folders=folders_count,
-            documents=documents_count
+            documents=documents_count,
+            surplus_asset=surplus_asset_set,
+            auto_disbursements=auto_disbursements_count
         )
 
         return PointsResponse(

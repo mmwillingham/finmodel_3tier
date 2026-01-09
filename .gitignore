@@ -8,6 +8,17 @@ financial_projector_api/venv/
 financial_projector_ui/node_modules/
 financial_projector_ui/build/
 
+# Node.js
+ui/node_modules/
+ui/build/
+ui/.env.local
+ui/.env.development.local
+ui/.env.test.local
+ui/.env.production.local
+ui/npm-debug.log*
+ui/yarn-debug.log*
+ui/yarn-error.log*
+
 # IDE-specific ignore for VS Code
 .vscode/
 

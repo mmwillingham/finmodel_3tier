@@ -13,8 +13,77 @@
 }
 
 /* Accounts and Auto-Disbursements pages need more width */
-.settings-page-container:has(.accounts-table) {
-    max-width: 1200px;
+.settings-page-container:has(.accounts-table),
+.settings-page-container.auto-disbursements-page {
+    max-width: 900px;
+}
+
+/* Refer a Friend page styling */
+.settings-page-container.refer-a-friend-page {
+    max-width: 700px;
+}
+
+.referral-stats-box {
+    marginBottom: 24px;
+    padding: 20px;
+    background-color: #f0f7ff;
+    border-radius: 8px;
+    border: 1px solid #b3d9ff;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.referral-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.stat-blue {
+    color: #0b57d0;
+}
+
+.stat-green {
+    color: #28a745;
+}
+
+.stat-yellow {
+    color: #ffc107;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.referral-description {
+    margin-bottom: 20px;
+    color: #666;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+    .referral-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .settings-page-container.refer-a-friend-page {
+        max-width: 100%;
+        padding: 16px;
+    }
 }
 
 .settings-page-container .form-group-horizontal {

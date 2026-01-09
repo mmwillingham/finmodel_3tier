@@ -314,10 +314,36 @@ class GlobalSettingsOut(GlobalSettingsBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# --- BROKERAGE SCHEMAS ---
+
+class BrokerageBase(BaseModel):
+    name: str
+    broker_name: str | None = None
+    broker_phone: str | None = None
+    broker_email: str | None = None
+
+class BrokerageCreate(BrokerageBase):
+    pass
+
+class BrokerageUpdate(BaseModel):
+    name: str | None = None
+    broker_name: str | None = None
+    broker_phone: str | None = None
+    broker_email: str | None = None
+
+class BrokerageOut(BrokerageBase):
+    id: int
+    owner_id: int
+    created_at: datetime
+    updated_at: datetime | None = None
+    model_config = ConfigDict(from_attributes=True)
+
 # --- ACCOUNT SCHEMAS ---
 
 class AccountCreate(BaseModel):
-    brokerage: str
+    brokerage_id: int | None = None  # NEW: Use brokerage_id if creating account under existing brokerage
+    # Legacy fields - used if brokerage_id is None (creates brokerage automatically)
+    brokerage: str | None = None  # Brokerage name - used to find or create brokerage
     broker_name: str | None = None
     broker_phone: str | None = None
     broker_email: str | None = None
@@ -326,17 +352,15 @@ class AccountCreate(BaseModel):
     is_retirement: bool = False
 
 class AccountUpdate(BaseModel):
-    brokerage: str | None = None
-    broker_name: str | None = None
-    broker_phone: str | None = None
-    broker_email: str | None = None
+    brokerage_id: int | None = None  # NEW: Update to use different brokerage
     account_name: str | None = None
     account_number: str | None = None
     is_retirement: bool | None = None
 
 class AccountOut(BaseModel):
     id: int
-    brokerage: str
+    brokerage_id: int | None = None  # NEW: Brokerage ID
+    brokerage: str  # Brokerage name (from relationship or legacy field)
     broker_name: str | None = None
     broker_phone: str | None = None
     broker_email: str | None = None

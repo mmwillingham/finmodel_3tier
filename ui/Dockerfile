@@ -11,9 +11,9 @@ RUN npm cache clean --force && npm install --force
 # Copy the rest of the application code
 COPY . .
 
-# Build the React app, explicitly setting REACT_APP_API_URL for the build command
-RUN ls -al /app/ui/src/pages
-RUN DANGEROUSLY_DISABLE_HOST_CHECK=true REACT_APP_API_URL=$REACT_APP_API_URL npm run build
+# Build with Vite, setting REACT_APP_API_URL environment variable
+# Vite will handle the build and output to 'build' directory
+RUN REACT_APP_API_URL=$REACT_APP_API_URL npm run build
 
 # Stage 2: Serve the React application with Nginx
 FROM nginx:alpine

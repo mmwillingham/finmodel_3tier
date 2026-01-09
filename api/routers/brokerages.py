@@ -1,0 +1,148 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+import models
+import schemas
+import auth
+import database
+from utils.permission_dependencies import get_accessible_user_ids
+import logging
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/brokerages",
+    tags=["brokerages"],
+    responses={404: {"description": "Not found"}},
+)
+
+@router.get("/", response_model=List[schemas.BrokerageOut])
+def list_brokerages(
+    viewing_user_id: int | None = None,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """List all brokerages the current user can access.
+    If viewing_user_id is None, only show the current user's own brokerages.
+    If viewing_user_id is provided, filter to that specific user's brokerages (must be accessible)."""
+    logger.debug(f"list_brokerages: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
+    
+    # Default to only showing current user's brokerages when viewingUserId is None
+    if viewing_user_id is None:
+        accessible_user_ids = [current_user.id]
+    else:
+        # When viewing a specific user, check if they're accessible
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "accounts")
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
+        accessible_user_ids = [viewing_user_id]
+    
+    brokerages = db.query(models.Brokerage).filter(
+        models.Brokerage.owner_id.in_(accessible_user_ids)
+    ).order_by(models.Brokerage.name).all()
+    
+    return brokerages
+
+@router.post("/", response_model=schemas.BrokerageOut, status_code=status.HTTP_201_CREATED)
+def create_brokerage(
+    brokerage: schemas.BrokerageCreate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Create a new brokerage."""
+    # Check if brokerage with same name already exists for this user
+    existing = db.query(models.Brokerage).filter(
+        models.Brokerage.owner_id == current_user.id,
+        models.Brokerage.name == brokerage.name
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Brokerage '{brokerage.name}' already exists for your account"
+        )
+    
+    db_brokerage = models.Brokerage(**brokerage.model_dump(), owner_id=current_user.id)
+    db.add(db_brokerage)
+    db.commit()
+    db.refresh(db_brokerage)
+    return db_brokerage
+
+@router.get("/{brokerage_id}", response_model=schemas.BrokerageOut)
+def get_brokerage(
+    brokerage_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Get a specific brokerage by ID."""
+    brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == brokerage_id).first()
+    if not brokerage:
+        raise HTTPException(status_code=404, detail="Brokerage not found")
+    
+    # Check if user has access
+    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "accounts")
+    if brokerage.owner_id not in accessible_user_ids:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this brokerage")
+    
+    return brokerage
+
+@router.put("/{brokerage_id}", response_model=schemas.BrokerageOut)
+def update_brokerage(
+    brokerage_id: int,
+    brokerage_update: schemas.BrokerageUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Update an existing brokerage (requires ownership)."""
+    db_brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == brokerage_id).first()
+    if not db_brokerage:
+        raise HTTPException(status_code=404, detail="Brokerage not found")
+    
+    # Check ownership
+    if db_brokerage.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this brokerage")
+    
+    # If updating name, check for duplicates
+    if brokerage_update.name and brokerage_update.name != db_brokerage.name:
+        existing = db.query(models.Brokerage).filter(
+            models.Brokerage.owner_id == current_user.id,
+            models.Brokerage.name == brokerage_update.name,
+            models.Brokerage.id != brokerage_id
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Brokerage '{brokerage_update.name}' already exists for your account"
+            )
+    
+    update_data = brokerage_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_brokerage, field, value)
+    
+    db.commit()
+    db.refresh(db_brokerage)
+    return db_brokerage
+
+@router.delete("/{brokerage_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_brokerage(
+    brokerage_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Delete a brokerage (requires ownership). Will set brokerage_id to NULL on linked accounts."""
+    db_brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == brokerage_id).first()
+    if not db_brokerage:
+        raise HTTPException(status_code=404, detail="Brokerage not found")
+    
+    # Check ownership
+    if db_brokerage.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this brokerage")
+    
+    # Set brokerage_id to NULL for linked accounts (cascade handled by database)
+    linked_accounts = db.query(models.Account).filter(models.Account.brokerage_id == brokerage_id).all()
+    for account in linked_accounts:
+        account.brokerage_id = None
+    
+    db.delete(db_brokerage)
+    db.commit()
+    return None

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from typing import List, Optional
 import models
@@ -25,28 +25,51 @@ def list_accounts(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """List all accounts the current user can access (own or authorized).
+    If viewing_user_id is None, only show the current user's own accounts.
     If viewing_user_id is provided, filter to that specific user's accounts (must be accessible)."""
-    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "accounts")
+    logger.debug(f"list_accounts: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
     
-    # If viewing_user_id is specified, validate it's accessible and filter to it
-    if viewing_user_id is not None:
+    # Default to only showing current user's accounts when viewingUserId is None
+    if viewing_user_id is None:
+        accessible_user_ids = [current_user.id]
+    else:
+        # When viewing a specific user, check if they're accessible
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "accounts")
         if viewing_user_id not in accessible_user_ids:
             raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
         accessible_user_ids = [viewing_user_id]
-    accounts = db.query(models.Account).filter(
-        models.Account.owner_id.in_(accessible_user_ids)
-    ).order_by(models.Account.brokerage, models.Account.account_name).all()
     
-    # Add owner email to each account
+    accounts = db.query(models.Account).options(
+        joinedload(models.Account.brokerage_rel)
+    ).filter(
+        models.Account.owner_id.in_(accessible_user_ids)
+    ).order_by(models.Account.brokerage_id, models.Account.account_name).all()
+    
+    # Add owner email and brokerage info to each account
     result = []
     for account in accounts:
         owner = db.query(models.User).filter(models.User.id == account.owner_id).first()
+        
+        # Get brokerage info from relationship or legacy fields
+        if account.brokerage_rel:
+            brokerage_name = account.brokerage_rel.name
+            broker_name = account.brokerage_rel.broker_name
+            broker_phone = account.brokerage_rel.broker_phone
+            broker_email = account.brokerage_rel.broker_email
+        else:
+            # Fallback to legacy fields
+            brokerage_name = account.brokerage or "Unknown"
+            broker_name = account.broker_name
+            broker_phone = account.broker_phone
+            broker_email = account.broker_email
+        
         account_dict = {
             "id": account.id,
-            "brokerage": account.brokerage,
-            "broker_name": account.broker_name,
-            "broker_phone": account.broker_phone,
-            "broker_email": account.broker_email,
+            "brokerage_id": account.brokerage_id,
+            "brokerage": brokerage_name,
+            "broker_name": broker_name,
+            "broker_phone": broker_phone,
+            "broker_email": broker_email,
             "account_name": account.account_name,
             "account_number": account.account_number,
             "is_retirement": account.is_retirement,
@@ -65,19 +88,75 @@ def create_account(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Create a new account."""
-    db_account = models.Account(**account.model_dump(), owner_id=current_user.id)
+    """Create a new account. If brokerage_id is provided, use it. Otherwise, find or create brokerage from legacy fields."""
+    brokerage_id = account.brokerage_id
+    
+    # If no brokerage_id provided, find or create brokerage from legacy fields
+    if not brokerage_id:
+        if not account.brokerage:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either brokerage_id or brokerage name must be provided"
+            )
+        
+        # Find existing brokerage with same name
+        existing_brokerage = db.query(models.Brokerage).filter(
+            models.Brokerage.owner_id == current_user.id,
+            models.Brokerage.name == account.brokerage
+        ).first()
+        
+        if existing_brokerage:
+            brokerage_id = existing_brokerage.id
+        else:
+            # Create new brokerage
+            new_brokerage = models.Brokerage(
+                owner_id=current_user.id,
+                name=account.brokerage,
+                broker_name=account.broker_name,
+                broker_phone=account.broker_phone,
+                broker_email=account.broker_email
+            )
+            db.add(new_brokerage)
+            db.flush()  # Flush to get the ID without committing
+            brokerage_id = new_brokerage.id
+    
+    # Create account with brokerage_id
+    account_data = {
+        "owner_id": current_user.id,
+        "brokerage_id": brokerage_id,
+        "account_name": account.account_name,
+        "account_number": account.account_number,
+        "is_retirement": account.is_retirement,
+    }
+    db_account = models.Account(**account_data)
     db.add(db_account)
     db.commit()
     db.refresh(db_account)
     
-    # Return with owner email
+    # Load brokerage relationship
+    db_account = db.query(models.Account).options(
+        joinedload(models.Account.brokerage_rel)
+    ).filter(models.Account.id == db_account.id).first()
+    
+    # Get brokerage info
+    if db_account.brokerage_rel:
+        brokerage_name = db_account.brokerage_rel.name
+        broker_name = db_account.brokerage_rel.broker_name
+        broker_phone = db_account.brokerage_rel.broker_phone
+        broker_email = db_account.brokerage_rel.broker_email
+    else:
+        brokerage_name = account.brokerage or "Unknown"
+        broker_name = account.broker_name
+        broker_phone = account.broker_phone
+        broker_email = account.broker_email
+    
     return {
         "id": db_account.id,
-        "brokerage": db_account.brokerage,
-        "broker_name": db_account.broker_name,
-        "broker_phone": db_account.broker_phone,
-        "broker_email": db_account.broker_email,
+        "brokerage_id": db_account.brokerage_id,
+        "brokerage": brokerage_name,
+        "broker_name": broker_name,
+        "broker_phone": broker_phone,
+        "broker_email": broker_email,
         "account_name": db_account.account_name,
         "account_number": db_account.account_number,
         "is_retirement": db_account.is_retirement,
@@ -94,7 +173,9 @@ def get_account(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """Get a specific account by ID (requires view permission)."""
-    account = db.query(models.Account).filter(models.Account.id == account_id).first()
+    account = db.query(models.Account).options(
+        joinedload(models.Account.brokerage_rel)
+    ).filter(models.Account.id == account_id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     
@@ -110,14 +191,27 @@ def get_account(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to view this account")
     
+    # Get brokerage info from relationship or legacy fields
+    if account.brokerage_rel:
+        brokerage_name = account.brokerage_rel.name
+        broker_name = account.brokerage_rel.broker_name
+        broker_phone = account.brokerage_rel.broker_phone
+        broker_email = account.brokerage_rel.broker_email
+    else:
+        brokerage_name = account.brokerage or "Unknown"
+        broker_name = account.broker_name
+        broker_phone = account.broker_phone
+        broker_email = account.broker_email
+    
     # Add owner email
     owner = db.query(models.User).filter(models.User.id == account.owner_id).first()
     return {
         "id": account.id,
-        "brokerage": account.brokerage,
-        "broker_name": account.broker_name,
-        "broker_phone": account.broker_phone,
-        "broker_email": account.broker_email,
+        "brokerage_id": account.brokerage_id,
+        "brokerage": brokerage_name,
+        "broker_name": broker_name,
+        "broker_phone": broker_phone,
+        "broker_email": broker_email,
         "account_name": account.account_name,
         "account_number": account.account_number,
         "is_retirement": account.is_retirement,
@@ -135,7 +229,9 @@ def update_account(
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """Update an existing account (requires edit permission)."""
-    db_account = db.query(models.Account).filter(models.Account.id == account_id).first()
+    db_account = db.query(models.Account).options(
+        joinedload(models.Account.brokerage_rel)
+    ).filter(models.Account.id == account_id).first()
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
     
@@ -151,6 +247,16 @@ def update_account(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to edit this account")
     
+    # Validate brokerage_id if provided
+    if account_update.brokerage_id is not None:
+        brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == account_update.brokerage_id).first()
+        if not brokerage:
+            raise HTTPException(status_code=404, detail="Brokerage not found")
+        # Check if user has access to this brokerage
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "accounts")
+        if brokerage.owner_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to this brokerage")
+    
     update_data = account_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_account, field, value)
@@ -158,14 +264,32 @@ def update_account(
     db.commit()
     db.refresh(db_account)
     
+    # Reload with brokerage relationship
+    db_account = db.query(models.Account).options(
+        joinedload(models.Account.brokerage_rel)
+    ).filter(models.Account.id == account_id).first()
+    
+    # Get brokerage info
+    if db_account.brokerage_rel:
+        brokerage_name = db_account.brokerage_rel.name
+        broker_name = db_account.brokerage_rel.broker_name
+        broker_phone = db_account.brokerage_rel.broker_phone
+        broker_email = db_account.brokerage_rel.broker_email
+    else:
+        brokerage_name = db_account.brokerage or "Unknown"
+        broker_name = db_account.broker_name
+        broker_phone = db_account.broker_phone
+        broker_email = db_account.broker_email
+    
     # Return with owner email
     owner = db.query(models.User).filter(models.User.id == db_account.owner_id).first()
     return {
         "id": db_account.id,
-        "brokerage": db_account.brokerage,
-        "broker_name": db_account.broker_name,
-        "broker_phone": db_account.broker_phone,
-        "broker_email": db_account.broker_email,
+        "brokerage_id": db_account.brokerage_id,
+        "brokerage": brokerage_name,
+        "broker_name": broker_name,
+        "broker_phone": broker_phone,
+        "broker_email": broker_email,
         "account_name": db_account.account_name,
         "account_number": db_account.account_number,
         "is_retirement": db_account.is_retirement,

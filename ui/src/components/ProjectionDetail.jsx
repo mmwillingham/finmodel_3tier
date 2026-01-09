@@ -1,171 +1,307 @@
-import React, { useState, useEffect } from "react";
-import ProjectionService from "../services/projection.service";
-import ProjectionChart from "./ProjectionChart"; // Import the ProjectionChart
-import "./ProjectionDetail.css";
+import React, { useState, useEffect, useRef } from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+import ProjectionService from '../services/projection.service';
+import { useAuth } from '../context/AuthContext';
+import './ProjectionDetail.css';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
-export default function ProjectionDetail({ projectionId }) {
+// Register Chart.js components
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+);
+
+
+const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
+  const id = projectionId;
+
   const [projection, setProjection] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState([]);
+  const [accountDetails, setAccountDetails] = useState([]);
+  const { userSettings } = useAuth();
+  const chartRef = useRef(null);
+  const yearByYearTableRef = useRef(null);
+  const accountDetailsTableRef = useRef(null);
 
   useEffect(() => {
+    if (!id) {
+      setError("No projection ID provided.");
+      setLoading(false);
+      return;
+    }
+
     const fetchProjection = async () => {
+      setLoading(true);
+      setError(null);
+      
       try {
-        setLoading(true);
-        const data = await ProjectionService.getProjectionDetails(projectionId);
-        setProjection(data);
-      } catch (error) {
-        console.error("Error fetching projection details:", error);
-        setProjection(null);
+        const projData = await ProjectionService.getProjectionDetails(id); 
+        setProjection(projData);
+
+        if (projData?.data_json) {
+          const parsed = JSON.parse(projData.data_json);
+          setData(parsed);
+          setAccountDetails(parsed);
+        }
+      } catch (err) {
+        setError(err.message || "Failed to load projection.");
       } finally {
         setLoading(false);
       }
     };
 
-    if (projectionId) {
-      fetchProjection();
+    fetchProjection();
+  }, [id]);
+
+  const getAccountNames = () => {
+    if (!accountDetails || accountDetails.length === 0) return [];
+    const keys = Object.keys(accountDetails[0]);
+    return keys.filter(k => k !== 'Year' && k !== 'StartingValue' && k !== 'Total_Contribution' && k !== 'Total_Growth' && k !== 'Total_Value');
+  };
+
+  const formatCurrency = (v) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0);
+
+  const getCurrentYear = () => new Date().getFullYear();
+
+  const handleDownloadChartPng = () => {
+    if (chartRef.current) {
+      const link = document.createElement('a');
+      link.download = `${projection.name.replace(/\s/g, '_') || 'projection'}_chart.png`;
+      link.href = chartRef.current.toBase64Image('image/png', 1);
+      link.click();
+    } else {
+      console.error("Chart ref is not available for PNG download.");
     }
-  }, [projectionId]);
+  };
 
-  if (loading) {
-    return <div>Loading projection details...</div>;
-  }
+  const handleDownloadChartPdf = () => {
+    if (chartRef.current) {
+      const chartImage = chartRef.current.toBase64Image('image/png', 1);
+      const pdf = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape
+      const imgProps = pdf.getImageProperties(chartImage);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-  if (!projection || !projection.time_series_data) {
-    return <div>Projection not found or no data available.</div>;
-  }
-
-  // Group time_series_data by year for table display
-  const yearlyDataMap = new Map();
-  projection.time_series_data.forEach(item => {
-    if (!yearlyDataMap.has(item.year)) {
-      yearlyDataMap.set(item.year, { Year: item.year });
+      pdf.addImage(chartImage, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${projection.name.replace(/\s/g, '_') || 'projection'}_chart.pdf`);
+    } else {
+      console.error("Chart ref is not available for PDF download.");
     }
-    const yearData = yearlyDataMap.get(item.year);
-    // Use value_type to create dynamic keys for the table
-    // For account-specific data, we might want to prefix with account name
-    let key = item.value_type.replace(/_/g, " ");
-    if (item.account && item.account.name) {
-        // If there's an account and it's not a global total (account_id is null for totals)
-        // Add account-specific data like balances, contributions, growth if needed
-        // For now, let's just focus on global totals and net worth in the main table.
-        // We can add a separate section for individual account details later.
-        if (item.value_type === "account_balance") {
-            key = `${item.account.name} Balance`;
-        } else if (item.value_type === "contribution_flow") {
-            key = `${item.account.name} Contribution`;
-        } else if (item.value_type === "growth_value") {
-            key = `${item.account.name} Growth`;
+  };
+
+  const handleDownloadTablePdf = async (tableRef, filename) => {
+    if (tableRef.current) {
+      const canvas = await html2canvas(tableRef.current);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
+    } else {
+      console.error("Table ref is not available for PDF download.");
+    }
+  };
+
+  const convertToCsv = (dataArray, headers, valueFormatter) => {
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    dataArray.forEach(row => {
+      const values = headers.map(header => {
+        let value = row[header] || '';
+        if (typeof value === 'number' && valueFormatter) {
+          return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
         }
-    }
-    yearData[key] = item.value;
-  });
-
-  const yearlyData = Array.from(yearlyDataMap.values()).sort((a, b) => a.Year - b.Year);
-
-  // Determine all unique column headers from all years' data
-  const allHeaders = new Set();
-  yearlyData.forEach(row => {
-    Object.keys(row).forEach(key => {
-      if (key !== "Year") { // 'Year' is always first
-        allHeaders.add(key);
-      }
+        return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes for CSV
+      });
+      csvRows.push(values.join(','));
     });
-  });
-  const sortedHeaders = ["Net Worth", "Total Assets", "Total Liabilities", "Total Income Flow", "Total Expense Flow", "Net Cash Flow", "Total Contribution", "Total Growth"].filter(h => allHeaders.has(h));
-  // Add any other dynamic account headers that might have been picked up, ensuring 'Year' is first.
-  const finalHeaders = ["Year", ...sortedHeaders, ...Array.from(allHeaders).filter(h => !sortedHeaders.includes(h))];
+    return csvRows.join('\\n');
+  };
 
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value ?? 0);
-
-  const formatCell = (key, value) => {
-    if (value === null || value === undefined) return "-";
-    if (typeof value === "number") {
-      // Check for specific keys that represent percentages or rates if any will be shown
-      // For now, assume all numbers in the table are currency values
-      return formatCurrency(value);
+  const handleDownloadYearByYearCsv = (filename) => {
+    if (data.length > 0) {
+      const headers = ['Year', 'StartingValue', 'Total_Contribution', 'Total_Growth', 'Total_Value'];
+      const formattedData = data.map((item, idx) => ({
+        Year: getCurrentYear() + idx,
+        StartingValue: item.StartingValue,
+        Total_Contribution: item.Total_Contribution,
+        Total_Growth: item.Total_Growth,
+        Total_Value: item.Total_Value,
+      }));
+      const csvString = convertToCsv(formattedData, headers, formatCurrency);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename.replace(/\s/g, '_')}.csv`;
+      link.click();
+    } else {
+      console.warn("No data available for Year-by-Year CSV download.");
     }
-    return value;
+  };
+
+  const handleDownloadAccountDetailsCsv = (filename) => {
+    if (accountDetails.length > 0 && accountNames.length > 0) {
+      const headers = ['Year', ...accountNames, 'Total_Value'];
+      const formattedData = accountDetails.map((item, idx) => {
+        const row = { Year: getCurrentYear() + idx };
+        accountNames.forEach(name => {
+          row[name] = item[name];
+        });
+        row.Total_Value = item.Total_Value;
+        return row;
+      });
+      const csvString = convertToCsv(formattedData, headers, formatCurrency);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename.replace(/\s/g, '_')}.csv`;
+      link.click();
+    } else {
+      console.warn("No data available for Account Details CSV download.");
+    }
+  };
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p className="error">{error}</p>;
+  if (!projection) return <p>No projection found.</p>;
+
+  const accountNames = getAccountNames();
+  // const currentYear = getCurrentYear(); // Removed redeclaration
+
+  // Prepare chart data
+  const chartLabels = data.map((_, idx) => getCurrentYear() + idx);
+  const chartDatasets = accountNames.map((name, idx) => ({
+    label: name,
+    data: accountDetails.map(year => year[name]),
+    borderColor: `hsl(${idx * 60}, 70%, 50%)`,
+    backgroundColor: `hsla(${idx * 60}, 70%, 50%, 0.1)`,
+    tension: 0.4,
+  }));
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: `Financial Project - ${projection.name} - Growth Over Time${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}` },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) =>
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }).format(value),
+        },
+      },
+    },
   };
 
   return (
     <div className="projection-detail">
-      <h2>{projection.name}</h2>
-
-      <div className="projection-summary">
-        <div className="summary-item">
-          <strong>Years:</strong> {projection.years}
+      <div className="projection-header">
+        <div>
+          <h2>{projection.name}</h2>
+          <p>Years: {projection.years}</p>
         </div>
-        <div className="summary-item">
-          <strong>Final Value (Net Worth):</strong> {formatCurrency(projection.final_value)}
-        </div>
-        <div className="summary-item">
-          <strong>Total Contributed:</strong> {formatCurrency(projection.total_contributed)}
-        </div>
-        <div className="summary-item">
-          <strong>Total Growth:</strong> {formatCurrency(projection.total_growth)}
+        <div className="projection-actions">
+          {onEdit && <button onClick={() => onEdit(projection)} className="edit-btn">Edit</button>}
+          {onDelete && <button onClick={() => onDelete(projection.id)} className="delete-btn">Delete</button>}
         </div>
       </div>
 
-      <ProjectionChart projection={projection} /> {/* Render the chart here */}
+      <h3>Growth Chart</h3>
+      <div className="chart-container">
+        <div className="chart-actions">
+          <button onClick={handleDownloadChartPng}>Download PNG</button>
+          <button onClick={handleDownloadChartPdf}>Download PDF</button>
+        </div>
+        <Line ref={chartRef} data={{ labels: chartLabels, datasets: chartDatasets }} options={chartOptions} />
+      </div>
 
       <h3>Year-by-Year Breakdown</h3>
-      <div className="table-container">
-        <table className="yearly-table">
-          <thead>
-            <tr>
-              {finalHeaders.map((header) => (
-                <th key={header}>{header}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {yearlyData.map((row, idx) => (
-              <tr key={idx}>
-                {finalHeaders.map((header, i) => (
-                  <td key={i}>{formatCell(header, row[header])}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="table-actions">
+        <button onClick={() => handleDownloadTablePdf(yearByYearTableRef, `${projection.name}_Year_by_Year_Table`)}>Download PDF</button>
+        <button onClick={() => handleDownloadYearByYearCsv(`${projection.name}_Year_by_Year_Table`)}>Download CSV</button>
       </div>
+      <table ref={yearByYearTableRef} className="projection-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Starting Value</th>
+            <th>Contributions</th>
+            <th>Growth</th>
+            <th>Final Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((year, idx) => (
+            <tr key={idx}>
+              <td>{getCurrentYear() + idx}</td>
+              <td>{formatCurrency(year.StartingValue)}</td>
+              <td>{formatCurrency(year.Total_Contribution)}</td>
+              <td>{formatCurrency(year.Total_Growth)}</td>
+              <td>{formatCurrency(year.Total_Value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-      {/* Optionally display initial projected accounts */}
-      {projection.accounts_data && projection.accounts_data.length > 0 && (
-        <>
-          <h3>Initial Accounts for Projection</h3>
-          <div className="table-container">
-            <table className="yearly-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Initial Value</th>
-                  <th>Annual Contribution</th>
-                  <th>Annual Growth Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projection.accounts_data.map((account, idx) => (
-                  <tr key={idx}>
-                    <td>{account.name}</td>
-                    <td>{account.account_type}</td>
-                    <td>{formatCurrency(account.initial_value)}</td>
-                    <td>{formatCurrency(account.contribution * 12)}</td> {/* Display annual contribution */}
-                    <td>{account.growth_rate}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      <h3>Account Details</h3>
+      <div className="table-actions">
+        <button onClick={() => handleDownloadTablePdf(accountDetailsTableRef, `${projection.name}_Account_Details_Table`)}>Download PDF</button>
+        <button onClick={() => handleDownloadAccountDetailsCsv(`${projection.name}_Account_Details_Table`)}>Download CSV</button>
+      </div>
+      <table ref={accountDetailsTableRef} className="projection-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            {accountNames.map(name => (
+              <th key={name}>{name}</th>
+            ))}
+            <th>Final Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accountDetails.map((year, idx) => (
+            <tr key={idx}>
+              <td>{getCurrentYear() + idx}</td>
+              {accountNames.map(name => (
+                <td key={name}>{formatCurrency(year[name])}</td>
+              ))}
+              <td>{formatCurrency(year.Total_Value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-}
+};
+
+export default ProjectionDetail;

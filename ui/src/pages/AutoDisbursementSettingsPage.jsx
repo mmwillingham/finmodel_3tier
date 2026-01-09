@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import AutoDisbursementService from '../services/auto_disbursement.service';
 import AssetService from '../services/asset.service';
 import SettingsService from '../services/settings.service';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
 import './SettingsPages.css';
 
 const AutoDisbursementSettingsPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, viewingUserId } = useAuth();
   const navigate = useNavigate();
   useSettingsBackButton();
   const [autoDisbursements, setAutoDisbursements] = useState([]);
@@ -39,7 +39,7 @@ const AutoDisbursementSettingsPage = () => {
           console.error('Error loading auto-disbursements:', err);
           return [];
         }),
-        AssetService.list().catch((err) => {
+        AssetService.list(viewingUserId || null).catch((err) => {
           console.error('Error loading assets:', err);
           return { data: [] };
         }),
@@ -215,7 +215,7 @@ const AutoDisbursementSettingsPage = () => {
   }
 
   return (
-    <div className="settings-page-container" style={{ maxWidth: '1200px' }}>
+    <div className="settings-page-container auto-disbursements-page">
       <h2>Automatic Transfers</h2>
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
@@ -226,33 +226,36 @@ const AutoDisbursementSettingsPage = () => {
       )}
 
       {/* Surplus Asset Section */}
-      <div className="setting-group" style={{ maxWidth: '100%', width: '100%', marginBottom: '40px' }}>
-        <h3 style={{ color: 'var(--color-heading)', marginBottom: '20px', fontSize: '1.25em', borderBottom: '2px solid var(--color-border)', paddingBottom: '10px' }}>
+      <div className="setting-group" style={{ marginBottom: '30px' }}>
+        <h3 style={{ color: 'var(--color-heading)', marginBottom: '15px', fontSize: '1.1em', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
           Surplus Asset
         </h3>
         <div className="profile-settings-form">
           <div className="form-group-horizontal">
-            <label htmlFor="surplus-asset">
+            <label htmlFor="surplus-asset" style={{ minWidth: '140px' }}>
               Surplus Asset
             </label>
-            <select
-              id="surplus-asset"
-              value={surplusAssetId || ''}
-              onChange={(e) => setSurplusAssetId(e.target.value ? parseInt(e.target.value) : null)}
-            >
-              <option value="">None (No automatic surplus/deficit handling)</option>
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.name} ({asset.category})
-                </option>
-              ))}
-            </select>
-            <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-              Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
-            </small>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <select
+                id="surplus-asset"
+                value={surplusAssetId || ''}
+                onChange={(e) => setSurplusAssetId(e.target.value ? parseInt(e.target.value) : null)}
+                style={{ width: '100%', maxWidth: '400px', textAlign: 'left' }}
+              >
+                <option value="">None (No automatic surplus/deficit handling)</option>
+                {assets.map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.name} ({asset.category})
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: '#666', fontSize: '0.85em' }}>
+                Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
+              </small>
+            </div>
           </div>
         </div>
-        <div style={{ marginTop: '20px' }}>
+        <div style={{ marginTop: '15px' }}>
           <button onClick={handleSaveSurplusAsset} className="save-button">
             Save Surplus Asset
           </button>
@@ -260,11 +263,11 @@ const AutoDisbursementSettingsPage = () => {
       </div>
 
       {/* Auto-Disbursements Section */}
-      <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
-        <h3 style={{ color: 'var(--color-heading)', marginBottom: '20px', fontSize: '1.25em', borderBottom: '2px solid var(--color-border)', paddingBottom: '10px' }}>
-          Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.8em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
+      <div className="setting-group" style={{ marginBottom: '30px' }}>
+        <h3 style={{ color: 'var(--color-heading)', marginBottom: '15px', fontSize: '1.1em', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+          Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
         </h3>
-        <h4 style={{ fontSize: '1em', color: '#666', marginBottom: '15px', fontWeight: 'normal' }}>Add New Auto-Disbursement</h4>
+        <h4 style={{ fontSize: '0.95em', color: '#666', marginBottom: '12px', fontWeight: '500' }}>Add New Auto-Disbursement</h4>
         <div className="profile-settings-form">
           <div className="form-group-horizontal">
             <label htmlFor="name">Name *</label>
@@ -288,11 +291,12 @@ const AutoDisbursementSettingsPage = () => {
             </select>
           </div>
           <div className="form-group-horizontal">
-            <label htmlFor="source_asset_id">Source Asset *</label>
+            <label htmlFor="source_asset_id" style={{ minWidth: '140px' }}>Source Asset *</label>
             <select
               id="source_asset_id"
               value={newAutoDisbursement.source_asset_id || ''}
               onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, source_asset_id: e.target.value ? parseInt(e.target.value) : null })}
+              style={{ width: '100%', maxWidth: '400px', textAlign: 'left' }}
             >
               <option value="">Select Source Asset</option>
               {assets && assets.length > 0 ? (
@@ -307,11 +311,12 @@ const AutoDisbursementSettingsPage = () => {
             </select>
           </div>
           <div className="form-group-horizontal">
-            <label htmlFor="target_asset_id">Target Asset *</label>
+            <label htmlFor="target_asset_id" style={{ minWidth: '140px' }}>Target Asset *</label>
             <select
               id="target_asset_id"
               value={newAutoDisbursement.target_asset_id || ''}
               onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, target_asset_id: e.target.value ? parseInt(e.target.value) : null })}
+              style={{ width: '100%', maxWidth: '400px', textAlign: 'left' }}
             >
               <option value="">Select Target Asset</option>
               {assets && assets.length > 0 ? (
@@ -326,7 +331,7 @@ const AutoDisbursementSettingsPage = () => {
             </select>
           </div>
           <div className="form-group-horizontal">
-            <label htmlFor="transfer_value">
+            <label htmlFor="transfer_value" style={{ minWidth: '140px' }}>
               Transfer Value per year * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'})
             </label>
             <input
@@ -336,42 +341,45 @@ const AutoDisbursementSettingsPage = () => {
               placeholder={newAutoDisbursement.transfer_type === 'percentage' ? 'e.g., 5' : 'e.g., 5000'}
               value={newAutoDisbursement.transfer_value}
               onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_value: e.target.value })}
+              style={{ width: '150px', textAlign: 'right' }}
             />
           </div>
           <div className="form-group-horizontal">
-            <label htmlFor="start_date">Start Date</label>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <label htmlFor="start_date" style={{ minWidth: '140px' }}>Start Date</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
               <input
                 id="start_date"
                 type="date"
                 value={newAutoDisbursement.start_date}
                 onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, start_date: e.target.value })}
+                style={{ width: '150px' }}
               />
-              <small style={{ fontSize: '0.75em', color: '#666', marginTop: '4px' }}>Optional - leave blank to start immediately</small>
+              <small style={{ fontSize: '0.75em', color: '#666' }}>Optional - leave blank to start immediately</small>
             </div>
           </div>
           <div className="form-group-horizontal">
-            <label htmlFor="end_date">End Date</label>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <label htmlFor="end_date" style={{ minWidth: '140px' }}>End Date</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
               <input
                 id="end_date"
                 type="date"
                 value={newAutoDisbursement.end_date}
                 onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, end_date: e.target.value })}
+                style={{ width: '150px' }}
               />
-              <small style={{ fontSize: '0.75em', color: '#666', marginTop: '4px' }}>Optional - leave blank to continue indefinitely</small>
+              <small style={{ fontSize: '0.75em', color: '#666' }}>Optional - leave blank to continue indefinitely</small>
             </div>
           </div>
         </div>
-        <div style={{ marginTop: '20px' }}>
-          <button onClick={handleCreateAutoDisbursement} className="save-button" style={{ marginBottom: '30px' }}>
+        <div style={{ marginTop: '15px' }}>
+          <button onClick={handleCreateAutoDisbursement} className="save-button">
             Add Auto-Disbursement
           </button>
         </div>
       </div>
 
-      <div className="setting-group" style={{ maxWidth: '100%', width: '100%', marginTop: '30px' }}>
-        <h3 style={{ color: 'var(--color-heading)', marginBottom: '20px', fontSize: '1.25em', borderBottom: '2px solid var(--color-border)', paddingBottom: '10px' }}>
+      <div className="setting-group" style={{ marginTop: '30px' }}>
+        <h3 style={{ color: 'var(--color-heading)', marginBottom: '15px', fontSize: '1.1em', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
           Existing Auto-Disbursements
         </h3>
         {autoDisbursements.length === 0 ? (
@@ -379,8 +387,8 @@ const AutoDisbursementSettingsPage = () => {
             No auto-disbursements defined. Add an auto-disbursement above.
           </p>
         ) : (
-          <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px', minWidth: '800px' }}>
+          <div style={{ overflowX: 'auto', width: '100%', marginTop: '10px' }}>
+            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
             <thead>
               <tr>
                 <th>Name</th>

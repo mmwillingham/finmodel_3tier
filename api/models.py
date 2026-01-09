@@ -195,6 +195,25 @@ class GlobalSettings(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class Brokerage(Base):
+    """
+    SQLAlchemy Model for Brokerages (Financial Institutions).
+    Groups accounts under a single brokerage with shared broker information.
+    """
+    __tablename__ = "brokerages"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)  # Brokerage name, e.g., "Merrill Lynch", "Fidelity"
+    broker_name = Column(String, nullable=True)  # Name of the broker/advisor
+    broker_phone = Column(String, nullable=True)  # Phone number of the broker/advisor
+    broker_email = Column(String, nullable=True)  # Email of the broker/advisor
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationship to accounts
+    accounts = relationship("Account", back_populates="brokerage", cascade="all, delete-orphan")
+
+
 class Account(Base):
     """
     SQLAlchemy Model for Master Accounts (Broker/Financial Institution Accounts).
@@ -203,15 +222,20 @@ class Account(Base):
     __tablename__ = "accounts"
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    brokerage = Column(String, nullable=False)  # Renamed from broker, e.g., "Merrill Lynch", "Fidelity"
-    broker_name = Column(String, nullable=True)  # Name of the broker/advisor
-    broker_phone = Column(String, nullable=True)  # Phone number of the broker/advisor
-    broker_email = Column(String, nullable=True)  # Email of the broker/advisor
+    brokerage_id = Column(Integer, ForeignKey("brokerages.id", ondelete="SET NULL"), nullable=True)  # NEW: Link to brokerage
+    # Legacy fields - kept for backward compatibility during migration
+    brokerage = Column(String, nullable=True)  # Will be deprecated after migration
+    broker_name = Column(String, nullable=True)  # Will be deprecated after migration
+    broker_phone = Column(String, nullable=True)  # Will be deprecated after migration
+    broker_email = Column(String, nullable=True)  # Will be deprecated after migration
     account_name = Column(String, nullable=False)  # e.g., "Investment Account", "Checking Account"
     account_number = Column(String, nullable=True)  # Account number (optional)
     is_retirement = Column(Boolean, default=False)  # True for retirement accounts (IRA, 401k, etc.)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationship to brokerage
+    brokerage_rel = relationship("Brokerage", back_populates="accounts")
 
 
 class Asset(Base):

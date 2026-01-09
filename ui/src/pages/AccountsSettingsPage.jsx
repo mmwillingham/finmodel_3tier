@@ -1,23 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AccountService from '../services/account.service';
-import { useAuth } from '../context/AuthContext';
+import BrokerageService from '../services/brokerage.service';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
 import './SettingsPages.css'; // General CSS for settings pages
 
 const AccountsSettingsPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, viewingUserId } = useAuth();
   const navigate = useNavigate();
   useSettingsBackButton(); // Fix browser back button navigation
   const [accounts, setAccounts] = useState([]);
+  const [brokerages, setBrokerages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [editingAccount, setEditingAccount] = useState(null);
+  const [showNewBrokerageForm, setShowNewBrokerageForm] = useState(false);
+  const [newBrokerage, setNewBrokerage] = useState({
+    name: '',
+    broker_name: '',
+    broker_phone: '',
+    broker_email: '',
+  });
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const [newAccount, setNewAccount] = useState({
-    brokerage: '',
+    brokerage_id: null,
+    brokerage: '', // Legacy field - used when creating new brokerage
     broker_name: '',
     broker_phone: '',
     broker_email: '',
@@ -26,36 +36,67 @@ const AccountsSettingsPage = () => {
     is_retirement: false,
   });
 
-  const loadAccounts = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const accountsData = await AccountService.getAllAccounts();
-      setAccounts(accountsData);
+      const [accountsData, brokeragesData] = await Promise.all([
+        AccountService.getAllAccounts(viewingUserId || null),
+        BrokerageService.getAllBrokerages(viewingUserId || null).catch(() => []) // Brokerages may not exist yet
+      ]);
+      setAccounts(accountsData || []);
+      setBrokerages(brokeragesData || []);
     } catch (e) {
-      console.error('Failed to load accounts', e);
-      setError('Failed to load accounts.');
+      console.error('Failed to load data', e);
+      setError('Failed to load data.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewingUserId]);
 
   useEffect(() => {
-    loadAccounts();
-  }, [loadAccounts]);
+    loadData();
+  }, [loadData]);
+
+  const handleCreateBrokerage = async () => {
+    if (!newBrokerage.name) {
+      setMessage('Brokerage name is required');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
+    try {
+      await BrokerageService.createBrokerage(newBrokerage);
+      setMessage('Brokerage created successfully!');
+      setNewBrokerage({ name: '', broker_name: '', broker_phone: '', broker_email: '' });
+      setShowNewBrokerageForm(false);
+      loadData();
+      setTimeout(() => setMessage(''), 2000);
+    } catch (e) {
+      console.error('Failed to create brokerage', e);
+      const errorMessage = e.response?.data?.detail || 'Error creating brokerage';
+      setMessage(errorMessage);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
 
   const handleCreateAccount = async () => {
-    if (!newAccount.brokerage || !newAccount.account_name) {
+    if ((!newAccount.brokerage_id && !newAccount.brokerage) || !newAccount.account_name) {
       setMessage('Brokerage and Account Name are required');
       setTimeout(() => setMessage(''), 3000);
       return;
     }
 
     try {
-      await AccountService.createAccount(newAccount);
+      // If brokerage_id is selected, use it; otherwise use legacy fields to create/find brokerage
+      const accountData = newAccount.brokerage_id 
+        ? { brokerage_id: newAccount.brokerage_id, account_name: newAccount.account_name, account_number: newAccount.account_number, is_retirement: newAccount.is_retirement }
+        : newAccount;
+      
+      await AccountService.createAccount(accountData);
       setMessage('Account created successfully!');
-      setNewAccount({ brokerage: '', broker_name: '', broker_phone: '', broker_email: '', account_name: '', account_number: '', is_retirement: false });
-      loadAccounts();
+      setNewAccount({ brokerage_id: null, brokerage: '', broker_name: '', broker_phone: '', broker_email: '', account_name: '', account_number: '', is_retirement: false });
+      loadData();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
       console.error('Failed to create account', e);
@@ -67,17 +108,24 @@ const AccountsSettingsPage = () => {
 
   const handleUpdateAccount = async (accountId, updatedAccount) => {
     // Validate required fields
-    if (!updatedAccount.brokerage || !updatedAccount.account_name) {
-      setMessage('Error: Brokerage and Account Name are required fields.');
+    if (!updatedAccount.account_name) {
+      setMessage('Error: Account Name is required.');
       setTimeout(() => setMessage(''), 3000);
       return;
     }
 
     try {
-      await AccountService.updateAccount(accountId, updatedAccount);
+      // Only send updatable fields (brokerage_id, account_name, account_number, is_retirement)
+      const updateData = {
+        brokerage_id: updatedAccount.brokerage_id,
+        account_name: updatedAccount.account_name,
+        account_number: updatedAccount.account_number,
+        is_retirement: updatedAccount.is_retirement,
+      };
+      await AccountService.updateAccount(accountId, updateData);
       setMessage('Account updated successfully!');
       setEditingAccount(null);
-      loadAccounts();
+      loadData();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
       console.error('Failed to update account', e);
@@ -96,7 +144,7 @@ const AccountsSettingsPage = () => {
         try {
           await AccountService.deleteAccount(accountId);
           setMessage('Account deleted successfully!');
-          loadAccounts();
+          loadData();
           setTimeout(() => setMessage(''), 2000);
         } catch (e) {
           console.error('Failed to delete account', e);
@@ -108,6 +156,22 @@ const AccountsSettingsPage = () => {
     });
   };
 
+  // Group accounts by brokerage
+  const accountsByBrokerage = accounts.reduce((acc, account) => {
+    const key = account.brokerage || 'Unknown';
+    if (!acc[key]) {
+      acc[key] = {
+        brokerage: account.brokerage,
+        broker_name: account.broker_name,
+        broker_phone: account.broker_phone,
+        broker_email: account.broker_email,
+        accounts: []
+      };
+    }
+    acc[key].accounts.push(account);
+    return acc;
+  }, {});
+
   if (loading) {
     return <div className="loading-message">Loading accounts...</div>;
   }
@@ -117,49 +181,142 @@ const AccountsSettingsPage = () => {
       <h2>Accounts</h2>
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
+      {/* Brokerage Management Section */}
+      <div className="setting-group" style={{ maxWidth: '100%', width: '100%', marginBottom: '30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h3>Brokerages</h3>
+          <button onClick={() => setShowNewBrokerageForm(!showNewBrokerageForm)} className="save-button">
+            {showNewBrokerageForm ? 'Cancel' : '+ New Brokerage'}
+          </button>
+        </div>
+        {showNewBrokerageForm && (
+          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '15px' }}>
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px' }}>
+              <div className="form-field">
+                <label htmlFor="brokerage_name">Brokerage Name *</label>
+                <input
+                  id="brokerage_name"
+                  type="text"
+                  placeholder="e.g., Merrill Lynch"
+                  value={newBrokerage.name}
+                  onChange={(e) => setNewBrokerage({ ...newBrokerage, name: e.target.value })}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="broker_name_new">Broker Name</label>
+                <input
+                  id="broker_name_new"
+                  type="text"
+                  placeholder="Optional"
+                  value={newBrokerage.broker_name}
+                  onChange={(e) => setNewBrokerage({ ...newBrokerage, broker_name: e.target.value })}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="broker_phone_new">Broker Phone</label>
+                <input
+                  id="broker_phone_new"
+                  type="text"
+                  placeholder="Optional"
+                  value={newBrokerage.broker_phone}
+                  onChange={(e) => setNewBrokerage({ ...newBrokerage, broker_phone: e.target.value })}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="broker_email_new">Broker Email</label>
+                <input
+                  id="broker_email_new"
+                  type="email"
+                  placeholder="Optional"
+                  value={newBrokerage.broker_email}
+                  onChange={(e) => setNewBrokerage({ ...newBrokerage, broker_email: e.target.value })}
+                />
+              </div>
+            </div>
+            <button onClick={handleCreateBrokerage} className="save-button">Create Brokerage</button>
+          </div>
+        )}
+        {brokerages.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+            {brokerages.map(b => (
+              <span key={b.id} style={{ padding: '6px 12px', backgroundColor: '#e0edfb', borderRadius: '4px', fontSize: '0.9em' }}>
+                {b.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
         <h3>Add New Account</h3>
         <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px', width: '100%' }}>
           <div className="form-field">
-            <label htmlFor="brokerage">Brokerage *</label>
-            <input
-              id="brokerage"
-              type="text"
-              placeholder="e.g., Merrill Lynch"
-              value={newAccount.brokerage}
-              onChange={(e) => setNewAccount({ ...newAccount, brokerage: e.target.value })}
-            />
+            <label htmlFor="brokerage_select">Brokerage *</label>
+            <select
+              id="brokerage_select"
+              value={newAccount.brokerage_id || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'new') {
+                  setNewAccount({ ...newAccount, brokerage_id: null, brokerage: '' });
+                  setShowNewBrokerageForm(true);
+                } else if (val) {
+                  setNewAccount({ ...newAccount, brokerage_id: parseInt(val), brokerage: '' });
+                } else {
+                  setNewAccount({ ...newAccount, brokerage_id: null });
+                }
+              }}
+            >
+              <option value="">Select Brokerage...</option>
+              {brokerages.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+              <option value="new">+ Create New Brokerage</option>
+            </select>
+            {!newAccount.brokerage_id && (
+              <input
+                type="text"
+                placeholder="Or enter new brokerage name"
+                value={newAccount.brokerage}
+                onChange={(e) => setNewAccount({ ...newAccount, brokerage: e.target.value, brokerage_id: null })}
+                style={{ marginTop: '8px', width: '100%' }}
+              />
+            )}
           </div>
-          <div className="form-field">
-            <label htmlFor="broker_name">Broker Name</label>
-            <input
-              id="broker_name"
-              type="text"
-              placeholder="Optional"
-              value={newAccount.broker_name}
-              onChange={(e) => setNewAccount({ ...newAccount, broker_name: e.target.value })}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="broker_phone">Broker Phone</label>
-            <input
-              id="broker_phone"
-              type="text"
-              placeholder="Optional"
-              value={newAccount.broker_phone}
-              onChange={(e) => setNewAccount({ ...newAccount, broker_phone: e.target.value })}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="broker_email">Broker Email</label>
-            <input
-              id="broker_email"
-              type="email"
-              placeholder="Optional"
-              value={newAccount.broker_email}
-              onChange={(e) => setNewAccount({ ...newAccount, broker_email: e.target.value })}
-            />
-          </div>
+          {!newAccount.brokerage_id && (
+            <>
+              <div className="form-field">
+                <label htmlFor="broker_name">Broker Name (for new brokerage)</label>
+                <input
+                  id="broker_name"
+                  type="text"
+                  placeholder="Optional"
+                  value={newAccount.broker_name}
+                  onChange={(e) => setNewAccount({ ...newAccount, broker_name: e.target.value })}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="broker_phone">Broker Phone (for new brokerage)</label>
+                <input
+                  id="broker_phone"
+                  type="text"
+                  placeholder="Optional"
+                  value={newAccount.broker_phone}
+                  onChange={(e) => setNewAccount({ ...newAccount, broker_phone: e.target.value })}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="broker_email">Broker Email (for new brokerage)</label>
+                <input
+                  id="broker_email"
+                  type="email"
+                  placeholder="Optional"
+                  value={newAccount.broker_email}
+                  onChange={(e) => setNewAccount({ ...newAccount, broker_email: e.target.value })}
+                />
+              </div>
+            </>
+          )}
         </div>
         <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px', width: '100%' }}>
           <div className="form-field">
@@ -202,72 +359,56 @@ const AccountsSettingsPage = () => {
         {accounts.length === 0 ? (
           <p>No accounts defined. Add an account above.</p>
         ) : (
-          <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-            <thead>
-              <tr>
-                <th>Owner</th>
-                <th>Brokerage</th>
-                <th>Broker Name</th>
-                <th>Broker Phone</th>
-                <th>Broker Email</th>
-                <th>Account Name</th>
-                <th>Account Number</th>
-                <th>Retirement</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((account) => (
-                <tr key={account.id}>
-                  {editingAccount?.id === account.id ? (
-                    <>
-                      <td>
-                        {account.owner_id === currentUser?.id ? (
-                          <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
-                        ) : (
-                          <span style={{ color: '#6c757d' }}>{account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}</span>
-                        )}
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={editingAccount.brokerage || ''}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, brokerage: e.target.value })}
-                          style={{ width: '100%', padding: '5px' }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={editingAccount.broker_name || ''}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, broker_name: e.target.value })}
-                          style={{ width: '100%', padding: '5px' }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={editingAccount.broker_phone || ''}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, broker_phone: e.target.value })}
-                          style={{ width: '100%', padding: '5px' }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="email"
-                          value={editingAccount.broker_email || ''}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, broker_email: e.target.value })}
-                          style={{ width: '100%', padding: '5px' }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={editingAccount.account_name}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
-                          style={{ width: '100%', padding: '5px' }}
-                        />
-                      </td>
+          <div>
+            {Object.entries(accountsByBrokerage).map(([brokerageName, group]) => (
+              <div key={brokerageName} style={{ marginBottom: '30px' }}>
+                <h4 style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: '2px solid #e0edfb' }}>
+                  {brokerageName}
+                  {group.broker_name && <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '10px' }}>— {group.broker_name}</span>}
+                </h4>
+                <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                  <thead>
+                    <tr>
+                      <th>Owner</th>
+                      <th>Brokerage</th>
+                      <th>Account Name</th>
+                      <th>Account Number</th>
+                      <th>Retirement</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.accounts.map((account) => (
+                      <tr key={account.id}>
+                        {editingAccount?.id === account.id ? (
+                          <>
+                            <td>
+                              {account.owner_id === currentUser?.id ? (
+                                <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
+                              ) : (
+                                <span style={{ color: '#6c757d' }}>{account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}</span>
+                              )}
+                            </td>
+                            <td>
+                              <select
+                                value={editingAccount.brokerage_id || ''}
+                                onChange={(e) => setEditingAccount({ ...editingAccount, brokerage_id: e.target.value ? parseInt(e.target.value) : null })}
+                                style={{ width: '100%', padding: '5px', fontSize: '0.9em' }}
+                              >
+                                <option value="">Select Brokerage...</option>
+                                {brokerages.map(b => (
+                                  <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                value={editingAccount.account_name}
+                                onChange={(e) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
+                                style={{ width: '100%', padding: '5px' }}
+                              />
+                            </td>
                       <td>
                         <input
                           type="text"
@@ -302,10 +443,7 @@ const AccountsSettingsPage = () => {
                           </span>
                         )}
                       </td>
-                      <td>{account.brokerage}</td>
-                      <td>{account.broker_name || '-'}</td>
-                      <td>{account.broker_phone || '-'}</td>
-                      <td>{account.broker_email || '-'}</td>
+                      <td>{account.brokerage || 'Unknown'}</td>
                       <td>{account.account_name}</td>
                       <td>{account.account_number || '-'}</td>
                       <td>{account.is_retirement ? 'Yes' : 'No'}</td>
@@ -313,7 +451,7 @@ const AccountsSettingsPage = () => {
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           {account.owner_id === currentUser?.id ? (
                             <>
-                              <button onClick={() => setEditingAccount({ ...account })} className="edit-icon-btn" title="Edit">
+                              <button onClick={() => setEditingAccount({ ...account, brokerage_id: account.brokerage_id || null })} className="edit-icon-btn" title="Edit">
                                 <span role="img" aria-label="edit">✏️</span>
                               </button>
                               <button onClick={() => handleDeleteAccount(account.id)} className="delete-icon-btn" title="Delete">
@@ -328,9 +466,12 @@ const AccountsSettingsPage = () => {
                     </>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

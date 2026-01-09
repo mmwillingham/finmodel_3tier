@@ -106,10 +106,12 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
     // Helper to render a category display section
     const renderCategoryDisplay = (type, categories, setIsModalOpen) => (
         <div className="global-category-section">
-            <h4>{type} Categories</h4>
-            <button type="button" className="global-manage-button" onClick={() => {
-                setIsModalOpen(true);
-            }}>Manage</button>
+            <div className="global-category-header">
+                <h4>{type} Categories</h4>
+                <button type="button" className="global-manage-button" onClick={() => {
+                    setIsModalOpen(true);
+                }}>Manage</button>
+            </div>
             <div className="category-tags-display">
                 {categories.length > 0 ? (
                     categories.map((cat, index) => (

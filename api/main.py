@@ -30,6 +30,7 @@ from routers import assets
 from routers import liabilities
 from routers.settings import router as settings_router
 from routers.accounts import router as accounts_router
+from routers.brokerages import router as brokerages_router
 from routers.auto_disbursements import router as auto_disbursements_router
 from routers.export_import import router as export_import_router
 from routers.referrals import router as referrals_router
@@ -69,6 +70,7 @@ app.include_router(custom_charts_router) # MODIFIED: Use the explicitly imported
 app.include_router(settings_router)
 app.include_router(assets.router)
 app.include_router(liabilities.router)
+app.include_router(brokerages_router)
 app.include_router(accounts_router)
 app.include_router(auto_disbursements_router)
 app.include_router(export_import_router)
