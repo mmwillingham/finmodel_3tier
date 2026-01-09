@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
 import AccountService from "../services/account.service";
 import { useAuth } from "../context/AuthContext";
+import { SkeletonList } from "./Skeleton";
 import ProjectionDetail from "./ProjectionDetail";
 import CashFlowView from "./CashFlowView";
 import AssetView from "./AssetView";
@@ -339,102 +341,147 @@ export default function SidebarLayout() {
       </aside>
 
       <main className="main-content">
-        {loading && <div className="loading">Loading...</div>}
+        {loading && (
+          <div style={{ padding: '20px' }}>
+            <SkeletonList count={6} />
+          </div>
+        )}
         
         {!loading && view === "new-home" && (
-          <div className="dashboard-welcome">
+          <motion.div 
+            className="dashboard-welcome"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <h2>Welcome to the Financial Projector!</h2>
             <p>Use the navigation on the left to explore your financial data.</p>
             
-            <div className="walk-me-through-section" style={{ marginTop: '40px', padding: '30px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+            <motion.div 
+              className="walk-me-through-section" 
+              style={{ 
+                marginTop: '40px', 
+                padding: '30px', 
+                backgroundColor: '#fff', 
+                borderRadius: '12px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)'
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
               <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#282c34' }}>Walk Me Through</h3>
               <p style={{ marginBottom: '25px', color: '#666' }}>
                 New to the Financial Projector? Follow these guided wizards to set up your profile and organize your financial data.
               </p>
               
               <div className="wizard-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('profile')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>📋 Setup Profile</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Enter your personal information, address, and tax filing status.
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('profile')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <h4>📋 Setup Profile</h4>
+                  <p>Enter your personal information, address, and tax filing status.</p>
+                </motion.div>
                 
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('categories')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🏷️ Setup Categories</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Organize your assets, liabilities, income, and expenses with categories.
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('categories')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                  <h4>🏷️ Setup Categories</h4>
+                  <p>Organize your assets, liabilities, income, and expenses with categories.</p>
+                </motion.div>
                 
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('accounts')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🏦 Setup Accounts</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Add your financial institution accounts (banks, brokerages, etc.).
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('accounts')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.15 }}
+                >
+                  <h4>🏦 Setup Accounts</h4>
+                  <p>Add your financial institution accounts (banks, brokerages, etc.).</p>
+                </motion.div>
                 
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('assets')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>💰 Setup Assets</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Add your assets (checking, savings, investments, real estate, etc.).
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('assets')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                >
+                  <h4>💰 Setup Assets</h4>
+                  <p>Add your assets (checking, savings, investments, real estate, etc.).</p>
+                </motion.div>
                 
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('liabilities')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>📉 Setup Liabilities</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Add your liabilities (mortgages, loans, credit cards, etc.).
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('liabilities')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.25 }}
+                >
+                  <h4>📉 Setup Liabilities</h4>
+                  <p>Add your liabilities (mortgages, loans, credit cards, etc.).</p>
+                </motion.div>
                 
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('income')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>💵 Setup Income</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Add your income sources (salary, rental income, investments, etc.).
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('income')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.3 }}
+                >
+                  <h4>💵 Setup Income</h4>
+                  <p>Add your income sources (salary, rental income, investments, etc.).</p>
+                </motion.div>
                 
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('expenses')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>💸 Setup Expenses</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Add your expenses (housing, food, transportation, etc.).
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('expenses')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.35 }}
+                >
+                  <h4>💸 Setup Expenses</h4>
+                  <p>Add your expenses (housing, food, transportation, etc.).</p>
+                </motion.div>
                 
-                <div className="wizard-card" style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #dee2e6', cursor: 'pointer', transition: 'all 0.2s' }}
-                     onClick={() => setWizardOpen('automatic-transfers')}
-                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'}
-                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                  <h4 style={{ marginTop: 0, color: '#007bff' }}>🔄 Setup Automatic Transfers</h4>
-                  <p style={{ color: '#666', fontSize: '0.9em', marginBottom: 0 }}>
-                    Set up automatic transfers between accounts and surplus asset handling.
-                  </p>
-                </div>
+                <motion.div 
+                  className="wizard-card"
+                  onClick={() => setWizardOpen('automatic-transfers')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.4 }}
+                >
+                  <h4>🔄 Setup Automatic Transfers</h4>
+                  <p>Set up automatic transfers between accounts and surplus asset handling.</p>
+                </motion.div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
         
         {/* Wizard Modals */}
