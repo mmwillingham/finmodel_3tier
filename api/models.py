@@ -211,7 +211,7 @@ class Brokerage(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationship to accounts
-    accounts = relationship("Account", back_populates="brokerage", cascade="all, delete-orphan")
+    accounts = relationship("Account", back_populates="brokerage_rel", cascade="all, delete-orphan")
 
 
 class Account(Base):
