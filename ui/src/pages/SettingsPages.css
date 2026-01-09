@@ -15,7 +15,7 @@
 /* Accounts and Auto-Disbursements pages need more width */
 .settings-page-container:has(.accounts-table),
 .settings-page-container.auto-disbursements-page {
-    max-width: 900px;
+    max-width: 1100px; /* Increased for better table layout */
 }
 
 /* Reduce white space for Accounts and Auto-Disbursements pages */
@@ -28,7 +28,7 @@
 .settings-page-container:has(.accounts-table) .form-row,
 .settings-page-container.auto-disbursements-page .form-row {
     gap: 10px; /* Reduced gap */
-    margin-bottom: 12px; /* Reduced margin */
+    margin-bottom: 10px; /* Reduced margin */
 }
 
 .settings-page-container:has(.accounts-table) .form-field,
@@ -40,6 +40,36 @@
 .settings-page-container.auto-disbursements-page .form-field label {
     margin-bottom: 4px; /* Reduced margin */
     font-size: 0.9em; /* Slightly smaller labels */
+}
+
+/* Accounts table improvements */
+.setting-group .accounts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.setting-group .accounts-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e0edfb;
+    white-space: nowrap;
+}
+
+.setting-group .accounts-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+.setting-group .accounts-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.setting-group .accounts-table tr:last-child td {
+    border-bottom: none;
 }
 
 /* Refer a Friend page styling */

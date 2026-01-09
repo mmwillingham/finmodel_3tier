@@ -177,21 +177,38 @@ const AccountsSettingsPage = () => {
   }
 
   return (
-    <div className="settings-page-container" style={{ maxWidth: '1200px' }}>
+    <div className="settings-page-container" style={{ maxWidth: '1100px' }}>
       <h2>Accounts</h2>
-      {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
+      {message && (
+        <div 
+          className={`message ${message.includes('Error') ? 'error' : 'success'}`}
+          style={{ 
+            padding: '10px 15px', 
+            borderRadius: '6px', 
+            marginBottom: '15px',
+            backgroundColor: message.includes('Error') ? '#fee' : '#efe',
+            color: message.includes('Error') ? '#c00' : '#060'
+          }}
+        >
+          {message}
+        </div>
+      )}
 
       {/* Brokerage Management Section */}
-      <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h3>Brokerages</h3>
-          <button onClick={() => setShowNewBrokerageForm(!showNewBrokerageForm)} className="save-button">
+      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h3 style={{ margin: 0 }}>Brokerages</h3>
+          <button 
+            onClick={() => setShowNewBrokerageForm(!showNewBrokerageForm)} 
+            className="btn-secondary-modern"
+            style={{ padding: '6px 12px', fontSize: '0.9em' }}
+          >
             {showNewBrokerageForm ? 'Cancel' : '+ New Brokerage'}
           </button>
         </div>
         {showNewBrokerageForm && (
-          <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '15px' }}>
-            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px' }}>
+          <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px', marginBottom: '12px' }}>
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
               <div className="form-field">
                 <label htmlFor="brokerage_name">Brokerage Name *</label>
                 <input
@@ -200,6 +217,7 @@ const AccountsSettingsPage = () => {
                   placeholder="e.g., Merrill Lynch"
                   value={newBrokerage.name}
                   onChange={(e) => setNewBrokerage({ ...newBrokerage, name: e.target.value })}
+                  className="input-modern"
                 />
               </div>
               <div className="form-field">
@@ -210,6 +228,7 @@ const AccountsSettingsPage = () => {
                   placeholder="Optional"
                   value={newBrokerage.broker_name}
                   onChange={(e) => setNewBrokerage({ ...newBrokerage, broker_name: e.target.value })}
+                  className="input-modern"
                 />
               </div>
               <div className="form-field">
@@ -220,6 +239,7 @@ const AccountsSettingsPage = () => {
                   placeholder="Optional"
                   value={newBrokerage.broker_phone}
                   onChange={(e) => setNewBrokerage({ ...newBrokerage, broker_phone: e.target.value })}
+                  className="input-modern"
                 />
               </div>
               <div className="form-field">
@@ -230,16 +250,27 @@ const AccountsSettingsPage = () => {
                   placeholder="Optional"
                   value={newBrokerage.broker_email}
                   onChange={(e) => setNewBrokerage({ ...newBrokerage, broker_email: e.target.value })}
+                  className="input-modern"
                 />
               </div>
             </div>
-            <button onClick={handleCreateBrokerage} className="save-button">Create Brokerage</button>
+            <button onClick={handleCreateBrokerage} className="btn-primary-modern" style={{ padding: '8px 16px', fontSize: '0.9em' }}>Create Brokerage</button>
           </div>
         )}
         {brokerages.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
             {brokerages.map(b => (
-              <span key={b.id} style={{ padding: '6px 12px', backgroundColor: '#e0edfb', borderRadius: '4px', fontSize: '0.9em' }}>
+              <span 
+                key={b.id} 
+                className="badge-modern"
+                style={{ 
+                  padding: '6px 12px', 
+                  backgroundColor: '#e0edfb', 
+                  borderRadius: '6px', 
+                  fontSize: '0.85em',
+                  fontWeight: 500
+                }}
+              >
                 {b.name}
               </span>
             ))}
@@ -247,9 +278,9 @@ const AccountsSettingsPage = () => {
         )}
       </div>
 
-      <div className="setting-group" style={{ maxWidth: '100%', width: '100%' }}>
-        <h3>Add New Account</h3>
-        <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px', width: '100%' }}>
+      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Add New Account</h3>
+        <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
           <div className="form-field">
             <label htmlFor="brokerage_select">Brokerage *</label>
             <select
@@ -266,6 +297,7 @@ const AccountsSettingsPage = () => {
                   setNewAccount({ ...newAccount, brokerage_id: null });
                 }
               }}
+              className="input-modern"
             >
               <option value="">Select Brokerage...</option>
               {brokerages.map(b => (
@@ -273,52 +305,17 @@ const AccountsSettingsPage = () => {
               ))}
               <option value="new">+ Create New Brokerage</option>
             </select>
-            {!newAccount.brokerage_id && (
+            {!newAccount.brokerage_id && brokerages.length === 0 && (
               <input
                 type="text"
-                placeholder="Or enter new brokerage name"
+                placeholder="Enter new brokerage name"
                 value={newAccount.brokerage}
                 onChange={(e) => setNewAccount({ ...newAccount, brokerage: e.target.value, brokerage_id: null })}
-                style={{ marginTop: '8px', width: '100%' }}
+                className="input-modern"
+                style={{ marginTop: '8px' }}
               />
             )}
           </div>
-          {!newAccount.brokerage_id && (
-            <>
-              <div className="form-field">
-                <label htmlFor="broker_name">Broker Name (for new brokerage)</label>
-                <input
-                  id="broker_name"
-                  type="text"
-                  placeholder="Optional"
-                  value={newAccount.broker_name}
-                  onChange={(e) => setNewAccount({ ...newAccount, broker_name: e.target.value })}
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="broker_phone">Broker Phone (for new brokerage)</label>
-                <input
-                  id="broker_phone"
-                  type="text"
-                  placeholder="Optional"
-                  value={newAccount.broker_phone}
-                  onChange={(e) => setNewAccount({ ...newAccount, broker_phone: e.target.value })}
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="broker_email">Broker Email (for new brokerage)</label>
-                <input
-                  id="broker_email"
-                  type="email"
-                  placeholder="Optional"
-                  value={newAccount.broker_email}
-                  onChange={(e) => setNewAccount({ ...newAccount, broker_email: e.target.value })}
-                />
-              </div>
-            </>
-          )}
-        </div>
-        <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px', width: '100%' }}>
           <div className="form-field">
             <label htmlFor="account_name">Account Name *</label>
             <input
@@ -327,6 +324,7 @@ const AccountsSettingsPage = () => {
               placeholder="e.g., Investment Account"
               value={newAccount.account_name}
               onChange={(e) => setNewAccount({ ...newAccount, account_name: e.target.value })}
+              className="input-modern"
             />
           </div>
           <div className="form-field">
@@ -337,6 +335,7 @@ const AccountsSettingsPage = () => {
               placeholder="Optional"
               value={newAccount.account_number}
               onChange={(e) => setNewAccount({ ...newAccount, account_number: e.target.value })}
+              className="input-modern"
             />
           </div>
           <div className="form-field">
@@ -345,130 +344,166 @@ const AccountsSettingsPage = () => {
               id="is_retirement"
               value={newAccount.is_retirement ? 'yes' : 'no'}
               onChange={(e) => setNewAccount({ ...newAccount, is_retirement: e.target.value === 'yes' })}
+              className="input-modern"
             >
               <option value="no">No</option>
               <option value="yes">Yes</option>
             </select>
           </div>
         </div>
-        <button onClick={handleCreateAccount} className="save-button" style={{ marginBottom: '30px' }}>Add Account</button>
+        <button onClick={handleCreateAccount} className="btn-primary-modern" style={{ padding: '8px 16px', fontSize: '0.9em' }}>Add Account</button>
       </div>
 
       <div className="setting-group">
-        <h3>Existing Accounts</h3>
+        <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Existing Accounts</h3>
         {accounts.length === 0 ? (
-          <p>No accounts defined. Add an account above.</p>
+          <p style={{ padding: '20px', textAlign: 'center', color: '#666' }}>No accounts defined. Add an account above.</p>
         ) : (
           <div>
             {Object.entries(accountsByBrokerage).map(([brokerageName, group]) => (
-              <div key={brokerageName} style={{ marginBottom: '30px' }}>
-                <h4 style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: '2px solid #e0edfb' }}>
-                  {brokerageName}
-                  {group.broker_name && <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '10px' }}>— {group.broker_name}</span>}
-                </h4>
-                <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                  <thead>
-                    <tr>
-                      <th>Owner</th>
-                      <th>Brokerage</th>
-                      <th>Account Name</th>
-                      <th>Account Number</th>
-                      <th>Retirement</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.accounts.map((account) => (
-                      <tr key={account.id}>
-                        {editingAccount?.id === account.id ? (
-                          <>
-                            <td>
-                              {account.owner_id === currentUser?.id ? (
-                                <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
-                              ) : (
-                                <span style={{ color: '#6c757d' }}>{account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}</span>
-                              )}
-                            </td>
-                            <td>
-                              <select
-                                value={editingAccount.brokerage_id || ''}
-                                onChange={(e) => setEditingAccount({ ...editingAccount, brokerage_id: e.target.value ? parseInt(e.target.value) : null })}
-                                style={{ width: '100%', padding: '5px', fontSize: '0.9em' }}
-                              >
-                                <option value="">Select Brokerage...</option>
-                                {brokerages.map(b => (
-                                  <option key={b.id} value={b.id}>{b.name}</option>
-                                ))}
-                              </select>
-                            </td>
-                            <td>
-                              <input
-                                type="text"
-                                value={editingAccount.account_name}
-                                onChange={(e) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
-                                style={{ width: '100%', padding: '5px' }}
-                              />
-                            </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={editingAccount.account_number || ''}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, account_number: e.target.value })}
-                          style={{ width: '100%', padding: '5px' }}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          value={editingAccount.is_retirement ? 'yes' : 'no'}
-                          onChange={(e) => setEditingAccount({ ...editingAccount, is_retirement: e.target.value === 'yes' })}
-                          style={{ width: '100%', padding: '5px' }}
-                        >
-                          <option value="no">No</option>
-                          <option value="yes">Yes</option>
-                        </select>
-                      </td>
-                      <td>
-                        <button onClick={() => handleUpdateAccount(account.id, editingAccount)} className="save-button" style={{ padding: '5px 10px', marginRight: '5px' }}>Save</button>
-                        <button onClick={() => setEditingAccount(null)} className="cancel-button" style={{ padding: '5px 10px' }}>Cancel</button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td>
-                        {account.owner_id === currentUser?.id ? (
-                          <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
-                        ) : (
-                          <span style={{ color: '#6c757d' }} title={account.owner_email || 'Authorized Access'}>
-                            {account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}
-                          </span>
-                        )}
-                      </td>
-                      <td>{account.brokerage || 'Unknown'}</td>
-                      <td>{account.account_name}</td>
-                      <td>{account.account_number || '-'}</td>
-                      <td>{account.is_retirement ? 'Yes' : 'No'}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          {account.owner_id === currentUser?.id ? (
+              <div key={brokerageName} className="card-modern" style={{ marginBottom: '20px', padding: '15px' }}>
+                <div style={{ marginBottom: '12px', paddingBottom: '8px', borderBottom: '2px solid #e0edfb' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1em', fontWeight: 600 }}>
+                    {brokerageName}
+                    {group.broker_name && <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '8px', fontWeight: 'normal' }}>— {group.broker_name}</span>}
+                  </h4>
+                  {(group.broker_phone || group.broker_email) && (
+                    <div style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
+                      {group.broker_phone && <span>📞 {group.broker_phone}</span>}
+                      {group.broker_phone && group.broker_email && <span style={{ marginLeft: '10px' }}>|</span>}
+                      {group.broker_email && <span style={{ marginLeft: '10px' }}>📧 {group.broker_email}</span>}
+                    </div>
+                  )}
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ minWidth: '80px' }}>Owner</th>
+                        <th style={{ minWidth: '120px' }}>Account Name</th>
+                        <th style={{ minWidth: '120px' }}>Account Number</th>
+                        <th style={{ minWidth: '100px' }}>Retirement</th>
+                        <th style={{ minWidth: '100px' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.accounts.map((account) => (
+                        <tr key={account.id}>
+                          {editingAccount?.id === account.id ? (
                             <>
-                              <button onClick={() => setEditingAccount({ ...account, brokerage_id: account.brokerage_id || null })} className="edit-icon-btn" title="Edit">
-                                <span role="img" aria-label="edit">✏️</span>
-                              </button>
-                              <button onClick={() => handleDeleteAccount(account.id)} className="delete-icon-btn" title="Delete">
-                                <span role="img" aria-label="delete">🗑️</span>
-                              </button>
+                              <td>
+                                {account.owner_id === currentUser?.id ? (
+                                  <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
+                                ) : (
+                                  <span style={{ color: '#6c757d' }}>{account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}</span>
+                                )}
+                              </td>
+                              <td>
+                                <select
+                                  value={editingAccount.brokerage_id || ''}
+                                  onChange={(e) => setEditingAccount({ ...editingAccount, brokerage_id: e.target.value ? parseInt(e.target.value) : null })}
+                                  className="input-modern"
+                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                                >
+                                  <option value="">Select Brokerage...</option>
+                                  {brokerages.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  value={editingAccount.account_name}
+                                  onChange={(e) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
+                                  className="input-modern"
+                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  value={editingAccount.account_number || ''}
+                                  onChange={(e) => setEditingAccount({ ...editingAccount, account_number: e.target.value })}
+                                  className="input-modern"
+                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                                />
+                              </td>
+                              <td>
+                                <select
+                                  value={editingAccount.is_retirement ? 'yes' : 'no'}
+                                  onChange={(e) => setEditingAccount({ ...editingAccount, is_retirement: e.target.value === 'yes' })}
+                                  className="input-modern"
+                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                                >
+                                  <option value="no">No</option>
+                                  <option value="yes">Yes</option>
+                                </select>
+                              </td>
+                              <td>
+                                <button 
+                                  onClick={() => handleUpdateAccount(account.id, editingAccount)} 
+                                  className="btn-primary-modern" 
+                                  style={{ padding: '4px 8px', marginRight: '4px', fontSize: '0.85em' }}
+                                >
+                                  Save
+                                </button>
+                                <button 
+                                  onClick={() => setEditingAccount(null)} 
+                                  className="btn-secondary-modern" 
+                                  style={{ padding: '4px 8px', fontSize: '0.85em' }}
+                                >
+                                  Cancel
+                                </button>
+                              </td>
                             </>
                           ) : (
-                            <span style={{ color: '#6c757d', fontSize: '0.9em' }} title="You can only edit your own accounts">View Only</span>
+                            <>
+                              <td>
+                                {account.owner_id === currentUser?.id ? (
+                                  <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
+                                ) : (
+                                  <span style={{ color: '#6c757d' }} title={account.owner_email || 'Authorized Access'}>
+                                    {account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ fontWeight: 500 }}>{account.account_name}</td>
+                              <td>{account.account_number || '-'}</td>
+                              <td>{account.is_retirement ? 'Yes' : 'No'}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                  {account.owner_id === currentUser?.id ? (
+                                    <>
+                                      <button 
+                                        onClick={() => setEditingAccount({ ...account, brokerage_id: account.brokerage_id || null })} 
+                                        className="edit-icon-btn" 
+                                        title="Edit"
+                                        style={{ padding: '4px 6px', fontSize: '1em' }}
+                                      >
+                                        ✏️
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteAccount(account.id)} 
+                                        className="delete-icon-btn" 
+                                        title="Delete"
+                                        style={{ padding: '4px 6px', fontSize: '1em' }}
+                                      >
+                                        🗑️
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span style={{ color: '#6c757d', fontSize: '0.85em' }} title="You can only edit your own accounts">View Only</span>
+                                  )}
+                                </div>
+                              </td>
+                            </>
                           )}
-                        </div>
-                      </td>
-                    </>
-                  )}
-                </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
           </div>
