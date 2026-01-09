@@ -1,0 +1,67 @@
+/* Tailwind Utility Classes for Common Patterns */
+
+@layer utilities {
+  /* Modern Input Styles */
+  .input-modern {
+    @apply px-3 py-2.5 border-0 rounded-lg bg-white text-sm;
+    @apply shadow-soft transition-all duration-200 ease-smooth;
+    @apply focus:outline-none focus:shadow-focus;
+  }
+
+  .input-modern:hover {
+    @apply shadow-hover;
+  }
+
+  /* Modern Button Styles */
+  .btn-modern {
+    @apply px-5 py-2.5 rounded-lg font-medium;
+    @apply transition-all duration-200 ease-smooth;
+    @apply shadow-soft;
+  }
+
+  .btn-modern:hover {
+    @apply shadow-medium -translate-y-0.5;
+  }
+
+  .btn-modern:active {
+    @apply translate-y-0 shadow-soft;
+  }
+
+  .btn-primary-modern {
+    @apply btn-modern bg-primary-600 text-white;
+    @apply shadow-[0_2px_4px_rgba(0,102,204,0.2)];
+  }
+
+  .btn-primary-modern:hover {
+    @apply bg-primary-700 shadow-[0_4px_8px_rgba(0,102,204,0.3)];
+  }
+
+  .btn-secondary-modern {
+    @apply btn-modern bg-gray-600 text-white;
+    @apply shadow-[0_2px_4px_rgba(108,117,125,0.2)];
+  }
+
+  .btn-secondary-modern:hover {
+    @apply bg-gray-700 shadow-[0_4px_8px_rgba(108,117,125,0.3)];
+  }
+
+  /* Card Styles */
+  .card-modern {
+    @apply bg-white rounded-xl p-5 shadow-soft;
+    @apply transition-shadow duration-200 ease-smooth;
+  }
+
+  .card-modern:hover {
+    @apply shadow-medium;
+  }
+
+  /* Focus Ring */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* Smooth Transitions */
+  .transition-smooth {
+    @apply transition-all duration-200 ease-smooth;
+  }
+}

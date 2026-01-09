@@ -43,7 +43,31 @@
     width: 150px; /* Adjust width as needed */
     text-align: right;
     margin-left: 10px;
-    padding: 8px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.settings-page-container .form-group-horizontal input[type="number"]:hover,
+.settings-page-container .form-group-horizontal input[type="text"]:hover,
+.settings-page-container .form-group-horizontal input[type="date"]:hover,
+.settings-page-container .form-group-horizontal input[type="tel"]:hover,
+.settings-page-container .form-group-horizontal select:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.settings-page-container .form-group-horizontal input[type="number"]:focus,
+.settings-page-container .form-group-horizontal input[type="text"]:focus,
+.settings-page-container .form-group-horizontal input[type="date"]:focus,
+.settings-page-container .form-group-horizontal input[type="tel"]:focus,
+.settings-page-container .form-group-horizontal select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .settings-page-container .form-group-horizontal.checkbox-group {
@@ -64,8 +88,9 @@
 .settings-page-container h2 {
     color: var(--color-heading);
     margin-bottom: 25px;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: none;
     padding-bottom: 15px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
 }
 
 .settings-page-container .setting-group {
@@ -261,6 +286,21 @@
 .application-settings-form .form-group-horizontal input[type="number"] {
     width: 100px;
     text-align: right;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.application-settings-form .form-group-horizontal input[type="number"]:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.application-settings-form .form-group-horizontal input[type="number"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .application-settings-form .form-group-horizontal.checkbox-group input[type="checkbox"] {
@@ -298,7 +338,29 @@
     width: 150px; /* Adjust width as needed */
     text-align: right;
     margin-left: 10px;
-    padding: 8px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.profile-settings-form .form-group-horizontal input[type="text"]:hover,
+.profile-settings-form .form-group-horizontal input[type="date"]:hover,
+.profile-settings-form .form-group-horizontal input[type="tel"]:hover,
+.profile-settings-form .form-group-horizontal select:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.profile-settings-form .form-group-horizontal input[type="text"]:focus,
+.profile-settings-form .form-group-horizontal input[type="date"]:focus,
+.profile-settings-form .form-group-horizontal input[type="tel"]:focus,
+.profile-settings-form .form-group-horizontal select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .profile-settings-form .form-group-horizontal .change-password-btn {
@@ -370,9 +432,23 @@
 }
 
 .sort-controls select {
-    padding: 8px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    background-color: #fff;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.sort-controls select:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.sort-controls select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .sort-direction-btn {
@@ -563,19 +639,25 @@
 .setting-group .accounts-table input[type="date"],
 .setting-group .accounts-table select {
     width: 100%;
-    padding: 8px 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-    border-radius: 4px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
     font-size: 0.9em;
     box-sizing: border-box;
-    transition: border-color 0.2s ease;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.setting-group .accounts-table input:hover,
+.setting-group .accounts-table select:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .setting-group .accounts-table input:focus,
 .setting-group .accounts-table select:focus {
     outline: none;
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 /* Edit/Delete icon buttons in settings tables */
@@ -719,27 +801,35 @@
 }
 
 .file-input {
-  padding: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background-color: var(--color-background);
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: #fff;
   font-size: 0.9em;
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .file-input:hover {
-  border-color: var(--color-accent);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.file-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .file-selected {
   margin-top: 10px;
-  padding: 10px;
+  padding: 12px 16px;
   background-color: var(--color-success-background);
   color: var(--color-success-text);
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.9em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .file-selected strong {
