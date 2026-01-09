@@ -176,7 +176,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   ];
 
   // Add surplus asset transfer if configured
-  if (userSettings && userSettings.surplus_asset_id) {
+  if (userSettings && userSettings.surplus_asset_id && cashFlowProjection.surplusAssetTransfers.length > 0) {
     const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
     const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
     datasets.push({
@@ -185,6 +185,10 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
       borderColor: "rgb(255, 165, 0)",
       backgroundColor: "rgba(255, 165, 0, 0.2)",
       borderDash: [5, 5], // Dashed line to differentiate from income/expenses
+      pointRadius: 3, // Ensure points are visible
+      pointHoverRadius: 5,
+      spanGaps: false, // Don't span gaps
+      tension: 0.1, // Add slight curve for better visibility
     });
   }
 

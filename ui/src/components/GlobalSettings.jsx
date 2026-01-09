@@ -103,12 +103,12 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
         return <div className="access-denied-message">Access Denied: You must be an administrator to view this page.</div>;
     }
 
-    // Helper to render a category display section
+    // Helper to render a category display section (matching CategorySettingsPage structure)
     const renderCategoryDisplay = (type, categories, setIsModalOpen) => (
-        <div className="global-category-section">
-            <div className="global-category-header">
-                <h4>{type} Categories</h4>
-                <button type="button" className="global-manage-button" onClick={() => {
+        <div className="category-section-item">
+            <div className="category-header">
+                <label style={{ fontWeight: 700, fontSize: '1.1em', color: 'var(--color-heading)' }}>{type} Categories</label>
+                <button type="button" className="category-manage-button" onClick={() => {
                     setIsModalOpen(true);
                 }}>Manage</button>
             </div>
@@ -129,7 +129,7 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
             <h2>Global Default Categories</h2>
             {message && <div className="success-message">{message}</div>}
 
-            <div className="global-categories-grid">
+            <div className="setting-group category-settings-group">
                 {renderCategoryDisplay('Asset', assetCategories, setIsAssetModalOpen)}
                 {renderCategoryDisplay('Liability', liabilityCategories, setIsLiabilityModalOpen)}
                 {renderCategoryDisplay('Income', incomeCategories, setIsIncomeModalOpen)}

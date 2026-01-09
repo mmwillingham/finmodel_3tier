@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text, func
 from datetime import timedelta, datetime
-from typing import List
+from typing import List, Optional
 from starlette.responses import RedirectResponse
 from utils import google_oauth
 from jose import jwt, JWTError
@@ -1026,12 +1026,25 @@ def delete_projection(
 @app.get("/cashflow", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
 def list_cashflow(
     is_income: bool,
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """List all cash flow items the current user can access (own or authorized)."""
-    logger.debug(f"list_cashflow: User ID: {current_user.id}, Is Income: {is_income}")
-    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
+    """List all cash flow items the current user can access.
+    If viewing_user_id is None, only show the current user's own cash flow items.
+    If viewing_user_id is provided, filter to that specific user's items (must be accessible)."""
+    logger.debug(f"list_cashflow: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}, Is Income: {is_income}")
+    
+    # Default to only showing current user's cash flow items when viewingUserId is None
+    if viewing_user_id is None:
+        accessible_user_ids = [current_user.id]
+    else:
+        # When viewing a specific user, check if they're accessible
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
+        accessible_user_ids = [viewing_user_id]
+    
     cashflow_items = (
         db.query(models.CashFlowItem)
         .filter(models.CashFlowItem.owner_id.in_(accessible_user_ids))

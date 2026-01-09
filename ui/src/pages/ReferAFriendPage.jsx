@@ -156,21 +156,21 @@ const ReferAFriendPage = () => {
           <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
         ) : (
           <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '0.9em' }}>
+            <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '0.9em', minWidth: '800px' }}>
             <thead>
               <tr>
-                <th style={{ minWidth: '120px', maxWidth: '150px' }}>Friend's Name</th>
-                <th style={{ minWidth: '150px', maxWidth: '200px' }}>Email</th>
-                <th style={{ minWidth: '100px', maxWidth: '120px' }}>Status</th>
-                <th style={{ minWidth: '120px', maxWidth: '140px' }}>Registered Date</th>
-                <th style={{ minWidth: '120px', maxWidth: '140px' }}>Referral Date</th>
+                <th style={{ minWidth: '150px' }}>Friend's Name</th>
+                <th style={{ minWidth: '200px' }}>Email</th>
+                <th style={{ minWidth: '120px' }}>Status</th>
+                <th style={{ minWidth: '140px' }}>Registered Date</th>
+                <th style={{ minWidth: '140px' }}>Referral Date</th>
               </tr>
             </thead>
             <tbody>
               {referrals.map((referral) => (
                 <tr key={referral.id}>
-                  <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word', maxWidth: '150px' }}>{referral.friend_name}</td>
-                  <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word', maxWidth: '200px' }}>{referral.friend_email}</td>
+                  <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_name}</td>
+                  <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_email}</td>
                   <td>
                     {referral.registered_user_id ? (
                       <span style={{ color: '#28a745', fontWeight: 'bold' }}>Registered ✓</span>

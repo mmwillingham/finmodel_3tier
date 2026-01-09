@@ -65,8 +65,8 @@ export default function SidebarLayout() {
     setLoading(true);
     try {
       const [inc, exp, ast, lib, accs, settingsRes, autoDisburs] = await Promise.all([
-        CashFlowService.list(true),
-        CashFlowService.list(false),
+        CashFlowService.list(true, viewingUserId),
+        CashFlowService.list(false, viewingUserId),
         AssetService.list(viewingUserId),
         LiabilityService.list(viewingUserId),
         AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
@@ -106,8 +106,8 @@ export default function SidebarLayout() {
     const load = async () => {
       try {
       const [inc, exp, ast, lib, accs, settingsRes, autoDisburs] = await Promise.all([
-        CashFlowService.list(true),
-        CashFlowService.list(false),
+        CashFlowService.list(true, viewingUserId),
+        CashFlowService.list(false, viewingUserId),
         AssetService.list(viewingUserId),
         LiabilityService.list(viewingUserId),
         AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
@@ -154,8 +154,8 @@ export default function SidebarLayout() {
     const refreshCashflow = async () => {
     if (!loading) setLoading(true);
     const [inc, exp] = await Promise.all([
-      CashFlowService.list(true),
-      CashFlowService.list(false),
+      CashFlowService.list(true, viewingUserId),
+      CashFlowService.list(false, viewingUserId),
     ]);
     setIncomeItems(inc.data || []);
     setExpenseItems(exp.data || []);

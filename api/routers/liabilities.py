@@ -91,13 +91,17 @@ def list_liabilities(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """List all liabilities the current user can access (own or authorized).
+    """List all liabilities the current user can access.
+    If viewing_user_id is None, only show the current user's own liabilities.
     If viewing_user_id is provided, filter to that specific user's liabilities (must be accessible)."""
     logger.debug(f"list_liabilities: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
-    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
     
-    # If viewing_user_id is specified, validate it's accessible and filter to it
-    if viewing_user_id is not None:
+    # Default to only showing current user's liabilities when viewingUserId is None
+    if viewing_user_id is None:
+        accessible_user_ids = [current_user.id]
+    else:
+        # When viewing a specific user, check if they're accessible
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
         if viewing_user_id not in accessible_user_ids:
             raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
         accessible_user_ids = [viewing_user_id]

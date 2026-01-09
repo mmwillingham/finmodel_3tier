@@ -302,7 +302,26 @@
 .category-section-item .category-header label {
     margin-bottom: 0;
     font-size: 1.05em;
+    font-weight: 700;
     color: var(--color-heading);
+}
+
+.category-section-item .category-header .category-manage-button {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.category-section-item .category-header .category-manage-button:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .category-tags-display {
