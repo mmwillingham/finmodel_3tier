@@ -121,8 +121,6 @@ const ProfileSettingsPage = () => {
     return <div className="error-message">Error: {error}</div>;
   }
 
-  const { viewingUserId } = useAuth();
-
   // Show message if viewing another account's data
   if (viewingUserId) {
     return (
