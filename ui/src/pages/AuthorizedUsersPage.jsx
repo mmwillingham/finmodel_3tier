@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AuthorizedUsersService from '../services/authorizedUsers.service';
 import ConfirmDialog from '../components/ConfirmDialog';
-import AccountSwitcher from '../components/AccountSwitcher';
 import './AuthorizedUsersPage.css';
 
 const AuthorizedUsersPage = () => {
@@ -147,7 +146,6 @@ const AuthorizedUsersPage = () => {
 
   return (
     <div className="authorized-users-page">
-      <AccountSwitcher />
       <div className="page-header">
         <h1>🔐 Authorized Users</h1>
         <button onClick={() => setShowAddModal(true)} className="btn-primary">

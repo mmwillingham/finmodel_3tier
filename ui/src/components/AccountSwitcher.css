@@ -1,12 +1,35 @@
 .account-switcher {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
+    gap: 8px;
+    padding: 8px 12px;
     background: #f8f9fa;
     border: 1px solid #dee2e6;
-    border-radius: 8px;
-    margin-bottom: 24px;
+    border-radius: 6px;
+    margin-bottom: 0;
+    margin-right: 12px;
+    min-width: 200px;
+}
+
+/* Compact version for header */
+.account-switcher.compact {
+    padding: 4px 8px;
+    min-width: 180px;
+    margin-bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.account-switcher.compact label {
+    color: white;
+    font-size: 0.85em;
+}
+
+.account-switcher.compact .account-switcher-select {
+    background: white;
+    color: #333;
+    padding: 4px 8px;
+    font-size: 0.9em;
 }
 
 .account-switcher label {
@@ -26,6 +49,8 @@
     color: #333;
     cursor: pointer;
     transition: border-color 0.2s;
+    position: relative;
+    z-index: 1;
 }
 
 .account-switcher-select:hover {
@@ -36,4 +61,33 @@
     outline: none;
     border-color: #0b57d0;
     box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1);
+    z-index: 1000;
+}
+
+/* Ensure dropdown options are visible */
+.account-switcher-select option {
+    background: white;
+    color: #333;
+    padding: 8px;
+}
+
+/* Fix for dropdown visibility - make sure parent has proper z-index */
+.account-switcher {
+    position: relative;
+    z-index: 100;
+}
+
+/* Ensure select dropdown is fully visible */
+.account-switcher select {
+    position: relative;
+    z-index: 1001;
+}
+
+.account-switcher.compact select {
+    z-index: 1001;
+}
+
+/* Header should allow dropdown to overflow */
+.app-header {
+    overflow: visible;
 }

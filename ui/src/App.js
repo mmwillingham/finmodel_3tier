@@ -26,6 +26,7 @@ import ExportImportPage from './pages/ExportImportPage.jsx';
 import ReferAFriendPage from './pages/ReferAFriendPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
 import AuthorizedUsersPage from './pages/AuthorizedUsersPage.jsx';
+import AccountSwitcherPage from './pages/AccountSwitcherPage.jsx';
 
 // The Main Application Structure
 function App() {
@@ -55,6 +56,7 @@ function App() {
                         />
                         
                         {/* New Protected Settings Routes */}
+                        <Route path="/settings/account-switcher" element={<ProtectedRoute><AccountSwitcherPage /></ProtectedRoute>} />
                         <Route path="/settings/application" element={<ProtectedRoute><ApplicationSettingsPage /></ProtectedRoute>} />
                         <Route path="/settings/profile" element={<ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>} />
                         <Route path="/settings/categories" element={<ProtectedRoute><CategorySettingsPage /></ProtectedRoute>} />

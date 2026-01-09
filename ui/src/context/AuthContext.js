@@ -13,9 +13,31 @@ export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [userSettings, setUserSettings] = useState(null);
-    const [viewingUserId, setViewingUserId] = useState(null); // null means view own data
+    // Load viewingUserId from localStorage on mount, default to null
+    const [viewingUserId, setViewingUserId] = useState(() => {
+        try {
+            const saved = localStorage.getItem('viewingUserId');
+            return saved ? parseInt(saved) : null;
+        } catch {
+            return null;
+        }
+    });
 
     const navigate = useNavigate();
+    
+    // Save viewingUserId to localStorage whenever it changes
+    const handleSetViewingUserId = (userId) => {
+        setViewingUserId(userId);
+        try {
+            if (userId === null) {
+                localStorage.removeItem('viewingUserId');
+            } else {
+                localStorage.setItem('viewingUserId', userId.toString());
+            }
+        } catch (error) {
+            console.error('Error saving viewingUserId to localStorage:', error);
+        }
+    };
 
     // Function to check and load user session data
     const checkUserSession = async () => {
@@ -79,10 +101,22 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Reset viewingUserId when user changes
+    // Reset viewingUserId when user changes (but keep saved preference if valid)
     useEffect(() => {
         if (currentUser) {
-            setViewingUserId(null); // Default to viewing own data
+            try {
+                const saved = localStorage.getItem('viewingUserId');
+                // Only use saved value if it's different from current user's ID
+                // If viewing own account or no saved value, use null
+                if (saved && parseInt(saved) !== currentUser.id) {
+                    setViewingUserId(parseInt(saved));
+                } else {
+                    setViewingUserId(null);
+                    localStorage.removeItem('viewingUserId');
+                }
+            } catch {
+                setViewingUserId(null);
+            }
         }
     }, [currentUser]);
 
@@ -94,7 +128,7 @@ export const AuthProvider = ({ children }) => {
         userSettings,
         refreshUserSettings, // Expose refresh function via context
         viewingUserId,
-        setViewingUserId,
+        setViewingUserId: handleSetViewingUserId, // Use wrapper function that saves to localStorage
     };
 
     return (

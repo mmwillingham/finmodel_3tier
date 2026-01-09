@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming you have this component
-import AccountSwitcher from '../components/AccountSwitcher';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 
@@ -30,7 +29,7 @@ const states = [
 ];
 
 const ProfileSettingsPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, viewingUserId } = useAuth();
   const navigate = useNavigate();
   useSettingsBackButton(); // Fix browser back button navigation
   const [person1FirstName, setPerson1FirstName] = useState("");
@@ -122,9 +121,34 @@ const ProfileSettingsPage = () => {
     return <div className="error-message">Error: {error}</div>;
   }
 
+  const { viewingUserId } = useAuth();
+
+  // Show message if viewing another account's data
+  if (viewingUserId) {
+    return (
+      <div className="settings-page-container">
+        <h2>Profile Settings</h2>
+        <div style={{ 
+          padding: '20px', 
+          background: '#fff3cd', 
+          borderRadius: '6px',
+          border: '1px solid #ffc107',
+          marginBottom: '20px'
+        }}>
+          <strong style={{ display: 'block', marginBottom: '8px' }}>
+            ⚠️ Viewing Another Account
+          </strong>
+          <p style={{ margin: 0, color: '#666' }}>
+            You are currently viewing data from another account. Profile settings can only be edited for your own account.
+            Please switch to viewing your own account in <strong>Settings → Switch Account View</strong> to edit your profile.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="settings-page-container">
-      <AccountSwitcher />
       <h2>Profile Settings</h2>
       {message && <div className="message">{message}</div>}
 

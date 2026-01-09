@@ -14,6 +14,7 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
 
     return (
         <div className="settings-dropdown-menu" onMouseLeave={onClose}> {/* Close on mouse leave */}
+            <button onClick={(e) => handleItemClick(e, '/settings/account-switcher')}>Switch Account View</button>
             <button onClick={(e) => handleItemClick(e, '/settings/profile')}>Profile</button>
             <button onClick={(e) => handleItemClick(e, '/settings/categories')}>Categories</button>
             <button onClick={(e) => handleItemClick(e, '/settings/accounts')}>Accounts</button>
