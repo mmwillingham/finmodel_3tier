@@ -15,10 +15,10 @@
   background: white;
   padding: 0; /* No padding here, handled by header/body */
   border-radius: 8px;
-  width: 98vw; /* Use even more viewport width for cash flow modals */
-  max-width: 2000px; /* Further increased for complex forms like income/expense */
-  max-height: 95vh; /* Increased height for cash flow modals */
-  min-height: fit-content; /* Ensure modal expands to fit content */
+  width: 70vw !important; /* Reduced width since buttons are below fields */
+  max-width: 1200px !important; /* Maximum width constraint */
+  max-height: 85vh !important; /* Reduce height to avoid vertical scrolling */
+  height: auto !important; /* Use auto height instead of fixed */
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   position: relative;
@@ -60,4 +60,6 @@
 .modal-body {
   padding-top: 1rem;
   padding: 1rem; /* Reduced padding for modal body to 1rem */
+  overflow-x: visible; /* Allow horizontal content if needed */
+  max-width: 100%;
 }

@@ -641,11 +641,12 @@ export default function SidebarLayout() {
         {!loading && view === "cashflow" && (
           <div className="cashflow-view">
             <CashFlowView 
-              key={`cashflow-${cashFlowView}-${expenseCategories.join(',')}-${incomeCategories.join(',')}`}
+              key={`cashflow-${cashFlowView}-${expenseCategories.join(',')}-${incomeCategories.join(',')}-${expenseItems.length}-${incomeItems.length}`}
               type={cashFlowView}
               incomeItems={incomeItems}
               expenseItems={expenseItems}
               refreshCashflow={refreshCashflow}
+              validCategories={cashFlowView === 'expense' ? (userSettings?.expense_categories || []) : (userSettings?.income_categories || [])}
             />
           </div>
         )}

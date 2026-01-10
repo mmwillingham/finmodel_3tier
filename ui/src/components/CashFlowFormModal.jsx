@@ -56,7 +56,7 @@ export default function CashFlowFormModal({
           ? res.data.income_categories || ["Salary", "Bonus", "Investment Income", "Other"]
           : res.data.expense_categories || ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
         setTypeOptions(categories);
-
+        
         const persons = [
           res.data.person1_first_name && res.data.person1_first_name !== "Person 1" ? res.data.person1_first_name : null,
           res.data.person2_first_name && res.data.person2_first_name !== "Person 2" ? res.data.person2_first_name : null,
@@ -143,6 +143,17 @@ export default function CashFlowFormModal({
       }
     };
     loadSettingsAndItem();
+    
+    // Listen for category updates
+    const handleCategoryUpdate = () => {
+      console.log("Categories updated event received in CashFlowFormModal, reloading settings...");
+      loadSettingsAndItem();
+    };
+    window.addEventListener('categoriesUpdated', handleCategoryUpdate);
+    
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
+    };
   }, [itemToEdit, type, isOpen]);
 
   // Effect for fetching all potential linked items
@@ -263,7 +274,7 @@ export default function CashFlowFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.description}` : `Add New ${type === 'income' ? 'Income' : 'Expense'} Item`}>
       <div className="cashflow-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(8, 1fr)', gap: '10px' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency - expanded to 8 columns */} 
             <div className="form-field">
               <label htmlFor="person-select">Person</label>
               <select id="person-select" value={newItem.person || "Family"} onChange={(e) => setNewItem({ ...newItem, person: e.target.value })}> 
@@ -346,7 +357,7 @@ export default function CashFlowFormModal({
           </div>
 
           {/* New row for dynamic item configuration */}
-          <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(4, 1fr)' : 'repeat(5, 1fr)', gap: '12px' }}>
+          <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(6, 1fr)' : 'repeat(7, 1fr)', gap: '10px' }}>
 
             {isDynamic && (
               <> 
@@ -441,7 +452,7 @@ export default function CashFlowFormModal({
 
           </div>
 
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible - expanded to 6 columns */} 
             {type === "income" && (
               <div className="form-field">
                 <label htmlFor="annual-increase">Annual Increase %</label>

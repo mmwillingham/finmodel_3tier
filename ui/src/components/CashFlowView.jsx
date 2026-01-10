@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import CashFlowService from "../services/cashflow.service";
@@ -6,8 +6,11 @@ import CashFlowFormModal from "./CashFlowFormModal"; // Import the new modal for
 import ConfirmDialog from "./ConfirmDialog";
 import "./CashFlowView.css";
 
-export default function CashFlowView({ type, incomeItems, expenseItems, refreshCashflow }) {
-  const items = type === 'income' ? (incomeItems || []) : (expenseItems || []);
+export default function CashFlowView({ type, incomeItems, expenseItems, refreshCashflow, validCategories = [] }) {
+  // Use memo to ensure items update when props change
+  const items = useMemo(() => {
+    return type === 'income' ? [...(incomeItems || [])] : [...(expenseItems || [])];
+  }, [type, incomeItems, expenseItems]);
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null); // State to hold item being edited
@@ -247,10 +250,24 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           </tr>
         </thead>
         <tbody>
-          {sortedItems.map(item => (
-            <tr key={item.id}>
-              <td className="cashflow-table-cell">{item.category}</td>
-              <td className="cashflow-table-cell">{item.description}</td>
+          {sortedItems.map(item => {
+            // Check for missing required fields - handle empty strings, whitespace, and invalid categories
+            const categoryValue = item.category && typeof item.category === 'string' ? item.category.trim() : (item.category || '');
+            const categoryMissing = !categoryValue || (validCategories.length > 0 && !validCategories.includes(categoryValue));
+            const descriptionMissing = !item.description || (typeof item.description === 'string' && item.description.trim() === '');
+            const valueMissing = item.yearly_value === null || item.yearly_value === undefined || item.yearly_value === 0;
+            const hasMissingFields = categoryMissing || descriptionMissing || valueMissing;
+            const rowStyle = hasMissingFields ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {};
+            const missingFields = [
+              categoryMissing && 'Category', 
+              descriptionMissing && 'Description', 
+              valueMissing && 'Value'
+            ].filter(Boolean);
+            
+            return (
+            <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
+              <td className="cashflow-table-cell">{categoryValue ? item.category : <span style={{ color: '#dc3545', fontStyle: 'italic', fontWeight: 'bold' }}>Missing</span>}</td>
+              <td className="cashflow-table-cell">{item.description && item.description.trim() ? item.description : <span style={{ color: '#dc3545', fontStyle: 'italic', fontWeight: 'bold' }}>Missing</span>}</td>
               <td className="cashflow-table-cell">{item.person || 'Family'}</td>
               <td className="cashflow-table-cell">{item.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</td>
               <td className="cashflow-table-cell">{formatCurrency(item.yearly_value)}</td>
@@ -266,7 +283,8 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
                 <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
         
       </table>

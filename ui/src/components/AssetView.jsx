@@ -201,10 +201,16 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
           </tr>
         </thead>
         <tbody>
-          {sortedAssets.map((item) => (
-            <tr key={item.id}>
-              <td className="cashflow-table-cell">{item.name}</td>
-              <td className="cashflow-table-cell">{item.category}</td>
+          {sortedAssets.map((item) => {
+            // Check for missing required fields (name, category, value)
+            const hasMissingFields = !item.name || !item.category || (item.value === null || item.value === undefined || item.value === 0);
+            const rowStyle = hasMissingFields ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {};
+            const missingFields = [!item.name && 'Name', !item.category && 'Category', (!item.value || item.value === 0) && 'Value'].filter(Boolean);
+            
+            return (
+            <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
+              <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
+              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
               <td className="cashflow-table-cell">{getAccountName(item.account_id)}</td>
               <td className="cashflow-table-cell">{formatCurrency(item.value)}</td>
               <td className="cashflow-table-cell">{item.annual_change_type}</td>
@@ -216,7 +222,8 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
                 <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
 

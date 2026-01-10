@@ -217,13 +217,27 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
           </tr>
         </thead>
         <tbody>
-          {sortedLiabilities.map((item) => (
-            <tr key={item.id}>
-              <td className="cashflow-table-cell">{item.name}</td>
+          {sortedLiabilities.map((item) => {
+            // Check for missing required fields (name, category, value/principal_amount)
+            // For amortized loans, principal_amount is required; for ordinary, value is required
+            const hasMissingValue = item.loan_type === 'amortized' 
+              ? (!item.principal_amount || item.principal_amount === 0)
+              : (!item.value || item.value === 0 || item.value === null || item.value === undefined);
+            const hasMissingFields = !item.name || !item.category || hasMissingValue;
+            const rowStyle = hasMissingFields ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {};
+            const missingFields = [
+              !item.name && 'Name', 
+              !item.category && 'Category', 
+              hasMissingValue && (item.loan_type === 'amortized' ? 'Principal Amount' : 'Value')
+            ].filter(Boolean);
+            
+            return (
+            <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
+              <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
               <td className="cashflow-table-cell">
                 {item.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving'}
               </td> {/* NEW: Type Value */}
-              <td className="cashflow-table-cell">{item.category}</td>
+              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
               <td className="cashflow-table-cell">
                 {item.loan_type === 'amortized' ? formatCurrency(item.principal_amount) : formatCurrency(item.value)}
               </td>
@@ -247,7 +261,8 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
                 <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
 
