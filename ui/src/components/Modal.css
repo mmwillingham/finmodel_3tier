@@ -16,8 +16,8 @@
   padding: 0; /* No padding here, handled by header/body */
   border-radius: 8px;
   width: 95vw; /* Use more viewport width */
-  max-width: 1600px; /* Further increased max-width */
-  max-height: 95vh; /* Increased max-height for the modal */
+  max-width: 1800px; /* Even larger for item edit forms */
+  max-height: 90vh; /* Ensure it fits on screen */
   min-height: fit-content; /* Ensure modal expands to fit content */
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);

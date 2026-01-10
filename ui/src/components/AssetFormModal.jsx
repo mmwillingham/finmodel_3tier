@@ -110,7 +110,7 @@ export default function AssetFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name}` : `Add New Asset`}>
       <div className="asset-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}> {/* First row: Name, Category, Account, Value, Percent, Annual Change */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* First row: Name, Category, Account, Value */} 
             <div className="form-field">
               <label htmlFor="asset-name">Name</label>
               <input
@@ -161,7 +161,9 @@ export default function AssetFormModal({
                 onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
               />
             </div>
+          </div>
 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* Second row: Percent, Annual Change, Start Date, End Date */} 
             <div className="form-field">
               <label htmlFor="annual-change-percent">Percent</label>
               <input
@@ -183,9 +185,6 @@ export default function AssetFormModal({
                 <option value="decrease">Decrease</option>
               </select>
             </div>
-          </div>
-
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}> {/* Second row: Start Date, End Date, plus empty columns for alignment */} 
             <div className="form-field">
               <label htmlFor="asset-start-date">Start Date</label>
               <input

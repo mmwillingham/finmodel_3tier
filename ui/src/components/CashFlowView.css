@@ -36,11 +36,10 @@
 
 .main-content .cashflow-table {
   width: 100% !important;
-  max-width: 1400px !important; /* Ensure table is wide enough */
   border-collapse: collapse !important;
   margin-bottom: 1.5rem !important;
   table-layout: auto !important; 
-  min-width: 1200px !important; /* Minimum width to see all columns */
+  /* Removed min-width to allow responsive sizing */
 }
 
 /* Styling for the action buttons cell */

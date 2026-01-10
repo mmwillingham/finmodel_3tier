@@ -87,74 +87,72 @@ const ReferAFriendPage = () => {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-        {/* Top Section: Stats and Form */}
-        <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '30px', alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {stats && (
-              <div className="referral-stats-box">
-                <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Your Referral Statistics</h3>
-                <div className="referral-stats-grid">
-                  <div className="stat-item">
-                    <div className="stat-number stat-blue">{stats.total_referrals}</div>
-                    <div className="stat-label">Total Referrals</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-number stat-green">{stats.registered_referrals}</div>
-                    <div className="stat-label">Registered</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-number stat-yellow">{stats.pending_referrals}</div>
-                    <div className="stat-label">Pending</div>
-                  </div>
+        {/* Top Section: Stats and Form Side by Side */}
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '30px', alignItems: 'start' }}>
+          {stats && (
+            <div className="referral-stats-box" style={{ alignSelf: 'start' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Your Referral Statistics</h3>
+              <div className="referral-stats-grid">
+                <div className="stat-item">
+                  <div className="stat-number stat-blue">{stats.total_referrals}</div>
+                  <div className="stat-label">Total Referrals</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-number stat-green">{stats.registered_referrals}</div>
+                  <div className="stat-label">Registered</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-number stat-yellow">{stats.pending_referrals}</div>
+                  <div className="stat-label">Pending</div>
                 </div>
               </div>
-            )}
-
-            <div className="setting-group">
-              <h3>Submit a Referral</h3>
-              <p className="referral-description">
-                Enter your friend's information below. When they register, we'll track that they were referred by you.
-                You can use this information to provide credits or discounts for successful referrals.
-              </p>
-              
-              <form onSubmit={handleSubmit}>
-                <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
-                  <label htmlFor="friend-name">Friend's Name *</label>
-                  <input
-                    id="friend-name"
-                    type="text"
-                    value={friendName}
-                    onChange={(e) => setFriendName(e.target.value)}
-                    placeholder="Enter friend's name"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
-                  <label htmlFor="friend-email">Friend's Email *</label>
-                  <input
-                    id="friend-email"
-                    type="email"
-                    value={friendEmail}
-                    onChange={(e) => setFriendEmail(e.target.value)}
-                    placeholder="Enter friend's email address"
-                    required
-                  />
-                </div>
-                
-                <button 
-                  type="submit" 
-                  className="save-button"
-                  disabled={loading}
-                >
-                  {loading ? 'Submitting...' : 'Submit Referral'}
-                </button>
-              </form>
             </div>
+          )}
+
+          <div className="setting-group" style={{ marginLeft: stats ? '0' : 'auto', marginRight: stats ? '0' : 'auto', maxWidth: '500px' }}>
+            <h3>Submit a Referral</h3>
+            <p className="referral-description">
+              Enter your friend's information below. When they register, we'll track that they were referred by you.
+              You can use this information to provide credits or discounts for successful referrals.
+            </p>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
+                <label htmlFor="friend-name">Friend's Name *</label>
+                <input
+                  id="friend-name"
+                  type="text"
+                  value={friendName}
+                  onChange={(e) => setFriendName(e.target.value)}
+                  placeholder="Enter friend's name"
+                  required
+                />
+              </div>
+              
+              <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
+                <label htmlFor="friend-email">Friend's Email *</label>
+                <input
+                  id="friend-email"
+                  type="email"
+                  value={friendEmail}
+                  onChange={(e) => setFriendEmail(e.target.value)}
+                  placeholder="Enter friend's email address"
+                  required
+                />
+              </div>
+              
+              <button 
+                type="submit" 
+                className="save-button"
+                disabled={loading}
+              >
+                {loading ? 'Submitting...' : 'Submit Referral'}
+              </button>
+            </form>
           </div>
         </div>
 
-        {/* Full Width: Referrals Table */}
+        {/* Full Width: Referrals Table Below */}
         <div className="setting-group">
           <h3>My Referrals</h3>
           {loadingData ? (
@@ -166,11 +164,11 @@ const ReferAFriendPage = () => {
               <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'auto' }}>
             <thead>
               <tr>
-                <th style={{ width: '20%' }}>Friend's Name</th>
-                <th style={{ width: '25%' }}>Email</th>
-                <th style={{ width: '15%' }}>Status</th>
-                <th style={{ width: '20%' }}>Registered Date</th>
-                <th style={{ width: '20%' }}>Referral Date</th>
+                <th>Friend's Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Registered Date</th>
+                <th>Referral Date</th>
               </tr>
             </thead>
             <tbody>
