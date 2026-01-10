@@ -157,36 +157,70 @@ def create_custom_chart(
                 except:
                     selected_account_ids = []
             
-            # If itemize is true, no specific item is selected, and data type is income or expenses, expand the series
-            if itemize and item_id is None and item_type in ['income', 'expenses']:
-                # Fetch all matching items
-                query = db.query(models.CashFlowItem).filter(
-                    models.CashFlowItem.owner_id == current_user.id,
-                    models.CashFlowItem.is_income == (item_type == 'income')
-                )
-                if category:
-                    query = query.filter(models.CashFlowItem.category == category)
+            # If itemize is true, no specific item is selected, expand the series for all data types
+            if itemize and item_id is None:
+                items = []
+                item_name_field = None
                 
-                items = query.all()
-                print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                # Fetch all matching items based on data type
+                if item_type == 'assets':
+                    query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
+                    if category:
+                        query = query.filter(models.Asset.category == category)
+                    if selected_account_ids:
+                        query = query.filter(models.Asset.account_id.in_(selected_account_ids))
+                    items = query.all()
+                    item_name_field = 'name'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                elif item_type == 'liabilities':
+                    query = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id)
+                    if category:
+                        query = query.filter(models.Liability.category == category)
+                    items = query.all()
+                    item_name_field = 'name'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                elif item_type == 'income':
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == True
+                    )
+                    if category:
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
+                    item_name_field = 'description'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                elif item_type == 'expenses':
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == False
+                    )
+                    if category:
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
+                    item_name_field = 'description'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 
-                # Predefined color palette for better visual distinction
-                color_palette = [
-                    '#0b57d0', '#ea4335', '#34a853', '#fbbc04', '#ff6d01',
-                    '#9c27b0', '#00bcd4', '#4caf50', '#ff9800', '#e91e63',
-                    '#2196f3', '#009688', '#8bc34a', '#ffc107', '#795548',
-                    '#607d8b', '#3f51b5', '#f44336', '#00e676', '#ff1744'
-                ]
-                
-                # Create one series per item with unique colors
-                for idx, item in enumerate(items):
-                    new_series = series_config.copy()
-                    new_series['selected_item_id'] = item.id
-                    new_series['itemize'] = False  # Clear itemize flag for expanded series
-                    new_series['label'] = item.description  # Set label to item name
-                    # Always assign a unique color from the palette (cycle if more items than colors)
-                    new_series['color'] = color_palette[idx % len(color_palette)]
-                    expanded_series_configs.append(new_series)
+                if items:
+                    # Predefined color palette for better visual distinction
+                    color_palette = [
+                        '#0b57d0', '#ea4335', '#34a853', '#fbbc04', '#ff6d01',
+                        '#9c27b0', '#00bcd4', '#4caf50', '#ff9800', '#e91e63',
+                        '#2196f3', '#009688', '#8bc34a', '#ffc107', '#795548',
+                        '#607d8b', '#3f51b5', '#f44336', '#00e676', '#ff1744'
+                    ]
+                    
+                    # Create one series per item with unique colors
+                    for idx, item in enumerate(items):
+                        new_series = series_config.copy()
+                        new_series['selected_item_id'] = item.id
+                        new_series['itemize'] = False  # Clear itemize flag for expanded series
+                        new_series['label'] = getattr(item, item_name_field) if item_name_field else str(item.id)  # Set label to item name
+                        # Always assign a unique color from the palette (cycle if more items than colors)
+                        new_series['color'] = color_palette[idx % len(color_palette)]
+                        expanded_series_configs.append(new_series)
+                else:
+                    # No items found, keep original series config
+                    expanded_series_configs.append(series_config)
             else:
                 # Keep the series as-is
                 expanded_series_configs.append(series_config)
@@ -621,36 +655,70 @@ def update_custom_chart(
                 except:
                     selected_account_ids = []
             
-            # If itemize is true, no specific item is selected, and data type is income or expenses, expand the series
-            if itemize and item_id is None and item_type in ['income', 'expenses']:
-                # Fetch all matching items
-                query = db.query(models.CashFlowItem).filter(
-                    models.CashFlowItem.owner_id == current_user.id,
-                    models.CashFlowItem.is_income == (item_type == 'income')
-                )
-                if category:
-                    query = query.filter(models.CashFlowItem.category == category)
+            # If itemize is true, no specific item is selected, expand the series for all data types
+            if itemize and item_id is None:
+                items = []
+                item_name_field = None
                 
-                items = query.all()
-                print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                # Fetch all matching items based on data type
+                if item_type == 'assets':
+                    query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
+                    if category:
+                        query = query.filter(models.Asset.category == category)
+                    if selected_account_ids:
+                        query = query.filter(models.Asset.account_id.in_(selected_account_ids))
+                    items = query.all()
+                    item_name_field = 'name'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                elif item_type == 'liabilities':
+                    query = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id)
+                    if category:
+                        query = query.filter(models.Liability.category == category)
+                    items = query.all()
+                    item_name_field = 'name'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                elif item_type == 'income':
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == True
+                    )
+                    if category:
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
+                    item_name_field = 'description'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
+                elif item_type == 'expenses':
+                    query = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == False
+                    )
+                    if category:
+                        query = query.filter(models.CashFlowItem.category == category)
+                    items = query.all()
+                    item_name_field = 'description'
+                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 
-                # Predefined color palette for better visual distinction
-                color_palette = [
-                    '#0b57d0', '#ea4335', '#34a853', '#fbbc04', '#ff6d01',
-                    '#9c27b0', '#00bcd4', '#4caf50', '#ff9800', '#e91e63',
-                    '#2196f3', '#009688', '#8bc34a', '#ffc107', '#795548',
-                    '#607d8b', '#3f51b5', '#f44336', '#00e676', '#ff1744'
-                ]
-                
-                # Create one series per item with unique colors
-                for idx, item in enumerate(items):
-                    new_series = series_config.copy()
-                    new_series['selected_item_id'] = item.id
-                    new_series['itemize'] = False  # Clear itemize flag for expanded series
-                    new_series['label'] = item.description  # Set label to item name
-                    # Always assign a unique color from the palette (cycle if more items than colors)
-                    new_series['color'] = color_palette[idx % len(color_palette)]
-                    expanded_series_configs.append(new_series)
+                if items:
+                    # Predefined color palette for better visual distinction
+                    color_palette = [
+                        '#0b57d0', '#ea4335', '#34a853', '#fbbc04', '#ff6d01',
+                        '#9c27b0', '#00bcd4', '#4caf50', '#ff9800', '#e91e63',
+                        '#2196f3', '#009688', '#8bc34a', '#ffc107', '#795548',
+                        '#607d8b', '#3f51b5', '#f44336', '#00e676', '#ff1744'
+                    ]
+                    
+                    # Create one series per item with unique colors
+                    for idx, item in enumerate(items):
+                        new_series = series_config.copy()
+                        new_series['selected_item_id'] = item.id
+                        new_series['itemize'] = False  # Clear itemize flag for expanded series
+                        new_series['label'] = getattr(item, item_name_field) if item_name_field else str(item.id)  # Set label to item name
+                        # Always assign a unique color from the palette (cycle if more items than colors)
+                        new_series['color'] = color_palette[idx % len(color_palette)]
+                        expanded_series_configs.append(new_series)
+                else:
+                    # No items found, keep original series config
+                    expanded_series_configs.append(series_config)
             else:
                 # Keep the series as-is
                 expanded_series_configs.append(series_config)

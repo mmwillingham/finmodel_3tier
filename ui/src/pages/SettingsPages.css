@@ -74,7 +74,28 @@
 
 /* Refer a Friend page styling */
 .settings-page-container.refer-a-friend-page {
-    max-width: 700px;
+    max-width: 1200px;
+}
+
+.referrals-table {
+    width: 100% !important;
+    table-layout: auto;
+}
+
+.referrals-table th,
+.referrals-table td {
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.referrals-table th {
+    white-space: nowrap;
+}
+
+.referrals-table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 0;
 }
 
 .referral-stats-box {

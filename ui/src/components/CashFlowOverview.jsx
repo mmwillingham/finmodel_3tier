@@ -176,7 +176,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   ];
 
   // Add surplus asset transfer if configured
-  if (userSettings && userSettings.surplus_asset_id && cashFlowProjection.surplusAssetTransfers.length > 0) {
+  if (userSettings && userSettings.surplus_asset_id) {
     const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
     const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
     datasets.push({
@@ -185,10 +185,11 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
       borderColor: "rgb(255, 165, 0)",
       backgroundColor: "rgba(255, 165, 0, 0.2)",
       borderDash: [5, 5], // Dashed line to differentiate from income/expenses
-      pointRadius: 3, // Ensure points are visible
-      pointHoverRadius: 5,
+      pointRadius: 4, // Ensure points are visible
+      pointHoverRadius: 6,
       spanGaps: false, // Don't span gaps
       tension: 0.1, // Add slight curve for better visibility
+      borderWidth: 2, // Make line more visible
     });
   }
 
@@ -298,13 +299,52 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   const handleDownloadCashFlowCsv = (filename) => {
     if (cashFlowProjection.years.length > 0) {
       const headers = ['Year', 'Income', 'Expenses', 'Surplus'];
-      const formattedData = cashFlowProjection.years.map(year => ({
-        Year: currentYear + year,
-        Income: cashFlowProjection.incomeValues[year],
-        Expenses: cashFlowProjection.expenseValues[year],
-        Surplus: cashFlowProjection.surplus[year],
-      }));
-      const csvString = convertToCsv(formattedData, headers, formatCurrency);
+      const surplusAsset = userSettings && userSettings.surplus_asset_id 
+        ? assets.find(a => a.id === userSettings.surplus_asset_id) 
+        : null;
+      const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Transfer';
+      
+      // Build headers dynamically to include transfers
+      let csvHeaders = [...headers];
+      if (userSettings && userSettings.surplus_asset_id) {
+        csvHeaders.push(`Transfer to ${surplusAssetName}`);
+      }
+      autoDisbursements.forEach(ad => {
+        if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id]) {
+          const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+          const targetAsset = assets.find(a => a.id === ad.target_asset_id);
+          const sourceName = sourceAsset ? sourceAsset.name : 'Source';
+          const targetName = targetAsset ? targetAsset.name : 'Target';
+          csvHeaders.push(`Auto-Disbursement: ${sourceName} → ${targetName}`);
+        }
+      });
+      
+      const formattedData = cashFlowProjection.years.map((year, yearIndex) => {
+        const row = {
+          Year: currentYear + year,
+          Income: cashFlowProjection.incomeValues[yearIndex],
+          Expenses: cashFlowProjection.expenseValues[yearIndex],
+          Surplus: cashFlowProjection.surplus[yearIndex],
+        };
+        
+        if (userSettings && userSettings.surplus_asset_id) {
+          row[`Transfer to ${surplusAssetName}`] = cashFlowProjection.surplusAssetTransfers[yearIndex] || 0;
+        }
+        
+        autoDisbursements.forEach(ad => {
+          if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id]) {
+            const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+            const targetAsset = assets.find(a => a.id === ad.target_asset_id);
+            const sourceName = sourceAsset ? sourceAsset.name : 'Source';
+            const targetName = targetAsset ? targetAsset.name : 'Target';
+            row[`Auto-Disbursement: ${sourceName} → ${targetName}`] = cashFlowProjection.autoDisbursementTransfers[ad.id][yearIndex] || 0;
+          }
+        });
+        
+        return row;
+      });
+      
+      const csvString = convertToCsv(formattedData, csvHeaders, formatCurrency);
       const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -337,6 +377,19 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
             <th>Income</th>
             <th>Expenses</th>
             <th>Surplus</th>
+            {userSettings && userSettings.surplus_asset_id && (() => {
+              const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
+              const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
+              return <th key="surplus-transfer">{`Transfer to ${surplusAssetName}`}</th>;
+            })()}
+            {autoDisbursements.map(ad => {
+              if (!cashFlowProjection.autoDisbursementTransfers || !cashFlowProjection.autoDisbursementTransfers[ad.id]) return null;
+              const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+              const targetAsset = assets.find(a => a.id === ad.target_asset_id);
+              const sourceName = sourceAsset ? sourceAsset.name : 'Source';
+              const targetName = targetAsset ? targetAsset.name : 'Target';
+              return <th key={ad.id}>{`Auto-Disbursement: ${sourceName} → ${targetName}`}</th>;
+            })}
           </tr>
         </thead>
         <tbody>
@@ -346,6 +399,17 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
               <td>{formatCurrency(cashFlowProjection.incomeValues[year])}</td>
               <td>{formatCurrency(cashFlowProjection.expenseValues[year])}</td>
               <td>{formatCurrency(cashFlowProjection.surplus[year])}</td>
+              {userSettings && userSettings.surplus_asset_id && (
+                <td>{formatCurrency(cashFlowProjection.surplusAssetTransfers[year] || 0)}</td>
+              )}
+              {autoDisbursements.map(ad => {
+                if (!cashFlowProjection.autoDisbursementTransfers || !cashFlowProjection.autoDisbursementTransfers[ad.id]) return null;
+                return (
+                  <td key={ad.id}>
+                    {formatCurrency(cashFlowProjection.autoDisbursementTransfers[ad.id][year] || 0)}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

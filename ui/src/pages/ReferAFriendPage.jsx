@@ -155,15 +155,15 @@ const ReferAFriendPage = () => {
         ) : referrals.length === 0 ? (
           <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
         ) : (
-          <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '0.9em', minWidth: '800px' }}>
+          <div style={{ width: '100%', marginTop: '10px' }}>
+            <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'auto' }}>
             <thead>
               <tr>
-                <th style={{ minWidth: '150px' }}>Friend's Name</th>
-                <th style={{ minWidth: '200px' }}>Email</th>
-                <th style={{ minWidth: '120px' }}>Status</th>
-                <th style={{ minWidth: '140px' }}>Registered Date</th>
-                <th style={{ minWidth: '140px' }}>Referral Date</th>
+                <th style={{ width: '20%' }}>Friend's Name</th>
+                <th style={{ width: '25%' }}>Email</th>
+                <th style={{ width: '15%' }}>Status</th>
+                <th style={{ width: '20%' }}>Registered Date</th>
+                <th style={{ width: '20%' }}>Referral Date</th>
               </tr>
             </thead>
             <tbody>

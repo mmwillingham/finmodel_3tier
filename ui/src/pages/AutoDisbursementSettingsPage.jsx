@@ -228,8 +228,8 @@ const AutoDisbursementSettingsPage = () => {
       {/* Surplus Asset Section */}
       <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
         <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '1.1em' }}>Surplus Asset</h3>
-        <div className="form-row" style={{ gridTemplateColumns: '1fr', gap: '12px', marginBottom: '12px' }}>
-          <div className="form-field">
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <div className="form-field" style={{ flex: 1 }}>
             <label htmlFor="surplus-asset">Surplus Asset</label>
             <select
               id="surplus-asset"
@@ -248,19 +248,19 @@ const AutoDisbursementSettingsPage = () => {
               Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
             </small>
           </div>
+          <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ marginTop: '24px', flexShrink: 0 }}>
+            Save
+          </button>
         </div>
-        <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ marginTop: '8px' }}>
-          Save Surplus Asset
-        </button>
       </div>
 
       {/* Auto-Disbursements Section */}
       <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '1.1em' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>
           Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
         </h3>
-        <h4 style={{ fontSize: '0.95em', color: '#666', marginBottom: '12px', fontWeight: '500' }}>Add New Auto-Disbursement</h4>
-        <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
+        <h4 style={{ fontSize: '0.95em', color: '#666', marginBottom: '16px', fontWeight: '500' }}>Add New Auto-Disbursement</h4>
+        <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
           <div className="form-field">
             <label htmlFor="name">Name *</label>
             <input
@@ -326,7 +326,7 @@ const AutoDisbursementSettingsPage = () => {
           </div>
           <div className="form-field">
             <label htmlFor="transfer_value">
-              Transfer Value per year * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'})
+              Transfer Value * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'}/year)
             </label>
             <input
               id="transfer_value"
@@ -347,7 +347,7 @@ const AutoDisbursementSettingsPage = () => {
               onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, start_date: e.target.value })}
               className="input-modern"
             />
-            <small style={{ color: '#666', fontSize: '0.85em', marginTop: '4px', display: 'block' }}>Optional - leave blank to start immediately</small>
+            <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
           </div>
           <div className="form-field">
             <label htmlFor="end_date">End Date</label>
@@ -358,12 +358,14 @@ const AutoDisbursementSettingsPage = () => {
               onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, end_date: e.target.value })}
               className="input-modern"
             />
-            <small style={{ color: '#666', fontSize: '0.85em', marginTop: '4px', display: 'block' }}>Optional - leave blank to continue indefinitely</small>
+            <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
           </div>
         </div>
-        <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern" style={{ marginTop: '8px' }}>
-          Add Auto-Disbursement
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '12px' }}>
+          <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern">
+            Add Auto-Disbursement
+          </button>
+        </div>
       </div>
 
       <div className="setting-group">
@@ -375,18 +377,18 @@ const AutoDisbursementSettingsPage = () => {
             No auto-disbursements defined. Add an auto-disbursement above.
           </p>
         ) : (
-          <div style={{ overflowX: 'auto', width: '100%', marginTop: '10px' }}>
-            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+          <div style={{ width: '100%', marginTop: '10px' }}>
+            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', fontSize: '0.9em' }}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Source Asset</th>
-                <th>Target Asset</th>
-                <th>Transfer Type</th>
-                <th>Transfer Value</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Actions</th>
+                <th style={{ width: '15%' }}>Name</th>
+                <th style={{ width: '18%' }}>Source Asset</th>
+                <th style={{ width: '18%' }}>Target Asset</th>
+                <th style={{ width: '10%' }}>Type</th>
+                <th style={{ width: '12%' }}>Value</th>
+                <th style={{ width: '12%' }}>Start Date</th>
+                <th style={{ width: '12%' }}>End Date</th>
+                <th style={{ width: '3%' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -481,13 +483,13 @@ const AutoDisbursementSettingsPage = () => {
                     </>
                   ) : (
                     <>
-                      <td>{ad.name}</td>
-                      <td>{getAssetName(ad.source_asset_id)}</td>
-                      <td>{getAssetName(ad.target_asset_id)}</td>
-                      <td>{ad.transfer_type === 'percentage' ? 'Percentage' : 'Dollar Amount'}</td>
-                      <td>{ad.transfer_type === 'percentage' ? `${ad.transfer_value}%` : `$${ad.transfer_value.toLocaleString()}`} per year</td>
-                      <td>{ad.start_date || '-'}</td>
-                      <td>{ad.end_date || '-'}</td>
+                      <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{ad.name}</td>
+                      <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word', fontSize: '0.9em' }}>{getAssetName(ad.source_asset_id)}</td>
+                      <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word', fontSize: '0.9em' }}>{getAssetName(ad.target_asset_id)}</td>
+                      <td>{ad.transfer_type === 'percentage' ? 'Pct' : '$'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{ad.transfer_type === 'percentage' ? `${ad.transfer_value}%` : `$${ad.transfer_value.toLocaleString()}`}/yr</td>
+                      <td style={{ whiteSpace: 'nowrap', fontSize: '0.9em' }}>{ad.start_date ? new Date(ad.start_date).toLocaleDateString() : '-'}</td>
+                      <td style={{ whiteSpace: 'nowrap', fontSize: '0.9em' }}>{ad.end_date ? new Date(ad.end_date).toLocaleDateString() : '-'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <button onClick={() => setEditingAutoDisbursement({ ...ad })} className="edit-icon-btn" title="Edit">
