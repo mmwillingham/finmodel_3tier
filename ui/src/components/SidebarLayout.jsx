@@ -141,6 +141,16 @@ export default function SidebarLayout() {
       }
     };
     load();
+    
+    // Listen for category updates from CategorySettingsPage
+    const handleCategoryUpdate = () => {
+      load(); // Refresh all data when categories are updated
+    };
+    window.addEventListener('categoriesUpdated', handleCategoryUpdate);
+    
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
+    };
   }, [refreshSettings, refreshAllData, viewingUserId]); // Refresh when viewingUserId changes
 
   const formatCurrency = (v) =>

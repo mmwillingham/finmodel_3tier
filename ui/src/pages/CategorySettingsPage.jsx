@@ -58,12 +58,14 @@ const CategorySettingsPage = () => {
         settingsToUpdate[`${categoryType}_categories`] = updatedCategories;
 
         await SettingsService.updateSettings(settingsToUpdate);
-        setMessage(`${categoryType} categories saved successfully!`);
+        setMessage(`${categoryType} categories saved successfully! Categories in your items have been updated.`);
         // Refresh local state to reflect changes if save was successful
         loadSettings();
+        // Trigger a custom event to notify other components to refresh their data
+        window.dispatchEvent(new CustomEvent('categoriesUpdated', { detail: { categoryType } }));
         setTimeout(() => {
             setMessage('');
-        }, 1500);
+        }, 3000);
     } catch (e) {
         console.error(`Failed to save ${categoryType} categories`, e);
         const errorMessage = e.response?.data?.detail || 'Error saving categories';

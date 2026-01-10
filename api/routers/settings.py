@@ -73,8 +73,79 @@ def update_user_settings(
         db.commit()
         db.refresh(user_settings)
 
-    # Update fields only if provided in the payload
+    # Detect category renames and update all related items
     update_data = settings_update.model_dump(exclude_unset=True)
+    
+    # Helper function to find category renames by comparing old and new lists
+    def find_category_renames(old_list, new_list):
+        """Find category renames by matching by position, assuming order preservation"""
+        renames = {}
+        if not old_list or not new_list:
+            return renames
+        
+        old_list = list(old_list) if old_list else []
+        new_list = list(new_list) if new_list else []
+        
+        # Match categories by position if lengths match (most common case for renames)
+        if len(old_list) == len(new_list):
+            for i, (old_cat, new_cat) in enumerate(zip(old_list, new_list)):
+                if old_cat != new_cat:
+                    renames[old_cat] = new_cat
+        else:
+            # If lengths differ, try to match by similarity or let user re-save items
+            # For now, we'll skip rename detection if lengths don't match
+            pass
+        
+        return renames
+    
+    # Check for category renames and update related items
+    if "asset_categories" in update_data:
+        old_asset_cats = user_settings.asset_categories or []
+        new_asset_cats = update_data["asset_categories"] or []
+        asset_renames = find_category_renames(old_asset_cats, new_asset_cats)
+        if asset_renames:
+            for old_name, new_name in asset_renames.items():
+                db.query(models.Asset).filter(
+                    models.Asset.owner_id == current_user.id,
+                    models.Asset.category == old_name
+                ).update({"category": new_name}, synchronize_session=False)
+    
+    if "liability_categories" in update_data:
+        old_liability_cats = user_settings.liability_categories or []
+        new_liability_cats = update_data["liability_categories"] or []
+        liability_renames = find_category_renames(old_liability_cats, new_liability_cats)
+        if liability_renames:
+            for old_name, new_name in liability_renames.items():
+                db.query(models.Liability).filter(
+                    models.Liability.owner_id == current_user.id,
+                    models.Liability.category == old_name
+                ).update({"category": new_name}, synchronize_session=False)
+    
+    if "income_categories" in update_data:
+        old_income_cats = user_settings.income_categories or []
+        new_income_cats = update_data["income_categories"] or []
+        income_renames = find_category_renames(old_income_cats, new_income_cats)
+        if income_renames:
+            for old_name, new_name in income_renames.items():
+                db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == True,
+                    models.CashFlowItem.category == old_name
+                ).update({"category": new_name}, synchronize_session=False)
+    
+    if "expense_categories" in update_data:
+        old_expense_cats = user_settings.expense_categories or []
+        new_expense_cats = update_data["expense_categories"] or []
+        expense_renames = find_category_renames(old_expense_cats, new_expense_cats)
+        if expense_renames:
+            for old_name, new_name in expense_renames.items():
+                db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == False,
+                    models.CashFlowItem.category == old_name
+                ).update({"category": new_name}, synchronize_session=False)
+    
+    # Update fields only if provided in the payload
     for key, value in update_data.items():
         # Skip updating email as it belongs to the User model
         if key == "email":

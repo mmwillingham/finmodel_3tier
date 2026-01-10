@@ -183,37 +183,37 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
         <button onClick={() => handleDownloadTablePdf(tableRef, "Liabilities_Table")}>Download PDF</button>
         <button onClick={() => handleDownloadLiabilitiesCsv("Liabilities_Table")}>Download CSV</button>
       </div>
-      <table ref={tableRef} className="cashflow-table">
+      <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('name')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '15%' }} onClick={() => handleSort('name')}>
               Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('loan_type')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('loan_type')}>
               Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('category')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('category')}>
               Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('principal_amount')}>
-              Current Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            <th className="cashflow-table-cell sortable" style={{ width: '11%' }} onClick={() => handleSort('principal_amount')}>
+              Curr Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('annual_increase_percent')}>
-              Annual Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('annual_increase_percent')}>
+              Ann Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('principal_amount')}>
-              Principal Amount {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            <th className="cashflow-table-cell sortable" style={{ width: '11%' }} onClick={() => handleSort('principal_amount')}>
+              Principal {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('interest_rate')}>
-              Interest Rate {sortConfig.key === 'interest_rate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('interest_rate')}>
+              Int Rate {sortConfig.key === 'interest_rate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('loan_term_months')}>
-              Loan Term (Months) {sortConfig.key === 'loan_term_months' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('loan_term_months')}>
+              Term (Mo) {sortConfig.key === 'loan_term_months' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" onClick={() => handleSort('monthly_payment')}>
-              Monthly Payment {sortConfig.key === 'monthly_payment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            <th className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('monthly_payment')}>
+              Monthly Pay {sortConfig.key === 'monthly_payment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell">Actions</th>
+            <th className="cashflow-table-cell" style={{ width: '8%' }}>Actions</th>
           </tr>
         </thead>
         <tbody>

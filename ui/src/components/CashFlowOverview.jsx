@@ -51,7 +51,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
   Object.keys(incomeByCategory).forEach(category => {
     let categoryTotal = 0;
     incomeByCategory[category].forEach(item => {
-      categoryTotal += item.annual_amount || 0;
+      categoryTotal += item.yearly_value || 0;
     });
     incomeCategoryTotals[category] = categoryTotal;
     totalCashIn += categoryTotal;
@@ -62,7 +62,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
   Object.keys(expenseByCategory).forEach(category => {
     let categoryTotal = 0;
     expenseByCategory[category].forEach(item => {
-      categoryTotal += item.annual_amount || 0;
+      categoryTotal += item.yearly_value || 0;
     });
     expenseCategoryTotals[category] = categoryTotal;
     totalCashOut += categoryTotal;
@@ -138,7 +138,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                 fontSize="12"
                 dominantBaseline="middle"
               >
-                {category}: {formatCurrency(value)}
+                {category}: {safeFormatCurrency(value)}
               </text>
             </g>
           );
@@ -200,7 +200,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                 textAnchor="end"
                 dominantBaseline="middle"
               >
-                {category}: {formatCurrency(value)}
+                {category}: {safeFormatCurrency(value)}
               </text>
             </g>
           );
@@ -232,7 +232,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                 textAnchor="end"
                 dominantBaseline="middle"
               >
-                Available Cash: {formatCurrency(availableCash)}
+                Available Cash: {safeFormatCurrency(availableCash)}
               </text>
             </g>
           );
@@ -314,12 +314,17 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
   );
 }
 
-export default function CashFlowOverview({ incomeItems, expenseItems, projectionYears, formatCurrency, assets = [], userSettings = null, autoDisbursements = [] }) {
+export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [] }) {
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
   const baseChartRef = useRef(null);
   const tableRef = useRef(null);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'base', 'sankey'
+  
+  // Ensure formatCurrency has a default
+  const safeFormatCurrency = formatCurrency || ((v) => 
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
+  );
 
   const calculateCashFlowProjection = () => {
     const years = [];
@@ -484,9 +489,9 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
     const cashOutValues = [];
     const endingBalances = [];
     
-    // Pre-calculate asset projections
+    // Pre-calculate asset projections for ALL assets (needed for dynamic items and auto-disbursements)
     const assetProjections = {};
-    cashAssets.forEach(asset => {
+    assets.forEach(asset => {
       assetProjections[asset.id] = [];
       for (let year = 0; year <= projectionYears; year++) {
         const growthRate = (asset.annual_increase_percent || 0) / 100;
@@ -533,10 +538,49 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         const currentProjectionYear = currentYear + year;
         
         if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
-          let itemValue = item.annual_amount || 0;
-          // Apply inflation
-          itemValue = itemValue * Math.pow(1 + inflationRate, year);
+          let itemValue = item.yearly_value || 0;
+          
+          // Handle dynamic items (linked to assets)
+          if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+            const linkedAsset = assets.find(a => a.id === item.linked_item_id);
+            if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
+              const projectedAssetValue = assetProjections[linkedAsset.id][year];
+              itemValue = projectedAssetValue * (item.percentage / 100.0);
+            }
+          } else {
+            // Fixed value item - apply growth rate
+            const growthRate = (item.annual_increase_percent || 0) / 100;
+            itemValue = itemValue * Math.pow(1 + growthRate, year);
+          }
+          
           cashIn += itemValue;
+        }
+      });
+      
+      // Calculate Cash Out (Subtractions) - move before using cashOut
+      let cashOut = 0;
+      includedExpenseItems.forEach(item => {
+        const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
+        const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+        const currentProjectionYear = currentYear + year;
+        
+        if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+          let itemValue = item.yearly_value || 0;
+          
+          // Handle dynamic items (linked to assets)
+          if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+            const linkedAsset = assets.find(a => a.id === item.linked_item_id);
+            if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
+              const projectedAssetValue = assetProjections[linkedAsset.id][year];
+              itemValue = projectedAssetValue * (item.percentage / 100.0);
+            }
+          } else {
+            // Fixed value item - apply inflation rate
+            const inflationRate = (item.inflation_percent || 0) / 100;
+            itemValue = itemValue * Math.pow(1 + inflationRate, year);
+          }
+          
+          cashOut += itemValue;
         }
       });
       
@@ -576,21 +620,6 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
           cashOut += Math.abs(yearSurplus);
         }
       }
-      
-      // Calculate Cash Out (Subtractions)
-      let cashOut = 0;
-      includedExpenseItems.forEach(item => {
-        const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
-        const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
-        const currentProjectionYear = currentYear + year;
-        
-        if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
-          let itemValue = item.annual_amount || 0;
-          // Apply inflation
-          itemValue = itemValue * Math.pow(1 + inflationRate, year);
-          cashOut += itemValue;
-        }
-      });
       
       // Add transfers from auto-disbursements that source cash assets (cash going out)
       autoDisbursements.forEach(ad => {
@@ -633,29 +662,39 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
     return { years, beginningBalances, cashInValues, cashOutValues, endingBalances };
   };
 
-  const cashFlowProjection = calculateCashFlowProjection();
-  const baseModel = calculateBaseModel();
+  let cashFlowProjection;
+  let baseModel;
+  
+  try {
+    cashFlowProjection = calculateCashFlowProjection();
+    baseModel = calculateBaseModel();
+  } catch (error) {
+    console.error('Error calculating cash flow projections:', error);
+    // Return empty projection data on error
+    cashFlowProjection = { years: [], incomeValues: [], expenseValues: [], surplus: [], surplusAssetTransfers: [], autoDisbursementTransfers: {} };
+    baseModel = { years: [], beginningBalances: [], cashInValues: [], cashOutValues: [], endingBalances: [] };
+  }
 
   // Build datasets array dynamically
   // Add transfer lines BEFORE surplus so they render on top
   const datasets = [
     {
       label: "Income",
-      data: cashFlowProjection.incomeValues,
+      data: cashFlowProjection?.incomeValues || [],
       borderColor: "rgb(75, 192, 75)",
       backgroundColor: "rgba(75, 192, 75, 0.2)",
       order: 3, // Render first (lower order = rendered first, behind others)
     },
     {
       label: "Expenses",
-      data: cashFlowProjection.expenseValues,
+      data: cashFlowProjection?.expenseValues || [],
       borderColor: "rgb(255, 99, 99)",
       backgroundColor: "rgba(255, 99, 99, 0.2)",
       order: 2,
     },
     {
       label: "Surplus",
-      data: cashFlowProjection.surplus,
+      data: cashFlowProjection?.surplus || [],
       borderColor: "rgb(153, 102, 255)",
       backgroundColor: "rgba(153, 102, 255, 0.2)",
       order: 1,
@@ -668,7 +707,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
     const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
     datasets.push({
       label: `Transfer to ${surplusAssetName}`,
-      data: cashFlowProjection.surplusAssetTransfers,
+      data: cashFlowProjection?.surplusAssetTransfers || [],
       borderColor: "rgb(255, 140, 0)", // Brighter orange
       backgroundColor: "rgba(255, 140, 0, 0.3)", // More visible fill
       borderDash: [8, 4], // Longer dashes for better visibility
@@ -684,14 +723,14 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
 
   // Add auto-disbursement transfers - add after transfers so they render on top
   autoDisbursements.forEach(ad => {
-    if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id] && cashFlowProjection.autoDisbursementTransfers[ad.id].length > 0) {
+    if (cashFlowProjection?.autoDisbursementTransfers?.[ad.id] && cashFlowProjection.autoDisbursementTransfers[ad.id].length > 0) {
       const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
       const targetAsset = assets.find(a => a.id === ad.target_asset_id);
       const sourceName = sourceAsset ? sourceAsset.name : 'Source';
       const targetName = targetAsset ? targetAsset.name : 'Target';
       datasets.push({
         label: `Auto-Disbursement: ${sourceName} → ${targetName}`,
-        data: cashFlowProjection.autoDisbursementTransfers[ad.id],
+        data: cashFlowProjection?.autoDisbursementTransfers?.[ad.id] || [],
         borderColor: "rgb(100, 100, 100)", // Darker gray
         backgroundColor: "rgba(100, 100, 100, 0.2)",
         borderDash: [6, 3], // Dashed line for transfers
@@ -704,8 +743,8 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   });
 
   const cashFlowChartData = {
-    labels: cashFlowProjection.years.map(year => currentYear + year), // Adjust labels to current year
-    datasets: datasets,
+    labels: (cashFlowProjection?.years || []).map(year => currentYear + year), // Adjust labels to current year
+    datasets: datasets || [],
   };
 
   const chartOptions = {
@@ -727,7 +766,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   };
 
   // Show every 5th year in tables
-  const displayYears = cashFlowProjection.years.filter((y) => y % 5 === 0);
+  const displayYears = (cashFlowProjection?.years || []).filter((y) => y % 5 === 0);
 
   // Download functions (reusing from ProjectionDetail.js pattern)
   const handleDownloadChartPng = (chartRef, filename) => {
@@ -790,7 +829,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   };
 
   const handleDownloadCashFlowCsv = (filename) => {
-    if (cashFlowProjection.years.length > 0) {
+    if (cashFlowProjection?.years?.length > 0) {
       const headers = ['Year', 'Income', 'Expenses', 'Surplus'];
       const surplusAsset = userSettings && userSettings.surplus_asset_id 
         ? assets.find(a => a.id === userSettings.surplus_asset_id) 
@@ -812,20 +851,20 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         }
       });
       
-      const formattedData = cashFlowProjection.years.map((year, yearIndex) => {
+      const formattedData = (cashFlowProjection?.years || []).map((year, yearIndex) => {
         const row = {
           Year: currentYear + year,
-          Income: cashFlowProjection.incomeValues[yearIndex],
-          Expenses: cashFlowProjection.expenseValues[yearIndex],
-          Surplus: cashFlowProjection.surplus[yearIndex],
+          Income: cashFlowProjection?.incomeValues?.[yearIndex] || 0,
+          Expenses: cashFlowProjection?.expenseValues?.[yearIndex] || 0,
+          Surplus: cashFlowProjection?.surplus?.[yearIndex] || 0,
         };
         
         if (userSettings && userSettings.surplus_asset_id) {
-          row[`Transfer to ${surplusAssetName}`] = cashFlowProjection.surplusAssetTransfers[yearIndex] || 0;
+          row[`Transfer to ${surplusAssetName}`] = cashFlowProjection?.surplusAssetTransfers?.[yearIndex] || 0;
         }
         
         autoDisbursements.forEach(ad => {
-          if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id]) {
+          if (cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) {
             const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
             const targetAsset = assets.find(a => a.id === ad.target_asset_id);
             const sourceName = sourceAsset ? sourceAsset.name : 'Source';
@@ -850,12 +889,12 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
 
   // BASE Model Chart Data (Combo: Bar + Line)
   const baseChartData = {
-    labels: baseModel.years.map(year => currentYear + year),
+    labels: (baseModel?.years || []).map(year => currentYear + year),
     datasets: [
       {
         type: 'bar',
         label: 'Cash In',
-        data: baseModel.cashInValues,
+        data: baseModel?.cashInValues || [],
         backgroundColor: 'rgba(75, 192, 75, 0.6)',
         borderColor: 'rgb(75, 192, 75)',
         borderWidth: 1,
@@ -864,7 +903,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
       {
         type: 'bar',
         label: 'Cash Out',
-        data: baseModel.cashOutValues,
+        data: baseModel?.cashOutValues || [],
         backgroundColor: 'rgba(255, 99, 99, 0.6)',
         borderColor: 'rgb(255, 99, 99)',
         borderWidth: 1,
@@ -873,7 +912,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
       {
         type: 'line',
         label: 'Available Cash',
-        data: baseModel.endingBalances,
+        data: baseModel?.endingBalances || [],
         borderColor: 'rgb(153, 102, 255)',
         backgroundColor: 'rgba(153, 102, 255, 0.2)',
         borderWidth: 3,
@@ -905,7 +944,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += formatCurrency(context.parsed.y);
+              label += safeFormatCurrency(context.parsed.y);
             }
             return label;
           }
@@ -923,7 +962,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         },
         ticks: {
           callback: function(value) {
-            return formatCurrency(value);
+            return safeFormatCurrency(value);
           }
         }
       },
@@ -937,7 +976,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
         },
         ticks: {
           callback: function(value) {
-            return formatCurrency(value);
+            return safeFormatCurrency(value);
           }
         },
         grid: {
@@ -1030,7 +1069,7 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
               return <th key="surplus-transfer">{`Transfer to ${surplusAssetName}`}</th>;
             })()}
             {autoDisbursements.map(ad => {
-              if (!cashFlowProjection.autoDisbursementTransfers || !cashFlowProjection.autoDisbursementTransfers[ad.id]) return null;
+              if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
               const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
               const targetAsset = assets.find(a => a.id === ad.target_asset_id);
               const sourceName = sourceAsset ? sourceAsset.name : 'Source';
@@ -1043,17 +1082,17 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
           {displayYears.map((year) => (
             <tr key={year}>
               <td>{currentYear + year}</td>
-              <td>{formatCurrency(cashFlowProjection.incomeValues[year])}</td>
-              <td>{formatCurrency(cashFlowProjection.expenseValues[year])}</td>
-              <td>{formatCurrency(cashFlowProjection.surplus[year])}</td>
+              <td>{safeFormatCurrency(cashFlowProjection?.incomeValues?.[year] || 0)}</td>
+              <td>{safeFormatCurrency(cashFlowProjection?.expenseValues?.[year] || 0)}</td>
+              <td>{safeFormatCurrency(cashFlowProjection?.surplus?.[year] || 0)}</td>
               {userSettings && userSettings.surplus_asset_id && (
-                <td>{formatCurrency(cashFlowProjection.surplusAssetTransfers[year] || 0)}</td>
+                <td>{safeFormatCurrency(cashFlowProjection?.surplusAssetTransfers?.[year] || 0)}</td>
               )}
               {autoDisbursements.map(ad => {
-                if (!cashFlowProjection.autoDisbursementTransfers || !cashFlowProjection.autoDisbursementTransfers[ad.id]) return null;
+                if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
                 return (
                   <td key={ad.id}>
-                    {formatCurrency(cashFlowProjection.autoDisbursementTransfers[ad.id][year] || 0)}
+                    {safeFormatCurrency(cashFlowProjection?.autoDisbursementTransfers?.[ad.id]?.[year] || 0)}
                   </td>
                 );
               })}
@@ -1099,10 +1138,10 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
                   {displayYears.map((year) => (
                     <tr key={year}>
                       <td>{currentYear + year}</td>
-                      <td>{formatCurrency(baseModel.beginningBalances[year])}</td>
-                      <td>{formatCurrency(baseModel.cashInValues[year])}</td>
-                      <td>{formatCurrency(baseModel.cashOutValues[year])}</td>
-                      <td>{formatCurrency(baseModel.endingBalances[year])}</td>
+                      <td>{safeFormatCurrency(baseModel?.beginningBalances?.[year] || 0)}</td>
+                      <td>{safeFormatCurrency(baseModel?.cashInValues?.[year] || 0)}</td>
+                      <td>{safeFormatCurrency(baseModel?.cashOutValues?.[year] || 0)}</td>
+                      <td>{safeFormatCurrency(baseModel?.endingBalances?.[year] || 0)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1120,14 +1159,14 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
               <strong>Note:</strong> Please configure cash assets in Settings &gt; Application Settings to view the Sankey Diagram.
             </div>
           ) : (
-            <SankeyDiagram 
+            <SankeyDiagram
               incomeItems={incomeItems}
               expenseItems={expenseItems}
               assets={assets}
               userSettings={userSettings}
               cashFlowProjection={cashFlowProjection}
               baseModel={baseModel}
-              formatCurrency={formatCurrency}
+              formatCurrency={safeFormatCurrency}
               currentYear={currentYear}
               projectionYears={projectionYears}
             />

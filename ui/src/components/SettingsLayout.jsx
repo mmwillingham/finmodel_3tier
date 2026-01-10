@@ -75,12 +75,15 @@ const SettingsPageLayout = ({ children }) => {
               >
                 Home
               </button>
-              <button 
-                className={`nav-btn ${location.pathname === '/documents' ? 'active' : ''}`} 
-                onClick={() => navigate('/documents')}
-              >
-                📁 Documents
-              </button>
+              {/* Only show Documents button when NOT on a settings page */}
+              {!location.pathname.startsWith('/settings') && (
+                <button 
+                  className={`nav-btn ${location.pathname === '/documents' ? 'active' : ''}`} 
+                  onClick={() => navigate('/documents')}
+                >
+                  📁 Documents
+                </button>
+              )}
             </section>
             <section className="nav-section">
               <h3>Settings</h3>
