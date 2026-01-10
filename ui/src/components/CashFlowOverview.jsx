@@ -9,7 +9,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
 // Simplified Sankey Diagram Component
-function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30 }) {
+function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0 }) {
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
@@ -46,78 +46,270 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     expenseByCategory[category].push(item);
   });
   
-  // Calculate totals for first year (or average)
+  // Calculate totals for the selected year
   const inflationRate = (userSettings?.default_inflation_percent || 2.0) / 100;
+  const year = selectedYear; // Year offset (0 = current year)
   let totalCashIn = 0;
   let totalCashOut = 0;
   
-  // Calculate income totals by category
+  // Pre-calculate asset projections for dynamic items
+  const assetProjections = {};
+  assets.forEach(asset => {
+    const growthRate = (asset.annual_increase_percent || 0) / 100;
+    assetProjections[asset.id] = (asset.value || 0) * Math.pow(1 + growthRate, year);
+  });
+  
+  // Calculate income totals by category for selected year
   const incomeCategoryTotals = {};
+  const currentProjectionYear = currentYear + year;
+  
   Object.keys(incomeByCategory).forEach(category => {
     let categoryTotal = 0;
     incomeByCategory[category].forEach(item => {
-      categoryTotal += item.yearly_value || 0;
+      // Check if item is active in this year
+      const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
+      const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+      
+      if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+        // Item is not active in this year
+        return;
+      }
+      
+      let itemValue = item.yearly_value || 0;
+      
+      // Handle dynamic items (linked to assets)
+      if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+        const projectedAssetValue = assetProjections[item.linked_item_id] || 0;
+        itemValue = projectedAssetValue * (item.percentage / 100.0);
+      } else {
+        // Fixed value item - apply growth rate
+        const growthRate = (item.annual_increase_percent || 0) / 100;
+        itemValue = itemValue * Math.pow(1 + growthRate, year);
+      }
+      
+      categoryTotal += itemValue;
     });
     incomeCategoryTotals[category] = categoryTotal;
     totalCashIn += categoryTotal;
   });
   
-  // Calculate expense totals by category
+  // Calculate expense totals by category for selected year
   const expenseCategoryTotals = {};
   Object.keys(expenseByCategory).forEach(category => {
     let categoryTotal = 0;
     expenseByCategory[category].forEach(item => {
-      categoryTotal += item.yearly_value || 0;
+      // Check if item is active in this year
+      const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
+      const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+      
+      if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+        // Item is not active in this year
+        return;
+      }
+      
+      let itemValue = item.yearly_value || 0;
+      
+      // Handle dynamic items (linked to assets)
+      if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+        const projectedAssetValue = assetProjections[item.linked_item_id] || 0;
+        itemValue = projectedAssetValue * (item.percentage / 100.0);
+      } else {
+        // Fixed value item - apply inflation rate
+        itemValue = itemValue * Math.pow(1 + inflationRate, year);
+      }
+      
+      categoryTotal += itemValue;
     });
     expenseCategoryTotals[category] = categoryTotal;
     totalCashOut += categoryTotal;
   });
   
-  // Calculate available cash (surplus)
-  const availableCash = Math.max(0, totalCashIn - totalCashOut);
+  // Calculate beginning balance for selected year (sum of cash assets at start of year)
+  const cashAssetIds = userSettings?.cash_asset_ids || [];
+  const cashAssets = assets.filter(a => cashAssetIds.includes(a.id));
   
-  const totalFlow = Math.max(totalCashIn, totalCashOut + availableCash);
+  let beginningBalance = 0;
+  cashAssets.forEach(asset => {
+    // Project asset value to the start of the selected year
+    const growthRate = (asset.annual_increase_percent || 0) / 100;
+    let assetValue = asset.value || 0;
+    
+    // Check if asset is active at start of year
+    const startYear = asset.start_date ? new Date(asset.start_date).getFullYear() : currentYear;
+    const endYear = asset.end_date ? new Date(asset.end_date).getFullYear() : currentYear + projectionYears;
+    const currentProjectionYear = currentYear + year;
+    
+    if (currentProjectionYear >= startYear && (asset.end_date === null || currentProjectionYear <= endYear)) {
+      // Project to the start of this year (year - 1 if not year 0)
+      if (year > 0) {
+        assetValue = assetValue * Math.pow(1 + growthRate, year - 1);
+      }
+      beginningBalance += assetValue;
+    }
+  });
+  
+  // Calculate transfers to cash assets (surplus transfers and auto-disbursements)
+  const transferSources = {};
+  const transferSinks = {}; // For negative surplus (deficit) from cash assets
+  
+  // Surplus transfer to cash asset (positive surplus adds to cash)
+  if (userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id)) {
+    const netCashFlow = totalCashIn - totalCashOut;
+    if (netCashFlow > 0) {
+      // Get surplus asset name
+      const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
+      const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
+      transferSources[`Transfer to ${surplusAssetName}`] = netCashFlow;
+      totalCashIn += netCashFlow; // Add to total cash in
+    } else if (netCashFlow < 0) {
+      // Negative surplus (deficit) - cash goes out
+      const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
+      const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
+      transferSinks[`Deficit from ${surplusAssetName}`] = Math.abs(netCashFlow);
+      totalCashOut += Math.abs(netCashFlow); // Add to total cash out
+    }
+  }
+  
+  // Auto-disbursements that target cash assets
+  if (autoDisbursements && cashFlowProjection) {
+    autoDisbursements.forEach(ad => {
+      if (cashAssetIds.includes(ad.target_asset_id)) {
+        const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
+        const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
+        
+        if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
+          // Get the transfer amount for this year from the cash flow projection
+          const transferArray = cashFlowProjection.autoDisbursementTransfers?.[ad.id];
+          if (transferArray && transferArray[year] !== undefined) {
+            const transferAmount = transferArray[year] || 0;
+            if (transferAmount > 0) {
+              const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+              const targetAsset = assets.find(a => a.id === ad.target_asset_id);
+              const sourceName = sourceAsset ? sourceAsset.name : 'Source';
+              const targetName = targetAsset ? targetAsset.name : 'Target';
+              transferSources[`Auto-Disbursement: ${sourceName} → ${targetName}`] = transferAmount;
+              totalCashIn += transferAmount; // Add to total cash in
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Calculate ending balance (beginning balance + cash in - cash out)
+  const endingBalance = beginningBalance + totalCashIn - totalCashOut;
+  
+  // Include transfer sources in income values for scaling
+  const allIncomeValues = [...Object.values(incomeCategoryTotals), ...Object.values(transferSources)].filter(v => v && v > 0);
+  
+  // Find maximum values for proportional scaling
+  const incomeValues = Object.values(incomeCategoryTotals).filter(v => v && v > 0);
+  const expenseValues = Object.values(expenseCategoryTotals).filter(v => v && v > 0);
+  
+  // Calculate max values safely
+  let maxIncomeValue = 1; // Default to 1 to avoid division by zero
+  if (allIncomeValues.length > 0) {
+    try {
+      maxIncomeValue = Math.max(...allIncomeValues);
+      console.log('Sankey maxIncomeValue calculated:', { incomeValues, transferSources, allIncomeValues, maxIncomeValue });
+    } catch (e) {
+      console.error('Error calculating maxIncomeValue:', e);
+      maxIncomeValue = allIncomeValues[0] || 1;
+    }
+  }
+  
+  let maxExpenseValue = 1; // Default to 1 to avoid division by zero
+  // Only use expense values for scaling (don't include ending balance)
+  if (expenseValues.length > 0) {
+    try {
+      maxExpenseValue = Math.max(...expenseValues);
+      console.log('Sankey maxExpenseValue calculated:', { expenseValues, maxExpenseValue });
+    } catch (e) {
+      console.error('Error calculating maxExpenseValue:', e);
+      maxExpenseValue = expenseValues[0] || 1;
+    }
+  }
   
   // Flow width configuration - scales from min to max based on flow proportion
+  // Using square root scaling to make differences more visible
   const minFlowWidth = 2;
-  const maxFlowWidth = 20; // Maximum arrow width in pixels
+  const maxFlowWidth = 30; // Maximum arrow width in pixels (increased for better visibility)
   
   // Layout dimensions
   const width = 1200;
-  const height = Math.max(600, (Object.keys(incomeByCategory).length + Object.keys(expenseByCategory).length + 2) * 40);
   const leftColumnX = 50;
   const centerColumnX = width / 2 - 50;
   const rightColumnX = width - 200;
   const columnWidth = 150;
   const nodeHeight = 30;
   const nodeSpacing = 40;
+  const startY = 50;
   
-  const incomeCategories = Object.keys(incomeByCategory);
-  const expenseCategories = Object.keys(expenseByCategory);
+  // Sort categories by value (highest first)
+  const incomeCategories = Object.keys(incomeByCategory).sort((a, b) => {
+    const aValue = incomeCategoryTotals[a] || 0;
+    const bValue = incomeCategoryTotals[b] || 0;
+    return bValue - aValue; // Descending order
+  });
   
-  // Calculate node positions
-  let currentY = 50;
+  const expenseCategories = Object.keys(expenseByCategory).sort((a, b) => {
+    const aValue = expenseCategoryTotals[a] || 0;
+    const bValue = expenseCategoryTotals[b] || 0;
+    return bValue - aValue; // Descending order
+  });
+  
+  // Calculate node positions first to determine actual height needed
+  let currentY = startY;
   const nodePositions = {};
   
-  // Left side (sources)
+  // Left side: Cash Balance Jan 1 at the top
+  nodePositions['beginning_balance'] = { x: leftColumnX, y: currentY, width: columnWidth, height: nodeHeight };
+  currentY += nodeHeight + nodeSpacing;
+  
+  // Left side (transfer sources - surplus and auto-disbursements to cash assets)
+  Object.keys(transferSources).forEach(transferLabel => {
+    nodePositions[`transfer_${transferLabel}`] = { x: leftColumnX, y: currentY, width: columnWidth, height: nodeHeight };
+    currentY += nodeHeight + nodeSpacing;
+  });
+  
+  // Left side (income sources) - sorted by value, highest first
   incomeCategories.forEach(category => {
     nodePositions[`source_${category}`] = { x: leftColumnX, y: currentY, width: columnWidth, height: nodeHeight };
     currentY += nodeHeight + nodeSpacing;
   });
   
-  // Center (wallet)
-  const walletY = height / 2 - nodeHeight / 2;
-  nodePositions['wallet'] = { x: centerColumnX, y: walletY, width: columnWidth, height: nodeHeight };
+  const maxLeftY = currentY;
   
-  // Right side (sinks)
-  currentY = 50;
+  // Right side: Cash Balance Dec 31 at the top
+  currentY = startY;
+  nodePositions['ending_balance'] = { x: rightColumnX, y: currentY, width: columnWidth, height: nodeHeight };
+  currentY += nodeHeight + nodeSpacing;
+  
+  // Right side (transfer sinks - negative surplus/deficit from cash assets)
+  Object.keys(transferSinks).forEach(transferLabel => {
+    nodePositions[`transfer_sink_${transferLabel}`] = { x: rightColumnX, y: currentY, width: columnWidth, height: nodeHeight };
+    currentY += nodeHeight + nodeSpacing;
+  });
+  
+  // Right side (expense sinks) - sorted by value, highest first
   expenseCategories.forEach(category => {
     nodePositions[`sink_${category}`] = { x: rightColumnX, y: currentY, width: columnWidth, height: nodeHeight };
     currentY += nodeHeight + nodeSpacing;
   });
   
-  // Available cash (always last on right)
-  nodePositions['available_cash'] = { x: rightColumnX, y: currentY, width: columnWidth, height: nodeHeight };
+  const maxRightY = currentY + 50; // Add bottom padding for expenses
+  
+  // Calculate height needed for expenses first
+  const expenseHeight = Math.max(maxLeftY, maxRightY);
+  
+  // Center (wallet) - position in the middle of the expense area
+  const walletY = expenseHeight / 2 - nodeHeight / 2;
+  nodePositions['wallet'] = { x: centerColumnX, y: walletY, width: columnWidth, height: nodeHeight };
+  
+  // Calculate actual height needed
+  const calculatedHeight = Math.max(600, expenseHeight);
+  
+  const height = calculatedHeight;
   
   // Early return if no data
   if (incomeCategories.length === 0 && expenseCategories.length === 0) {
@@ -129,13 +321,76 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   }
   
   return (
-    <div style={{ width: '100%', overflowX: 'auto', marginBottom: '20px' }}>
-      <svg width={width} height={height} style={{ border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#f8f9fa' }}>
-        {/* Source nodes (left) */}
+    <div style={{ width: '100%', display: 'block' }}>
+      <svg width={width} height={height} style={{ display: 'block' }}>
+        {/* Cash Balance Jan 1 (left side, above income) */}
+        {(() => {
+          const pos = nodePositions['beginning_balance'];
+          const nodeWidth = columnWidth;
+          
+          return (
+            <g key="beginning_balance">
+              <rect
+                x={pos.x}
+                y={pos.y}
+                width={nodeWidth}
+                height={pos.height}
+                fill="#FF9800"
+                stroke="#F57C00"
+                strokeWidth="2"
+                rx="4"
+              />
+              <text
+                x={pos.x + nodeWidth + 10}
+                y={pos.y + pos.height / 2}
+                fill="#333"
+                fontSize="12"
+                fontWeight="bold"
+                dominantBaseline="middle"
+              >
+                Cash Balance Jan 1: {safeFormatCurrency(beginningBalance)}
+              </text>
+            </g>
+          );
+        })()}
+        
+        {/* Transfer source nodes (left) - Surplus transfers and auto-disbursements to cash */}
+        {Object.keys(transferSources).map((transferLabel) => {
+          const pos = nodePositions[`transfer_${transferLabel}`];
+          const value = transferSources[transferLabel] || 0;
+          const nodeWidth = columnWidth;
+          
+          return (
+            <g key={`transfer_${transferLabel}`}>
+              <rect
+                x={pos.x}
+                y={pos.y}
+                width={nodeWidth}
+                height={pos.height}
+                fill="#FF9800"
+                stroke="#F57C00"
+                strokeWidth="2"
+                rx="4"
+              />
+              <text
+                x={pos.x + nodeWidth + 10}
+                y={pos.y + pos.height / 2}
+                fill="#333"
+                fontSize="12"
+                dominantBaseline="middle"
+              >
+                {transferLabel}: {safeFormatCurrency(value || 0)}
+              </text>
+            </g>
+          );
+        })}
+        
+        {/* Source nodes (left) - Income categories */}
         {incomeCategories.map((category, idx) => {
           const pos = nodePositions[`source_${category}`];
-          const value = incomeCategoryTotals[category];
-          const nodeWidth = Math.max(columnWidth, (value / totalFlow) * columnWidth * 2);
+          const value = incomeCategoryTotals[category] || 0;
+          // Use fixed width for all nodes
+          const nodeWidth = columnWidth;
           
           return (
             <g key={`source_${category}`}>
@@ -192,11 +447,79 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           );
         })()}
         
-        {/* Sink nodes (right) */}
+        {/* Cash Balance Dec 31 (right side, above expenses) */}
+        {(() => {
+          const pos = nodePositions['ending_balance'];
+          const nodeWidth = columnWidth;
+          const nodeFill = endingBalance < 0 ? "#F44336" : "#2196F3";
+          const nodeStroke = endingBalance < 0 ? "#C62828" : "#1565C0";
+          const labelText = endingBalance < 0 ? `Cash Balance Dec 31: ${safeFormatCurrency(endingBalance)}` : `Cash Balance Dec 31: ${safeFormatCurrency(endingBalance)}`;
+          
+          return (
+            <g key="ending_balance">
+              <rect
+                x={pos.x - nodeWidth}
+                y={pos.y}
+                width={nodeWidth}
+                height={pos.height}
+                fill={nodeFill}
+                stroke={nodeStroke}
+                strokeWidth="2"
+                rx="4"
+              />
+              <text
+                x={pos.x - nodeWidth - 10}
+                y={pos.y + pos.height / 2}
+                fill="#333"
+                fontSize="12"
+                fontWeight="bold"
+                textAnchor="end"
+                dominantBaseline="middle"
+              >
+                {labelText}
+              </text>
+            </g>
+          );
+        })()}
+        
+        {/* Transfer sink nodes (right) - Negative surplus/deficit from cash assets */}
+        {Object.keys(transferSinks).map((transferLabel) => {
+          const pos = nodePositions[`transfer_sink_${transferLabel}`];
+          const value = transferSinks[transferLabel] || 0;
+          const nodeWidth = columnWidth;
+          
+          return (
+            <g key={`transfer_sink_${transferLabel}`}>
+              <rect
+                x={pos.x - nodeWidth}
+                y={pos.y}
+                width={nodeWidth}
+                height={pos.height}
+                fill="#FF9800"
+                stroke="#F57C00"
+                strokeWidth="2"
+                rx="4"
+              />
+              <text
+                x={pos.x - nodeWidth - 10}
+                y={pos.y + pos.height / 2}
+                fill="#333"
+                fontSize="12"
+                textAnchor="end"
+                dominantBaseline="middle"
+              >
+                {transferLabel}: {safeFormatCurrency(value || 0)}
+              </text>
+            </g>
+          );
+        })}
+        
+        {/* Sink nodes (right) - Expense categories */}
         {expenseCategories.map((category, idx) => {
           const pos = nodePositions[`sink_${category}`];
-          const value = expenseCategoryTotals[category];
-          const nodeWidth = Math.max(columnWidth, (value / totalFlow) * columnWidth * 2);
+          const value = expenseCategoryTotals[category] || 0;
+          // Use fixed width for all nodes
+          const nodeWidth = columnWidth;
           
           return (
             <g key={`sink_${category}`}>
@@ -224,46 +547,52 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           );
         })}
         
-        {/* Available cash node */}
-        {(() => {
-          const pos = nodePositions['available_cash'];
-          const nodeWidth = Math.max(columnWidth, (availableCash / totalFlow) * columnWidth * 2);
+        
+        {/* Flow lines from transfer sources (surplus and auto-disbursements) to wallet */}
+        {Object.keys(transferSources).map((transferLabel) => {
+          const pos = nodePositions[`transfer_${transferLabel}`];
+          const value = transferSources[transferLabel] || 0;
+          
+          // Calculate proportional width: scale based on maxIncomeValue
+          const flowProportion = maxIncomeValue > 0 ? value / maxIncomeValue : 0;
+          const sqrtProportion = Math.sqrt(flowProportion);
+          const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
+          
+          const walletPos = nodePositions['wallet'];
           
           return (
-            <g key="available_cash">
-              <rect
-                x={pos.x - nodeWidth}
-                y={pos.y}
-                width={nodeWidth}
-                height={pos.height}
-                fill="#9C27B0"
-                stroke="#6A1B9A"
-                strokeWidth="2"
-                rx="4"
-              />
-              <text
-                x={pos.x - nodeWidth - 10}
-                y={pos.y + pos.height / 2}
-                fill="#333"
-                fontSize="12"
-                fontWeight="bold"
-                textAnchor="end"
-                dominantBaseline="middle"
-              >
-                Available Cash: {safeFormatCurrency(availableCash || 0)}
-              </text>
-            </g>
+            <path
+              key={`flow_transfer_${transferLabel}`}
+              d={`M ${pos.x + columnWidth} ${pos.y + pos.height / 2} 
+                  L ${walletPos.x} ${walletPos.y + walletPos.height / 2}`}
+              fill="none"
+              stroke="#FF9800"
+              strokeWidth={strokeWidth}
+              opacity="0.6"
+              strokeLinecap="round"
+              strokeDasharray="5,5"
+            />
           );
-        })()}
+        })}
         
-        {/* Flow lines from sources to wallet */}
+        {/* Flow lines from income sources to wallet */}
         {incomeCategories.map((category, idx) => {
           const sourcePos = nodePositions[`source_${category}`];
           const walletPos = nodePositions['wallet'];
           const value = incomeCategoryTotals[category] || 0;
-          // Calculate proportional width: scale from minFlowWidth to maxFlowWidth
-          const flowProportion = totalFlow > 0 ? value / totalFlow : 0;
-          const strokeWidth = minFlowWidth + (flowProportion * (maxFlowWidth - minFlowWidth));
+          // Calculate proportional width: scale based on maxIncomeValue
+          // Use square root scaling to make differences more visible
+          const flowProportion = maxIncomeValue > 0 ? value / maxIncomeValue : 0;
+          const sqrtProportion = Math.sqrt(flowProportion); // Square root makes smaller values more distinguishable
+          const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
+          
+          // Debug logging for all flows
+          console.log(`Sankey Income Flow [${category}]:`, {
+            value,
+            maxIncomeValue,
+            flowProportion: flowProportion.toFixed(4),
+            calculatedStrokeWidth: strokeWidth.toFixed(2)
+          });
           
           return (
             <path
@@ -272,9 +601,38 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
                   L ${walletPos.x} ${walletPos.y + walletPos.height / 2}`}
               fill="none"
               stroke="#4CAF50"
-              strokeWidth={Math.max(minFlowWidth, strokeWidth)}
+              strokeWidth={strokeWidth}
               opacity="0.6"
               strokeLinecap="round"
+            />
+          );
+        })}
+        
+        {/* Flow lines from wallet to transfer sinks (negative surplus/deficit) */}
+        {Object.keys(transferSinks).map((transferLabel) => {
+          const walletPos = nodePositions['wallet'];
+          const sinkPos = nodePositions[`transfer_sink_${transferLabel}`];
+          const value = transferSinks[transferLabel] || 0;
+          
+          // Calculate proportional width: scale based on maxExpenseValue
+          const flowProportion = maxExpenseValue > 0 ? value / maxExpenseValue : 0;
+          const sqrtProportion = Math.sqrt(flowProportion);
+          const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
+          
+          // Attach to the left edge of the transfer sink box
+          const sinkLeftEdge = sinkPos.x - columnWidth;
+          
+          return (
+            <path
+              key={`flow_transfer_sink_${transferLabel}`}
+              d={`M ${walletPos.x + walletPos.width} ${walletPos.y + walletPos.height / 2} 
+                  L ${sinkLeftEdge} ${sinkPos.y + sinkPos.height / 2}`}
+              fill="none"
+              stroke="#FF9800"
+              strokeWidth={strokeWidth}
+              opacity="0.6"
+              strokeLinecap="round"
+              strokeDasharray="5,5"
             />
           );
         })}
@@ -284,56 +642,38 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const walletPos = nodePositions['wallet'];
           const sinkPos = nodePositions[`sink_${category}`];
           const value = expenseCategoryTotals[category] || 0;
-          // Calculate proportional width: scale from minFlowWidth to maxFlowWidth
-          const flowProportion = totalFlow > 0 ? value / totalFlow : 0;
-          const strokeWidth = minFlowWidth + (flowProportion * (maxFlowWidth - minFlowWidth));
+          // Calculate proportional width: scale based on maxExpenseValue
+          // Use square root scaling to make differences more visible
+          const flowProportion = maxExpenseValue > 0 ? value / maxExpenseValue : 0;
+          const sqrtProportion = Math.sqrt(flowProportion); // Square root makes smaller values more distinguishable
+          const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
+          
+          // Debug logging for all flows
+          console.log(`Sankey Expense Flow [${category}]:`, {
+            value,
+            maxExpenseValue,
+            flowProportion: flowProportion.toFixed(4),
+            calculatedStrokeWidth: strokeWidth.toFixed(2)
+          });
+          
+          // Attach to the left edge of the expense category box
+          const sinkLeftEdge = sinkPos.x - columnWidth;
           
           return (
             <path
               key={`flow_sink_${category}`}
               d={`M ${walletPos.x + walletPos.width} ${walletPos.y + walletPos.height / 2} 
-                  L ${sinkPos.x} ${sinkPos.y + sinkPos.height / 2}`}
+                  L ${sinkLeftEdge} ${sinkPos.y + sinkPos.height / 2}`}
               fill="none"
               stroke="#F44336"
-              strokeWidth={Math.max(minFlowWidth, strokeWidth)}
+              strokeWidth={strokeWidth}
               opacity="0.6"
               strokeLinecap="round"
             />
           );
         })}
         
-        {/* Flow line from wallet to available cash */}
-        {availableCash > 0 && (() => {
-          const walletPos = nodePositions['wallet'];
-          const cashPos = nodePositions['available_cash'];
-          // Calculate proportional width: scale from minFlowWidth to maxFlowWidth
-          const flowProportion = totalFlow > 0 ? availableCash / totalFlow : 0;
-          const strokeWidth = minFlowWidth + (flowProportion * (maxFlowWidth - minFlowWidth));
-          
-          return (
-            <path
-              key="flow_available_cash"
-              d={`M ${walletPos.x + walletPos.width} ${walletPos.y + walletPos.height / 2} 
-                  L ${cashPos.x} ${cashPos.y + cashPos.height / 2}`}
-              fill="none"
-              stroke="#9C27B0"
-              strokeWidth={Math.max(minFlowWidth, strokeWidth)}
-              opacity="0.6"
-              strokeLinecap="round"
-            />
-          );
-        })()}
       </svg>
-      
-      <div style={{ marginTop: '20px', fontSize: '0.9em', color: '#666' }}>
-        <p><strong>How to read:</strong></p>
-        <ul style={{ marginLeft: '20px' }}>
-          <li>Left side shows cash sources (income) grouped by category</li>
-          <li>Center shows your wallet/main account (total cash)</li>
-          <li>Right side shows where cash goes (expenses by category and available cash/savings)</li>
-          <li>Line thickness represents the flow amount</li>
-        </ul>
-      </div>
     </div>
   );
 }
@@ -344,6 +684,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const baseChartRef = useRef(null);
   const tableRef = useRef(null);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'base', 'sankey'
+  const [sankeyYear, setSankeyYear] = useState(0); // Year offset for Sankey diagram (0 = current year)
   
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
@@ -396,7 +737,18 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       years.push(year);
       
       let totalIncome = 0;
+      const currentProjectionYear = currentYear + year;
+      
       incomeItems.forEach((item) => {
+        // Check if item is active in this year
+        const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
+        const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+        
+        if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+          // Item is not active in this year, skip it
+          return;
+        }
+        
         let itemValue = item.yearly_value;
         
         // Handle dynamic items (linked to assets)
@@ -419,6 +771,15 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
       let totalExpenses = 0;
       expenseItems.forEach((item) => {
+        // Check if item is active in this year
+        const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
+        const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+        
+        if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+          // Item is not active in this year, skip it
+          return;
+        }
+        
         let itemValue = item.yearly_value;
         
         // Handle dynamic items (linked to assets)
@@ -725,25 +1086,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     },
   ];
 
-  // Add surplus asset transfer if configured - add AFTER Surplus so it renders on top
-  if (userSettings && userSettings.surplus_asset_id) {
-    const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
-    const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
-    datasets.push({
-      label: `Transfer to ${surplusAssetName}`,
-      data: cashFlowProjection?.surplusAssetTransfers || [],
-      borderColor: "rgb(255, 140, 0)", // Brighter orange
-      backgroundColor: "rgba(255, 140, 0, 0.3)", // More visible fill
-      borderDash: [8, 4], // Longer dashes for better visibility
-      pointRadius: 5, // Larger points
-      pointHoverRadius: 7,
-      pointBackgroundColor: "rgb(255, 140, 0)", // Explicit point color
-      spanGaps: false,
-      tension: 0.1,
-      borderWidth: 3, // Thicker line
-      order: 0, // Render last (on top)
-    });
-  }
+  // Removed surplus asset transfer - it's a duplicate of Surplus
 
   // Add auto-disbursement transfers - add after transfers so they render on top
   autoDisbursements.forEach(ad => {
@@ -862,9 +1205,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       
       // Build headers dynamically to include transfers
       let csvHeaders = [...headers];
-      if (userSettings && userSettings.surplus_asset_id) {
-        csvHeaders.push(`Transfer to ${surplusAssetName}`);
-      }
+      // Removed surplus asset transfer header - it's a duplicate of Surplus
       autoDisbursements.forEach(ad => {
         if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id]) {
           const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
@@ -883,9 +1224,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           Surplus: cashFlowProjection?.surplus?.[yearIndex] || 0,
         };
         
-        if (userSettings && userSettings.surplus_asset_id) {
-          row[`Transfer to ${surplusAssetName}`] = cashFlowProjection?.surplusAssetTransfers?.[yearIndex] || 0;
-        }
+        // Removed surplus asset transfer - it's a duplicate of Surplus
         
         autoDisbursements.forEach(ad => {
           if (cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) {
@@ -1069,16 +1408,16 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         <>
           <h3>Income & Expense Projection</h3>
           <div style={{ marginBottom: "30px" }}>
-            <div className="chart-actions">
-              <button onClick={() => handleDownloadChartPng(chartRef, "Income_Expense_Projection")}>Download PNG</button>
-              <button onClick={() => handleDownloadChartPdf(chartRef, "Income_Expense_Projection")}>Download PDF</button>
+            <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+              <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(chartRef, "Income_Expense_Projection")}>Download PNG</button>
+              <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(chartRef, "Income_Expense_Projection")}>Download PDF</button>
             </div>
             <Line ref={chartRef} data={cashFlowChartData} options={chartOptions} />
           </div>
 
-      <div className="table-actions">
-        <button onClick={() => handleDownloadTablePdf(tableRef, "Cash_Flow_Overview_Table")}>Download PDF</button>
-        <button onClick={() => handleDownloadCashFlowCsv("Cash_Flow_Overview_Table")}>Download CSV</button>
+      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(tableRef, "Cash_Flow_Overview_Table")}>Download PDF</button>
+        <button className="btn-primary-modern" onClick={() => handleDownloadCashFlowCsv("Cash_Flow_Overview_Table")}>Download CSV</button>
       </div>
       <table ref={tableRef} className="cashflow-table">
         <thead>
@@ -1087,11 +1426,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             <th>Income</th>
             <th>Expenses</th>
             <th>Surplus</th>
-            {userSettings && userSettings.surplus_asset_id && (() => {
-              const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
-              const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
-              return <th key="surplus-transfer">{`Transfer to ${surplusAssetName}`}</th>;
-            })()}
             {autoDisbursements.map(ad => {
               if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
               const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
@@ -1109,9 +1443,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
               <td>{safeFormatCurrency(cashFlowProjection?.incomeValues?.[year] || 0)}</td>
               <td>{safeFormatCurrency(cashFlowProjection?.expenseValues?.[year] || 0)}</td>
               <td>{safeFormatCurrency(cashFlowProjection?.surplus?.[year] || 0)}</td>
-              {userSettings && userSettings.surplus_asset_id && (
-                <td>{safeFormatCurrency(cashFlowProjection?.surplusAssetTransfers?.[year] || 0)}</td>
-              )}
               {autoDisbursements.map(ad => {
                 if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
                 return (
@@ -1177,40 +1508,105 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
       {activeTab === 'sankey' && (
         <>
-          <h3>Sankey Diagram</h3>
-          {(() => {
-            try {
-              if (!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) {
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0 }}>Sankey Diagram</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label htmlFor="sankey-year-select" style={{ fontWeight: '500' }}>Year:</label>
+              <select
+                id="sankey-year-select"
+                value={sankeyYear}
+                onChange={(e) => setSankeyYear(parseInt(e.target.value))}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '0.9em',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                {Array.from({ length: Math.min(projectionYears + 1, 31) }, (_, i) => (
+                  <option key={i} value={i}>
+                    {currentYear + i}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div style={{ 
+            overflowY: 'scroll', 
+            overflowX: 'auto',
+            height: '80vh',
+            border: '1px solid #ddd', 
+            borderRadius: '4px', 
+            backgroundColor: '#f8f9fa',
+            width: '100%',
+            position: 'relative'
+          }}>
+            <div style={{ width: '100%', minWidth: '1200px', padding: '20px', display: 'block' }}>
+              {(() => {
+                try {
+                  if (!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) {
+                    return (
+                      <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
+                        <strong>Note:</strong> Please configure cash assets in Settings &gt; Application Settings to view the Sankey Diagram.
+                      </div>
+                    );
+                  }
+                  // Safely render SankeyDiagram with error boundary
+                  try {
+                    return (
+                      <SankeyDiagram
+                        incomeItems={incomeItems || []}
+                        expenseItems={expenseItems || []}
+                        assets={assets || []}
+                        userSettings={userSettings}
+                        cashFlowProjection={cashFlowProjection}
+                        baseModel={baseModel}
+                        formatCurrency={safeFormatCurrency}
+                        currentYear={currentYear}
+                        projectionYears={projectionYears}
+                        selectedYear={sankeyYear}
+                      />
+                    );
+                } catch (innerError) {
+                  console.error('Error in SankeyDiagram component:', innerError);
+                  console.error('Error stack:', innerError?.stack);
+                  console.error('Data:', { incomeItems, expenseItems, assets, userSettings });
+                  return (
+                    <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
+                      <strong>Error:</strong> Failed to render Sankey Diagram.
+                      <br />
+                      <small>Error: {innerError?.message || 'Unknown error'}</small>
+                      <br />
+                      <small style={{ fontSize: '0.8em', marginTop: '10px', display: 'block' }}>
+                        Check the browser console (F12) for more details.
+                      </small>
+                    </div>
+                  );
+                }
+              } catch (error) {
+                console.error('Error rendering Sankey Diagram:', error);
                 return (
-                  <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
-                    <strong>Note:</strong> Please configure cash assets in Settings &gt; Application Settings to view the Sankey Diagram.
+                  <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
+                    <strong>Error:</strong> Failed to render Sankey Diagram. Please check the console for details.
+                    <br />
+                    <small>{error?.message || 'Unknown error'}</small>
                   </div>
                 );
               }
-              return (
-                <SankeyDiagram
-                  incomeItems={incomeItems}
-                  expenseItems={expenseItems}
-                  assets={assets}
-                  userSettings={userSettings}
-                  cashFlowProjection={cashFlowProjection}
-                  baseModel={baseModel}
-                  formatCurrency={safeFormatCurrency}
-                  currentYear={currentYear}
-                  projectionYears={projectionYears}
-                />
-              );
-            } catch (error) {
-              console.error('Error rendering Sankey Diagram:', error);
-              return (
-                <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
-                  <strong>Error:</strong> Failed to render Sankey Diagram. Please check the console for details.
-                  <br />
-                  <small>{error?.message || 'Unknown error'}</small>
-                </div>
-              );
-            }
-          })()}
+            })()}
+            </div>
+          </div>
+          <div style={{ marginTop: '20px', fontSize: '0.9em', color: '#666', padding: '0 10px' }}>
+            <p><strong>How to read:</strong></p>
+            <ul style={{ marginLeft: '20px' }}>
+              <li>Left side shows cash sources (income) grouped by category</li>
+              <li>Center shows your wallet/main account (total cash)</li>
+              <li>Right side shows where cash goes (expenses by category and available cash/savings)</li>
+              <li>Line thickness represents the flow amount</li>
+            </ul>
+          </div>
         </>
       )}
     </div>

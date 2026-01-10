@@ -691,22 +691,21 @@
 }
 
 .user-management-table .delete-user-btn {
-    background-color: var(--color-error-background);
-    color: var(--color-error-text);
+    background-color: #2563eb;
+    color: white;
 }
 
 .user-management-table .delete-user-btn:hover {
-    background-color: var(--color-error-text);
-    color: var(--color-error-background);
+    background-color: #1d4ed8;
 }
 
 .user-management-table .set-admin-status-btn {
-    background-color: var(--color-primary);
-    color: var(--color-text-inverted);
+    background-color: #2563eb;
+    color: white;
 }
 
 .user-management-table .set-admin-status-btn:hover {
-    background-color: var(--color-primary-dark);
+    background-color: #1d4ed8;
 }
 
 /* Pagination Styles */

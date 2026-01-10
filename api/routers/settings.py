@@ -133,10 +133,59 @@ def update_user_settings(
                     added_cats.discard(closest_new_cat)  # Remove from available set
         elif len(old_list) == len(new_list):
             # Lengths match - compare by position (simple in-place rename)
+            # This handles the most common case: renaming a category in place
+            logger.info(f"Position-based rename detection: old_list length={len(old_list)}, new_list length={len(new_list)}")
+            logger.info(f"Old list: {old_list}")
+            logger.info(f"New list: {new_list}")
+            logger.info(f"Removed cats (in old but not new): {removed_cats}")
+            logger.info(f"Added cats (in new but not old): {added_cats}")
+            
             for i, (old_cat, new_cat) in enumerate(zip(old_list, new_list)):
-                if old_cat != new_cat and old_cat not in new_set and new_cat not in old_set:
-                    # Both don't exist in the other list, likely a rename
-                    renames[old_cat] = new_cat
+                if old_cat != new_cat:
+                    # If the old category is not in the new list and the new category is not in the old list,
+                    # it's definitely a rename (not a deletion + addition)
+                    old_in_new = old_cat in new_set
+                    new_in_old = new_cat in old_set
+                    logger.info(f"Index {i}: '{old_cat}' -> '{new_cat}', old_in_new={old_in_new}, new_in_old={new_in_old}")
+                    if old_cat not in new_set and new_cat not in old_set:
+                        renames[old_cat] = new_cat
+                        logger.info(f"✓ Detected position-based rename at index {i}: '{old_cat}' -> '{new_cat}'")
+                    else:
+                        logger.warning(f"✗ Skipped rename at index {i}: '{old_cat}' -> '{new_cat}' (old_in_new={old_in_new}, new_in_old={new_in_old})")
+            
+            # Also check if we have unmatched removed/added categories that could be renames
+            # This handles cases where position-based matching might have missed something
+            if removed_cats and added_cats:
+                logger.info(f"Additional rename check: {len(removed_cats)} removed, {len(added_cats)} added")
+                # If we have equal numbers and they weren't matched by position, try 1-to-1 matching
+                if len(removed_cats) == len(added_cats):
+                    # Match by closest position
+                    for old_cat in list(removed_cats):
+                        if old_cat not in renames:  # Not already matched
+                            old_idx = old_list.index(old_cat)
+                            # Find closest added category by position
+                            closest_new_cat = None
+                            min_distance = float('inf')
+                            for new_cat in added_cats:
+                                if new_cat not in renames.values():  # Not already matched
+                                    new_idx = new_list.index(new_cat)
+                                    distance = abs(old_idx - new_idx)
+                                    if distance < min_distance:
+                                        min_distance = distance
+                                        closest_new_cat = new_cat
+                            if closest_new_cat:
+                                renames[old_cat] = closest_new_cat
+                                logger.info(f"✓ Matched additional rename by position: '{old_cat}' -> '{closest_new_cat}' (distance={min_distance})")
+        
+        # Final fallback: if we still have unmatched removed/added categories with same count, match them
+        remaining_removed = removed_cats - set(renames.keys())
+        remaining_added = added_cats - set(renames.values())
+        if len(remaining_removed) == len(remaining_added) == 1:
+            # Last resort: match the only remaining removed with the only remaining added
+            remaining_removed_cat = remaining_removed.pop()
+            remaining_added_cat = remaining_added.pop()
+            renames[remaining_removed_cat] = remaining_added_cat
+            logger.info(f"Fallback rename detection: '{remaining_removed_cat}' -> '{remaining_added_cat}'")
         
         return renames
     
@@ -182,6 +231,7 @@ def update_user_settings(
         old_expense_cats = user_settings.expense_categories or []
         new_expense_cats = update_data["expense_categories"] or []
         expense_renames = find_category_renames(old_expense_cats, new_expense_cats)
+        logger.info(f"Expense category rename detection: old={old_expense_cats}, new={new_expense_cats}, renames={expense_renames}")
         if expense_renames:
             for old_name, new_name in expense_renames.items():
                 updated_count = db.query(models.CashFlowItem).filter(
@@ -190,13 +240,19 @@ def update_user_settings(
                     models.CashFlowItem.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
                 logger.info(f"Updated {updated_count} expense items: category '{old_name}' -> '{new_name}' for user {current_user.id}")
+                db.flush()  # Ensure the update is processed before commit
     
     # Update fields only if provided in the payload
+    # IMPORTANT: Update category fields AFTER rename detection and updates, so old values are preserved for comparison
     for key, value in update_data.items():
         # Skip updating email as it belongs to the User model
         if key == "email":
             continue
-        setattr(user_settings, key, value)
+        # Skip category fields if they were already processed for renames above
+        if key in ["asset_categories", "liability_categories", "income_categories", "expense_categories"]:
+            setattr(user_settings, key, value)
+        else:
+            setattr(user_settings, key, value)
 
     db.commit()
     db.refresh(user_settings)

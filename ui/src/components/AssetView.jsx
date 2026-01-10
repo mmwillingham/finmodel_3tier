@@ -166,9 +166,9 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
         Add New Asset
       </button>
 
-      <div className="table-actions">
-        <button onClick={() => handleDownloadTablePdf(tableRef, "Assets_Table")}>Download PDF</button>
-        <button onClick={() => handleDownloadAssetsCsv("Assets_Table")}>Download CSV</button>
+      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(tableRef, "Assets_Table")}>Download PDF</button>
+        <button className="btn-primary-modern" onClick={() => handleDownloadAssetsCsv("Assets_Table")}>Download CSV</button>
       </div>
       <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
         <thead>

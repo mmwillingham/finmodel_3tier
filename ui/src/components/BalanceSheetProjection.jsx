@@ -399,9 +399,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       {/* Overall Financial Snapshot Chart */}
       <h3>Overall Financial Snapshot</h3>
       <div style={{ marginBottom: "30px" }}>
-        <div className="chart-actions">
-          <button onClick={() => handleDownloadChartPng(overallChartRef, "Overall_Financial_Snapshot")}>Download PNG</button>
-          <button onClick={() => handleDownloadChartPdf(overallChartRef, "Overall_Financial_Snapshot")}>Download PDF</button>
+        <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+          <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(overallChartRef, "Overall_Financial_Snapshot")}>Download PNG</button>
+          <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(overallChartRef, "Overall_Financial_Snapshot")}>Download PDF</button>
         </div>
         <Line
           ref={overallChartRef}
@@ -432,9 +432,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         />
       </div>
 
-      <div className="table-actions">
-        <button onClick={() => handleDownloadTablePdf(overallTableRef, "Overall_Financial_Snapshot_Table")}>Download PDF</button>
-        <button onClick={() => handleDownloadCombinedProjectionCsv("Overall_Financial_Snapshot_Table")}>Download CSV</button>
+      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(overallTableRef, "Overall_Financial_Snapshot_Table")}>Download PDF</button>
+        <button className="btn-primary-modern" onClick={() => handleDownloadCombinedProjectionCsv("Overall_Financial_Snapshot_Table")}>Download CSV</button>
       </div>
       <table ref={overallTableRef} className="cashflow-table">
         <thead>
@@ -460,9 +460,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       {/* Individual Asset Projections Chart */}
       <h3 style={{ marginTop: "50px" }}>Individual Asset Projections</h3>
       <div style={{ marginBottom: "30px" }}>
-        <div className="chart-actions">
-          <button onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</button>
-          <button onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</button>
+        <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+          <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</button>
+          <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</button>
         </div>
         <Line
           ref={individualAssetChartRef}
@@ -500,9 +500,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         />
       </div>
 
-      <div className="table-actions">
-        <button onClick={() => handleDownloadTablePdf(individualAssetTableRef, "Individual_Asset_Projections_Table")}>Download PDF</button>
-        <button onClick={() => handleDownloadIndividualProjectionsCsv(individualAssetProjections, "Individual_Asset_Projections_Table")}>Download CSV</button>
+      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(individualAssetTableRef, "Individual_Asset_Projections_Table")}>Download PDF</button>
+        <button className="btn-primary-modern" onClick={() => handleDownloadIndividualProjectionsCsv(individualAssetProjections, "Individual_Asset_Projections_Table")}>Download CSV</button>
       </div>
       <table ref={individualAssetTableRef} className="cashflow-table" style={{ marginBottom: "50px" }}>
         <thead>
@@ -539,9 +539,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       )}
       {liabilities.length > 0 && (
         <div style={{ marginBottom: "30px" }}>
-          <div className="chart-actions">
-            <button onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</button>
-            <button onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</button>
+          <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+            <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</button>
+            <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</button>
           </div>
           <Line
             ref={individualLiabilityChartRef}
@@ -570,9 +570,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       )}
 
       {liabilities.length > 0 && (
-        <div className="table-actions">
-          <button onClick={() => handleDownloadTablePdf(individualLiabilityTableRef, "Individual_Liability_Projections_Table")}>Download PDF</button>
-          <button onClick={() => handleDownloadIndividualProjectionsCsv(individualLiabilityProjections, "Individual_Liability_Projections_Table")}>Download CSV</button>
+        <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+          <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(individualLiabilityTableRef, "Individual_Liability_Projections_Table")}>Download PDF</button>
+          <button className="btn-primary-modern" onClick={() => handleDownloadIndividualProjectionsCsv(individualLiabilityProjections, "Individual_Liability_Projections_Table")}>Download CSV</button>
         </div>
       )}
       {liabilities.length > 0 && (

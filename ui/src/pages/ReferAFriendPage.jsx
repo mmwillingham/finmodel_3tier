@@ -143,7 +143,7 @@ const ReferAFriendPage = () => {
               
               <button 
                 type="submit" 
-                className="save-button"
+                className="btn-primary-modern"
                 disabled={loading}
               >
                 {loading ? 'Submitting...' : 'Submit Referral'}

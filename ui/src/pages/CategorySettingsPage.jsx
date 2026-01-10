@@ -57,6 +57,13 @@ const CategorySettingsPage = () => {
         // Update the specific category type
         settingsToUpdate[`${categoryType}_categories`] = updatedCategories;
 
+        console.log(`Saving ${categoryType} categories:`, {
+          old: categoryType === 'expense' ? expenseCategoriesState : 
+               categoryType === 'income' ? incomeCategoriesState :
+               categoryType === 'asset' ? assetCategoriesState : liabilityCategoriesState,
+          new: updatedCategories
+        });
+
         await SettingsService.updateSettings(settingsToUpdate);
         setMessage(`${categoryType} categories saved successfully! Categories in your items have been updated.`);
         // Refresh local state to reflect changes if save was successful

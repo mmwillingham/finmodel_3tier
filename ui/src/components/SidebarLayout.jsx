@@ -100,7 +100,7 @@ export default function SidebarLayout() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewingUserId]);
 
   useEffect(() => {
     const load = async () => {
@@ -144,7 +144,8 @@ export default function SidebarLayout() {
     
     // Listen for category updates from CategorySettingsPage
     const handleCategoryUpdate = () => {
-      load(); // Refresh all data when categories are updated
+      console.log("Categories updated event received, refreshing all data.");
+      refreshAllData(); // Refresh all data when categories are updated
     };
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
     
@@ -640,6 +641,7 @@ export default function SidebarLayout() {
         {!loading && view === "cashflow" && (
           <div className="cashflow-view">
             <CashFlowView 
+              key={`cashflow-${cashFlowView}-${expenseCategories.join(',')}-${incomeCategories.join(',')}`}
               type={cashFlowView}
               incomeItems={incomeItems}
               expenseItems={expenseItems}

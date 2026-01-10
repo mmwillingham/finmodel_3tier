@@ -307,7 +307,7 @@ export default function CustomChartForm({
         </div>
 
         <h4>Series Configuration</h4>
-        <button type="button" onClick={handleAddSeries}>Add Series</button>
+        <button type="button" className="btn-primary-modern" onClick={handleAddSeries}>Add Series</button>
         <div className="series-list">
           {seriesConfigurations.map((series, index) => {
             const currentSeriesDataType = series.data_type;

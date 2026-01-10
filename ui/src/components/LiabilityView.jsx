@@ -179,9 +179,9 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
         Add New Liability
       </button>
 
-      <div className="table-actions">
-        <button onClick={() => handleDownloadTablePdf(tableRef, "Liabilities_Table")}>Download PDF</button>
-        <button onClick={() => handleDownloadLiabilitiesCsv("Liabilities_Table")}>Download CSV</button>
+      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
+        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(tableRef, "Liabilities_Table")}>Download PDF</button>
+        <button className="btn-primary-modern" onClick={() => handleDownloadLiabilitiesCsv("Liabilities_Table")}>Download CSV</button>
       </div>
       <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
         <thead>
