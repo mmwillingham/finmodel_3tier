@@ -11,7 +11,7 @@ import './SidebarLayout.css';
 const SettingsPageLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { viewingUserId } = useAuth();
+  const { viewingUserId, currentUser } = useAuth();
   const [sidebarWidth, setSidebarWidth] = useState(250);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef(null);
@@ -147,6 +147,23 @@ const SettingsPageLayout = ({ children }) => {
               >
                 Help
               </button>
+              {/* Admin-only items */}
+              {currentUser && currentUser.is_admin && (
+                <>
+                  <button 
+                    className={`nav-btn ${location.pathname === '/settings/admin/users' ? 'active' : ''}`} 
+                    onClick={() => navigate('/settings/admin/users')}
+                  >
+                    User Management (Admin)
+                  </button>
+                  <button 
+                    className={`nav-btn ${location.pathname === '/settings/admin/global-categories' ? 'active' : ''}`} 
+                    onClick={() => navigate('/settings/admin/global-categories')}
+                  >
+                    Default Categories (Admin)
+                  </button>
+                </>
+              )}
             </section>
           </nav>
         </aside>

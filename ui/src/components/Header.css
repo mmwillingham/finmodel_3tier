@@ -110,28 +110,35 @@
 /* Hamburger menu icon */
 .hamburger-menu {
     display: flex !important;
-    flex-direction: column;
-    justify-content: space-around;
-    width: 25px;
-    height: 20px;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
+    width: 30px !important;
+    height: 24px !important;
     cursor: pointer;
-    padding: 5px;
+    padding: 4px 2px !important;
     flex-shrink: 0;
     background-color: transparent !important;
     border: none !important;
     position: relative;
     z-index: 100;
+    box-sizing: border-box !important;
 }
 
 .hamburger-menu .bar {
-    width: 100%;
-    height: 3px;
+    width: 100% !important;
+    height: 3px !important;
+    min-height: 3px !important;
+    max-height: 3px !important;
     background-color: white !important;
     border-radius: 2px;
     display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     transition: all 0.3s ease;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
 }
 
 .hamburger-menu:hover .bar {
@@ -140,6 +147,20 @@
 
 .hamburger-menu:hover {
     opacity: 0.9;
+}
+
+/* Ensure no other styles override the hamburger menu */
+.header-right-menu > .hamburger-menu {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.header-right-menu > .hamburger-menu > .bar {
+    width: 100% !important;
+    height: 3px !important;
+    background-color: white !important;
+    display: block !important;
+    visibility: visible !important;
 }
 
 /* Nav links for unauthenticated users (direct children of .nav-links) */

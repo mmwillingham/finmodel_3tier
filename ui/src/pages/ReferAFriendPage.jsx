@@ -161,21 +161,21 @@ const ReferAFriendPage = () => {
             <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
           ) : (
             <div style={{ width: '100%', marginTop: '0', marginLeft: '0', paddingLeft: '0', display: 'block' }}>
-              <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'auto', marginLeft: '0' }}>
+              <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'fixed', marginLeft: '0' }}>
                 <thead>
                   <tr>
-                    <th>Friend's Name</th>
-                    <th>Email</th>
-                    <th>Status</th>
-                    <th>Registered Date</th>
-                    <th>Referral Date</th>
+                    <th style={{ width: '18%' }}>Friend's Name</th>
+                    <th style={{ width: '28%' }}>Email</th>
+                    <th style={{ width: '14%' }}>Status</th>
+                    <th style={{ width: '20%' }}>Registered Date</th>
+                    <th style={{ width: '20%' }}>Referral Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {referrals.map((referral) => (
                     <tr key={referral.id}>
                       <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_name}</td>
-                      <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_email}</td>
+                      <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={referral.friend_email}>{referral.friend_email}</td>
                       <td>
                         {referral.registered_user_id ? (
                           <span style={{ color: '#28a745', fontWeight: 'bold' }}>Registered ✓</span>

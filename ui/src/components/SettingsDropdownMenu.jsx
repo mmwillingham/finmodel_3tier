@@ -20,16 +20,17 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
             <button onClick={(e) => handleItemClick(e, '/settings/accounts')}>Accounts</button>
             <button onClick={(e) => handleItemClick(e, '/settings/application')}>Application</button>
             <button onClick={(e) => handleItemClick(e, '/settings/auto-disbursements')}>Automatic Transfers</button>
-            {currentUser && currentUser.is_admin && (
-                <button onClick={(e) => handleItemClick(e, '/settings/admin/global-categories')}>Default Categories</button>
-            )}
-            {currentUser && currentUser.is_admin && (
-                <button onClick={(e) => handleItemClick(e, '/settings/admin/users')}>User Management</button>
-            )}
             <button onClick={(e) => handleItemClick(e, '/settings/export-import')}>Export/Import</button>
             <button onClick={(e) => handleItemClick(e, '/settings/refer-a-friend')}>Refer a Friend</button>
             <button onClick={(e) => handleItemClick(e, '/settings/authorized-users')}>Authorized Users</button>
             <button onClick={(e) => handleItemClick(e, '/settings/help')}>Help</button>
+            {/* Admin-only items - placed after Help */}
+            {currentUser && currentUser.is_admin && (
+                <>
+                    <button onClick={(e) => handleItemClick(e, '/settings/admin/users')}>User Management (Admin)</button>
+                    <button onClick={(e) => handleItemClick(e, '/settings/admin/global-categories')}>Default Categories (Admin)</button>
+                </>
+            )}
         </div>
     );
 };

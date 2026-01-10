@@ -104,8 +104,8 @@ const CategorySettingsPage = () => {
   const renderCategorySection = (title, categories, setIsModalOpen, categoryType) => (
     <div className="category-section-item">
         <div className="category-header">
-            <label>{title}</label>
-            <button type="button" onClick={() => setIsModalOpen(true)}>Manage</button>
+            <label style={{ fontWeight: 700, fontSize: '1.1em', color: 'var(--color-heading)' }}>{title}</label>
+            <button type="button" className="category-manage-button" onClick={() => setIsModalOpen(true)}>Manage</button>
         </div>
         <div className="category-tags-display">
             {categories.length > 0 ? (

@@ -9,17 +9,22 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
 // Simplified Sankey Diagram Component
-function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFlowProjection, baseModel, formatCurrency, currentYear, projectionYears }) {
+function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30 }) {
+  // Ensure formatCurrency has a default
+  const safeFormatCurrency = formatCurrency || ((v) => 
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
+  );
+  
   const cashInSourceIds = userSettings?.cash_in_source_ids || [];
   const cashOutSourceIds = userSettings?.cash_out_source_ids || [];
   
   const includedIncomeItems = cashInSourceIds.length === 0 
-    ? incomeItems 
-    : incomeItems.filter(item => cashInSourceIds.includes(item.id));
+    ? (incomeItems || [])
+    : (incomeItems || []).filter(item => cashInSourceIds.includes(item?.id));
   
   const includedExpenseItems = cashOutSourceIds.length === 0 
-    ? expenseItems 
-    : expenseItems.filter(item => cashOutSourceIds.includes(item.id));
+    ? (expenseItems || [])
+    : (expenseItems || []).filter(item => cashOutSourceIds.includes(item?.id));
   
   // Group income by category
   const incomeByCategory = {};
@@ -73,6 +78,10 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
   
   const totalFlow = Math.max(totalCashIn, totalCashOut + availableCash);
   
+  // Flow width configuration - scales from min to max based on flow proportion
+  const minFlowWidth = 2;
+  const maxFlowWidth = 20; // Maximum arrow width in pixels
+  
   // Layout dimensions
   const width = 1200;
   const height = Math.max(600, (Object.keys(incomeByCategory).length + Object.keys(expenseByCategory).length + 2) * 40);
@@ -110,6 +119,15 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
   // Available cash (always last on right)
   nodePositions['available_cash'] = { x: rightColumnX, y: currentY, width: columnWidth, height: nodeHeight };
   
+  // Early return if no data
+  if (incomeCategories.length === 0 && expenseCategories.length === 0) {
+    return (
+      <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
+        <strong>Note:</strong> No income or expense data available to display in the Sankey Diagram.
+      </div>
+    );
+  }
+  
   return (
     <div style={{ width: '100%', overflowX: 'auto', marginBottom: '20px' }}>
       <svg width={width} height={height} style={{ border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#f8f9fa' }}>
@@ -138,7 +156,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                 fontSize="12"
                 dominantBaseline="middle"
               >
-                {category}: {safeFormatCurrency(value)}
+                {category}: {safeFormatCurrency(value || 0)}
               </text>
             </g>
           );
@@ -200,7 +218,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                 textAnchor="end"
                 dominantBaseline="middle"
               >
-                {category}: {safeFormatCurrency(value)}
+                {category}: {safeFormatCurrency(value || 0)}
               </text>
             </g>
           );
@@ -232,7 +250,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                 textAnchor="end"
                 dominantBaseline="middle"
               >
-                Available Cash: {safeFormatCurrency(availableCash)}
+                Available Cash: {safeFormatCurrency(availableCash || 0)}
               </text>
             </g>
           );
@@ -242,8 +260,10 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
         {incomeCategories.map((category, idx) => {
           const sourcePos = nodePositions[`source_${category}`];
           const walletPos = nodePositions['wallet'];
-          const value = incomeCategoryTotals[category];
-          const flowHeight = (value / totalFlow) * nodeHeight;
+          const value = incomeCategoryTotals[category] || 0;
+          // Calculate proportional width: scale from minFlowWidth to maxFlowWidth
+          const flowProportion = totalFlow > 0 ? value / totalFlow : 0;
+          const strokeWidth = minFlowWidth + (flowProportion * (maxFlowWidth - minFlowWidth));
           
           return (
             <path
@@ -252,7 +272,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                   L ${walletPos.x} ${walletPos.y + walletPos.height / 2}`}
               fill="none"
               stroke="#4CAF50"
-              strokeWidth={Math.max(2, flowHeight)}
+              strokeWidth={Math.max(minFlowWidth, strokeWidth)}
               opacity="0.6"
               strokeLinecap="round"
             />
@@ -263,8 +283,10 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
         {expenseCategories.map((category, idx) => {
           const walletPos = nodePositions['wallet'];
           const sinkPos = nodePositions[`sink_${category}`];
-          const value = expenseCategoryTotals[category];
-          const flowHeight = (value / totalFlow) * nodeHeight;
+          const value = expenseCategoryTotals[category] || 0;
+          // Calculate proportional width: scale from minFlowWidth to maxFlowWidth
+          const flowProportion = totalFlow > 0 ? value / totalFlow : 0;
+          const strokeWidth = minFlowWidth + (flowProportion * (maxFlowWidth - minFlowWidth));
           
           return (
             <path
@@ -273,7 +295,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                   L ${sinkPos.x} ${sinkPos.y + sinkPos.height / 2}`}
               fill="none"
               stroke="#F44336"
-              strokeWidth={Math.max(2, flowHeight)}
+              strokeWidth={Math.max(minFlowWidth, strokeWidth)}
               opacity="0.6"
               strokeLinecap="round"
             />
@@ -284,7 +306,9 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
         {availableCash > 0 && (() => {
           const walletPos = nodePositions['wallet'];
           const cashPos = nodePositions['available_cash'];
-          const flowHeight = (availableCash / totalFlow) * nodeHeight;
+          // Calculate proportional width: scale from minFlowWidth to maxFlowWidth
+          const flowProportion = totalFlow > 0 ? availableCash / totalFlow : 0;
+          const strokeWidth = minFlowWidth + (flowProportion * (maxFlowWidth - minFlowWidth));
           
           return (
             <path
@@ -293,7 +317,7 @@ function SankeyDiagram({ incomeItems, expenseItems, assets, userSettings, cashFl
                   L ${cashPos.x} ${cashPos.y + cashPos.height / 2}`}
               fill="none"
               stroke="#9C27B0"
-              strokeWidth={Math.max(2, flowHeight)}
+              strokeWidth={Math.max(minFlowWidth, strokeWidth)}
               opacity="0.6"
               strokeLinecap="round"
             />
@@ -765,8 +789,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     },
   };
 
-  // Show every 5th year in tables
-  const displayYears = (cashFlowProjection?.years || []).filter((y) => y % 5 === 0);
+  // Show all years in tables
+  const displayYears = cashFlowProjection?.years || [];
 
   // Download functions (reusing from ProjectionDetail.js pattern)
   const handleDownloadChartPng = (chartRef, filename) => {
@@ -1154,23 +1178,39 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       {activeTab === 'sankey' && (
         <>
           <h3>Sankey Diagram</h3>
-          {(!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) ? (
-            <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
-              <strong>Note:</strong> Please configure cash assets in Settings &gt; Application Settings to view the Sankey Diagram.
-            </div>
-          ) : (
-            <SankeyDiagram
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              assets={assets}
-              userSettings={userSettings}
-              cashFlowProjection={cashFlowProjection}
-              baseModel={baseModel}
-              formatCurrency={safeFormatCurrency}
-              currentYear={currentYear}
-              projectionYears={projectionYears}
-            />
-          )}
+          {(() => {
+            try {
+              if (!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) {
+                return (
+                  <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
+                    <strong>Note:</strong> Please configure cash assets in Settings &gt; Application Settings to view the Sankey Diagram.
+                  </div>
+                );
+              }
+              return (
+                <SankeyDiagram
+                  incomeItems={incomeItems}
+                  expenseItems={expenseItems}
+                  assets={assets}
+                  userSettings={userSettings}
+                  cashFlowProjection={cashFlowProjection}
+                  baseModel={baseModel}
+                  formatCurrency={safeFormatCurrency}
+                  currentYear={currentYear}
+                  projectionYears={projectionYears}
+                />
+              );
+            } catch (error) {
+              console.error('Error rendering Sankey Diagram:', error);
+              return (
+                <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
+                  <strong>Error:</strong> Failed to render Sankey Diagram. Please check the console for details.
+                  <br />
+                  <small>{error?.message || 'Unknown error'}</small>
+                </div>
+              );
+            }
+          })()}
         </>
       )}
     </div>

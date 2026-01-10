@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+import logging
 
 import models
 import schemas
 import database
 import auth
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/settings",
@@ -78,7 +81,11 @@ def update_user_settings(
     
     # Helper function to find category renames by comparing old and new lists
     def find_category_renames(old_list, new_list):
-        """Find category renames by matching by position, assuming order preservation"""
+        """
+        Find category renames by detecting when:
+        1. An old category disappears and a new category appears (rename)
+        2. Categories match by position if lengths are equal (simple rename)
+        """
         renames = {}
         if not old_list or not new_list:
             return renames
@@ -86,15 +93,50 @@ def update_user_settings(
         old_list = list(old_list) if old_list else []
         new_list = list(new_list) if new_list else []
         
-        # Match categories by position if lengths match (most common case for renames)
-        if len(old_list) == len(new_list):
+        # Convert to sets for easier comparison
+        old_set = set(old_list)
+        new_set = set(new_list)
+        
+        # Find categories that were removed (old - new)
+        removed_cats = old_set - new_set
+        # Find categories that were added (new - old)
+        added_cats = new_set - old_set
+        
+        # If one removed and one added, it's likely a rename
+        # Match removed to added by position if possible, otherwise 1-to-1 match
+        if len(removed_cats) == len(added_cats) == 1:
+            # Simple case: one category renamed
+            removed_cat = removed_cats.pop()
+            added_cat = added_cats.pop()
+            renames[removed_cat] = added_cat
+        elif len(removed_cats) == len(added_cats) and len(removed_cats) > 0:
+            # Multiple renames - try to match by position in the original lists
+            # Create a mapping of old index to old category
+            old_to_index = {cat: i for i, cat in enumerate(old_list) if cat in removed_cats}
+            new_to_index = {cat: i for i, cat in enumerate(new_list) if cat in added_cats}
+            
+            # Match by closest position
+            for old_cat in sorted(old_to_index.keys(), key=lambda x: old_to_index[x]):
+                old_idx = old_to_index[old_cat]
+                # Find the closest added category by position
+                closest_new_cat = None
+                min_distance = float('inf')
+                for new_cat in added_cats:
+                    if new_cat not in renames.values():  # Don't reuse already matched categories
+                        new_idx = new_to_index[new_cat]
+                        distance = abs(old_idx - new_idx)
+                        if distance < min_distance:
+                            min_distance = distance
+                            closest_new_cat = new_cat
+                if closest_new_cat:
+                    renames[old_cat] = closest_new_cat
+                    added_cats.discard(closest_new_cat)  # Remove from available set
+        elif len(old_list) == len(new_list):
+            # Lengths match - compare by position (simple in-place rename)
             for i, (old_cat, new_cat) in enumerate(zip(old_list, new_list)):
-                if old_cat != new_cat:
+                if old_cat != new_cat and old_cat not in new_set and new_cat not in old_set:
+                    # Both don't exist in the other list, likely a rename
                     renames[old_cat] = new_cat
-        else:
-            # If lengths differ, try to match by similarity or let user re-save items
-            # For now, we'll skip rename detection if lengths don't match
-            pass
         
         return renames
     
@@ -105,10 +147,11 @@ def update_user_settings(
         asset_renames = find_category_renames(old_asset_cats, new_asset_cats)
         if asset_renames:
             for old_name, new_name in asset_renames.items():
-                db.query(models.Asset).filter(
+                updated_count = db.query(models.Asset).filter(
                     models.Asset.owner_id == current_user.id,
                     models.Asset.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
+                logger.info(f"Updated {updated_count} assets: category '{old_name}' -> '{new_name}' for user {current_user.id}")
     
     if "liability_categories" in update_data:
         old_liability_cats = user_settings.liability_categories or []
@@ -116,10 +159,11 @@ def update_user_settings(
         liability_renames = find_category_renames(old_liability_cats, new_liability_cats)
         if liability_renames:
             for old_name, new_name in liability_renames.items():
-                db.query(models.Liability).filter(
+                updated_count = db.query(models.Liability).filter(
                     models.Liability.owner_id == current_user.id,
                     models.Liability.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
+                logger.info(f"Updated {updated_count} liabilities: category '{old_name}' -> '{new_name}' for user {current_user.id}")
     
     if "income_categories" in update_data:
         old_income_cats = user_settings.income_categories or []
@@ -127,11 +171,12 @@ def update_user_settings(
         income_renames = find_category_renames(old_income_cats, new_income_cats)
         if income_renames:
             for old_name, new_name in income_renames.items():
-                db.query(models.CashFlowItem).filter(
+                updated_count = db.query(models.CashFlowItem).filter(
                     models.CashFlowItem.owner_id == current_user.id,
                     models.CashFlowItem.is_income == True,
                     models.CashFlowItem.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
+                logger.info(f"Updated {updated_count} income items: category '{old_name}' -> '{new_name}' for user {current_user.id}")
     
     if "expense_categories" in update_data:
         old_expense_cats = user_settings.expense_categories or []
@@ -139,11 +184,12 @@ def update_user_settings(
         expense_renames = find_category_renames(old_expense_cats, new_expense_cats)
         if expense_renames:
             for old_name, new_name in expense_renames.items():
-                db.query(models.CashFlowItem).filter(
+                updated_count = db.query(models.CashFlowItem).filter(
                     models.CashFlowItem.owner_id == current_user.id,
                     models.CashFlowItem.is_income == False,
                     models.CashFlowItem.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
+                logger.info(f"Updated {updated_count} expense items: category '{old_name}' -> '{new_name}' for user {current_user.id}")
     
     # Update fields only if provided in the payload
     for key, value in update_data.items():
