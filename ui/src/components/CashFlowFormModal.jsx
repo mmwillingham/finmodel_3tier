@@ -263,7 +263,7 @@ export default function CashFlowFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.description}` : `Add New ${type === 'income' ? 'Income' : 'Expense'} Item`}>
       <div className="cashflow-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency */} 
             <div className="form-field">
               <label htmlFor="person-select">Person</label>
               <select id="person-select" value={newItem.person || "Family"} onChange={(e) => setNewItem({ ...newItem, person: e.target.value })}> 
@@ -346,7 +346,7 @@ export default function CashFlowFormModal({
           </div>
 
           {/* New row for dynamic item configuration */}
-          <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(4, 1fr)' : 'repeat(5, 1fr)' }}>
+          <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(4, 1fr)' : 'repeat(5, 1fr)', gap: '12px' }}>
 
             {isDynamic && (
               <> 
@@ -441,7 +441,7 @@ export default function CashFlowFormModal({
 
           </div>
 
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 1fr)' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
             {type === "income" && (
               <div className="form-field">
                 <label htmlFor="annual-increase">Annual Increase %</label>

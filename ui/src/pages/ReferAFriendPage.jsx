@@ -153,47 +153,47 @@ const ReferAFriendPage = () => {
         </div>
 
         {/* Full Width: Referrals Table Below */}
-        <div className="setting-group">
-          <h3>My Referrals</h3>
+        <div className="setting-group" style={{ marginTop: '20px' }}>
+          <h3 style={{ marginBottom: '15px' }}>My Referrals</h3>
           {loadingData ? (
             <div className="loading-message">Loading referrals...</div>
           ) : referrals.length === 0 ? (
             <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
           ) : (
-            <div style={{ width: '100%', marginTop: '10px' }}>
+            <div style={{ width: '100%', marginTop: '0' }}>
               <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'auto' }}>
-            <thead>
-              <tr>
-                <th>Friend's Name</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Registered Date</th>
-                <th>Referral Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {referrals.map((referral) => (
-                <tr key={referral.id}>
-                  <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_name}</td>
-                  <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_email}</td>
-                  <td>
-                    {referral.registered_user_id ? (
-                      <span style={{ color: '#28a745', fontWeight: 'bold' }}>Registered ✓</span>
-                    ) : (
-                      <span style={{ color: '#ffc107' }}>Pending</span>
-                    )}
-                  </td>
-                  <td>
-                    {referral.registered_at 
-                      ? new Date(referral.registered_at).toLocaleDateString()
-                      : '-'
-                    }
-                  </td>
-                  <td>{new Date(referral.created_at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                <thead>
+                  <tr>
+                    <th>Friend's Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Registered Date</th>
+                    <th>Referral Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referrals.map((referral) => (
+                    <tr key={referral.id}>
+                      <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_name}</td>
+                      <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{referral.friend_email}</td>
+                      <td>
+                        {referral.registered_user_id ? (
+                          <span style={{ color: '#28a745', fontWeight: 'bold' }}>Registered ✓</span>
+                        ) : (
+                          <span style={{ color: '#ffc107' }}>Pending</span>
+                        )}
+                      </td>
+                      <td>
+                        {referral.registered_at 
+                          ? new Date(referral.registered_at).toLocaleDateString()
+                          : '-'
+                        }
+                      </td>
+                      <td>{new Date(referral.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
