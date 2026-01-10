@@ -1,6 +1,6 @@
 .liability-form-modal-content {
   width: 100%;
-  max-width: 1200px; /* Increased width to reduce scrolling */
+  max-width: 100%; /* Use full modal width */
   box-sizing: border-box;
   min-height: fit-content;
   padding-bottom: 20px; /* Reduced padding */

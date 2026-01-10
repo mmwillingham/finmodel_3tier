@@ -110,7 +110,7 @@ export default function AssetFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name}` : `Add New Asset`}>
       <div className="asset-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}> {/* First row: Name, Category, Account, Value, Percent, Annual Change */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}> {/* First row: Name, Category, Account, Value, Percent, Annual Change */} 
             <div className="form-field">
               <label htmlFor="asset-name">Name</label>
               <input
@@ -185,7 +185,7 @@ export default function AssetFormModal({
             </div>
           </div>
 
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) 1fr 1fr 1fr' }}> {/* Second row: Start Date, End Date, with 3 empty columns */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}> {/* Second row: Start Date, End Date, plus empty columns for alignment */} 
             <div className="form-field">
               <label htmlFor="asset-start-date">Start Date</label>
               <input

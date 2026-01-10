@@ -298,10 +298,9 @@ const AutoDisbursementSettingsPage = () => {
       {/* Auto-Disbursements Tab */}
       {activeTab === 'disbursements' && (
         <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
           Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
         </h3>
-        <h4 style={{ fontSize: '0.95em', color: '#666', marginBottom: '16px', fontWeight: '500' }}>Add New Auto-Disbursement</h4>
         <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
           <div className="form-field">
             <label htmlFor="name">Name *</label>
