@@ -35,8 +35,8 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
             <nav>
                 <div className="logo">
                     <Link to="/">
-                        <img src="/vault-logo.jpg" alt="Estate Springboard" style={{ height: '32px', marginRight: '8px', verticalAlign: 'middle' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
-                        Estate Springboard
+                        <img src="/vault-logo.jpg" alt="" style={{ height: '32px', verticalAlign: 'middle', marginRight: '8px' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
+                        <span>Estate Springboard</span>
                     </Link>
                 </div>
                 <div className="nav-links">
