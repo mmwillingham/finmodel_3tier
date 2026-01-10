@@ -9,7 +9,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
 // Simplified Sankey Diagram Component
-function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0 }) {
+function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [] }) {
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
@@ -124,29 +124,22 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     totalCashOut += categoryTotal;
   });
   
-  // Calculate beginning balance for selected year (sum of cash assets at start of year)
+  // Calculate beginning balance for selected year
+  // Use BASE model's beginning balance for this year to ensure consistency
+  // The beginning balance should be the accumulated ending balance from previous years
   const cashAssetIds = userSettings?.cash_asset_ids || [];
-  const cashAssets = assets.filter(a => cashAssetIds.includes(a.id));
-  
   let beginningBalance = 0;
-  cashAssets.forEach(asset => {
-    // Project asset value to the start of the selected year
-    const growthRate = (asset.annual_increase_percent || 0) / 100;
-    let assetValue = asset.value || 0;
-    
-    // Check if asset is active at start of year
-    const startYear = asset.start_date ? new Date(asset.start_date).getFullYear() : currentYear;
-    const endYear = asset.end_date ? new Date(asset.end_date).getFullYear() : currentYear + projectionYears;
-    const currentProjectionYear = currentYear + year;
-    
-    if (currentProjectionYear >= startYear && (asset.end_date === null || currentProjectionYear <= endYear)) {
-      // Project to the start of this year (year - 1 if not year 0)
-      if (year > 0) {
-        assetValue = assetValue * Math.pow(1 + growthRate, year - 1);
-      }
-      beginningBalance += assetValue;
-    }
-  });
+  
+  if (baseModel && baseModel.beginningBalances && baseModel.beginningBalances[year] !== undefined) {
+    // Use BASE model's beginning balance for this year (which is accumulated from previous years)
+    beginningBalance = baseModel.beginningBalances[year] || 0;
+  } else {
+    // Fallback: Calculate initial cash balance if BASE model not available
+    const cashAssets = assets.filter(a => cashAssetIds.includes(a.id));
+    cashAssets.forEach(asset => {
+      beginningBalance += asset.value || 0;
+    });
+  }
   
   // Calculate transfers to cash assets (surplus transfers and auto-disbursements)
   const transferSources = {};
@@ -160,30 +153,63 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
       transferSources[`Transfer to ${surplusAssetName}`] = netCashFlow;
-      totalCashIn += netCashFlow; // Add to total cash in
+      // Don't add to totalCashIn - this is already included in the net cash flow
     } else if (netCashFlow < 0) {
       // Negative surplus (deficit) - cash goes out
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
       transferSinks[`Deficit from ${surplusAssetName}`] = Math.abs(netCashFlow);
-      totalCashOut += Math.abs(netCashFlow); // Add to total cash out
+      // Don't add to totalCashOut - this is already included in the net cash flow
     }
   }
   
   // Auto-disbursements that target cash assets
-  if (autoDisbursements && cashFlowProjection) {
-    autoDisbursements.forEach(ad => {
-      if (cashAssetIds.includes(ad.target_asset_id)) {
+  // Calculate the same way as BASE model for consistency
+  if (autoDisbursements && Array.isArray(autoDisbursements)) {
+    try {
+      // Pre-calculate asset projections for this year (same as BASE model)
+      const assetProjectionsForYear = {};
+      assets.forEach(asset => {
+        const growthRate = (asset.annual_increase_percent || 0) / 100;
+        let assetValue = asset.value || 0;
+        
+        // Apply date filters if present
+        if (asset.start_date) {
+          const startYear = new Date(asset.start_date).getFullYear();
+          if (currentProjectionYear < startYear) assetValue = 0;
+        }
+        if (asset.end_date) {
+          const endYear = new Date(asset.end_date).getFullYear();
+          if (currentProjectionYear > endYear) assetValue = 0;
+        }
+        
+        if (assetValue > 0) {
+          assetValue = assetValue * Math.pow(1 + growthRate, year);
+        }
+        assetProjectionsForYear[asset.id] = assetValue;
+      });
+      
+      autoDisbursements.forEach(ad => {
+        if (!ad || !ad.target_asset_id || !cashAssetIds.includes(ad.target_asset_id)) {
+          return;
+        }
         const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
         const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
         
         if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
-          // Get the transfer amount for this year from the cash flow projection
-          const transferArray = cashFlowProjection.autoDisbursementTransfers?.[ad.id];
-          if (transferArray && transferArray[year] !== undefined) {
-            const transferAmount = transferArray[year] || 0;
+          // Calculate transfer amount the same way as BASE model
+          const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+          if (sourceAsset && assetProjectionsForYear[sourceAsset.id] !== undefined) {
+            const sourceValue = assetProjectionsForYear[sourceAsset.id];
+            let transferAmount = 0;
+            
+            if (ad.transfer_type === 'percentage') {
+              transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
+            } else if (ad.transfer_type === 'fixed') {
+              transferAmount = ad.transfer_value || 0;
+            }
+            
             if (transferAmount > 0) {
-              const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
               const targetAsset = assets.find(a => a.id === ad.target_asset_id);
               const sourceName = sourceAsset ? sourceAsset.name : 'Source';
               const targetName = targetAsset ? targetAsset.name : 'Target';
@@ -192,12 +218,31 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
             }
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Error processing auto-disbursements in SankeyDiagram:', error);
+    }
+  }
+  
+  // Handle deficit (negative surplus) the same way as BASE model
+  // If surplus asset is a cash asset and we have a deficit, add it to cashOut
+  let adjustedCashOut = totalCashOut;
+  if (userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id)) {
+    const netCashFlow = totalCashIn - totalCashOut;
+    if (netCashFlow < 0) {
+      // Deficit reduces cash (handled as additional cash out, matching BASE model)
+      adjustedCashOut += Math.abs(netCashFlow);
+    }
   }
   
   // Calculate ending balance (beginning balance + cash in - cash out)
-  const endingBalance = beginningBalance + totalCashIn - totalCashOut;
+  // Use BASE model's ending balance if available to ensure consistency
+  let endingBalance;
+  if (baseModel && baseModel.endingBalances && baseModel.endingBalances[year] !== undefined) {
+    endingBalance = baseModel.endingBalances[year] || 0;
+  } else {
+    endingBalance = beginningBalance + totalCashIn - adjustedCashOut;
+  }
   
   // Include transfer sources in income values for scaling
   const allIncomeValues = [...Object.values(incomeCategoryTotals), ...Object.values(transferSources)].filter(v => v && v > 0);
@@ -360,6 +405,11 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const value = transferSources[transferLabel] || 0;
           const nodeWidth = columnWidth;
           
+          // Check if this is a Surplus transfer (gray) or Auto-Disbursement (orange)
+          const isSurplusTransfer = transferLabel.startsWith('Transfer to');
+          const nodeFill = isSurplusTransfer ? "#9E9E9E" : "#FF9800"; // Gray for surplus, orange for auto-disbursements
+          const nodeStroke = isSurplusTransfer ? "#616161" : "#F57C00"; // Darker gray for surplus, darker orange for auto-disbursements
+          
           return (
             <g key={`transfer_${transferLabel}`}>
               <rect
@@ -367,8 +417,8 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
                 y={pos.y}
                 width={nodeWidth}
                 height={pos.height}
-                fill="#FF9800"
-                stroke="#F57C00"
+                fill={nodeFill}
+                stroke={nodeStroke}
                 strokeWidth="2"
                 rx="4"
               />
@@ -488,6 +538,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const value = transferSinks[transferLabel] || 0;
           const nodeWidth = columnWidth;
           
+          // Deficit transfers are gray
+          const nodeFill = "#9E9E9E"; // Gray for deficit
+          const nodeStroke = "#616161"; // Darker gray for deficit
+          
           return (
             <g key={`transfer_sink_${transferLabel}`}>
               <rect
@@ -495,8 +549,8 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
                 y={pos.y}
                 width={nodeWidth}
                 height={pos.height}
-                fill="#FF9800"
-                stroke="#F57C00"
+                fill={nodeFill}
+                stroke={nodeStroke}
                 strokeWidth="2"
                 rx="4"
               />
@@ -553,6 +607,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const pos = nodePositions[`transfer_${transferLabel}`];
           const value = transferSources[transferLabel] || 0;
           
+          // Check if this is a Surplus transfer (gray) or Auto-Disbursement (orange)
+          const isSurplusTransfer = transferLabel.startsWith('Transfer to');
+          const flowColor = isSurplusTransfer ? "#9E9E9E" : "#FF9800"; // Gray for surplus, orange for auto-disbursements
+          
           // Calculate proportional width: scale based on maxIncomeValue
           const flowProportion = maxIncomeValue > 0 ? value / maxIncomeValue : 0;
           const sqrtProportion = Math.sqrt(flowProportion);
@@ -566,7 +624,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               d={`M ${pos.x + columnWidth} ${pos.y + pos.height / 2} 
                   L ${walletPos.x} ${walletPos.y + walletPos.height / 2}`}
               fill="none"
-              stroke="#FF9800"
+              stroke={flowColor}
               strokeWidth={strokeWidth}
               opacity="0.6"
               strokeLinecap="round"
@@ -614,6 +672,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const sinkPos = nodePositions[`transfer_sink_${transferLabel}`];
           const value = transferSinks[transferLabel] || 0;
           
+          // Deficit flow lines are gray
+          const flowColor = "#9E9E9E"; // Gray for deficit
+          
           // Calculate proportional width: scale based on maxExpenseValue
           const flowProportion = maxExpenseValue > 0 ? value / maxExpenseValue : 0;
           const sqrtProportion = Math.sqrt(flowProportion);
@@ -628,7 +689,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               d={`M ${walletPos.x + walletPos.width} ${walletPos.y + walletPos.height / 2} 
                   L ${sinkLeftEdge} ${sinkPos.y + sinkPos.height / 2}`}
               fill="none"
-              stroke="#FF9800"
+              stroke={flowColor}
               strokeWidth={strokeWidth}
               opacity="0.6"
               strokeLinecap="round"
@@ -700,9 +761,13 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     const autoDisbursementTransfers = {}; // NEW: Track each auto-disbursement
 
     // Initialize auto-disbursement transfer arrays
-    autoDisbursements.forEach(ad => {
-      autoDisbursementTransfers[ad.id] = [];
-    });
+    if (autoDisbursements && Array.isArray(autoDisbursements)) {
+      autoDisbursements.forEach(ad => {
+        if (ad && ad.id) {
+          autoDisbursementTransfers[ad.id] = [];
+        }
+      });
+    }
 
     // Pre-calculate asset projections for all years (needed for dynamic items and transfers)
     const assetProjections = {};
@@ -809,40 +874,43 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       }
       
       // Calculate auto-disbursement transfers
-      autoDisbursements.forEach(ad => {
-        if (!autoDisbursementTransfers[ad.id]) {
-          autoDisbursementTransfers[ad.id] = [];
-        }
-        
-        // Check if disbursement is active for this year
-        const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
-        const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
-        const currentProjectionYear = currentYear + year;
-        
-        if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
-          const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
-          if (sourceAsset && assetProjections[sourceAsset.id] && assetProjections[sourceAsset.id][year] !== undefined) {
-            const sourceValue = assetProjections[sourceAsset.id][year];
-            let transferAmount = 0;
-            
-            if (ad.transfer_type === 'percentage') {
-              transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
-            } else if (ad.transfer_type === 'fixed') {
-              transferAmount = ad.transfer_value || 0;
-            }
-            
-            autoDisbursementTransfers[ad.id].push(transferAmount);
-          } else {
-            autoDisbursementTransfers[ad.id].push(0);
-          }
-        } else {
-          // Ensure array exists even if outside date range
+      if (autoDisbursements && Array.isArray(autoDisbursements)) {
+        autoDisbursements.forEach(ad => {
+          if (!ad || !ad.id) return;
           if (!autoDisbursementTransfers[ad.id]) {
             autoDisbursementTransfers[ad.id] = [];
           }
-          autoDisbursementTransfers[ad.id].push(0);
-        }
-      });
+          
+          // Check if disbursement is active for this year
+          const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
+          const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
+          const currentProjectionYear = currentYear + year;
+          
+          if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
+            const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+            if (sourceAsset && assetProjections[sourceAsset.id] && assetProjections[sourceAsset.id][year] !== undefined) {
+              const sourceValue = assetProjections[sourceAsset.id][year];
+              let transferAmount = 0;
+              
+              if (ad.transfer_type === 'percentage') {
+                transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
+              } else if (ad.transfer_type === 'fixed') {
+                transferAmount = ad.transfer_value || 0;
+              }
+              
+              autoDisbursementTransfers[ad.id].push(transferAmount);
+            } else {
+              autoDisbursementTransfers[ad.id].push(0);
+            }
+          } else {
+            // Ensure array exists even if outside date range
+            if (!autoDisbursementTransfers[ad.id]) {
+              autoDisbursementTransfers[ad.id] = [];
+            }
+            autoDisbursementTransfers[ad.id].push(0);
+          }
+        });
+      }
 
       incomeValues.push(totalIncome);
       expenseValues.push(totalExpenses);
@@ -970,7 +1038,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       });
       
       // Add transfers from auto-disbursements that target cash assets
-      autoDisbursements.forEach(ad => {
+      if (autoDisbursements && Array.isArray(autoDisbursements)) {
+        autoDisbursements.forEach(ad => {
+          if (!ad) return;
         if (cashAssetIds.includes(ad.target_asset_id)) {
           const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
           const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
@@ -992,6 +1062,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           }
         }
       });
+      }
       
       // Add surplus asset transfer if surplus asset is a cash asset
       // Surplus = Cash In - Cash Out (already calculated above)
@@ -1007,7 +1078,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       }
       
       // Add transfers from auto-disbursements that source cash assets (cash going out)
-      autoDisbursements.forEach(ad => {
+      if (autoDisbursements && Array.isArray(autoDisbursements)) {
+        autoDisbursements.forEach(ad => {
+          if (!ad) return;
         if (cashAssetIds.includes(ad.source_asset_id) && !cashAssetIds.includes(ad.target_asset_id)) {
           const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
           const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
@@ -1029,6 +1102,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           }
         }
       });
+      }
       
       // Calculate Ending Balance (Available Cash)
       const endingBalance = currentBalance + cashIn - cashOut;
@@ -1089,8 +1163,10 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   // Removed surplus asset transfer - it's a duplicate of Surplus
 
   // Add auto-disbursement transfers - add after transfers so they render on top
-  autoDisbursements.forEach(ad => {
-    if (cashFlowProjection?.autoDisbursementTransfers?.[ad.id] && cashFlowProjection.autoDisbursementTransfers[ad.id].length > 0) {
+  if (autoDisbursements && Array.isArray(autoDisbursements)) {
+    autoDisbursements.forEach(ad => {
+      if (!ad || !ad.id) return;
+      if (cashFlowProjection?.autoDisbursementTransfers?.[ad.id] && cashFlowProjection.autoDisbursementTransfers[ad.id].length > 0) {
       const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
       const targetAsset = assets.find(a => a.id === ad.target_asset_id);
       const sourceName = sourceAsset ? sourceAsset.name : 'Source';
@@ -1106,8 +1182,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         borderWidth: 2,
         order: 0, // Render on top
       });
-    }
-  });
+      }
+    });
+  }
 
   const cashFlowChartData = {
     labels: (cashFlowProjection?.years || []).map(year => currentYear + year), // Adjust labels to current year
@@ -1206,7 +1283,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       // Build headers dynamically to include transfers
       let csvHeaders = [...headers];
       // Removed surplus asset transfer header - it's a duplicate of Surplus
-      autoDisbursements.forEach(ad => {
+      if (autoDisbursements && Array.isArray(autoDisbursements)) {
+        autoDisbursements.forEach(ad => {
+          if (!ad || !ad.id) return;
         if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id]) {
           const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
           const targetAsset = assets.find(a => a.id === ad.target_asset_id);
@@ -1215,6 +1294,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           csvHeaders.push(`Auto-Disbursement: ${sourceName} → ${targetName}`);
         }
       });
+      }
       
       const formattedData = (cashFlowProjection?.years || []).map((year, yearIndex) => {
         const row = {
@@ -1226,15 +1306,18 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         
         // Removed surplus asset transfer - it's a duplicate of Surplus
         
-        autoDisbursements.forEach(ad => {
-          if (cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) {
+        if (autoDisbursements && Array.isArray(autoDisbursements)) {
+          autoDisbursements.forEach(ad => {
+            if (!ad || !ad.id) return;
+            if (cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) {
             const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
             const targetAsset = assets.find(a => a.id === ad.target_asset_id);
             const sourceName = sourceAsset ? sourceAsset.name : 'Source';
             const targetName = targetAsset ? targetAsset.name : 'Target';
             row[`Auto-Disbursement: ${sourceName} → ${targetName}`] = cashFlowProjection.autoDisbursementTransfers[ad.id][yearIndex] || 0;
-          }
-        });
+            }
+          });
+        }
         
         return row;
       });
@@ -1567,6 +1650,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                         currentYear={currentYear}
                         projectionYears={projectionYears}
                         selectedYear={sankeyYear}
+                        autoDisbursements={autoDisbursements || []}
                       />
                     );
                 } catch (innerError) {
