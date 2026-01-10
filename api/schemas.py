@@ -190,6 +190,8 @@ class CashFlowCreate(BaseModel):
     percentage: Optional[float] = None
     linked_asset_ids: Optional[List[int]] = None  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id: Optional[int] = None # NEW: For expense items that contribute to an asset
+    reinvest_dividends: Optional[bool] = False  # NEW: Whether to reinvest dividends (for income items)
+    reinvestment_account_id: Optional[int] = None  # NEW: Account ID to reinvest into (optional, defaults to source asset)
 
 class CashFlowUpdate(BaseModel):
     is_income: Optional[bool] = None
@@ -209,6 +211,8 @@ class CashFlowUpdate(BaseModel):
     percentage: Optional[float] = None
     linked_asset_ids: Optional[List[int]] = None  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id: Optional[int] = None # NEW: For expense items that contribute to an asset
+    reinvest_dividends: Optional[bool] = None  # NEW: Whether to reinvest dividends (for income items)
+    reinvestment_account_id: Optional[int] = None  # NEW: Account ID to reinvest into (optional, defaults to source asset)
 
 class CashFlowOut(BaseModel):
     id: int
@@ -229,6 +233,8 @@ class CashFlowOut(BaseModel):
     percentage: Optional[float] = None
     linked_asset_ids: Optional[List[int]] = None  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id: Optional[int] = None # NEW: For expense items that contribute to an asset
+    reinvest_dividends: Optional[bool] = None  # NEW: Whether to reinvest dividends (for income items)
+    reinvestment_account_id: Optional[int] = None  # NEW: Account ID to reinvest into (optional, defaults to source asset)
     model_config = ConfigDict(from_attributes=True)
 
 class UserSettingsBase(BaseModel):

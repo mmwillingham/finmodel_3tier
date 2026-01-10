@@ -262,7 +262,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         },
         title: {
           display: true,
-          text: `Financial Project - ${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+          text: `Estate Springboard - ${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
         },
         tooltip: {
           callbacks: {

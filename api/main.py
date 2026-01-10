@@ -1100,7 +1100,10 @@ def create_cashflow(
         linked_item_id=payload.linked_item_id,
         linked_item_type=payload.linked_item_type,
         percentage=payload.percentage,
-        contributes_to_asset_id=payload.contributes_to_asset_id
+        linked_asset_ids=payload.linked_asset_ids,
+        contributes_to_asset_id=payload.contributes_to_asset_id,
+        reinvest_dividends=payload.reinvest_dividends if hasattr(payload, 'reinvest_dividends') else False,
+        reinvestment_account_id=payload.reinvestment_account_id if hasattr(payload, 'reinvestment_account_id') else None
     )
     db.add(item)
     db.commit()

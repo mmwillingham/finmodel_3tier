@@ -371,7 +371,7 @@ export default function SidebarLayout() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <h2>Welcome to the Financial Projector!</h2>
+            <h2>Welcome to Estate Springboard!</h2>
             <p>Use the navigation on the left to explore your financial data.</p>
             
             <motion.div 
@@ -389,7 +389,7 @@ export default function SidebarLayout() {
             >
               <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#282c34' }}>Walk Me Through</h3>
               <p style={{ marginBottom: '25px', color: '#666' }}>
-                New to the Financial Projector? Follow these guided wizards to set up your profile and organize your financial data.
+                New to Estate Springboard? Follow these guided wizards to set up your profile and organize your financial data.
               </p>
               
               <div className="wizard-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>

@@ -147,6 +147,10 @@ class CashFlowItem(Base):
     linked_asset_ids = Column(JSON, nullable=True)  # NEW: Array of asset IDs for multi-select (for income items)
     contributes_to_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True) # NEW: For expense items that contribute to an asset
     contributes_to_asset = relationship("Asset", foreign_keys=[contributes_to_asset_id]) # NEW: Relationship to Asset
+    # NEW: Dividend reinvestment fields
+    reinvest_dividends = Column(Boolean, default=False, nullable=True)  # Whether dividends should be reinvested
+    reinvestment_account_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True)  # Account to reinvest into (optional, defaults to source asset)
+    reinvestment_account = relationship("Asset", foreign_keys=[reinvestment_account_id])  # Relationship to Asset for reinvestment
 
 
 class UserSettings(Base):

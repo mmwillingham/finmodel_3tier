@@ -27,6 +27,15 @@
     font-size: 1.5em;
     font-weight: bold;
     flex-shrink: 0; /* Prevent logo from shrinking */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.app-header .logo a img {
+    height: 32px;
+    width: auto;
+    vertical-align: middle;
 }
 
 .nav-links {

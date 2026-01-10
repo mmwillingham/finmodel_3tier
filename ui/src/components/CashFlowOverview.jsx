@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line, Bar, Chart } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { calculateTaxableIncome } from '../utils/taxCalculator';
 
 // Register Chart.js components for combo charts
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
@@ -61,6 +62,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   
   // Calculate income totals by category for selected year
   const incomeCategoryTotals = {};
+  let totalTaxableIncome = 0; // Track taxable income for tax calculations
   const currentProjectionYear = currentYear + year;
   
   Object.keys(incomeByCategory).forEach(category => {
@@ -87,7 +89,19 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         itemValue = itemValue * Math.pow(1 + growthRate, year);
       }
       
-      categoryTotal += itemValue;
+      // Count as taxable income if taxable
+      if (item.taxable) {
+        totalTaxableIncome += itemValue;
+      }
+      
+      // Check if this is a reinvested dividend - exclude from cash flow
+      const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
+      const shouldReinvest = isDividend && item.reinvest_dividends;
+      
+      // If not reinvested, add to category total (cash flow)
+      if (!shouldReinvest) {
+        categoryTotal += itemValue;
+      }
     });
     incomeCategoryTotals[category] = categoryTotal;
     totalCashIn += categoryTotal;
@@ -95,6 +109,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   
   // Calculate expense totals by category for selected year
   const expenseCategoryTotals = {};
+  let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
   Object.keys(expenseByCategory).forEach(category => {
     let categoryTotal = 0;
     expenseByCategory[category].forEach(item => {
@@ -118,11 +133,42 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         itemValue = itemValue * Math.pow(1 + inflationRate, year);
       }
       
+      // Count tax-deductible expenses for tax calculation
+      if (item.tax_deductible) {
+        totalTaxDeductibleExpenses += itemValue;
+      }
+      
       categoryTotal += itemValue;
     });
     expenseCategoryTotals[category] = categoryTotal;
     totalCashOut += categoryTotal;
   });
+  
+  // Calculate federal taxes and add to expenses
+  let federalTax = 0;
+  if (userSettings && totalTaxableIncome > 0) {
+    try {
+      const taxResult = calculateTaxableIncome(
+        totalTaxableIncome,
+        totalTaxDeductibleExpenses,
+        userSettings.tax_filing_status || "Single",
+        userSettings.person1_birthdate,
+        userSettings.person2_birthdate,
+        currentProjectionYear
+      );
+      federalTax = taxResult.taxOwed || 0;
+      // Add taxes to expense category totals and totalCashOut
+      if (federalTax > 0) {
+        if (!expenseCategoryTotals['Federal Taxes']) {
+          expenseCategoryTotals['Federal Taxes'] = 0;
+        }
+        expenseCategoryTotals['Federal Taxes'] += federalTax;
+        totalCashOut += federalTax;
+      }
+    } catch (error) {
+      console.error('Error calculating taxes in SankeyDiagram:', error);
+    }
+  }
   
   // Calculate beginning balance for selected year
   // Use BASE model's beginning balance for this year to ensure consistency
@@ -802,6 +848,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       years.push(year);
       
       let totalIncome = 0;
+      let totalTaxableIncome = 0; // Track taxable income for tax calculations
+      let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses
+      const reinvestedDividendsByAsset = {}; // Track dividend reinvestments by asset
       const currentProjectionYear = currentYear + year;
       
       incomeItems.forEach((item) => {
@@ -831,7 +880,42 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           itemValue = item.yearly_value * Math.pow(1 + growthRate, year);
         }
         
-        totalIncome += itemValue;
+        // Count as taxable income if taxable
+        if (item.taxable) {
+          totalTaxableIncome += itemValue;
+        }
+        
+        // Check if this is a reinvested dividend
+        const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
+        const shouldReinvest = isDividend && item.reinvest_dividends;
+        
+        // If reinvested, don't add to totalIncome (cash flow) but track for asset addition
+        if (shouldReinvest) {
+          // Determine which asset to add to
+          let targetAssetId = item.reinvestment_account_id;
+          if (!targetAssetId && item.linked_item_id && item.linked_item_type === "asset") {
+            // Default to source asset if no reinvestment account specified
+            targetAssetId = item.linked_item_id;
+          }
+          
+          if (targetAssetId && assetProjections[targetAssetId]) {
+            if (!reinvestedDividendsByAsset[targetAssetId]) {
+              reinvestedDividendsByAsset[targetAssetId] = 0;
+            }
+            reinvestedDividendsByAsset[targetAssetId] += itemValue;
+            // Add to asset projection for this year and future years (will compound with growth)
+            for (let futureYear = year; futureYear <= projectionYears; futureYear++) {
+              const growthRate = assets.find(a => a.id === targetAssetId)?.annual_increase_percent || 0;
+              if (assetProjections[targetAssetId][futureYear] !== undefined) {
+                assetProjections[targetAssetId][futureYear] += itemValue * Math.pow(1 + growthRate / 100, futureYear - year);
+              }
+            }
+          }
+          // Don't add to totalIncome - dividends are reinvested, not received as cash
+        } else {
+          // Not reinvested - add to income (cash flow)
+          totalIncome += itemValue;
+        }
       });
 
       let totalExpenses = 0;
@@ -862,8 +946,33 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           itemValue = item.yearly_value * Math.pow(1 + inflationRate, year);
         }
         
+        // Count tax-deductible expenses for tax calculation
+        if (item.tax_deductible) {
+          totalTaxDeductibleExpenses += itemValue;
+        }
+        
         totalExpenses += itemValue;
       });
+      
+      // Calculate federal taxes
+      let federalTax = 0;
+      if (userSettings && totalTaxableIncome > 0) {
+        try {
+          const taxResult = calculateTaxableIncome(
+            totalTaxableIncome,
+            totalTaxDeductibleExpenses,
+            userSettings.tax_filing_status || "Single",
+            userSettings.person1_birthdate,
+            userSettings.person2_birthdate,
+            currentProjectionYear
+          );
+          federalTax = taxResult.taxOwed || 0;
+          // Add taxes to total expenses
+          totalExpenses += federalTax;
+        } catch (error) {
+          console.error('Error calculating taxes in calculateCashFlowProjection:', error);
+        }
+      }
 
       const yearSurplus = totalIncome - totalExpenses;
       
@@ -1033,9 +1142,34 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             itemValue = itemValue * Math.pow(1 + inflationRate, year);
           }
           
+          // Count tax-deductible expenses for tax calculation
+          if (item.tax_deductible) {
+            totalTaxDeductibleExpenses += itemValue;
+          }
+          
           cashOut += itemValue;
         }
       });
+      
+      // Calculate federal taxes
+      let federalTax = 0;
+      if (userSettings && totalTaxableIncome > 0) {
+        try {
+          const taxResult = calculateTaxableIncome(
+            totalTaxableIncome,
+            totalTaxDeductibleExpenses,
+            userSettings.tax_filing_status || "Single",
+            userSettings.person1_birthdate,
+            userSettings.person2_birthdate,
+            currentProjectionYear
+          );
+          federalTax = taxResult.taxOwed || 0;
+          // Add taxes to cash out
+          cashOut += federalTax;
+        } catch (error) {
+          console.error('Error calculating taxes:', error);
+        }
+      }
       
       // Add transfers from auto-disbursements that target cash assets
       if (autoDisbursements && Array.isArray(autoDisbursements)) {
@@ -1063,6 +1197,16 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         }
       });
       }
+      
+      // Add reinvested dividends to asset projections
+      Object.keys(reinvestedDividendsByAsset).forEach(assetId => {
+        const dividendAmount = reinvestedDividendsByAsset[assetId];
+        if (assetProjections[assetId] && assetProjections[assetId][year] !== undefined) {
+          // Add reinvested dividends to this asset's value for this year
+          // This will compound with growth for future years
+          assetProjections[assetId][year] += dividendAmount;
+        }
+      });
       
       // Add surplus asset transfer if surplus asset is a cash asset
       // Surplus = Cash In - Cash Out (already calculated above)
@@ -1104,8 +1248,30 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       });
       }
       
+      // Add reinvested dividends to cash assets (if they're cash assets)
+      // This affects the ending balance calculation
+      let reinvestedDividendsToCash = 0;
+      Object.keys(reinvestedDividendsByAsset).forEach(assetId => {
+        const dividendAmount = reinvestedDividendsByAsset[assetId];
+        if (cashAssetIds.includes(parseInt(assetId))) {
+          reinvestedDividendsToCash += dividendAmount;
+        }
+        // Also update asset projections for future growth calculations
+        if (assetProjections[assetId] && assetProjections[assetId][year] !== undefined) {
+          assetProjections[assetId][year] += dividendAmount;
+          // Update future year projections to reflect this addition
+          for (let futureYear = year + 1; futureYear <= projectionYears; futureYear++) {
+            const growthRate = assets.find(a => a.id === parseInt(assetId))?.annual_increase_percent || 0;
+            if (assetProjections[assetId][futureYear] !== undefined) {
+              assetProjections[assetId][futureYear] += dividendAmount * Math.pow(1 + growthRate / 100, futureYear - year);
+            }
+          }
+        }
+      });
+      
       // Calculate Ending Balance (Available Cash)
-      const endingBalance = currentBalance + cashIn - cashOut;
+      // Include reinvested dividends to cash assets in the ending balance
+      const endingBalance = currentBalance + cashIn - cashOut + reinvestedDividendsToCash;
       
       cashInValues.push(cashIn);
       cashOutValues.push(cashOut);
@@ -1199,7 +1365,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       },
       title: {
         display: true,
-        text: `Financial Project - Income & Expense Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Estate Springboard - Income & Expense Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
     },
     scales: {
@@ -1380,7 +1546,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       },
       title: {
         display: true,
-        text: `Financial Project - BASE Model (Beginning, Additions, Subtractions, Ending)${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Estate Springboard - BASE Model (Beginning, Additions, Subtractions, Ending)${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
       tooltip: {
         callbacks: {

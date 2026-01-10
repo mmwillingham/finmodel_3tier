@@ -167,7 +167,7 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
       },
       title: {
         display: true,
-        text: `Financial Project - Cash Flow Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Estate Springboard - Cash Flow Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
         font: { size: 13 },
       },
     },

@@ -205,7 +205,7 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
     responsive: true,
     plugins: {
       legend: { position: 'top' },
-      title: { display: true, text: `Financial Project - ${projection.name} - Growth Over Time${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}` },
+      title: { display: true, text: `Estate Springboard - ${projection.name} - Growth Over Time${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}` },
     },
     scales: {
       y: {

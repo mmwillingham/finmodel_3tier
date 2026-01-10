@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { calculateTaxableIncome } from '../utils/taxCalculator';
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -26,23 +27,28 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
     setTimeout(() => {
       const simulationResults = [];
       
-      // Pre-calculate base projections
-      const baseAssetProjections = {};
-      assets.forEach(asset => {
-        baseAssetProjections[asset.name] = [];
-        for (let i = 0; i <= projectionYears; i++) {
-          const growthRate = (asset.annual_increase_percent || 0) / 100;
-          const assetValue = asset.value * Math.pow(1 + growthRate, i);
-          baseAssetProjections[asset.name].push(assetValue);
-        }
-      });
-
       for (let sim = 0; sim < numSimulations; sim++) {
         const yearlyData = [];
+        
+        // Pre-calculate base projections for THIS simulation (each simulation needs its own copy)
+        const baseAssetProjections = {};
+        assets.forEach(asset => {
+          baseAssetProjections[asset.name] = [];
+          for (let i = 0; i <= projectionYears; i++) {
+            const growthRate = (asset.annual_increase_percent || 0) / 100;
+            const assetValue = asset.value * Math.pow(1 + growthRate, i);
+            baseAssetProjections[asset.name].push(assetValue);
+          }
+        });
+        
+        // Track reinvested dividends by asset for this simulation
+        const reinvestedDividendsByAsset = {};
         
         for (let year = 0; year <= projectionYears; year++) {
           // Calculate income with random variation
           let totalIncome = 0;
+          let totalTaxableIncome = 0; // Track taxable income for tax calculations
+          
           incomeItems.forEach(item => {
             let itemValue = item.yearly_value;
             
@@ -62,11 +68,56 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               itemValue = item.yearly_value * Math.pow(1 + increaseRate, year) * (1 + variation);
             }
             
-            totalIncome += itemValue;
+            // Count as taxable income if taxable
+            if (item.taxable) {
+              totalTaxableIncome += itemValue;
+            }
+            
+            // Check if this is a reinvested dividend - exclude from cash flow
+            const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
+            const shouldReinvest = isDividend && item.reinvest_dividends;
+            
+            // If reinvested, don't add to totalIncome (cash flow) but track for asset addition
+            if (shouldReinvest) {
+              // Determine which asset to add to
+              let targetAssetId = item.reinvestment_account_id;
+              if (!targetAssetId && item.linked_item_id && item.linked_item_type === "asset") {
+                // Default to source asset if no reinvestment account specified
+                targetAssetId = item.linked_item_id;
+              }
+              
+              if (targetAssetId) {
+                const targetAsset = assets.find(a => a.id === targetAssetId);
+                if (targetAsset && baseAssetProjections[targetAsset.name]) {
+                  // Add to asset projection for future years (will compound with growth)
+                  const assetKey = targetAsset.name;
+                  if (!reinvestedDividendsByAsset[assetKey]) {
+                    reinvestedDividendsByAsset[assetKey] = {};
+                  }
+                  if (!reinvestedDividendsByAsset[assetKey][year]) {
+                    reinvestedDividendsByAsset[assetKey][year] = 0;
+                  }
+                  reinvestedDividendsByAsset[assetKey][year] += itemValue;
+                  // Update base projections for future years in this simulation
+                  for (let futureYear = year; futureYear <= projectionYears; futureYear++) {
+                    const growthRate = targetAsset.annual_increase_percent || 0;
+                    if (baseAssetProjections[assetKey][futureYear] !== undefined) {
+                      baseAssetProjections[assetKey][futureYear] += itemValue * Math.pow(1 + growthRate / 100, futureYear - year);
+                    }
+                  }
+                }
+              }
+              // Don't add to totalIncome - dividends are reinvested, not received as cash
+            } else {
+              // Not reinvested - add to income (cash flow)
+              totalIncome += itemValue;
+            }
           });
 
           // Calculate expenses with random variation
           let totalExpenses = 0;
+          let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
+          
           expenseItems.forEach(item => {
             let itemValue = item.yearly_value;
             
@@ -85,8 +136,34 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               itemValue = item.yearly_value * Math.pow(1 + inflationRate, year) * (1 + variation);
             }
             
+            // Count tax-deductible expenses for tax calculation
+            if (item.tax_deductible) {
+              totalTaxDeductibleExpenses += itemValue;
+            }
+            
             totalExpenses += itemValue;
           });
+          
+          // Calculate federal taxes
+          let federalTax = 0;
+          if (userSettings && totalTaxableIncome > 0) {
+            try {
+              const currentProjectionYear = currentYear + year;
+              const taxResult = calculateTaxableIncome(
+                totalTaxableIncome,
+                totalTaxDeductibleExpenses,
+                userSettings.tax_filing_status || "Single",
+                userSettings.person1_birthdate,
+                userSettings.person2_birthdate,
+                currentProjectionYear
+              );
+              federalTax = taxResult.taxOwed || 0;
+              // Add taxes to total expenses
+              totalExpenses += federalTax;
+            } catch (error) {
+              console.error('Error calculating taxes in Monte Carlo:', error);
+            }
+          }
 
           // Calculate net cash flow
           const netCashFlow = totalIncome - totalExpenses;

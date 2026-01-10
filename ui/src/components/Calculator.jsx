@@ -169,7 +169,7 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
 
     return (
         <div className="calculator-page">
-            <h2>{isEditing ? 'Edit Projection' : 'Financial Projection Calculator'}</h2>
+            <h2>{isEditing ? 'Edit Projection' : 'Estate Springboard Projection Calculator'}</h2>
             <form onSubmit={handleSubmit}>
                 <div className="global-inputs">
                     <label>Plan Name:</label>

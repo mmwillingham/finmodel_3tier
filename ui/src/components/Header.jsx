@@ -34,7 +34,10 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
         <header className="app-header">
             <nav>
                 <div className="logo">
-                    <Link to="/">💰 Financial Projector</Link>
+                    <Link to="/">
+                        <img src="/vault-logo.jpg" alt="Estate Springboard" style={{ height: '32px', marginRight: '8px', verticalAlign: 'middle' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
+                        Estate Springboard
+                    </Link>
                 </div>
                 <div className="nav-links">
                     {currentUser ? (

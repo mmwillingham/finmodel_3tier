@@ -22,12 +22,15 @@ export default function CashFlowFormModal({
   const [linkedItemId, setLinkedItemId] = useState(null); // New state for linked item ID
   const [linkedAssetIds, setLinkedAssetIds] = useState([]); // NEW: Array of selected asset IDs for multi-select
   const [percentage, setPercentage] = useState(""); // New state for percentage
+  const [reinvestDividends, setReinvestDividends] = useState(false); // NEW: Whether to reinvest dividends
+  const [reinvestmentAccountId, setReinvestmentAccountId] = useState(null); // NEW: Account ID for reinvestment
   const [availableLinkedItems, setAvailableLinkedItems] = useState({
     assets: [],
     liabilities: [],
     income: [],
     expenses: [],
   }); // New state for fetching available linked items
+  const [assets, setAssets] = useState([]); // NEW: Available assets for reinvestment account selection
 
   const [newItem, setNewItem] = useState({
     category: "",
@@ -42,6 +45,8 @@ export default function CashFlowFormModal({
     taxable: false,
     tax_deductible: false,
     contributes_to_asset_id: null, // NEW: For expense items that contribute to an asset
+    reinvest_dividends: false, // NEW: Whether to reinvest dividends
+    reinvestment_account_id: null, // NEW: Account ID for reinvestment
   });
 
   // Effect for loading settings and initializing form fields
@@ -101,6 +106,8 @@ export default function CashFlowFormModal({
           setLinkedItemId(itemToEdit.linked_item_id || null);
           setLinkedAssetIds(itemToEdit.linked_asset_ids || []); // NEW: Initialize linked asset IDs
           setPercentage(itemToEdit.percentage !== null ? itemToEdit.percentage.toString() : "");
+          setReinvestDividends(itemToEdit.reinvest_dividends || false); // NEW: Initialize dividend reinvestment
+          setReinvestmentAccountId(itemToEdit.reinvestment_account_id || null); // NEW: Initialize reinvestment account
 
         } else {
           // Ensure empty defaults for new item
@@ -125,6 +132,8 @@ export default function CashFlowFormModal({
           setLinkedItemId(null);
           setLinkedAssetIds([]); // NEW: Reset linked asset IDs
           setPercentage("");
+          setReinvestDividends(false); // NEW: Reset dividend reinvestment
+          setReinvestmentAccountId(null); // NEW: Reset reinvestment account
         }
       } catch (e) {
         console.error("Failed to load settings or item", e);
@@ -172,6 +181,7 @@ export default function CashFlowFormModal({
             income: incomeRes.data,
             expenses: expensesRes.data,
           });
+          setAssets(assetsRes.data || []); // NEW: Set assets for reinvestment account selection
         } catch (error) {
           console.error("Failed to fetch linked items:", error);
         }
@@ -219,6 +229,8 @@ export default function CashFlowFormModal({
       percentage: isDynamic ? parseFloat(percentage) : null,
       linked_asset_ids: (type === "income" && isDynamic && linkedItemType === "asset" && linkedAssetIds.length > 0) ? linkedAssetIds : null, // NEW: Multi-select asset IDs for income items
       contributes_to_asset_id: type === "expense" ? newItem.contributes_to_asset_id : null, // NEW: Only for expenses
+      reinvest_dividends: (type === "income" && (newItem.category?.toLowerCase().includes("dividend") || newItem.description?.toLowerCase().includes("dividend"))) ? reinvestDividends : false, // NEW: Only for dividend income
+      reinvestment_account_id: (type === "income" && reinvestDividends) ? reinvestmentAccountId : null, // NEW: Only if reinvesting dividends
     };
 
     try {
@@ -451,6 +463,43 @@ export default function CashFlowFormModal({
 
 
           </div>
+
+          {/* NEW: Dividend Reinvestment fields - only shown for income items with "Dividends" category or description */}
+          {type === "income" && (newItem.category?.toLowerCase().includes("dividend") || newItem.description?.toLowerCase().includes("dividend")) && (
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+              <div className="form-field">
+                <label htmlFor="reinvest-dividends-checkbox">Reinvest Dividends</label>
+                <input
+                  id="reinvest-dividends-checkbox"
+                  type="checkbox"
+                  checked={reinvestDividends}
+                  onChange={(e) => {
+                    setReinvestDividends(e.target.checked);
+                    if (!e.target.checked) {
+                      setReinvestmentAccountId(null); // Clear account selection if unchecked
+                    }
+                  }}
+                />
+              </div>
+              {reinvestDividends && (
+                <div className="form-field">
+                  <label htmlFor="reinvestment-account-select">Reinvestment Account</label>
+                  <select
+                    id="reinvestment-account-select"
+                    value={reinvestmentAccountId || ""}
+                    onChange={(e) => setReinvestmentAccountId(e.target.value ? parseInt(e.target.value) : null)}
+                  >
+                    <option value="">Use Source Asset (if linked) or Default</option>
+                    {getAssetOptions().map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible - expanded to 6 columns */} 
             {type === "income" && (
