@@ -15,9 +15,9 @@
   background: white;
   padding: 0; /* No padding here, handled by header/body */
   border-radius: 8px;
-  width: 1600px; /* Increased width for the modal content */
-  max-width: none; /* Override any max-width constraints */
-  max-height: 95%; /* Increased max-height for the modal */
+  width: 90vw; /* Use viewport width for responsiveness */
+  max-width: 1400px; /* Increased max-width to reduce scrolling */
+  max-height: 90vh; /* Increased max-height for the modal */
   min-height: fit-content; /* Ensure modal expands to fit content */
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);

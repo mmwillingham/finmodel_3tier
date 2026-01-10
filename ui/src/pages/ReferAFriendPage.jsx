@@ -78,7 +78,7 @@ const ReferAFriendPage = () => {
   };
 
   return (
-    <div className="settings-page-container refer-a-friend-page">
+    <div className="settings-page-container refer-a-friend-page" style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px' }}>
       <h2>Refer a Friend</h2>
       {message && (
         <div className={`message ${message.includes('Error') || message.includes('Please') ? 'error' : 'success'}`}>
@@ -86,77 +86,82 @@ const ReferAFriendPage = () => {
         </div>
       )}
 
-      {stats && (
-        <div className="referral-stats-box">
-          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Your Referral Statistics</h3>
-          <div className="referral-stats-grid">
-            <div className="stat-item">
-              <div className="stat-number stat-blue">{stats.total_referrals}</div>
-              <div className="stat-label">Total Referrals</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', alignItems: 'start' }}>
+        {/* Left Column: Stats and Form */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {stats && (
+            <div className="referral-stats-box">
+              <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Your Referral Statistics</h3>
+              <div className="referral-stats-grid">
+                <div className="stat-item">
+                  <div className="stat-number stat-blue">{stats.total_referrals}</div>
+                  <div className="stat-label">Total Referrals</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-number stat-green">{stats.registered_referrals}</div>
+                  <div className="stat-label">Registered</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-number stat-yellow">{stats.pending_referrals}</div>
+                  <div className="stat-label">Pending</div>
+                </div>
+              </div>
             </div>
-            <div className="stat-item">
-              <div className="stat-number stat-green">{stats.registered_referrals}</div>
-              <div className="stat-label">Registered</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number stat-yellow">{stats.pending_referrals}</div>
-              <div className="stat-label">Pending</div>
-            </div>
+          )}
+
+          <div className="setting-group">
+            <h3>Submit a Referral</h3>
+            <p className="referral-description">
+              Enter your friend's information below. When they register, we'll track that they were referred by you.
+              You can use this information to provide credits or discounts for successful referrals.
+            </p>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
+                <label htmlFor="friend-name">Friend's Name *</label>
+                <input
+                  id="friend-name"
+                  type="text"
+                  value={friendName}
+                  onChange={(e) => setFriendName(e.target.value)}
+                  placeholder="Enter friend's name"
+                  required
+                />
+              </div>
+              
+              <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
+                <label htmlFor="friend-email">Friend's Email *</label>
+                <input
+                  id="friend-email"
+                  type="email"
+                  value={friendEmail}
+                  onChange={(e) => setFriendEmail(e.target.value)}
+                  placeholder="Enter friend's email address"
+                  required
+                />
+              </div>
+              
+              <button 
+                type="submit" 
+                className="save-button"
+                disabled={loading}
+              >
+                {loading ? 'Submitting...' : 'Submit Referral'}
+              </button>
+            </form>
           </div>
         </div>
-      )}
 
-      <div className="setting-group" style={{ marginBottom: '30px' }}>
-        <h3>Submit a Referral</h3>
-        <p className="referral-description">
-          Enter your friend's information below. When they register, we'll track that they were referred by you.
-          You can use this information to provide credits or discounts for successful referrals.
-        </p>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
-            <label htmlFor="friend-name">Friend's Name *</label>
-            <input
-              id="friend-name"
-              type="text"
-              value={friendName}
-              onChange={(e) => setFriendName(e.target.value)}
-              placeholder="Enter friend's name"
-              required
-            />
-          </div>
-          
-          <div className="form-group-horizontal" style={{ marginBottom: '20px' }}>
-            <label htmlFor="friend-email">Friend's Email *</label>
-            <input
-              id="friend-email"
-              type="email"
-              value={friendEmail}
-              onChange={(e) => setFriendEmail(e.target.value)}
-              placeholder="Enter friend's email address"
-              required
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="save-button"
-            disabled={loading}
-          >
-            {loading ? 'Submitting...' : 'Submit Referral'}
-          </button>
-        </form>
-      </div>
-
-      <div className="setting-group">
-        <h3>My Referrals</h3>
-        {loadingData ? (
-          <div className="loading-message">Loading referrals...</div>
-        ) : referrals.length === 0 ? (
-          <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
-        ) : (
-          <div style={{ width: '100%', marginTop: '10px' }}>
-            <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'auto' }}>
+        {/* Right Column: Referrals Table */}
+        <div className="setting-group">
+          <h3>My Referrals</h3>
+          {loadingData ? (
+            <div className="loading-message">Loading referrals...</div>
+          ) : referrals.length === 0 ? (
+            <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
+          ) : (
+            <div style={{ width: '100%', marginTop: '10px', overflowX: 'auto' }}>
+              <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'fixed', minWidth: '600px' }}>
             <thead>
               <tr>
                 <th style={{ width: '20%' }}>Friend's Name</th>
@@ -189,11 +194,12 @@ const ReferAFriendPage = () => {
               ))}
             </tbody>
           </table>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="settings-page-actions">
+      <div className="settings-page-actions" style={{ marginTop: '20px' }}>
         <button onClick={() => navigate('/')} className="cancel-button">Back</button>
       </div>
     </div>

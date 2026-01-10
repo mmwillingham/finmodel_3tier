@@ -154,46 +154,52 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
   const cashFlowProjection = calculateCashFlowProjection();
 
   // Build datasets array dynamically
+  // Add transfer lines BEFORE surplus so they render on top
   const datasets = [
     {
       label: "Income",
       data: cashFlowProjection.incomeValues,
       borderColor: "rgb(75, 192, 75)",
       backgroundColor: "rgba(75, 192, 75, 0.2)",
+      order: 3, // Render first (lower order = rendered first, behind others)
     },
     {
       label: "Expenses",
       data: cashFlowProjection.expenseValues,
       borderColor: "rgb(255, 99, 99)",
       backgroundColor: "rgba(255, 99, 99, 0.2)",
+      order: 2,
     },
     {
       label: "Surplus",
       data: cashFlowProjection.surplus,
       borderColor: "rgb(153, 102, 255)",
       backgroundColor: "rgba(153, 102, 255, 0.2)",
+      order: 1,
     },
   ];
 
-  // Add surplus asset transfer if configured
+  // Add surplus asset transfer if configured - add AFTER Surplus so it renders on top
   if (userSettings && userSettings.surplus_asset_id) {
     const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
     const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
     datasets.push({
       label: `Transfer to ${surplusAssetName}`,
       data: cashFlowProjection.surplusAssetTransfers,
-      borderColor: "rgb(255, 165, 0)",
-      backgroundColor: "rgba(255, 165, 0, 0.2)",
-      borderDash: [5, 5], // Dashed line to differentiate from income/expenses
-      pointRadius: 4, // Ensure points are visible
-      pointHoverRadius: 6,
-      spanGaps: false, // Don't span gaps
-      tension: 0.1, // Add slight curve for better visibility
-      borderWidth: 2, // Make line more visible
+      borderColor: "rgb(255, 140, 0)", // Brighter orange
+      backgroundColor: "rgba(255, 140, 0, 0.3)", // More visible fill
+      borderDash: [8, 4], // Longer dashes for better visibility
+      pointRadius: 5, // Larger points
+      pointHoverRadius: 7,
+      pointBackgroundColor: "rgb(255, 140, 0)", // Explicit point color
+      spanGaps: false,
+      tension: 0.1,
+      borderWidth: 3, // Thicker line
+      order: 0, // Render last (on top)
     });
   }
 
-  // Add auto-disbursement transfers
+  // Add auto-disbursement transfers - add after transfers so they render on top
   autoDisbursements.forEach(ad => {
     if (cashFlowProjection.autoDisbursementTransfers && cashFlowProjection.autoDisbursementTransfers[ad.id] && cashFlowProjection.autoDisbursementTransfers[ad.id].length > 0) {
       const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
@@ -203,9 +209,13 @@ export default function CashFlowOverview({ incomeItems, expenseItems, projection
       datasets.push({
         label: `Auto-Disbursement: ${sourceName} → ${targetName}`,
         data: cashFlowProjection.autoDisbursementTransfers[ad.id],
-        borderColor: "rgb(128, 128, 128)",
-        backgroundColor: "rgba(128, 128, 128, 0.2)",
-        borderDash: [3, 3], // Dashed line for transfers
+        borderColor: "rgb(100, 100, 100)", // Darker gray
+        backgroundColor: "rgba(100, 100, 100, 0.2)",
+        borderDash: [6, 3], // Dashed line for transfers
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        order: 0, // Render on top
       });
     }
   });

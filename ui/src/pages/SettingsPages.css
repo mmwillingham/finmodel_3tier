@@ -15,7 +15,12 @@
 /* Accounts and Auto-Disbursements pages need more width */
 .settings-page-container:has(.accounts-table),
 .settings-page-container.auto-disbursements-page {
-    max-width: 1100px; /* Increased for better table layout */
+    max-width: 1400px; /* Increased for better table layout */
+}
+
+/* Refer a Friend page needs more width */
+.settings-page-container.refer-a-friend-page {
+    max-width: 1400px;
 }
 
 /* Reduce white space for Accounts and Auto-Disbursements pages */

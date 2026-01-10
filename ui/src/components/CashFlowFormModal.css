@@ -1,6 +1,6 @@
 .cashflow-form-modal-content {
   width: 100%;
-  max-width: 900px; /* More reasonable width */
+  max-width: 1200px; /* Increased width to reduce scrolling */
   box-sizing: border-box;
   min-height: fit-content;
   padding-bottom: 20px; /* Reduced padding */

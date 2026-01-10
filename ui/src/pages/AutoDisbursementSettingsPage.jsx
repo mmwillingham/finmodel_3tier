@@ -20,6 +20,7 @@ const AutoDisbursementSettingsPage = () => {
   const [message, setMessage] = useState('');
   const [editingAutoDisbursement, setEditingAutoDisbursement] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [activeTab, setActiveTab] = useState('surplus'); // 'surplus' or 'disbursements'
   const [newAutoDisbursement, setNewAutoDisbursement] = useState({
     name: '',
     source_asset_id: null,
@@ -225,37 +226,78 @@ const AutoDisbursementSettingsPage = () => {
         </div>
       )}
 
-      {/* Surplus Asset Section */}
-      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '1.1em' }}>Surplus Asset</h3>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <div className="form-field" style={{ flex: 1 }}>
-            <label htmlFor="surplus-asset">Surplus Asset</label>
-            <select
-              id="surplus-asset"
-              value={surplusAssetId || ''}
-              onChange={(e) => setSurplusAssetId(e.target.value ? parseInt(e.target.value) : null)}
-              className="input-modern"
-            >
-              <option value="">None (No automatic surplus/deficit handling)</option>
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.name} ({asset.category})
-                </option>
-              ))}
-            </select>
-            <small style={{ color: '#666', fontSize: '0.85em', marginTop: '4px', display: 'block' }}>
-              Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
-            </small>
-          </div>
-          <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ marginTop: '24px', flexShrink: 0 }}>
-            Save
-          </button>
-        </div>
+      {/* Tabs */}
+      <div className="settings-tabs" style={{ marginBottom: '20px', borderBottom: '2px solid #eee' }}>
+        <button
+          className={activeTab === 'surplus' ? 'active' : ''}
+          onClick={() => setActiveTab('surplus')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '10px 20px',
+            fontSize: '1.1em',
+            cursor: 'pointer',
+            color: activeTab === 'surplus' ? '#007bff' : '#555',
+            borderBottom: activeTab === 'surplus' ? '2px solid #007bff' : '2px solid transparent',
+            fontWeight: activeTab === 'surplus' ? 'bold' : 'normal',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Surplus Asset
+        </button>
+        <button
+          className={activeTab === 'disbursements' ? 'active' : ''}
+          onClick={() => setActiveTab('disbursements')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '10px 20px',
+            fontSize: '1.1em',
+            cursor: 'pointer',
+            color: activeTab === 'disbursements' ? '#007bff' : '#555',
+            borderBottom: activeTab === 'disbursements' ? '2px solid #007bff' : '2px solid transparent',
+            fontWeight: activeTab === 'disbursements' ? 'bold' : 'normal',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Auto-Disbursements
+        </button>
       </div>
 
-      {/* Auto-Disbursements Section */}
-      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+      {/* Surplus Asset Tab */}
+      {activeTab === 'surplus' && (
+        <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>Surplus Asset</h3>
+          <div className="form-row" style={{ gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'flex-start' }}>
+            <div className="form-field">
+              <label htmlFor="surplus-asset">Surplus Asset</label>
+              <select
+                id="surplus-asset"
+                value={surplusAssetId || ''}
+                onChange={(e) => setSurplusAssetId(e.target.value ? parseInt(e.target.value) : null)}
+                className="input-modern"
+              >
+                <option value="">None (No automatic surplus/deficit handling)</option>
+                {assets.map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.name} ({asset.category})
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: '#666', fontSize: '0.85em', marginTop: '6px', display: 'block' }}>
+                Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
+              </small>
+            </div>
+            <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ marginTop: '24px', padding: '10px 24px', whiteSpace: 'nowrap' }}>
+              Save
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-Disbursements Tab */}
+      {activeTab === 'disbursements' && (
+        <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
         <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>
           Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
         </h3>
@@ -366,12 +408,11 @@ const AutoDisbursementSettingsPage = () => {
             Add Auto-Disbursement
           </button>
         </div>
-      </div>
 
-      <div className="setting-group">
-        <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '1.1em' }}>
-          Existing Auto-Disbursements
-        </h3>
+        <div style={{ marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>
+            Existing Auto-Disbursements
+          </h3>
         {autoDisbursements.length === 0 ? (
           <p style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
             No auto-disbursements defined. Add an auto-disbursement above.
@@ -508,9 +549,11 @@ const AutoDisbursementSettingsPage = () => {
           </table>
           </div>
         )}
+        </div>
       </div>
+      )}
 
-      <div className="settings-page-actions">
+      <div className="settings-page-actions" style={{ marginTop: '20px' }}>
         <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
       </div>
 
