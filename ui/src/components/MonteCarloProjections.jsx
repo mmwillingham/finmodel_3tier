@@ -117,8 +117,11 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
           // Calculate expenses with random variation
           let totalExpenses = 0;
           let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
+          const federalTaxExpenseItem = expenseItems.find(item => item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION);
+          const regularExpenseItems = expenseItems.filter(item => item.description !== FEDERAL_TAX_EXPENSE_DESCRIPTION);
           
-          expenseItems.forEach(item => {
+          // Process regular expenses first (excluding federal tax expense)
+          regularExpenseItems.forEach(item => {
             // Check if item is active in this year
             const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
             const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
@@ -153,25 +156,30 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
             
             totalExpenses += itemValue;
           });
-          
-          // Calculate federal taxes
+        
+          // Calculate federal taxes if the expense item exists
           let federalTax = 0;
-          if (userSettings && totalTaxableIncome > 0) {
-            try {
-              const currentProjectionYear = currentYear + year;
-              const taxResult = calculateTaxableIncome(
-                totalTaxableIncome,
-                totalTaxDeductibleExpenses,
-                userSettings.tax_filing_status || "Single",
-                userSettings.person1_birthdate,
-                userSettings.person2_birthdate,
-                currentProjectionYear
-              );
-              federalTax = taxResult.taxOwed || 0;
-              // Add taxes to total expenses
-              totalExpenses += federalTax;
-            } catch (error) {
-              console.error('Error calculating taxes in Monte Carlo:', error);
+          if (federalTaxExpenseItem && userSettings) {
+            const currentProjectionYear = currentYear + year;
+            const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
+            const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
+            
+            if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+              try {
+                const taxResult = calculateTaxableIncome(
+                  totalTaxableIncome,
+                  totalTaxDeductibleExpenses,
+                  userSettings.tax_filing_status || "Single",
+                  userSettings.person1_birthdate,
+                  userSettings.person2_birthdate,
+                  currentProjectionYear
+                );
+                federalTax = taxResult.taxOwed || 0;
+                // Add taxes to total expenses
+                totalExpenses += federalTax;
+              } catch (error) {
+                console.error('Error calculating taxes in Monte Carlo:', error);
+              }
             }
           }
 

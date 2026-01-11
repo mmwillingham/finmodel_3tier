@@ -259,6 +259,7 @@ class UserSettingsBase(BaseModel):
     show_chart_totals: bool = True
     surplus_asset_id: Optional[int] = None  # Designated asset for surplus/deficit
     tax_filing_status: str = "Single"  # Tax filing status: Single, Married Filing Jointly, etc.
+    calculate_federal_tax: bool = False  # Whether to calculate and create federal income tax expense item
     cash_asset_ids: List[int] = []  # Array of asset IDs that are considered cash for BASE model and Sankey diagram
     cash_in_source_ids: List[int] = []  # Array of income item IDs for cash-in sources (empty = all income)
     cash_out_source_ids: List[int] = []  # Array of expense item IDs for cash-out sources (empty = all expenses)
@@ -288,6 +289,7 @@ class UserSettingsUpdate(BaseModel):
     show_chart_totals: Optional[bool] = None
     surplus_asset_id: Optional[int] = None
     tax_filing_status: Optional[str] = None
+    calculate_federal_tax: Optional[bool] = None
     cash_asset_ids: Optional[List[int]] = None
     cash_in_source_ids: Optional[List[int]] = None
     cash_out_source_ids: Optional[List[int]] = None

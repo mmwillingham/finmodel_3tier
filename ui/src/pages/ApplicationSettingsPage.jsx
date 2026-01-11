@@ -14,6 +14,7 @@ const ApplicationSettingsPage = () => {
   const [inflationPercent, setInflationPercent] = useState(2.0);
   const [projectionYears, setProjectionYears] = useState(30);
   const [showChartTotals, setShowChartTotals] = useState(true);
+  const [calculateFederalTax, setCalculateFederalTax] = useState(false);
   const [cashAssetIds, setCashAssetIds] = useState([]);
   const [cashInSourceIds, setCashInSourceIds] = useState([]);
   const [cashOutSourceIds, setCashOutSourceIds] = useState([]);
@@ -37,6 +38,7 @@ const ApplicationSettingsPage = () => {
       setInflationPercent(settingsRes.data.default_inflation_percent);
       setProjectionYears(settingsRes.data.projection_years || 30);
       setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
+      setCalculateFederalTax(settingsRes.data.calculate_federal_tax ?? false);
       setCashAssetIds(settingsRes.data.cash_asset_ids || []);
       setCashInSourceIds(settingsRes.data.cash_in_source_ids || []);
       setCashOutSourceIds(settingsRes.data.cash_out_source_ids || []);
@@ -62,15 +64,13 @@ const ApplicationSettingsPage = () => {
         default_inflation_percent: parseFloat(inflationPercent),
         projection_years: parseInt(projectionYears),
         show_chart_totals: showChartTotals,
+        calculate_federal_tax: calculateFederalTax,
         cash_asset_ids: cashAssetIds,
         cash_in_source_ids: cashInSourceIds,
         cash_out_source_ids: cashOutSourceIds,
       });
-      setMessage('Application settings saved successfully!');
-      // No need to call onSettingsSaved or onClose as this is a page now
-      setTimeout(() => {
-        setMessage('');
-      }, 1500);
+      // Navigate to home page after successful save
+      navigate('/');
     } catch (e) {
       console.error('Failed to save application settings', e);
       const errorMessage = e.response?.data?.detail || 'Error saving settings';
@@ -189,6 +189,25 @@ const ApplicationSettingsPage = () => {
             onChange={(e) => setShowChartTotals(e.target.checked)}
           />
         </div>
+        <div className="form-group-horizontal checkbox-group">
+          <label htmlFor="calculate-federal-tax">
+            Calculate Federal Income Tax
+          </label>
+          <input
+            id="calculate-federal-tax"
+            type="checkbox"
+            checked={calculateFederalTax}
+            onChange={(e) => setCalculateFederalTax(e.target.checked)}
+          />
+        </div>
+        {calculateFederalTax && (
+          <div style={{ padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '10px' }}>
+            <small>
+              <strong>Note:</strong> This will create a "Federal Income Tax (Calculated)" expense item. 
+              Tax filing status and Person 1 birthdate must be set in Profile Settings.
+            </small>
+          </div>
+        )}
         <div className="form-group-horizontal" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
           <label htmlFor="cash-assets" style={{ marginBottom: '10px', fontWeight: 600 }}>
             Cash Assets (for BASE Model and Sankey Diagram)

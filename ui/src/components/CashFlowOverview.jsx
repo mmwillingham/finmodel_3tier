@@ -9,6 +9,9 @@ import { calculateTaxableIncome } from '../utils/taxCalculator';
 // Register Chart.js components for combo charts
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
+// Constant to identify the federal tax expense item (must match backend)
+const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
+
 // Simplified Sankey Diagram Component
 function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [] }) {
   // Ensure formatCurrency has a default
@@ -110,9 +113,17 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   // Calculate expense totals by category for selected year
   const expenseCategoryTotals = {};
   let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
+  const federalTaxExpenseItem = includedExpenseItems.find(item => item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION);
+  
+  // Process expenses (excluding federal tax expense item)
   Object.keys(expenseByCategory).forEach(category => {
     let categoryTotal = 0;
     expenseByCategory[category].forEach(item => {
+      // Skip federal tax expense item - it will be handled separately
+      if (item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION) {
+        return;
+      }
+      
       // Check if item is active in this year
       const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
       const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
@@ -140,33 +151,41 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       
       categoryTotal += itemValue;
     });
-    expenseCategoryTotals[category] = categoryTotal;
-    totalCashOut += categoryTotal;
+    if (categoryTotal > 0) {
+      expenseCategoryTotals[category] = categoryTotal;
+      totalCashOut += categoryTotal;
+    }
   });
   
-  // Calculate federal taxes and add to expenses
+  // Calculate federal taxes if the expense item exists
   let federalTax = 0;
-  if (userSettings && totalTaxableIncome > 0) {
-    try {
-      const taxResult = calculateTaxableIncome(
-        totalTaxableIncome,
-        totalTaxDeductibleExpenses,
-        userSettings.tax_filing_status || "Single",
-        userSettings.person1_birthdate,
-        userSettings.person2_birthdate,
-        currentProjectionYear
-      );
-      federalTax = taxResult.taxOwed || 0;
-      // Add taxes to expense category totals and totalCashOut
-      if (federalTax > 0) {
-        if (!expenseCategoryTotals['Federal Taxes']) {
-          expenseCategoryTotals['Federal Taxes'] = 0;
+  if (federalTaxExpenseItem && userSettings) {
+    const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
+    const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
+    
+    if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+      try {
+        const taxResult = calculateTaxableIncome(
+          totalTaxableIncome,
+          totalTaxDeductibleExpenses,
+          userSettings.tax_filing_status || "Single",
+          userSettings.person1_birthdate,
+          userSettings.person2_birthdate,
+          currentProjectionYear
+        );
+        federalTax = taxResult.taxOwed || 0;
+        // Add taxes to expense category totals and totalCashOut
+        if (federalTax > 0) {
+          const taxCategory = federalTaxExpenseItem.category || 'Taxes';
+          if (!expenseCategoryTotals[taxCategory]) {
+            expenseCategoryTotals[taxCategory] = 0;
+          }
+          expenseCategoryTotals[taxCategory] += federalTax;
+          totalCashOut += federalTax;
         }
-        expenseCategoryTotals['Federal Taxes'] += federalTax;
-        totalCashOut += federalTax;
+      } catch (error) {
+        console.error('Error calculating taxes in SankeyDiagram:', error);
       }
-    } catch (error) {
-      console.error('Error calculating taxes in SankeyDiagram:', error);
     }
   }
   
@@ -919,7 +938,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       });
 
       let totalExpenses = 0;
-      expenseItems.forEach((item) => {
+      const federalTaxExpenseItem = expenseItems.find(item => item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION);
+      const regularExpenseItems = expenseItems.filter(item => item.description !== FEDERAL_TAX_EXPENSE_DESCRIPTION);
+      
+      // Process regular expenses first (excluding federal tax expense)
+      regularExpenseItems.forEach((item) => {
         // Check if item is active in this year
         const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
         const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
@@ -954,23 +977,28 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         totalExpenses += itemValue;
       });
       
-      // Calculate federal taxes
+      // Calculate federal taxes if the expense item exists
       let federalTax = 0;
-      if (userSettings && totalTaxableIncome > 0) {
-        try {
-          const taxResult = calculateTaxableIncome(
-            totalTaxableIncome,
-            totalTaxDeductibleExpenses,
-            userSettings.tax_filing_status || "Single",
-            userSettings.person1_birthdate,
-            userSettings.person2_birthdate,
-            currentProjectionYear
-          );
-          federalTax = taxResult.taxOwed || 0;
-          // Add taxes to total expenses
-          totalExpenses += federalTax;
-        } catch (error) {
-          console.error('Error calculating taxes in calculateCashFlowProjection:', error);
+      if (federalTaxExpenseItem && userSettings) {
+        const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
+        const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
+        
+        if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+          try {
+            const taxResult = calculateTaxableIncome(
+              totalTaxableIncome,
+              totalTaxDeductibleExpenses,
+              userSettings.tax_filing_status || "Single",
+              userSettings.person1_birthdate,
+              userSettings.person2_birthdate,
+              currentProjectionYear
+            );
+            federalTax = taxResult.taxOwed || 0;
+            // Add taxes to total expenses
+            totalExpenses += federalTax;
+          } catch (error) {
+            console.error('Error calculating taxes in calculateCashFlowProjection:', error);
+          }
         }
       }
 
@@ -1150,10 +1178,23 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       // Calculate Cash Out (Subtractions) - move before using cashOut
       let cashOut = 0;
       let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
+      const currentProjectionYear = currentYear + year;
+      let federalTaxExpenseItem = null;
+      const regularExpenseItems = [];
+      
+      // Separate federal tax expense item from regular expenses
       includedExpenseItems.forEach(item => {
+        if (item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION) {
+          federalTaxExpenseItem = item;
+        } else {
+          regularExpenseItems.push(item);
+        }
+      });
+      
+      // Process regular expenses first (excluding federal tax expense)
+      regularExpenseItems.forEach(item => {
         const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
         const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
-        const currentProjectionYear = currentYear + year;
         
         if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
           let itemValue = item.yearly_value || 0;
@@ -1180,23 +1221,28 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         }
       });
       
-      // Calculate federal taxes
+      // Calculate federal taxes if the expense item exists
       let federalTax = 0;
-      if (userSettings && totalTaxableIncome > 0) {
-        try {
-          const taxResult = calculateTaxableIncome(
-            totalTaxableIncome,
-            totalTaxDeductibleExpenses,
-            userSettings.tax_filing_status || "Single",
-            userSettings.person1_birthdate,
-            userSettings.person2_birthdate,
-            currentProjectionYear
-          );
-          federalTax = taxResult.taxOwed || 0;
-          // Add taxes to cash out
-          cashOut += federalTax;
-        } catch (error) {
-          console.error('Error calculating taxes:', error);
+      if (federalTaxExpenseItem && userSettings) {
+        const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
+        const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
+        
+        if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+          try {
+            const taxResult = calculateTaxableIncome(
+              totalTaxableIncome,
+              totalTaxDeductibleExpenses,
+              userSettings.tax_filing_status || "Single",
+              userSettings.person1_birthdate,
+              userSettings.person2_birthdate,
+              currentProjectionYear
+            );
+            federalTax = taxResult.taxOwed || 0;
+            // Add taxes to cash out
+            cashOut += federalTax;
+          } catch (error) {
+            console.error('Error calculating taxes:', error);
+          }
         }
       }
       

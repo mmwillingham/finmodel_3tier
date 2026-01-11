@@ -73,9 +73,11 @@ def list_folders(
     List all folders the current user can access (own or authorized).
     If parent_folder_id is specified, only return subfolders of that folder.
     If viewing_user_id is specified, only return folders for that user (must have access).
+    If viewing_user_id is None, only return folders owned by the current user.
     """
     if viewing_user_id is None:
-        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
+        # When viewing own account, only show own folders
+        accessible_user_ids = [current_user.id]
     else:
         # Check if user has access to viewing_user_id
         accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
@@ -332,14 +334,25 @@ async def upload_document(
 @router.get("/", response_model=List[DocumentOut])
 def list_documents(
     folder_id: Optional[int] = None,
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
     List all documents the current user can access (own or authorized).
     If folder_id is specified, only return documents in that folder.
+    If viewing_user_id is specified, only return documents for that user (must have access).
+    If viewing_user_id is None, only return documents owned by the current user.
     """
-    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
+    if viewing_user_id is None:
+        # When viewing own account, only show own documents
+        accessible_user_ids = [current_user.id]
+    else:
+        # Check if user has access to viewing_user_id
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's documents")
+        accessible_user_ids = [viewing_user_id]
     query = db.query(models.Document).filter(
         models.Document.owner_id.in_(accessible_user_ids)
     )

@@ -242,6 +242,59 @@ def update_user_settings(
                 logger.info(f"Updated {updated_count} expense items: category '{old_name}' -> '{new_name}' for user {current_user.id}")
                 db.flush()  # Ensure the update is processed before commit
     
+    # Handle calculate_federal_tax setting
+    calculate_federal_tax_enabled = update_data.get("calculate_federal_tax")
+    if calculate_federal_tax_enabled is not None:
+        # Validate required fields if enabling
+        if calculate_federal_tax_enabled:
+            if not user_settings.tax_filing_status:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Tax filing status is required when 'Calculate Federal Income Tax' is enabled. Please set it in Profile Settings."
+                )
+            if not user_settings.person1_birthdate:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Person 1 birthdate is required when 'Calculate Federal Income Tax' is enabled. Please set it in Profile Settings."
+                )
+        
+        # Get the old value to detect changes
+        old_calculate_federal_tax = user_settings.calculate_federal_tax or False
+        
+        # Update the setting
+        user_settings.calculate_federal_tax = calculate_federal_tax_enabled
+        
+        # Create or delete the federal tax expense item
+        federal_tax_expense = db.query(models.CashFlowItem).filter(
+            models.CashFlowItem.owner_id == current_user.id,
+            models.CashFlowItem.is_income == False,
+            models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+        ).first()
+        
+        if calculate_federal_tax_enabled and not federal_tax_expense:
+            # Create the federal tax expense item
+            # Use "Taxes" category if it exists, otherwise use first expense category or "Other"
+            expense_categories = user_settings.expense_categories or []
+            tax_category = "Taxes" if "Taxes" in expense_categories else (expense_categories[0] if expense_categories else "Other")
+            
+            federal_tax_expense = models.CashFlowItem(
+                owner_id=current_user.id,
+                is_income=False,
+                category=tax_category,
+                description=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                frequency="yearly",
+                yearly_value=0.0,  # This will be calculated dynamically in projections
+                inflation_percent=0.0,
+                taxable=False,
+                tax_deductible=False
+            )
+            db.add(federal_tax_expense)
+            logger.info(f"Created federal tax expense item for user {current_user.id}")
+        elif not calculate_federal_tax_enabled and federal_tax_expense:
+            # Delete the federal tax expense item
+            db.delete(federal_tax_expense)
+            logger.info(f"Deleted federal tax expense item for user {current_user.id}")
+
     # Update fields only if provided in the payload
     # IMPORTANT: Update category fields AFTER rename detection and updates, so old values are preserved for comparison
     for key, value in update_data.items():
@@ -251,7 +304,7 @@ def update_user_settings(
         # Skip category fields if they were already processed for renames above
         if key in ["asset_categories", "liability_categories", "income_categories", "expense_categories"]:
             setattr(user_settings, key, value)
-        else:
+        elif key != "calculate_federal_tax":  # Skip calculate_federal_tax as it's already handled above
             setattr(user_settings, key, value)
 
     db.commit()

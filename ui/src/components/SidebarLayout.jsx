@@ -341,7 +341,7 @@ export default function SidebarLayout() {
               className={`nav-btn ${view === 'custom-charts' && customChartView === 'list' ? 'active' : ''}`} 
               onClick={() => { setView('custom-charts'); setCustomChartView('list'); }}
             >
-              View
+              List
             </button>
           </section>
 
