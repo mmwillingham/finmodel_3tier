@@ -11,6 +11,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   const [message, setMessage] = useState('');
   const [recalculating, setRecalculating] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [sortConfig, setSortConfig] = useState({ key: 'updated_at', direction: 'desc' });
 
   const fetchCharts = async () => {
     setLoading(true);
@@ -70,6 +71,56 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
     });
   };
 
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedCharts = [...charts].sort((a, b) => {
+    let aVal = a[sortConfig.key];
+    let bVal = b[sortConfig.key];
+
+    // Handle dates
+    if (sortConfig.key === 'updated_at' || sortConfig.key === 'created_at') {
+      aVal = aVal ? new Date(aVal) : new Date(0);
+      bVal = bVal ? new Date(bVal) : new Date(0);
+    }
+
+    // Handle strings
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+
+    if (aVal < bVal) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (aVal > bVal) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return '↕️';
+    return sortConfig.direction === 'asc' ? '↑' : '↓';
+  };
+
   if (loading) {
     return <div className="loading">Loading custom charts...</div>;
   }
@@ -93,20 +144,46 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
       {charts.length === 0 ? (
         <p>You haven't created any custom charts yet.</p>
       ) : (
-        <div className="chart-cards-container">
-          {charts.sort((a, b) => a.name.localeCompare(b.name)).map((chart) => (
-            <div key={chart.id} className="chart-card" onClick={() => onViewChart(chart.id)}>
-              <div className="chart-card-header">
-                <h4>{chart.name}</h4>
-                <div className="chart-card-actions">
-                  <button onClick={(e) => { e.stopPropagation(); onViewChart(chart.id); }} className="icon-btn" title="View"><span role="img" aria-label="view">🔍</span></button>
-                  <button onClick={(e) => { e.stopPropagation(); onEditChart(chart.id); }} className="icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
-                  <button onClick={(e) => { e.stopPropagation(); handleDelete(chart.id); }} className="icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <table className="custom-charts-table">
+          <thead>
+            <tr>
+              <th onClick={() => handleSort('name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                Name {getSortIcon('name')}
+              </th>
+              <th onClick={() => handleSort('chart_type')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                Type {getSortIcon('chart_type')}
+              </th>
+              <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                Created {getSortIcon('created_at')}
+              </th>
+              <th onClick={() => handleSort('updated_at')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                Last Updated {getSortIcon('updated_at')}
+              </th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCharts.map((chart) => (
+              <tr key={chart.id}>
+                <td>{chart.name}</td>
+                <td>{chart.chart_type}</td>
+                <td>{formatDate(chart.created_at)}</td>
+                <td>{formatDate(chart.updated_at)}</td>
+                <td className="actions-cell">
+                  <button onClick={() => onViewChart(chart.id)} className="btn-icon" title="View">
+                    📊
+                  </button>
+                  <button onClick={() => onEditChart(chart.id)} className="btn-icon" title="Edit">
+                    ✏️
+                  </button>
+                  <button onClick={() => handleDelete(chart.id)} className="btn-icon" title="Delete">
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       <ConfirmDialog

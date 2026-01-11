@@ -38,15 +38,17 @@ const DocumentsPage = () => {
 
   useEffect(() => {
     loadFolderContents(currentFolderId);
-  }, [currentFolderId]);
+  }, [currentFolderId, viewingUserId]);
 
   const loadFolderContents = async (folderId) => {
     setLoading(true);
     setError(null);
     try {
+      // Use viewingUserId if set, otherwise use currentUser.id (null means own account)
+      const userIdToView = viewingUserId || null;
       const [foldersData, documentsData] = await Promise.all([
-        DocumentsService.listFolders(folderId),
-        DocumentsService.listDocuments(folderId)
+        DocumentsService.listFolders(folderId, userIdToView),
+        DocumentsService.listDocuments(folderId, userIdToView)
       ]);
       setFolders(foldersData);
       setDocuments(documentsData);

@@ -22,9 +22,15 @@ const DocumentsService = {
   /**
    * List folders (optionally filtered by parent folder)
    */
-  async listFolders(parentFolderId = null) {
+  async listFolders(parentFolderId = null, viewingUserId = null) {
     try {
-      const params = parentFolderId !== null ? { parent_folder_id: parentFolderId } : {};
+      const params = {};
+      if (parentFolderId !== null) {
+        params.parent_folder_id = parentFolderId;
+      }
+      if (viewingUserId !== null) {
+        params.viewing_user_id = viewingUserId;
+      }
       const response = await api.get('/documents/folders', { params });
       return response.data;
     } catch (error) {
@@ -99,9 +105,15 @@ const DocumentsService = {
   /**
    * List documents (optionally filtered by folder)
    */
-  async listDocuments(folderId = null) {
+  async listDocuments(folderId = null, viewingUserId = null) {
     try {
-      const params = folderId !== null ? { folder_id: folderId } : {};
+      const params = {};
+      if (folderId !== null) {
+        params.folder_id = folderId;
+      }
+      if (viewingUserId !== null) {
+        params.viewing_user_id = viewingUserId;
+      }
       const response = await api.get('/documents/', { params });
       return response.data;
     } catch (error) {

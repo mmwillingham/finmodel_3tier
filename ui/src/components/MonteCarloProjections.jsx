@@ -119,6 +119,16 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
           let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
           
           expenseItems.forEach(item => {
+            // Check if item is active in this year
+            const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
+            const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+            const currentProjectionYear = currentYear + year;
+            
+            if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+              // Item is not active in this year, skip it
+              return;
+            }
+
             let itemValue = item.yearly_value;
             
             if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null) {

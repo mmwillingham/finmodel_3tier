@@ -643,8 +643,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     
                     # Add the expense amount to the asset balance
                     if expense_amount > 0:
+                        balance_before_expense = account_current_balances.get(target_asset.name, 0.0)
                         account_current_balances[target_asset.name] += expense_amount
-                        print(f"--- DEBUG: Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}' for year {year} ---"); sys.stdout.flush()
+                        balance_after_expense = account_current_balances[target_asset.name]
+                        print(f"--- DEBUG: Year {year} - Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_expense:.2f} -> {balance_after_expense:.2f} ---"); sys.stdout.flush()
             
             # Calculate cash flow surplus/deficit and apply to designated asset
             net_cash_flow = current_year_total_income_flow + current_year_total_expense_flow
@@ -652,8 +654,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             
             # Apply surplus/deficit to designated asset if configured (before auto-disbursements)
             if surplus_asset_name and surplus_asset_name in account_current_balances:
+                balance_before_surplus = account_current_balances[surplus_asset_name]
                 account_current_balances[surplus_asset_name] += surplus_deficit
-                print(f"--- DEBUG: Applied surplus/deficit of {surplus_deficit:.2f} to {surplus_asset_name} for year {year} ---"); sys.stdout.flush()
+                balance_after_surplus = account_current_balances[surplus_asset_name]
+                print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Balance before surplus: {balance_before_surplus:.2f}, Surplus added: {surplus_deficit:.2f}, Balance after surplus: {balance_after_surplus:.2f} ---"); sys.stdout.flush()
 
             # Apply auto-disbursement transfers
             year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
@@ -699,9 +703,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             
                             # Apply transfer (only if source has sufficient balance)
                             if abs(source_balance) >= transfer_amount:
+                                balance_before_transfer = account_current_balances.get(target_name, 0.0)
                                 account_current_balances[source_name] -= transfer_amount
                                 account_current_balances[target_name] += transfer_amount
-                                print(f"--- DEBUG: Applied auto-disbursement: {transfer_amount:.2f} from {source_name} to {target_name} for year {year} ---"); sys.stdout.flush()
+                                balance_after_transfer = account_current_balances[target_name]
+                                print(f"--- DEBUG: Year {year} - Applied auto-disbursement: {transfer_amount:.2f} from {source_name} to {target_name}. {target_name} balance: {balance_before_transfer:.2f} -> {balance_after_transfer:.2f} ---"); sys.stdout.flush()
 
             # Recalculate totals after surplus/deficit and auto-disbursements
             # This ensures assets reflect the transfers

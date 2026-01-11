@@ -65,14 +65,24 @@ def create_folder(
 @router.get("/folders", response_model=List[DocumentFolderOut])
 def list_folders(
     parent_folder_id: Optional[int] = None,
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """
     List all folders the current user can access (own or authorized).
     If parent_folder_id is specified, only return subfolders of that folder.
+    If viewing_user_id is specified, only return folders for that user (must have access).
     """
-    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
+    if viewing_user_id is None:
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
+    else:
+        # Check if user has access to viewing_user_id
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's documents")
+        accessible_user_ids = [viewing_user_id]
+    
     query = db.query(models.DocumentFolder).filter(
         models.DocumentFolder.owner_id.in_(accessible_user_ids)
     )

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import './Header.css'; // NEW: Import Header-specific CSS
 import SettingsDropdownMenu from './SettingsDropdownMenu'; // New component for the dropdown menu
 import PointsModal from './PointsModal'; // Points modal component
-import AuthorizedUsersService from '../services/authorizedUsers.service';
+import AccountSwitcher from './AccountSwitcher'; // Account switcher component
 
 const Header = () => { // Removed setIsSettingsModalOpen prop
     const { currentUser, logout, viewingUserId } = useAuth();
@@ -13,31 +13,6 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false); // State to manage dropdown visibility
     const [showPointsModal, setShowPointsModal] = useState(false); // State for points modal
-    const [viewingUserEmail, setViewingUserEmail] = useState(null); // Email of the user being viewed
-    
-    // Fetch the email of the user being viewed
-    useEffect(() => {
-        const fetchViewingUserEmail = async () => {
-            if (viewingUserId && currentUser) {
-                try {
-                    const receivedAccess = await AuthorizedUsersService.listReceivedAccess();
-                    const access = receivedAccess.find(a => a.primary_user_id === viewingUserId);
-                    if (access) {
-                        setViewingUserEmail(access.primary_user_email || access.primary_user?.email);
-                    } else {
-                        setViewingUserEmail(null);
-                    }
-                } catch (error) {
-                    console.error('Error fetching viewing user email:', error);
-                    setViewingUserEmail(null);
-                }
-            } else {
-                setViewingUserEmail(null);
-            }
-        };
-        
-        fetchViewingUserEmail();
-    }, [viewingUserId, currentUser]);
     
     const handleLogout = () => {
         logout();
@@ -70,12 +45,12 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                         <div className="header-right-menu">
                             <div className="user-info">
                                 Logged in as: <strong>{currentUser.email}</strong>
-                                {viewingUserId && viewingUserEmail && (
-                                    <span style={{ marginLeft: '16px', fontSize: '0.9em', color: '#ccc' }}>
-                                        | Viewing account: <strong>{viewingUserEmail}</strong>
-                                    </span>
-                                )}
                             </div>
+                            {viewingUserId && (
+                                <div style={{ marginLeft: '16px' }}>
+                                    <AccountSwitcher compact={true} />
+                                </div>
+                            )}
                             <button
                                 onClick={toggleTheme}
                                 className="theme-toggle-button"
