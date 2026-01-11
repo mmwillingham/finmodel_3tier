@@ -15,6 +15,62 @@ from utils.tax_calculator import calculate_taxable_income # NEW: For federal tax
 
 logger = logging.getLogger(__name__)
 
+def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optional[str], projection_year: int) -> float:
+    """
+    Calculate the fraction of a year an item is active based on start_date and end_date.
+    Returns a value between 0 and 1 representing the fraction of the year.
+    
+    Args:
+        start_date_str: Start date in YYYY-MM-DD format or None
+        end_date_str: End date in YYYY-MM-DD format or None
+        projection_year: The year to check (e.g., 2027)
+    
+    Returns:
+        Fraction of the year (0 to 1), e.g., 0.5833 for 7 months
+    """
+    year_start = date(projection_year, 1, 1)  # January 1 of the year
+    year_end = date(projection_year, 12, 31)  # December 31 of the year
+    
+    item_start = year_start  # Default to start of year if no start_date
+    item_end = year_end  # Default to end of year if no end_date
+    
+    if start_date_str:
+        try:
+            start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            # If item starts during the year, use that date; otherwise use year start
+            item_start = start_date_obj if start_date_obj > year_start else year_start
+        except (ValueError, TypeError):
+            pass
+    
+    if end_date_str:
+        try:
+            end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            # If item ends during the year, use that date; otherwise use year end
+            item_end = end_date_obj if end_date_obj < year_end else year_end
+        except (ValueError, TypeError):
+            pass
+    
+    # If item ends before year starts or starts after year ends, return 0
+    if item_end < year_start or item_start > year_end:
+        return 0.0
+    
+    # Calculate the overlap period
+    overlap_start = item_start if item_start > year_start else year_start
+    overlap_end = item_end if item_end < year_end else year_end
+    
+    # Calculate days in overlap (add 1 to include both start and end days)
+    overlap_days = (overlap_end - overlap_start).days + 1
+    
+    # Calculate fraction (days / days in year)
+    days_in_year = (year_end - year_start).days + 1
+    
+    if days_in_year == 0:
+        return 0.0
+    
+    fraction = overlap_days / days_in_year
+    
+    return max(0.0, min(1.0, fraction))  # Clamp between 0 and 1
+
 def calculate_monthly_payment(
     principal: float,
     annual_interest_rate_percent: float,
@@ -282,30 +338,18 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
                 
-                # Check if income/expense item is active for this year (based on start_date and end_date)
+                # Check if income/expense item is active for this year and calculate proration fraction
                 # This check must happen BEFORE calculating contributions so inactive items are skipped
+                year_fraction = 1.0  # Default to full year if no dates or if not income/expense
                 is_active_for_year = True
                 if projected_account.account_type in ["income", "expense"]:
-                    year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
-                    year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
-                    
-                    if projected_account.start_date:
-                        try:
-                            start_date_obj = datetime.strptime(projected_account.start_date, "%Y-%m-%d").date()
-                            # Item is not active if the year ends before the start_date
-                            if year_end_date < start_date_obj:
-                                is_active_for_year = False
-                        except ValueError:
-                            pass
-                    
-                    if projected_account.end_date and is_active_for_year:
-                        try:
-                            end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
-                            # Item is not active if the year starts after the end_date
-                            if year_start_date > end_date_obj:
-                                is_active_for_year = False
-                        except ValueError:
-                            pass
+                    current_projection_year = current_year + year - 1
+                    year_fraction = calculate_year_fraction(
+                        projected_account.start_date,
+                        projected_account.end_date,
+                        current_projection_year
+                    )
+                    is_active_for_year = year_fraction > 0.0
                 
                 # Special handling for amortized loans
                 if projected_account.account_type == "liability" and projected_account.loan_type == "amortized" and projected_account.principal_amount is not None and projected_account.interest_rate is not None and projected_account.loan_term_months is not None and projected_account.loan_start_date is not None:
@@ -528,6 +572,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Apply growth: value grows by (1 + growth_rate)^(year-1), where year is 1-indexed
                         growth_factor = pow(1 + effective_growth_rate, year - 1)  # year is 1-indexed
                         new_balance = base_yearly_value * growth_factor
+                        # Prorate the value based on how many months the item is active in this year
+                        new_balance = new_balance * year_fraction
                         # Restore sign: expenses are negative, income is positive
                         if projected_account.account_type == "expense":
                             new_balance = -new_balance
@@ -601,28 +647,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             ).all() if db else []
             
             for exp_item in contributing_expenses:
-                # Check if expense is active for this year (based on start_date and end_date)
-                year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
-                year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
-                expense_active = True
-                if exp_item.start_date:
-                    try:
-                        start_date_obj = datetime.strptime(exp_item.start_date, "%Y-%m-%d").date()
-                        # Item is not active if the year ends before the start_date
-                        if year_end_date < start_date_obj:
-                            expense_active = False
-                    except ValueError:
-                        pass
-                if exp_item.end_date and expense_active:
-                    try:
-                        end_date_obj = datetime.strptime(exp_item.end_date, "%Y-%m-%d").date()
-                        # Item is not active if the year starts after the end_date
-                        if year_start_date > end_date_obj:
-                            expense_active = False
-                    except ValueError:
-                        pass
+                # Check if expense is active for this year and calculate proration
+                current_projection_year = current_year + year - 1
+                expense_year_fraction = calculate_year_fraction(
+                    exp_item.start_date,
+                    exp_item.end_date,
+                    current_projection_year
+                )
                 
-                if not expense_active:
+                if expense_year_fraction <= 0.0:
                     continue  # Skip this expense for this year
                 
                 # Find the target asset
@@ -675,6 +708,14 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         effective_growth_rate = (exp_item.inflation_percent or 0) / 100.0
                         growth_factor = pow(1 + effective_growth_rate, year - 1)
                         expense_amount = base_yearly_value * growth_factor
+                        # Prorate based on how many months the expense is active in this year
+                        current_projection_year = current_year + year - 1
+                        expense_year_fraction = calculate_year_fraction(
+                            exp_item.start_date,
+                            exp_item.end_date,
+                            current_projection_year
+                        )
+                        expense_amount = expense_amount * expense_year_fraction
                     
                     # Add the expense amount to the asset balance
                     if expense_amount > 0:

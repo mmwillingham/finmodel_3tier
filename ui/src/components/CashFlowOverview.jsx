@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line, Bar, Chart } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
+import { calculateYearFraction } from '../utils/dateUtils';
 
 // Register Chart.js components for combo charts
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
@@ -70,12 +71,11 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   
   Object.keys(incomeByCategory).forEach(category => {
     let categoryTotal = 0;
-    incomeByCategory[category].forEach(item => {
-      // Check if item is active in this year
-      const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
-      const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+      incomeByCategory[category].forEach(item => {
+      // Check if item is active in this year and calculate proration
+      const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
       
-      if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+      if (yearFraction <= 0) {
         // Item is not active in this year
         return;
       }
@@ -91,6 +91,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         const growthRate = (item.annual_increase_percent || 0) / 100;
         itemValue = itemValue * Math.pow(1 + growthRate, year);
       }
+      
+      // Prorate the value based on how many months the item is active in this year
+      itemValue = itemValue * yearFraction;
       
       // Count as taxable income if taxable
       if (item.taxable) {
@@ -118,17 +121,16 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   // Process expenses (excluding federal tax expense item)
   Object.keys(expenseByCategory).forEach(category => {
     let categoryTotal = 0;
-    expenseByCategory[category].forEach(item => {
+      expenseByCategory[category].forEach(item => {
       // Skip federal tax expense item - it will be handled separately
       if (item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION) {
         return;
       }
       
-      // Check if item is active in this year
-      const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
-      const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+      // Check if item is active in this year and calculate proration
+      const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
       
-      if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+      if (yearFraction <= 0) {
         // Item is not active in this year
         return;
       }
@@ -143,6 +145,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         // Fixed value item - apply inflation rate
         itemValue = itemValue * Math.pow(1 + inflationRate, year);
       }
+      
+      // Prorate the value based on how many months the item is active in this year
+      itemValue = itemValue * yearFraction;
       
       // Count tax-deductible expenses for tax calculation
       if (item.tax_deductible) {
@@ -873,11 +878,10 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       const currentProjectionYear = currentYear + year;
       
       incomeItems.forEach((item) => {
-        // Check if item is active in this year
-        const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
-        const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+        // Check if item is active in this year and calculate proration
+        const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
         
-        if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+        if (yearFraction <= 0) {
           // Item is not active in this year, skip it
           return;
         }
@@ -898,6 +902,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           const growthRate = (item.annual_increase_percent || 0) / 100;
           itemValue = item.yearly_value * Math.pow(1 + growthRate, year);
         }
+        
+        // Prorate the value based on how many months the item is active in this year
+        itemValue = itemValue * yearFraction;
         
         // Count as taxable income if taxable
         if (item.taxable) {
@@ -943,11 +950,10 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       
       // Process regular expenses first (excluding federal tax expense)
       regularExpenseItems.forEach((item) => {
-        // Check if item is active in this year
-        const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
-        const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
+        // Check if item is active in this year and calculate proration
+        const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
         
-        if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+        if (yearFraction <= 0) {
           // Item is not active in this year, skip it
           return;
         }
@@ -968,6 +974,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           const inflationRate = (item.inflation_percent || 0) / 100;
           itemValue = item.yearly_value * Math.pow(1 + inflationRate, year);
         }
+        
+        // Prorate the value based on how many months the item is active in this year
+        itemValue = itemValue * yearFraction;
         
         // Count tax-deductible expenses for tax calculation
         if (item.tax_deductible) {
