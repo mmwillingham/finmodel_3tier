@@ -84,7 +84,22 @@ def list_folders(
         query = query.filter(models.DocumentFolder.parent_folder_id.is_(None))
     
     folders = query.order_by(models.DocumentFolder.name).all()
-    return folders
+    
+    # Add owner_email to each folder
+    result = []
+    for folder in folders:
+        owner = db.query(models.User).filter(models.User.id == folder.owner_id).first()
+        folder_dict = {
+            "id": folder.id,
+            "name": folder.name,
+            "parent_folder_id": folder.parent_folder_id,
+            "owner_id": folder.owner_id,
+            "owner_email": owner.email if owner else None,
+            "created_at": folder.created_at,
+            "updated_at": folder.updated_at,
+        }
+        result.append(folder_dict)
+    return result
 
 
 @router.get("/folders/{folder_id}", response_model=DocumentFolderOut)
@@ -326,7 +341,26 @@ def list_documents(
         query = query.filter(models.Document.folder_id.is_(None))
     
     documents = query.order_by(models.Document.created_at.desc()).all()
-    return documents
+    
+    # Add owner_email to each document
+    result = []
+    for doc in documents:
+        owner = db.query(models.User).filter(models.User.id == doc.owner_id).first()
+        doc_dict = {
+            "id": doc.id,
+            "name": doc.name,
+            "description": doc.description,
+            "folder_id": doc.folder_id,
+            "owner_id": doc.owner_id,
+            "owner_email": owner.email if owner else None,
+            "file_type": doc.file_type,
+            "file_size": doc.file_size,
+            "gcs_path": doc.gcs_path,
+            "created_at": doc.created_at,
+            "updated_at": doc.updated_at,
+        }
+        result.append(doc_dict)
+    return result
 
 
 @router.get("/{document_id}", response_model=DocumentOut)

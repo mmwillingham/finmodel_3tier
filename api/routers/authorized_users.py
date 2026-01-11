@@ -232,17 +232,11 @@ def update_authorized_user(
             detail="Authorized user not found"
         )
     
-    # Update permissions (only if provided)
-    if authorized_user_update.accounts_permission is not None:
-        authorized_user.accounts_permission = authorized_user_update.accounts_permission
-    if authorized_user_update.items_permission is not None:
-        authorized_user.items_permission = authorized_user_update.items_permission
-    if authorized_user_update.projections_permission is not None:
-        authorized_user.projections_permission = authorized_user_update.projections_permission
-    if authorized_user_update.charts_permission is not None:
-        authorized_user.charts_permission = authorized_user_update.charts_permission
-    if authorized_user_update.documents_permission is not None:
-        authorized_user.documents_permission = authorized_user_update.documents_permission
+    # Update permissions - use model_dump to get only fields that were explicitly set
+    # This allows clearing permissions by setting them to None
+    update_data = authorized_user_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(authorized_user, key, value)
     
     db.commit()
     db.refresh(authorized_user)

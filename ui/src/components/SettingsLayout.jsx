@@ -57,10 +57,21 @@ const SettingsPageLayout = ({ children }) => {
 
   // Check if current route is a settings route
   const isSettingsRoute = location.pathname.startsWith('/settings') || location.pathname === '/documents';
+  
+  // Block settings access when viewing another user's account (except Documents and Account Switcher)
+  useEffect(() => {
+    if (viewingUserId && location.pathname.startsWith('/settings')) {
+      // Allow account-switcher to switch back to own account
+      if (!location.pathname.startsWith('/settings/account-switcher')) {
+        navigate('/');
+      }
+    }
+  }, [viewingUserId, location.pathname, navigate]);
 
   return (
     <div className="settings-layout-wrapper">
-      {isSettingsRoute && (
+      {/* Don't show settings sidebar - user wants default sidebar to remain */}
+      {false && isSettingsRoute && (
         <aside className="sidebar settings-sidebar" ref={sidebarRef} style={{ width: `${sidebarWidth}px` }}>
           <div 
             className="sidebar-resize-handle"
@@ -93,12 +104,15 @@ const SettingsPageLayout = ({ children }) => {
               >
                 Switch Account
               </button>
-              <button 
-                className={`nav-btn ${location.pathname === '/settings/profile' ? 'active' : ''}`} 
-                onClick={() => navigate('/settings/profile')}
-              >
-                Profile
-              </button>
+              {/* Hide all other settings when viewing another user's account */}
+              {!viewingUserId && (
+                <>
+                  <button 
+                    className={`nav-btn ${location.pathname === '/settings/profile' ? 'active' : ''}`} 
+                    onClick={() => navigate('/settings/profile')}
+                  >
+                    Profile
+                  </button>
               <button 
                 className={`nav-btn ${location.pathname === '/settings/accounts' ? 'active' : ''}`} 
                 onClick={() => navigate('/settings/accounts')}
@@ -162,6 +176,8 @@ const SettingsPageLayout = ({ children }) => {
                   >
                     Default Categories (Admin)
                   </button>
+                </>
+              )}
                 </>
               )}
             </section>

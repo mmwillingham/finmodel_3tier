@@ -3,8 +3,9 @@ import axios from './api.service';
 const API_URL = '/custom_charts';
 
 class CustomChartService {
-  getAll() {
-    return axios.get(API_URL);
+  getAll(viewingUserId = null) {
+    const params = viewingUserId ? { viewing_user_id: viewingUserId } : {};
+    return axios.get(API_URL, { params });
   }
 
   get(id) {

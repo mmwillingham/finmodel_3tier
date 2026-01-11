@@ -569,11 +569,22 @@ def create_custom_chart(
 
 @router.get("", response_model=List[schemas.CustomChartOut])
 def read_custom_charts(
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """List all custom charts the current user can access (own or authorized)."""
-    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "charts")
+    """List all custom charts the current user can access.
+    If viewing_user_id is None, only show the current user's own charts.
+    If viewing_user_id is provided, filter to that specific user's charts (must be accessible)."""
+    if viewing_user_id is None:
+        accessible_user_ids = [current_user.id]
+    else:
+        # When viewing a specific user, check if they're accessible
+        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "charts")
+        if viewing_user_id not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
+        accessible_user_ids = [viewing_user_id]
+    
     charts = db.query(models.CustomChart).filter(models.CustomChart.user_id.in_(accessible_user_ids)).all()
     return charts
 

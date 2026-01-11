@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext.jsx';
 import CustomChartService from '../services/customChart.service';
 import ConfirmDialog from './ConfirmDialog';
 import './CustomChartList.css'; // We will create this CSS file
 
 export default function CustomChartList({ onEditChart, onCreateNewChart, onViewChart }) {
+  const { viewingUserId } = useAuth();
   const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -13,7 +15,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   const fetchCharts = async () => {
     setLoading(true);
     try {
-      const response = await CustomChartService.getAll();
+      const response = await CustomChartService.getAll(viewingUserId);
       setCharts(response.data);
     } catch (error) {
       console.error("Error fetching custom charts:", error);
@@ -25,7 +27,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
 
   useEffect(() => {
     fetchCharts();
-  }, []);
+  }, [viewingUserId]);
 
   const handleDelete = async (chartId) => {
     setConfirmDialog({

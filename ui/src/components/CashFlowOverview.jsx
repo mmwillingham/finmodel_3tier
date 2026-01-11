@@ -1092,6 +1092,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       
       // Calculate Cash In (Additions)
       let cashIn = 0;
+      let totalTaxableIncome = 0; // Track taxable income for tax calculations
+      const reinvestedDividendsByAsset = {}; // Track dividend reinvestments by asset
       const inflationRate = (userSettings?.default_inflation_percent || 2.0) / 100;
       
       includedIncomeItems.forEach(item => {
@@ -1115,12 +1117,39 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             itemValue = itemValue * Math.pow(1 + growthRate, year);
           }
           
-          cashIn += itemValue;
+          // Count as taxable income if taxable
+          if (item.taxable) {
+            totalTaxableIncome += itemValue;
+          }
+          
+          // Check if this is a reinvested dividend - exclude from cash flow
+          const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
+          const shouldReinvest = isDividend && item.reinvest_dividends;
+          
+          if (shouldReinvest) {
+            // Determine which asset to add to
+            let targetAssetId = item.reinvestment_account_id;
+            if (!targetAssetId && item.linked_item_id && item.linked_item_type === "asset") {
+              targetAssetId = item.linked_item_id;
+            }
+            if (targetAssetId) {
+              // Track for adding to asset projection
+              if (!reinvestedDividendsByAsset[targetAssetId]) {
+                reinvestedDividendsByAsset[targetAssetId] = 0;
+              }
+              reinvestedDividendsByAsset[targetAssetId] += itemValue;
+            }
+            // Don't add to cashIn - dividends are reinvested, not received as cash
+          } else {
+            // Not reinvested - add to cash flow
+            cashIn += itemValue;
+          }
         }
       });
       
       // Calculate Cash Out (Subtractions) - move before using cashOut
       let cashOut = 0;
+      let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
       includedExpenseItems.forEach(item => {
         const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
         const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import DocumentsService from '../services/documents.service';
 import ConfirmDialog from '../components/ConfirmDialog';
+import AccountSwitcher from '../components/AccountSwitcher';
 import './DocumentsPage.css';
 import '../components/SidebarLayout.css';
 
 const DocumentsPage = () => {
+  const { currentUser, viewingUserId } = useAuth();
   const [folders, setFolders] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [currentFolderId, setCurrentFolderId] = useState(null);
@@ -216,7 +219,10 @@ const DocumentsPage = () => {
       <main className="main-content">
         <div className="documents-page">
           <div className="documents-header">
-            <h1>📁 Documents</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1rem' }}>
+              <h1 style={{ margin: 0 }}>📁 Documents</h1>
+              <AccountSwitcher compact={true} />
+            </div>
             <div className="documents-actions">
               <button onClick={() => setShowWalkthrough(true)} className="btn-secondary" title="Show Tutorial">
                 ❓ Tutorial
@@ -261,7 +267,12 @@ const DocumentsPage = () => {
                       📁
                     </div>
                     <div className="folder-name" onClick={() => handleFolderClick(folder)}>
-                      {folder.name}
+                      <div>{folder.name}</div>
+                      {folder.owner_email && folder.owner_id !== currentUser?.id && (
+                        <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
+                          {folder.owner_email}
+                        </div>
+                      )}
                     </div>
                     <div className="folder-actions">
                       <button onClick={() => handleEditItem(folder, true)} className="btn-icon" title="Edit">
@@ -285,6 +296,7 @@ const DocumentsPage = () => {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Owner</th>
                     <th>Description</th>
                     <th>Type</th>
                     <th>Size</th>
@@ -296,6 +308,7 @@ const DocumentsPage = () => {
                   {documents.map((doc) => (
                     <tr key={doc.id}>
                       <td>{doc.name}</td>
+                      <td>{doc.owner_email || '-'}</td>
                       <td>{doc.description || '-'}</td>
                       <td>{doc.file_type || 'Unknown'}</td>
                       <td>{formatFileSize(doc.file_size)}</td>
