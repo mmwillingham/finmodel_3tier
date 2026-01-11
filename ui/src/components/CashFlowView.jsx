@@ -255,7 +255,9 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
             const categoryValue = item.category && typeof item.category === 'string' ? item.category.trim() : (item.category || '');
             const categoryMissing = !categoryValue || (validCategories.length > 0 && !validCategories.includes(categoryValue));
             const descriptionMissing = !item.description || (typeof item.description === 'string' && item.description.trim() === '');
-            const valueMissing = item.yearly_value === null || item.yearly_value === undefined || item.yearly_value === 0;
+            // Skip value validation for "Federal Income Tax (Calculated)" since it's calculated dynamically
+            const isCalculatedTaxItem = item.description === "Federal Income Tax (Calculated)";
+            const valueMissing = !isCalculatedTaxItem && (item.yearly_value === null || item.yearly_value === undefined || item.yearly_value === 0);
             const hasMissingFields = categoryMissing || descriptionMissing || valueMissing;
             const rowStyle = hasMissingFields ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {};
             const missingFields = [

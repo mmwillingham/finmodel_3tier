@@ -347,15 +347,21 @@ export default function CashFlowFormModal({
 
             <div className="form-field">
               <label htmlFor="value-input">Value</label>
-              <input
-                id="value-input"
-                type="number"
-                placeholder={isDynamic ? "Calculated Dynamically" : "Value"}
-                value={isDynamic ? "" : newItem.value}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
-                disabled={isDynamic}
-              />
+              {newItem.description === "Federal Income Tax (Calculated)" ? (
+                <div style={{ padding: '8px', backgroundColor: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', fontSize: '0.9em', color: '#666' }}>
+                  This value is calculated automatically during projections based on your taxable income and tax filing status.
+                </div>
+              ) : (
+                <input
+                  id="value-input"
+                  type="number"
+                  placeholder={isDynamic ? "Calculated Dynamically" : "Value"}
+                  value={isDynamic ? "" : newItem.value}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
+                  disabled={isDynamic}
+                />
+              )}
             </div>
 
             <div className="form-field">
