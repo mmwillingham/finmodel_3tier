@@ -191,6 +191,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         
         # Check if federal tax calculation is enabled
         calculate_federal_tax = user_settings.calculate_federal_tax if user_settings else False
+        
+        # Pre-load CashFlowItems for tax calculation (keyed by description for fast lookup)
+        cash_flow_items_by_description = {}
+        if calculate_federal_tax and db:
+            all_cash_flow_items = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == owner_id
+            ).all()
+            for item in all_cash_flow_items:
+                cash_flow_items_by_description[item.description] = item
 
         # Load auto-disbursement rules
         auto_disbursements = db.query(models.AutoDisbursement).filter(
@@ -259,6 +268,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             current_year_total_expense_flow = 0.0
             current_year_contributions_sum = 0.0 # Sum of all contributions for this year
             current_year_growth_sum = 0.0 # Sum of all growth for this year
+            
+            # Track taxable income and tax-deductible expenses for federal tax calculation
+            current_year_taxable_income = 0.0
+            current_year_tax_deductible_expenses = 0.0
             
             # Dictionary to store annual flow values for income/expense items (since they reset to 0)
             annual_flow_values = {}
@@ -520,6 +533,21 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             new_balance = -new_balance
                         # Store the annual flow value before resetting to 0 (needed for data_json)
                         annual_flow_values[projected_account.name] = new_balance
+                        
+                        # Track taxable income and tax-deductible expenses for federal tax calculation
+                        if calculate_federal_tax and is_active_for_year:
+                            base_item_name = base_account_name  # Use base name (without LINKED markers)
+                            cash_flow_item = cash_flow_items_by_description.get(base_item_name)
+                            if cash_flow_item:
+                                if projected_account.account_type == "income" and cash_flow_item.is_income and cash_flow_item.taxable:
+                                    # Use the absolute value (new_balance is positive for income)
+                                    current_year_taxable_income += abs(new_balance)
+                                elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
+                                    # Skip federal tax expense item itself
+                                    if base_item_name != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
+                                        # Use the absolute value (new_balance is negative for expenses)
+                                        current_year_tax_deductible_expenses += abs(new_balance)
+                        
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
                     else:
@@ -688,78 +716,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             pass
                     
                     if federal_tax_expense_item:
-                        # Calculate taxable income and tax-deductible expenses
-                        # Query all income items to calculate taxable income
-                        all_income_items = db.query(models.CashFlowItem).filter(
-                            models.CashFlowItem.owner_id == owner_id,
-                            models.CashFlowItem.is_income == True
-                        ).all()
-                        
-                        total_taxable_income = 0.0
-                        for income_item in all_income_items:
-                            if income_item.taxable:
-                                # Find the income item's annual flow value
-                                income_flow_value = 0.0
-                                income_account_name = income_item.description
-                                # Check for linked income items
-                                if income_item.linked_item_type == "asset" and income_item.percentage is not None:
-                                    # Look for linked income items in annual_flow_values
-                                    for flow_name, flow_value in annual_flow_values.items():
-                                        base_name = flow_name.split("|LINKED:")[0]
-                                        if base_name == income_item.description:
-                                            income_flow_value = flow_value  # Income is positive
-                                            break
-                                else:
-                                    # Fixed income - get from annual_flow_values
-                                    income_flow_value = annual_flow_values.get(income_account_name, 0.0)
-                                    if income_flow_value == 0.0:
-                                        # Calculate from base yearly_value with growth
-                                        base_yearly_value = income_item.yearly_value or 0.0
-                                        effective_growth_rate = (income_item.annual_increase_percent or 0) / 100.0
-                                        growth_factor = pow(1 + effective_growth_rate, year - 1)
-                                        income_flow_value = base_yearly_value * growth_factor
-                                
-                                total_taxable_income += income_flow_value
-                        
-                        # Query all expense items to calculate tax-deductible expenses (excluding federal tax expense)
-                        all_expense_items = db.query(models.CashFlowItem).filter(
-                            models.CashFlowItem.owner_id == owner_id,
-                            models.CashFlowItem.is_income == False,
-                            models.CashFlowItem.description != FEDERAL_TAX_EXPENSE_DESCRIPTION
-                        ).all()
-                        
-                        total_tax_deductible_expenses = 0.0
-                        for expense_item in all_expense_items:
-                            if expense_item.tax_deductible:
-                                # Find the expense item's annual flow value
-                                expense_flow_value = 0.0
-                                expense_account_name = expense_item.description
-                                # Check for linked expense items
-                                if expense_item.linked_item_type and expense_item.percentage is not None:
-                                    # Look for linked expense items in annual_flow_values
-                                    for flow_name, flow_value in annual_flow_values.items():
-                                        base_name = flow_name.split("|LINKED:")[0]
-                                        if base_name == expense_item.description:
-                                            expense_flow_value = abs(flow_value)  # Expenses are negative, use absolute
-                                            break
-                                else:
-                                    # Fixed expense - get from annual_flow_values
-                                    expense_flow_value = abs(annual_flow_values.get(expense_account_name, 0.0))
-                                    if expense_flow_value == 0.0:
-                                        # Calculate from base yearly_value with growth
-                                        base_yearly_value = expense_item.yearly_value or 0.0
-                                        effective_growth_rate = (expense_item.inflation_percent or 0) / 100.0
-                                        growth_factor = pow(1 + effective_growth_rate, year - 1)
-                                        expense_flow_value = base_yearly_value * growth_factor
-                                
-                                total_tax_deductible_expenses += expense_flow_value
-                        
-                        # Calculate federal tax
-                        if total_taxable_income > 0:
+                        # Calculate federal tax using the taxable income and tax-deductible expenses
+                        # we tracked during the projection loop
+                        if current_year_taxable_income > 0:
                             try:
                                 _, _, tax_owed = calculate_taxable_income(
-                                    total_taxable_income,
-                                    total_tax_deductible_expenses,
+                                    current_year_taxable_income,
+                                    current_year_tax_deductible_expenses,
                                     user_settings.tax_filing_status or "Single",
                                     user_settings.person1_birthdate,
                                     user_settings.person2_birthdate,
