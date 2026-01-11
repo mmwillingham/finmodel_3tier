@@ -8,6 +8,9 @@ import schemas
 import database
 import auth
 
+# Constant to identify the federal tax expense item (must match frontend)
+FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
