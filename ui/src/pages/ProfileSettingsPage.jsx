@@ -269,9 +269,94 @@ const ProfileSettingsPage = () => {
           />
         </div>
 
+        {/* Address and Tax Filing Status Section */}
+        <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
+          <h3 style={{ marginBottom: '20px', color: '#333' }}>Address & Tax Information</h3>
+          <div className="form-group-horizontal">
+            <label htmlFor="address">
+              Address
+            </label>
+            <input
+              id="address"
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Address"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="city">
+              City
+            </label>
+            <input
+              id="city"
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="City"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="state">
+              State
+            </label>
+            <select
+              id="state"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+            >
+              <option value="">Select State</option>
+              {states.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="zip-code">
+              Zip Code
+            </label>
+            <input
+              id="zip-code"
+              type="text"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              placeholder="Zip Code"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="tax-filing-status">
+              Tax Filing Status
+            </label>
+            <select
+              id="tax-filing-status"
+              value={taxFilingStatus}
+              onChange={(e) => setTaxFilingStatus(e.target.value)}
+            >
+              <option value="Single">Single</option>
+              <option value="Married Filing Jointly">Married Filing Jointly</option>
+              <option value="Married Filing Separately">Married Filing Separately</option>
+              <option value="Head of Household">Head of Household</option>
+              <option value="Qualifying Surviving Spouse">Qualifying Surviving Spouse</option>
+            </select>
+          </div>
+        </div>
+
         {/* Social Security Section for Person 1 */}
         <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
           <h3 style={{ marginBottom: '20px', color: '#333' }}>Person 1 - Social Security</h3>
+          <div style={{ 
+            padding: '10px 15px', 
+            backgroundColor: '#fff3cd', 
+            borderLeft: '4px solid #ffc107',
+            borderRadius: '4px',
+            fontSize: '0.9rem',
+            color: '#856404',
+            marginBottom: '15px'
+          }}>
+            <strong>Note:</strong> The calculated monthly benefit is an approximation. For the most accurate estimate, refer to your official Social Security statement at ssa.gov.
+          </div>
           <div className="form-group-horizontal">
             <label htmlFor="person1-ss-fra">
               Full Retirement Age (FRA)
@@ -344,6 +429,17 @@ const ProfileSettingsPage = () => {
         {/* Social Security Section for Person 2 */}
         <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
           <h3 style={{ marginBottom: '20px', color: '#333' }}>Person 2 (Spouse) - Social Security</h3>
+          <div style={{ 
+            padding: '10px 15px', 
+            backgroundColor: '#fff3cd', 
+            borderLeft: '4px solid #ffc107',
+            borderRadius: '4px',
+            fontSize: '0.9rem',
+            color: '#856404',
+            marginBottom: '15px'
+          }}>
+            <strong>Note:</strong> The calculated monthly benefit is an approximation. For the most accurate estimate, refer to your official Social Security statement at ssa.gov.
+          </div>
           <div style={{ 
             padding: '10px 15px', 
             backgroundColor: '#e7f3ff', 
@@ -425,75 +521,6 @@ const ProfileSettingsPage = () => {
           </div>
         </div>
 
-        <div className="form-group-horizontal">
-          <label htmlFor="address">
-            Address
-          </label>
-          <input
-            id="address"
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Address"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="city">
-            City
-          </label>
-          <input
-            id="city"
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="City"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="state">
-            State
-          </label>
-          <select
-            id="state"
-            value={state}
-            onChange={(e) => setState(e.target.value)}
-          >
-            <option value="">Select State</option>
-            {states.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="zip-code">
-            Zip Code
-          </label>
-          <input
-            id="zip-code"
-            type="text"
-            value={zipCode}
-            onChange={(e) => setZipCode(e.target.value)}
-            placeholder="Zip Code"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="tax-filing-status">
-            Tax Filing Status
-          </label>
-          <select
-            id="tax-filing-status"
-            value={taxFilingStatus}
-            onChange={(e) => setTaxFilingStatus(e.target.value)}
-          >
-            <option value="Single">Single</option>
-            <option value="Married Filing Jointly">Married Filing Jointly</option>
-            <option value="Married Filing Separately">Married Filing Separately</option>
-            <option value="Head of Household">Head of Household</option>
-            <option value="Qualifying Surviving Spouse">Qualifying Surviving Spouse</option>
-          </select>
-        </div>
         <div className="form-group-horizontal">
             <button type="button" className="change-password-btn" onClick={() => setIsChangePasswordModalOpen(true)}>Change Password</button>
         </div>
