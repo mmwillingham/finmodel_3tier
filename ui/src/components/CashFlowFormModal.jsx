@@ -25,6 +25,7 @@ export default function CashFlowFormModal({
   const [reinvestDividends, setReinvestDividends] = useState(false); // NEW: Whether to reinvest dividends
   const [reinvestmentAccountId, setReinvestmentAccountId] = useState(null); // NEW: Account ID for reinvestment
   const [isQualifiedDividend, setIsQualifiedDividend] = useState(true); // NEW: Whether dividends are qualified (defaults to true)
+  const [allowValueOverwrite, setAllowValueOverwrite] = useState(true); // NEW: Whether system can overwrite yearly_value (defaults to True)
   const [availableLinkedItems, setAvailableLinkedItems] = useState({
     assets: [],
     liabilities: [],
@@ -110,6 +111,7 @@ export default function CashFlowFormModal({
           setReinvestDividends(itemToEdit.reinvest_dividends || false); // NEW: Initialize dividend reinvestment
           setReinvestmentAccountId(itemToEdit.reinvestment_account_id || null); // NEW: Initialize reinvestment account
           setIsQualifiedDividend(itemToEdit.is_qualified_dividend !== undefined ? itemToEdit.is_qualified_dividend : true); // NEW: Initialize qualified dividend (default to true)
+          setAllowValueOverwrite(itemToEdit.allow_value_overwrite !== undefined ? itemToEdit.allow_value_overwrite : true); // NEW: Initialize allow value overwrite (default to true)
 
         } else {
           // Ensure empty defaults for new item
@@ -137,6 +139,7 @@ export default function CashFlowFormModal({
           setReinvestDividends(false); // NEW: Reset dividend reinvestment
           setReinvestmentAccountId(null); // NEW: Reset reinvestment account
           setIsQualifiedDividend(true); // NEW: Reset qualified dividend (default to true)
+          setAllowValueOverwrite(true); // NEW: Reset allow value overwrite (default to true)
         }
       } catch (e) {
         console.error("Failed to load settings or item", e);
@@ -235,6 +238,7 @@ export default function CashFlowFormModal({
       reinvest_dividends: (type === "income" && (newItem.category?.toLowerCase().includes("dividend") || newItem.description?.toLowerCase().includes("dividend"))) ? reinvestDividends : false, // NEW: Only for dividend income
       reinvestment_account_id: (type === "income" && reinvestDividends) ? reinvestmentAccountId : null, // NEW: Only if reinvesting dividends
       is_qualified_dividend: type === "income" ? isQualifiedDividend : null, // NEW: Whether dividends are qualified (only for income items, defaults to true)
+      allow_value_overwrite: allowValueOverwrite, // NEW: Whether system can overwrite yearly_value
     };
 
     try {

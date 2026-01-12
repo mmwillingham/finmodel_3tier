@@ -193,6 +193,7 @@ class CashFlowCreate(BaseModel):
     reinvest_dividends: Optional[bool] = False  # NEW: Whether to reinvest dividends (for income items)
     reinvestment_account_id: Optional[int] = None  # NEW: Account ID to reinvest into (optional, defaults to source asset)
     is_qualified_dividend: Optional[bool] = True  # NEW: Whether dividends are qualified (defaults to True)
+    allow_value_overwrite: Optional[bool] = True  # NEW: Whether system can overwrite yearly_value (defaults to True)
 
 class CashFlowUpdate(BaseModel):
     is_income: Optional[bool] = None
@@ -215,6 +216,7 @@ class CashFlowUpdate(BaseModel):
     reinvest_dividends: Optional[bool] = None  # NEW: Whether to reinvest dividends (for income items)
     reinvestment_account_id: Optional[int] = None  # NEW: Account ID to reinvest into (optional, defaults to source asset)
     is_qualified_dividend: Optional[bool] = None  # NEW: Whether dividends are qualified
+    allow_value_overwrite: Optional[bool] = None  # NEW: Whether system can overwrite yearly_value
 
 class CashFlowOut(BaseModel):
     id: int
@@ -238,6 +240,7 @@ class CashFlowOut(BaseModel):
     reinvest_dividends: Optional[bool] = None  # NEW: Whether to reinvest dividends (for income items)
     reinvestment_account_id: Optional[int] = None  # NEW: Account ID to reinvest into (optional, defaults to source asset)
     is_qualified_dividend: Optional[bool] = None  # NEW: Whether dividends are qualified
+    allow_value_overwrite: Optional[bool] = None  # NEW: Whether system can overwrite yearly_value
     model_config = ConfigDict(from_attributes=True)
 
 class UserSettingsBase(BaseModel):

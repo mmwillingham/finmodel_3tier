@@ -354,13 +354,15 @@ def update_user_settings(
             annual_increase = person1_ss_cola if person1_ss_cola else 0.0
             
             if ss_income:
-                # Update existing item
-                ss_income.yearly_value = yearly_value
+                # Update existing item - only overwrite yearly_value if allow_value_overwrite is True
+                if ss_income.allow_value_overwrite is not False:  # Default to True if None
+                    ss_income.yearly_value = yearly_value
+                # Don't reset allow_value_overwrite - preserve user's choice
                 ss_income.annual_increase_percent = annual_increase
                 ss_income.start_date = person1_ss_retirement_date
                 ss_income.person = person1_first_name or "Person 1"
                 ss_income.category = ss_category
-                logger.info(f"Updated Social Security income item for Person 1: {yearly_value}")
+                logger.info(f"Updated Social Security income item for Person 1 (yearly_value: {ss_income.yearly_value}, allow_overwrite: {ss_income.allow_value_overwrite})")
             else:
                 # Create new item
                 ss_income = models.CashFlowItem(
@@ -374,6 +376,7 @@ def update_user_settings(
                     start_date=person1_ss_retirement_date,
                     person=person1_first_name or "Person 1",
                     taxable=True,  # Social Security may be partially taxable, but we'll default to taxable
+                    allow_value_overwrite=True,  # Allow system to overwrite value by default
                 )
                 db.add(ss_income)
                 logger.info(f"Created Social Security income item for Person 1: {yearly_value}")
@@ -432,13 +435,15 @@ def update_user_settings(
             annual_increase = person2_ss_cola if person2_ss_cola else 0.0
             
             if ss_income:
-                # Update existing item
-                ss_income.yearly_value = yearly_value
+                # Update existing item - only overwrite yearly_value if allow_value_overwrite is True
+                if ss_income.allow_value_overwrite is not False:  # Default to True if None
+                    ss_income.yearly_value = yearly_value
+                # Don't reset allow_value_overwrite - preserve user's choice
                 ss_income.annual_increase_percent = annual_increase
                 ss_income.start_date = person2_ss_retirement_date
                 ss_income.person = person2_first_name or "Person 2"
                 ss_income.category = ss_category
-                logger.info(f"Updated Social Security income item for Person 2: {yearly_value}")
+                logger.info(f"Updated Social Security income item for Person 2 (yearly_value: {ss_income.yearly_value}, allow_overwrite: {ss_income.allow_value_overwrite})")
             else:
                 # Create new item
                 ss_income = models.CashFlowItem(
@@ -452,6 +457,7 @@ def update_user_settings(
                     start_date=person2_ss_retirement_date,
                     person=person2_first_name or "Person 2",
                     taxable=True,  # Social Security may be partially taxable, but we'll default to taxable
+                    allow_value_overwrite=True,  # Allow system to overwrite value by default
                 )
                 db.add(ss_income)
                 logger.info(f"Created Social Security income item for Person 2: {yearly_value}")

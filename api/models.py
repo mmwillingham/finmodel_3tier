@@ -153,6 +153,8 @@ class CashFlowItem(Base):
     reinvestment_account = relationship("Asset", foreign_keys=[reinvestment_account_id])  # Relationship to Asset for reinvestment
     # NEW: Qualified dividend field
     is_qualified_dividend = Column(Boolean, default=True, nullable=True)  # Whether dividends are qualified (defaults to True)
+    # NEW: Allow value overwrite field (for auto-generated items like Social Security)
+    allow_value_overwrite = Column(Boolean, default=True, nullable=True)  # Whether system can overwrite yearly_value (defaults to True)
 
 
 class UserSettings(Base):
