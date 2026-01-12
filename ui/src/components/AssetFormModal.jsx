@@ -16,7 +16,11 @@ export default function AssetFormModal({
   const [accounts, setAccounts] = useState([]);
   const [incomeItems, setIncomeItems] = useState([]);
   const [trackInterestAsIncome, setTrackInterestAsIncome] = useState(false);
-  const [existingLinkedIncomeId, setExistingLinkedIncomeId] = useState(null);
+  const [interestRate, setInterestRate] = useState(""); // Separate interest rate field
+  const [trackDividendsAsIncome, setTrackDividendsAsIncome] = useState(false);
+  const [dividendRate, setDividendRate] = useState(""); // Separate dividend rate field
+  const [existingLinkedInterestId, setExistingLinkedInterestId] = useState(null);
+  const [existingLinkedDividendId, setExistingLinkedDividendId] = useState(null);
   const [warningMessage, setWarningMessage] = useState("");
 
   const [newItem, setNewItem] = useState({
@@ -57,33 +61,45 @@ export default function AssetFormModal({
             end_date: itemToEdit.end_date || '',
           }));
 
-          // Check if there's an existing income item linked to this asset
-          const linkedIncome = incomeRes.data?.find(item => 
+          // Check for existing income items linked to this asset
+          const linkedIncomeItems = incomeRes.data?.filter(item => 
             item.linked_item_type === "asset" && 
             (item.linked_item_id === itemToEdit.id || 
              (item.linked_asset_ids && item.linked_asset_ids.includes(itemToEdit.id)))
+          ) || [];
+          
+          // Check for interest income (category or description contains "interest")
+          const linkedInterest = linkedIncomeItems.find(item => 
+            item.category?.toLowerCase().includes('interest') || 
+            item.description?.toLowerCase().includes('interest')
           );
           
-          if (linkedIncome) {
+          // Check for dividend income (category or description contains "dividend")
+          const linkedDividend = linkedIncomeItems.find(item => 
+            item.category?.toLowerCase().includes('dividend') || 
+            item.description?.toLowerCase().includes('dividend')
+          );
+          
+          if (linkedInterest) {
             setTrackInterestAsIncome(true);
-            setExistingLinkedIncomeId(linkedIncome.id);
-            // Use the income item's percentage if it exists, otherwise use asset's growth
-            const interestPercent = linkedIncome.percentage ?? itemToEdit.annual_increase_percent ?? 0;
-            setNewItem(prev => ({
-              ...prev,
-              annual_increase_percent: interestPercent,
-            }));
-            // If asset has growth percent and linked income exists, show warning
-            if (itemToEdit.annual_increase_percent > 0 && itemToEdit.annual_increase_percent !== interestPercent) {
-              setWarningMessage(
-                `Warning: This asset has ${itemToEdit.annual_increase_percent}% growth AND a linked income item at ${interestPercent}%. This may cause double-counting. Asset growth will be set to 0% when saved.`
-              );
-            }
+            setExistingLinkedInterestId(linkedInterest.id);
+            setInterestRate(linkedInterest.percentage?.toString() || "");
           } else {
             setTrackInterestAsIncome(false);
-            setExistingLinkedIncomeId(null);
-            setWarningMessage("");
+            setExistingLinkedInterestId(null);
+            setInterestRate("");
           }
+          
+          if (linkedDividend) {
+            setTrackDividendsAsIncome(true);
+            setExistingLinkedDividendId(linkedDividend.id);
+            setDividendRate(linkedDividend.percentage?.toString() || "");
+          } else {
+            setTrackDividendsAsIncome(false);
+            setExistingLinkedDividendId(null);
+            setDividendRate("");
+          }
+          setWarningMessage(""); // No warnings needed - they're separate
         } else {
           setNewItem(prev => ({
             ...prev,
@@ -97,8 +113,11 @@ export default function AssetFormModal({
             end_date: "",
           }));
           setTrackInterestAsIncome(false);
-          setExistingLinkedIncomeId(null);
-          setWarningMessage("");
+          setExistingLinkedInterestId(null);
+          setInterestRate("");
+          setTrackDividendsAsIncome(false);
+          setExistingLinkedDividendId(null);
+          setDividendRate("");
         }
       } catch (e) {
         console.error("Failed to load settings", e);
@@ -113,28 +132,26 @@ export default function AssetFormModal({
     loadSettings();
   }, [itemToEdit, isOpen]); // Reload categories when modal opens
 
-  // Check for validation warnings
-  useEffect(() => {
-    if (trackInterestAsIncome && parseFloat(newItem.annual_increase_percent || 0) > 0) {
-      setWarningMessage(
-        `Warning: Asset has ${newItem.annual_increase_percent}% growth AND interest tracking is enabled. This may cause double-counting. Consider setting asset growth to 0% if tracking interest as income.`
-      );
-    } else if (!trackInterestAsIncome && existingLinkedIncomeId) {
-      // User unchecked the box but linked income exists - will be handled in save
-      setWarningMessage("");
-    } else {
-      setWarningMessage("");
-    }
-  }, [trackInterestAsIncome, newItem.annual_increase_percent, existingLinkedIncomeId]);
-
   const save = async () => {
     if (!newItem.name || !newItem.category || !newItem.value || !newItem.annual_change_type) return;
+    
+    // Validate interest rate if checkbox is checked
+    if (trackInterestAsIncome && (!interestRate || isNaN(parseFloat(interestRate)) || parseFloat(interestRate) <= 0)) {
+      alert("Please enter a valid interest rate when 'Track Interest as Taxable Income' is enabled.");
+      return;
+    }
+    
+    // Validate dividend rate if checkbox is checked
+    if (trackDividendsAsIncome && (!dividendRate || isNaN(parseFloat(dividendRate)) || parseFloat(dividendRate) <= 0)) {
+      alert("Please enter a valid dividend rate when 'Track Dividends as Taxable Income' is enabled.");
+      return;
+    }
 
     const assetPayload = {
       name: newItem.name,
       category: newItem.category,
       value: parseFloat(newItem.value),
-      annual_increase_percent: trackInterestAsIncome ? 0 : parseFloat(newItem.annual_increase_percent || 0),
+      annual_increase_percent: parseFloat(newItem.annual_increase_percent || 0), // Always use the growth rate
       annual_change_type: newItem.annual_change_type,
       account_id: newItem.account_id || null,
       start_date: newItem.start_date || null,
@@ -152,14 +169,14 @@ export default function AssetFormModal({
         assetId = savedAsset.data?.id;
       }
 
-      // Handle interest tracking income item
-      const interestPercent = trackInterestAsIncome ? parseFloat(newItem.annual_increase_percent || 0) : null;
+      // Handle interest tracking income item (separate from asset growth)
+      const interestPercent = trackInterestAsIncome ? parseFloat(interestRate || 0) : null;
 
       if (trackInterestAsIncome && interestPercent > 0 && assetId) {
         // Create or update linked income item
         const incomeItemName = `${newItem.name} Interest`;
         // Try to preserve existing category if updating, otherwise use "Interest"
-        const existingIncome = incomeItems.find(item => item.id === existingLinkedIncomeId);
+        const existingIncome = incomeItems.find(item => item.id === existingLinkedInterestId);
         const incomeCategory = existingIncome?.category || "Interest";
         
         const incomePayload = {
@@ -178,19 +195,64 @@ export default function AssetFormModal({
           percentage: interestPercent,
         };
 
-        if (existingLinkedIncomeId) {
+        if (existingLinkedInterestId) {
           // Update existing income item
-          await CashFlowService.update(existingLinkedIncomeId, incomePayload);
+          await CashFlowService.update(existingLinkedInterestId, incomePayload);
         } else {
           // Create new income item
           await CashFlowService.create(incomePayload);
         }
-      } else if (!trackInterestAsIncome && existingLinkedIncomeId) {
+      } else if (!trackInterestAsIncome && existingLinkedInterestId) {
         // User unchecked the box - delete the linked income item
         try {
-          await CashFlowService.delete(existingLinkedIncomeId);
+          await CashFlowService.delete(existingLinkedInterestId);
         } catch (deleteError) {
-          console.warn("Failed to delete linked income item:", deleteError);
+          console.warn("Failed to delete linked interest income item:", deleteError);
+          // Continue even if deletion fails - user can delete manually
+        }
+      }
+
+      // Handle dividend tracking income item (separate from asset growth)
+      const dividendPercent = trackDividendsAsIncome ? parseFloat(dividendRate || 0) : null;
+
+      if (trackDividendsAsIncome && dividendPercent > 0 && assetId) {
+        // Create or update linked income item
+        const incomeItemName = `${newItem.name} Dividends`;
+        // Try to preserve existing category if updating, otherwise use "Dividends"
+        const existingIncome = incomeItems.find(item => item.id === existingLinkedDividendId);
+        const incomeCategory = existingIncome?.category || "Dividends";
+        
+        const incomePayload = {
+          is_income: true,
+          category: incomeCategory,
+          description: incomeItemName,
+          frequency: "yearly",
+          value: 0, // Will be calculated dynamically
+          annual_increase_percent: 0,
+          inflation_percent: 0,
+          person: existingIncome?.person || "Family",
+          taxable: true, // Dividends are taxable
+          tax_deductible: false,
+          linked_item_type: "asset",
+          linked_asset_ids: [assetId], // Use multi-select format
+          percentage: dividendPercent,
+          reinvest_dividends: true, // Automatically reinvest dividends back into the asset
+          reinvestment_account_id: assetId, // Reinvest into the same asset
+        };
+
+        if (existingLinkedDividendId) {
+          // Update existing income item
+          await CashFlowService.update(existingLinkedDividendId, incomePayload);
+        } else {
+          // Create new income item
+          await CashFlowService.create(incomePayload);
+        }
+      } else if (!trackDividendsAsIncome && existingLinkedDividendId) {
+        // User unchecked the box - delete the linked income item
+        try {
+          await CashFlowService.delete(existingLinkedDividendId);
+        } catch (deleteError) {
+          console.warn("Failed to delete linked dividend income item:", deleteError);
           // Continue even if deletion fails - user can delete manually
         }
       }
@@ -266,18 +328,16 @@ export default function AssetFormModal({
 
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* Second row: Percent, Annual Change, Start Date, End Date */} 
             <div className="form-field">
-              <label htmlFor="annual-change-percent">
-                {trackInterestAsIncome ? "Interest Rate (%)" : "Percent"}
-              </label>
+              <label htmlFor="annual-change-percent">Internal Growth Rate (%)</label>
               <input
                 id="annual-change-percent"
                 type="number"
                 step="0.1"
-                placeholder={trackInterestAsIncome ? "Interest Rate" : "Percent"}
+                placeholder="Growth Rate"
                 value={newItem.annual_increase_percent}
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
-                title={trackInterestAsIncome ? "This will be used as the interest rate for the income item. Asset growth will be set to 0%." : ""}
+                title="The asset's internal growth rate (e.g., equity appreciation)"
               />
             </div>
 
@@ -318,7 +378,12 @@ export default function AssetFormModal({
                 id="track-interest-as-income"
                 type="checkbox"
                 checked={trackInterestAsIncome}
-                onChange={(e) => setTrackInterestAsIncome(e.target.checked)}
+                onChange={(e) => {
+                  setTrackInterestAsIncome(e.target.checked);
+                  if (!e.target.checked) {
+                    setInterestRate(""); // Clear interest rate when unchecked
+                  }
+                }}
               />
               <label htmlFor="track-interest-as-income" style={{ margin: 0, cursor: 'pointer' }}>
                 Track Interest as Taxable Income
@@ -327,6 +392,65 @@ export default function AssetFormModal({
           </div>
 
           {trackInterestAsIncome && (
+            <>
+              <div className="form-row" style={{ marginTop: '12px' }}>
+                <div className="form-field">
+                  <label htmlFor="interest-rate">Interest Rate (%)</label>
+                  <input
+                    id="interest-rate"
+                    type="number"
+                    step="0.1"
+                    placeholder="Interest Rate"
+                    value={interestRate}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setInterestRate(e.target.value)}
+                    title="Interest rate as a percentage of the asset's total value (e.g., 1.5% for interest income)"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="form-row" style={{ marginTop: '12px' }}>
+            <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                id="track-dividends-as-income"
+                type="checkbox"
+                checked={trackDividendsAsIncome}
+                onChange={(e) => {
+                  setTrackDividendsAsIncome(e.target.checked);
+                  if (!e.target.checked) {
+                    setDividendRate(""); // Clear dividend rate when unchecked
+                  }
+                }}
+              />
+              <label htmlFor="track-dividends-as-income" style={{ margin: 0, cursor: 'pointer' }}>
+                Track Dividends as Taxable Income
+              </label>
+            </div>
+          </div>
+
+          {trackDividendsAsIncome && (
+            <>
+              <div className="form-row" style={{ marginTop: '12px' }}>
+                <div className="form-field">
+                  <label htmlFor="dividend-rate">Dividend Rate (%)</label>
+                  <input
+                    id="dividend-rate"
+                    type="number"
+                    step="0.1"
+                    placeholder="Dividend Rate"
+                    value={dividendRate}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setDividendRate(e.target.value)}
+                    title="Dividend rate as a percentage of the asset's total value (e.g., 2% for dividend yield)"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {(trackInterestAsIncome || trackDividendsAsIncome) && (
             <div style={{ 
               marginTop: '8px', 
               padding: '8px', 
@@ -335,21 +459,7 @@ export default function AssetFormModal({
               fontSize: '0.9rem',
               color: '#0066cc'
             }}>
-              When enabled, asset growth will be set to 0% and a linked income item will be created/updated to track interest as taxable income. The interest rate you enter above will be used for the income item.
-            </div>
-          )}
-
-          {warningMessage && (
-            <div style={{ 
-              marginTop: '8px', 
-              padding: '8px', 
-              backgroundColor: '#fff3cd', 
-              borderRadius: '4px',
-              fontSize: '0.9rem',
-              color: '#856404',
-              borderLeft: '4px solid #ffc107'
-            }}>
-              {warningMessage}
+              When enabled, linked income items will be created/updated to track interest/dividends as taxable income. The Internal Growth Rate above represents the asset's appreciation (e.g., equity growth), while the Interest/Dividend Rates represent income generated. Dividends will be automatically reinvested back into the asset.
             </div>
           )}
 
