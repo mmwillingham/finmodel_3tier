@@ -166,8 +166,18 @@ export default function AssetFormModal({
         assetId = itemToEdit.id;
       } else {
         savedAsset = await AssetService.create(assetPayload);
+        // Axios response structure: response.data contains the actual response body
         assetId = savedAsset.data?.id;
+        if (!assetId) {
+          console.error("Failed to get asset ID from response:", savedAsset);
+          alert("Failed to create asset. Please try again.");
+          return;
+        }
       }
+
+      console.log("Asset saved with ID:", assetId);
+      console.log("Track Interest:", trackInterestAsIncome, "Rate:", interestRate);
+      console.log("Track Dividends:", trackDividendsAsIncome, "Rate:", dividendRate);
 
       // Handle interest tracking income item (separate from asset growth)
       const interestPercent = trackInterestAsIncome ? parseFloat(interestRate || 0) : null;
@@ -197,10 +207,19 @@ export default function AssetFormModal({
 
         if (existingLinkedInterestId) {
           // Update existing income item
+          console.log("Updating existing interest income item:", existingLinkedInterestId);
           await CashFlowService.update(existingLinkedInterestId, incomePayload);
         } else {
           // Create new income item
-          await CashFlowService.create(incomePayload);
+          console.log("Creating new interest income item with payload:", incomePayload);
+          try {
+            const result = await CashFlowService.create(incomePayload);
+            console.log("Interest income item created:", result);
+          } catch (error) {
+            console.error("Failed to create interest income item:", error);
+            alert(`Failed to create interest income item: ${error.response?.data?.detail || error.message}`);
+            throw error; // Re-throw to prevent continuing
+          }
         }
       } else if (!trackInterestAsIncome && existingLinkedInterestId) {
         // User unchecked the box - delete the linked income item
@@ -242,10 +261,19 @@ export default function AssetFormModal({
 
         if (existingLinkedDividendId) {
           // Update existing income item
+          console.log("Updating existing dividend income item:", existingLinkedDividendId);
           await CashFlowService.update(existingLinkedDividendId, incomePayload);
         } else {
           // Create new income item
-          await CashFlowService.create(incomePayload);
+          console.log("Creating new dividend income item with payload:", incomePayload);
+          try {
+            const result = await CashFlowService.create(incomePayload);
+            console.log("Dividend income item created:", result);
+          } catch (error) {
+            console.error("Failed to create dividend income item:", error);
+            alert(`Failed to create dividend income item: ${error.response?.data?.detail || error.message}`);
+            throw error; // Re-throw to prevent continuing
+          }
         }
       } else if (!trackDividendsAsIncome && existingLinkedDividendId) {
         // User unchecked the box - delete the linked income item
@@ -372,8 +400,8 @@ export default function AssetFormModal({
             </div>
           </div>
 
-          <div className="form-row" style={{ marginTop: '12px' }}>
-            <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
               <input
                 id="track-interest-as-income"
                 type="checkbox"
@@ -389,30 +417,25 @@ export default function AssetFormModal({
                 Track Interest as Taxable Income
               </label>
             </div>
+            {trackInterestAsIncome && (
+              <div className="form-field" style={{ minWidth: '150px' }}>
+                <label htmlFor="interest-rate">Interest Rate (%)</label>
+                <input
+                  id="interest-rate"
+                  type="number"
+                  step="0.1"
+                  placeholder="Interest Rate"
+                  value={interestRate}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setInterestRate(e.target.value)}
+                  title="Interest rate as a percentage of the asset's total value (e.g., 1.5% for interest income)"
+                />
+              </div>
+            )}
           </div>
 
-          {trackInterestAsIncome && (
-            <>
-              <div className="form-row" style={{ marginTop: '12px' }}>
-                <div className="form-field">
-                  <label htmlFor="interest-rate">Interest Rate (%)</label>
-                  <input
-                    id="interest-rate"
-                    type="number"
-                    step="0.1"
-                    placeholder="Interest Rate"
-                    value={interestRate}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setInterestRate(e.target.value)}
-                    title="Interest rate as a percentage of the asset's total value (e.g., 1.5% for interest income)"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="form-row" style={{ marginTop: '12px' }}>
-            <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
               <input
                 id="track-dividends-as-income"
                 type="checkbox"
@@ -428,27 +451,22 @@ export default function AssetFormModal({
                 Track Dividends as Taxable Income
               </label>
             </div>
-          </div>
-
-          {trackDividendsAsIncome && (
-            <>
-              <div className="form-row" style={{ marginTop: '12px' }}>
-                <div className="form-field">
-                  <label htmlFor="dividend-rate">Dividend Rate (%)</label>
-                  <input
-                    id="dividend-rate"
-                    type="number"
-                    step="0.1"
-                    placeholder="Dividend Rate"
-                    value={dividendRate}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setDividendRate(e.target.value)}
-                    title="Dividend rate as a percentage of the asset's total value (e.g., 2% for dividend yield)"
-                  />
-                </div>
+            {trackDividendsAsIncome && (
+              <div className="form-field" style={{ minWidth: '150px' }}>
+                <label htmlFor="dividend-rate">Dividend Rate (%)</label>
+                <input
+                  id="dividend-rate"
+                  type="number"
+                  step="0.1"
+                  placeholder="Dividend Rate"
+                  value={dividendRate}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setDividendRate(e.target.value)}
+                  title="Dividend rate as a percentage of the asset's total value (e.g., 2% for dividend yield)"
+                />
               </div>
-            </>
-          )}
+            )}
+          </div>
 
           {(trackInterestAsIncome || trackDividendsAsIncome) && (
             <div style={{ 
