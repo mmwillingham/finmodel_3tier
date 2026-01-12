@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line, Bar, Chart } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
-import { calculateYearFraction } from '../utils/dateUtils.js';
+import { calculateYearFraction } from '../utils/dateUtils';
 
 // Register Chart.js components for combo charts
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
