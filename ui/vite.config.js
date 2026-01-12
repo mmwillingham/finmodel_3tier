@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
+    resolve: {
+      extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+    },
     server: {
       port: 3000,
       proxy: {
