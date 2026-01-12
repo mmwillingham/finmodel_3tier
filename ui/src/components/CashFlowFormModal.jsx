@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import CashFlowService from "../services/cashflow.service";
 import SettingsService from "../services/settings.service";
 import AssetService from "../services/asset.service"; // New import
@@ -21,49 +21,6 @@ export default function CashFlowFormModal({
   expenseItems = [], // Expense items for tax calculation
 }) {
   const { userSettings } = useAuth();
-  
-  // Calculate current year federal tax for Federal Income Tax expense item
-  const calculateCurrentYearTax = () => {
-    if (!userSettings || (itemToEdit?.description || newItem.description) !== FEDERAL_TAX_EXPENSE_DESCRIPTION) {
-      return null;
-    }
-    
-    try {
-      const currentYear = new Date().getFullYear();
-      
-      // Sum taxable income (excluding the Federal Income Tax expense item itself)
-      const totalTaxableIncome = (incomeItems || []).reduce((sum, item) => {
-        if (item.taxable && item.yearly_value) {
-          return sum + (item.yearly_value || 0);
-        }
-        return sum;
-      }, 0);
-      
-      // Sum tax-deductible expenses (excluding the Federal Income Tax expense item itself)
-      const totalTaxDeductibleExpenses = (expenseItems || []).reduce((sum, item) => {
-        if (item.description !== FEDERAL_TAX_EXPENSE_DESCRIPTION && item.tax_deductible && item.yearly_value) {
-          return sum + (item.yearly_value || 0);
-        }
-        return sum;
-      }, 0);
-      
-      const taxResult = calculateTaxableIncome(
-        totalTaxableIncome,
-        totalTaxDeductibleExpenses,
-        userSettings.tax_filing_status || "Single",
-        userSettings.person1_birthdate,
-        userSettings.person2_birthdate,
-        currentYear
-      );
-      
-      return Math.round(taxResult.taxOwed || 0);
-    } catch (error) {
-      console.error('Error calculating current year tax:', error);
-      return null;
-    }
-  };
-  
-  const currentYearTaxValue = calculateCurrentYearTax();
   const [typeOptions, setTypeOptions] = useState([]);
   const [personOptions, setPersonOptions] = useState([]);
   const [defaultInflation, setDefaultInflation] = useState(2.0);
@@ -425,21 +382,66 @@ export default function CashFlowFormModal({
                   />
                 </div>
               )}
-              {newItem.description === "Federal Income Tax (Calculated)" ? (
-                <>
-                  <input
-                    id="value-input"
-                    type="number"
-                    step="1"
-                    value={currentYearTaxValue !== null ? currentYearTaxValue : (itemToEdit?.yearly_value || 0)}
-                    disabled
-                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                  />
-                  <div style={{ marginTop: '6px', fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>
-                    This value is calculated automatically during projections based on your taxable income and tax filing status. The value shown is for the current year ({new Date().getFullYear()}).
-                  </div>
-                </>
-              ) : (
+              {(() => {
+                const description = itemToEdit?.description || newItem.description;
+                const isFederalTax = description === FEDERAL_TAX_EXPENSE_DESCRIPTION;
+                
+                if (isFederalTax) {
+                  // Calculate current year tax for Federal Income Tax expense item
+                  let currentYearTaxValue = null;
+                  if (userSettings) {
+                    try {
+                      const currentYear = new Date().getFullYear();
+                      
+                      // Sum taxable income
+                      const totalTaxableIncome = (incomeItems || []).reduce((sum, item) => {
+                        if (item.taxable && item.yearly_value) {
+                          return sum + (item.yearly_value || 0);
+                        }
+                        return sum;
+                      }, 0);
+                      
+                      // Sum tax-deductible expenses (excluding the Federal Income Tax expense item itself)
+                      const totalTaxDeductibleExpenses = (expenseItems || []).reduce((sum, item) => {
+                        if (item.description !== FEDERAL_TAX_EXPENSE_DESCRIPTION && item.tax_deductible && item.yearly_value) {
+                          return sum + (item.yearly_value || 0);
+                        }
+                        return sum;
+                      }, 0);
+                      
+                      const taxResult = calculateTaxableIncome(
+                        totalTaxableIncome,
+                        totalTaxDeductibleExpenses,
+                        userSettings.tax_filing_status || "Single",
+                        userSettings.person1_birthdate,
+                        userSettings.person2_birthdate,
+                        currentYear
+                      );
+                      
+                      currentYearTaxValue = Math.round(taxResult.taxOwed || 0);
+                    } catch (error) {
+                      console.error('Error calculating current year tax:', error);
+                    }
+                  }
+                  
+                  return (
+                    <>
+                      <input
+                        id="value-input"
+                        type="number"
+                        step="1"
+                        value={currentYearTaxValue !== null ? currentYearTaxValue : (itemToEdit?.yearly_value || 0)}
+                        disabled
+                        style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                      />
+                      <div style={{ marginTop: '6px', fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>
+                        This value is calculated automatically during projections based on your taxable income and tax filing status. The value shown is for the current year ({new Date().getFullYear()}).
+                      </div>
+                    </>
+                  );
+                }
+                return null;
+              })() || (
                 <input
                   id="value-input"
                   type="number"
