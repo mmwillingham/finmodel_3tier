@@ -7,65 +7,65 @@ Calculates federal income tax based on:
 - Taxable income (income minus deductions)
 - Tax-deductible expenses
 
-Uses 2024 federal tax brackets and standard deductions.
+Uses 2025 federal tax brackets and standard deductions.
 """
 
 from typing import List, Tuple
 from datetime import datetime
 
 
-# 2024 Federal Tax Brackets (Single)
+# 2025 Federal Tax Brackets (Single)
 TAX_BRACKETS_SINGLE = [
-    (0, 0.10),          # 10% up to $11,600
-    (11600, 0.12),      # 12% from $11,600 to $47,150
-    (47150, 0.22),      # 22% from $47,150 to $100,525
-    (100525, 0.24),     # 24% from $100,525 to $191,950
-    (191950, 0.32),     # 32% from $191,950 to $243,725
-    (243725, 0.35),     # 35% from $243,725 to $609,350
-    (609350, 0.37),     # 37% above $609,350
+    (0, 0.10),          # 10% up to $11,925
+    (11925, 0.12),      # 12% from $11,925 to $48,475
+    (48475, 0.22),      # 22% from $48,475 to $103,350
+    (103350, 0.24),     # 24% from $103,350 to $197,300
+    (197300, 0.32),     # 32% from $197,300 to $250,525
+    (250525, 0.35),     # 35% from $250,525 to $626,350
+    (626350, 0.37),     # 37% above $626,350
 ]
 
-# 2024 Federal Tax Brackets (Married Filing Jointly)
+# 2025 Federal Tax Brackets (Married Filing Jointly)
 TAX_BRACKETS_MARRIED_JOINTLY = [
-    (0, 0.10),          # 10% up to $23,200
-    (23200, 0.12),      # 12% from $23,200 to $94,300
-    (94300, 0.22),      # 22% from $94,300 to $201,050
-    (201050, 0.24),     # 24% from $201,050 to $383,900
-    (383900, 0.32),     # 32% from $383,900 to $487,450
-    (487450, 0.35),     # 35% from $487,450 to $731,200
-    (731200, 0.37),     # 37% above $731,200
+    (0, 0.10),          # 10% up to $23,850
+    (23850, 0.12),      # 12% from $23,850 to $96,950
+    (96950, 0.22),      # 22% from $96,950 to $206,700
+    (206700, 0.24),     # 24% from $206,700 to $394,600
+    (394600, 0.32),     # 32% from $394,600 to $501,050
+    (501050, 0.35),     # 35% from $501,050 to $752,700
+    (752700, 0.37),     # 37% above $752,700
 ]
 
-# 2024 Federal Tax Brackets (Married Filing Separately)
+# 2025 Federal Tax Brackets (Married Filing Separately)
 TAX_BRACKETS_MARRIED_SEPARATELY = [
-    (0, 0.10),          # 10% up to $11,600
-    (11600, 0.12),      # 12% from $11,600 to $47,150
-    (47150, 0.22),      # 22% from $47,150 to $100,525
-    (100525, 0.24),     # 24% from $100,525 to $191,950
-    (191950, 0.32),     # 32% from $191,950 to $243,725
-    (243725, 0.35),     # 35% from $243,725 to $365,600
-    (365600, 0.37),     # 37% above $365,600
+    (0, 0.10),          # 10% up to $11,925
+    (11925, 0.12),      # 12% from $11,925 to $48,475
+    (48475, 0.22),      # 22% from $48,475 to $103,350
+    (103350, 0.24),     # 24% from $103,350 to $197,300
+    (197300, 0.32),     # 32% from $197,300 to $250,525
+    (250525, 0.35),     # 35% from $250,525 to $376,350
+    (376350, 0.37),     # 37% above $376,350
 ]
 
-# 2024 Federal Tax Brackets (Head of Household)
+# 2025 Federal Tax Brackets (Head of Household)
 TAX_BRACKETS_HEAD_OF_HOUSEHOLD = [
-    (0, 0.10),          # 10% up to $16,550
-    (16550, 0.12),      # 12% from $16,550 to $63,100
-    (63100, 0.22),      # 22% from $63,100 to $100,500
-    (100500, 0.24),     # 24% from $100,500 to $191,950
-    (191950, 0.32),     # 32% from $191,950 to $243,700
-    (243700, 0.35),     # 35% from $243,700 to $609,350
-    (609350, 0.37),     # 37% above $609,350
+    (0, 0.10),          # 10% up to $17,000
+    (17000, 0.12),      # 12% from $17,000 to $64,700
+    (64700, 0.22),      # 22% from $64,700 to $103,350
+    (103350, 0.24),     # 24% from $103,350 to $197,300
+    (197300, 0.32),     # 32% from $197,300 to $250,525
+    (250525, 0.35),     # 35% from $250,525 to $626,350
+    (626350, 0.37),     # 37% above $626,350
 ]
 
-# 2024 Standard Deductions
-STANDARD_DEDUCTION_SINGLE = 14600
-STANDARD_DEDUCTION_MARRIED_JOINTLY = 29200
-STANDARD_DEDUCTION_MARRIED_SEPARATELY = 14600
-STANDARD_DEDUCTION_HEAD_OF_HOUSEHOLD = 21900
+# 2025 Standard Deductions
+STANDARD_DEDUCTION_SINGLE = 14950
+STANDARD_DEDUCTION_MARRIED_JOINTLY = 29900
+STANDARD_DEDUCTION_MARRIED_SEPARATELY = 14950
+STANDARD_DEDUCTION_HEAD_OF_HOUSEHOLD = 22400
 
-# Additional standard deduction for age 65+ (2024)
-ADDITIONAL_DEDUCTION_65_PLUS = 1850  # Per person 65 or older
+# Additional standard deduction for age 65+ (2025)
+ADDITIONAL_DEDUCTION_65_PLUS = 1900  # Per person 65 or older
 
 
 def get_tax_brackets(filing_status: str) -> List[Tuple[float, float]]:
@@ -75,6 +75,7 @@ def get_tax_brackets(filing_status: str) -> List[Tuple[float, float]]:
         "Married Filing Jointly": TAX_BRACKETS_MARRIED_JOINTLY,
         "Married Filing Separately": TAX_BRACKETS_MARRIED_SEPARATELY,
         "Head of Household": TAX_BRACKETS_HEAD_OF_HOUSEHOLD,
+        "Qualifying Surviving Spouse": TAX_BRACKETS_MARRIED_JOINTLY,  # Uses same brackets as Married Filing Jointly
     }
     return status_map.get(filing_status, TAX_BRACKETS_SINGLE)
 
@@ -86,13 +87,14 @@ def get_standard_deduction(filing_status: str, person1_age: int = 0, person2_age
         "Married Filing Jointly": STANDARD_DEDUCTION_MARRIED_JOINTLY,
         "Married Filing Separately": STANDARD_DEDUCTION_MARRIED_SEPARATELY,
         "Head of Household": STANDARD_DEDUCTION_HEAD_OF_HOUSEHOLD,
+        "Qualifying Surviving Spouse": STANDARD_DEDUCTION_MARRIED_JOINTLY,  # Uses same deduction as Married Filing Jointly
     }
     
     base = base_deductions.get(filing_status, STANDARD_DEDUCTION_SINGLE)
     
     # Add age-based deductions
     additional = 0
-    if filing_status == "Married Filing Jointly":
+    if filing_status == "Married Filing Jointly" or filing_status == "Qualifying Surviving Spouse":
         if person1_age >= 65:
             additional += ADDITIONAL_DEDUCTION_65_PLUS
         if person2_age >= 65:

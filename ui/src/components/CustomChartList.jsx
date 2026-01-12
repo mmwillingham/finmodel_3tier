@@ -10,6 +10,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [recalculating, setRecalculating] = useState(false);
+  const [recalculatingChartId, setRecalculatingChartId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const [sortConfig, setSortConfig] = useState({ key: 'updated_at', direction: 'desc' });
 
@@ -29,6 +30,21 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   useEffect(() => {
     fetchCharts();
   }, [viewingUserId]);
+
+  const handleRecalculate = async (chartId) => {
+    setRecalculatingChartId(chartId);
+    setMessage('');
+    try {
+      await CustomChartService.recalculate(chartId);
+      setMessage("Chart recalculated successfully!");
+      fetchCharts(); // Refresh the list to show updated data
+    } catch (error) {
+      console.error("Error recalculating chart:", error);
+      setMessage("Failed to recalculate chart.");
+    } finally {
+      setRecalculatingChartId(null);
+    }
+  };
 
   const handleDelete = async (chartId) => {
     setConfirmDialog({
@@ -175,6 +191,15 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
                   </button>
                   <button onClick={() => onEditChart(chart.id)} className="btn-icon" title="Edit">
                     ✏️
+                  </button>
+                  <button 
+                    onClick={() => handleRecalculate(chart.id)} 
+                    className="btn-icon" 
+                    title="Recalculate"
+                    disabled={recalculatingChartId === chart.id}
+                    style={{ opacity: recalculatingChartId === chart.id ? 0.5 : 1 }}
+                  >
+                    {recalculatingChartId === chart.id ? '⏳' : '🔄'}
                   </button>
                   <button onClick={() => handleDelete(chart.id)} className="btn-icon" title="Delete">
                     🗑️

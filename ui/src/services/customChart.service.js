@@ -27,6 +27,10 @@ class CustomChartService {
   recalculateAll() {
     return axios.post(`${API_URL}/recalculate-all`);
   }
+
+  recalculate(chartId) {
+    return axios.post(`${API_URL}/${chartId}/recalculate`);
+  }
 }
 
 const customChartService = new CustomChartService();

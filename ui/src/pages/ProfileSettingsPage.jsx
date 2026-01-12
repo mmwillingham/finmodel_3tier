@@ -309,9 +309,9 @@ const ProfileSettingsPage = () => {
           >
             <option value="Single">Single</option>
             <option value="Married Filing Jointly">Married Filing Jointly</option>
-            <option value="Married Filing Separately">Married Filing Separately (not currently implemented)</option>
-            <option value="Head of Household">Head of Household (not currently implemented)</option>
-            <option value="Qualifying Surviving Spouse">Qualifying Surviving Spouse (not currently implemented)</option>
+            <option value="Married Filing Separately">Married Filing Separately</option>
+            <option value="Head of Household">Head of Household</option>
+            <option value="Qualifying Surviving Spouse">Qualifying Surviving Spouse</option>
           </select>
         </div>
         <div className="form-group-horizontal">
