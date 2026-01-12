@@ -354,23 +354,21 @@ export default function CashFlowFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="value-input">
-                Value
-                {((itemToEdit?.description?.startsWith("Social Security - ")) || (newItem.description?.startsWith("Social Security - "))) && (
-                  <span style={{ marginLeft: '10px', fontSize: '0.85em', fontWeight: 'normal' }}>
-                    <input
-                      type="checkbox"
-                      id="allow-overwrite-checkbox"
-                      checked={allowValueOverwrite}
-                      onChange={(e) => setAllowValueOverwrite(e.target.checked)}
-                      style={{ marginRight: '5px', cursor: 'pointer' }}
-                    />
-                    <label htmlFor="allow-overwrite-checkbox" style={{ cursor: 'pointer', fontWeight: 'normal' }}>
-                      Allow Overwrite
-                    </label>
-                  </span>
-                )}
-              </label>
+              <label htmlFor="value-input">Value</label>
+              {((itemToEdit?.description?.startsWith("Social Security - ")) || (newItem.description?.startsWith("Social Security - "))) && (
+                <div style={{ marginTop: '5px', marginBottom: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label htmlFor="allow-overwrite-checkbox" style={{ cursor: 'pointer', margin: 0 }}>
+                    Allow Overwrite
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="allow-overwrite-checkbox"
+                    checked={allowValueOverwrite}
+                    onChange={(e) => setAllowValueOverwrite(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </div>
+              )}
               {newItem.description === "Federal Income Tax (Calculated)" ? (
                 <div style={{ padding: '8px', backgroundColor: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', fontSize: '0.9em', color: '#666' }}>
                   This value is calculated automatically during projections based on your taxable income and tax filing status.

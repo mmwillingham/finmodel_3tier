@@ -350,7 +350,7 @@ def update_user_settings(
             income_categories = user_settings.income_categories or []
             ss_category = "Social Security" if "Social Security" in income_categories else (income_categories[0] if income_categories else "Other")
             
-            yearly_value = monthly_benefit * 12
+            yearly_value = round(monthly_benefit * 12)
             annual_increase = person1_ss_cola if person1_ss_cola else 0.0
             
             if ss_income:
@@ -431,7 +431,7 @@ def update_user_settings(
             income_categories = user_settings.income_categories or []
             ss_category = "Social Security" if "Social Security" in income_categories else (income_categories[0] if income_categories else "Other")
             
-            yearly_value = monthly_benefit * 12
+            yearly_value = round(monthly_benefit * 12)
             annual_increase = person2_ss_cola if person2_ss_cola else 0.0
             
             if ss_income:
