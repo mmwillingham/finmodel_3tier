@@ -393,7 +393,7 @@ export default function CashFlowFormModal({
                   </select>
                 </div>
 
-                <div className="form-field">
+                <div className="form-field" style={type === "income" && linkedItemType === "asset" ? { gridColumn: "span 2", minWidth: "300px" } : {}}>
                   <label htmlFor="linked-item-select">
                     {type === "income" && linkedItemType === "asset" ? "Linked Assets (Multi-select)" : "Linked Item"}
                   </label>

@@ -647,6 +647,7 @@ export default function SidebarLayout() {
               expenseItems={expenseItems}
               refreshCashflow={refreshCashflow}
               validCategories={cashFlowView === 'expense' ? (userSettings?.expense_categories || []) : (userSettings?.income_categories || [])}
+              assets={assets}
             />
           </div>
         )}

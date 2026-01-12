@@ -19,9 +19,15 @@ export default function AssetFormModal({
   const [interestRate, setInterestRate] = useState(""); // Separate interest rate field
   const [trackDividendsAsIncome, setTrackDividendsAsIncome] = useState(false);
   const [dividendRate, setDividendRate] = useState(""); // Separate dividend rate field
+  const [retirementInterestRate, setRetirementInterestRate] = useState(""); // Interest rate for retirement accounts (reinvested, not taxable)
+  const [retirementDividendRate, setRetirementDividendRate] = useState(""); // Dividend rate for retirement accounts (reinvested, not taxable)
   const [existingLinkedInterestId, setExistingLinkedInterestId] = useState(null);
   const [existingLinkedDividendId, setExistingLinkedDividendId] = useState(null);
   const [warningMessage, setWarningMessage] = useState("");
+  
+  // Check if the selected account is a retirement account
+  const selectedAccount = accounts.find(acc => acc.id === (itemToEdit?.account_id || newItem.account_id));
+  const isRetirementAccount = selectedAccount?.is_retirement || false;
 
   const [newItem, setNewItem] = useState({
     name: "",
@@ -132,6 +138,24 @@ export default function AssetFormModal({
     loadSettings();
   }, [itemToEdit, isOpen]); // Reload categories when modal opens
 
+  // Reset fields when switching between retirement and non-retirement accounts
+  useEffect(() => {
+    // Only reset if account_id actually changed (not on initial load)
+    if (newItem.account_id !== null || itemToEdit?.account_id) {
+      if (isRetirementAccount) {
+        // Switching to retirement: clear taxable income tracking
+        setTrackInterestAsIncome(false);
+        setInterestRate("");
+        setTrackDividendsAsIncome(false);
+        setDividendRate("");
+      } else {
+        // Switching to non-retirement: clear retirement rates
+        setRetirementInterestRate("");
+        setRetirementDividendRate("");
+      }
+    }
+  }, [newItem.account_id, isRetirementAccount]);
+
   const save = async () => {
     if (!newItem.name || !newItem.category || !newItem.value || !newItem.annual_change_type) return;
     
@@ -147,11 +171,20 @@ export default function AssetFormModal({
       return;
     }
 
+    // For retirement accounts, add interest and dividend rates to the growth rate (reinvested, not taxable)
+    // For non-retirement accounts, keep growth rate separate (interest/dividends tracked as income)
+    let totalGrowthRate = parseFloat(newItem.annual_increase_percent || 0);
+    if (isRetirementAccount) {
+      const retirementInterest = parseFloat(retirementInterestRate || 0);
+      const retirementDividend = parseFloat(retirementDividendRate || 0);
+      totalGrowthRate = totalGrowthRate + retirementInterest + retirementDividend;
+    }
+
     const assetPayload = {
       name: newItem.name,
       category: newItem.category,
       value: parseFloat(newItem.value),
-      annual_increase_percent: parseFloat(newItem.annual_increase_percent || 0), // Always use the growth rate
+      annual_increase_percent: totalGrowthRate, // Include retirement interest/dividends in growth rate
       annual_change_type: newItem.annual_change_type,
       account_id: newItem.account_id || null,
       start_date: newItem.start_date || null,
@@ -179,10 +212,13 @@ export default function AssetFormModal({
       console.log("Track Interest:", trackInterestAsIncome, "Rate:", interestRate);
       console.log("Track Dividends:", trackDividendsAsIncome, "Rate:", dividendRate);
 
-      // Handle interest tracking income item (separate from asset growth)
-      const interestPercent = trackInterestAsIncome ? parseFloat(interestRate || 0) : null;
+      // Only create income items for non-retirement accounts
+      // For retirement accounts, interest/dividends are already included in the asset's growth rate
+      if (!isRetirementAccount) {
+        // Handle interest tracking income item (separate from asset growth)
+        const interestPercent = trackInterestAsIncome ? parseFloat(interestRate || 0) : null;
 
-      if (trackInterestAsIncome && interestPercent > 0 && assetId) {
+        if (trackInterestAsIncome && interestPercent > 0 && assetId) {
         // Create or update linked income item
         const incomeItemName = `${newItem.name} Interest`;
         // Try to preserve existing category if updating, otherwise use "Interest"
@@ -231,10 +267,10 @@ export default function AssetFormModal({
         }
       }
 
-      // Handle dividend tracking income item (separate from asset growth)
-      const dividendPercent = trackDividendsAsIncome ? parseFloat(dividendRate || 0) : null;
+        // Handle dividend tracking income item (separate from asset growth)
+        const dividendPercent = trackDividendsAsIncome ? parseFloat(dividendRate || 0) : null;
 
-      if (trackDividendsAsIncome && dividendPercent > 0 && assetId) {
+        if (trackDividendsAsIncome && dividendPercent > 0 && assetId) {
         // Create or update linked income item
         const incomeItemName = `${newItem.name} Dividends`;
         // Try to preserve existing category if updating, otherwise use "Dividends"
@@ -284,6 +320,7 @@ export default function AssetFormModal({
           // Continue even if deletion fails - user can delete manually
         }
       }
+      } // End of non-retirement account block
 
       onSaveSuccess();
       onClose();
@@ -400,85 +437,133 @@ export default function AssetFormModal({
             </div>
           </div>
 
-          <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
-              <input
-                id="track-interest-as-income"
-                type="checkbox"
-                checked={trackInterestAsIncome}
-                onChange={(e) => {
-                  setTrackInterestAsIncome(e.target.checked);
-                  if (!e.target.checked) {
-                    setInterestRate(""); // Clear interest rate when unchecked
-                  }
-                }}
-              />
-              <label htmlFor="track-interest-as-income" style={{ margin: 0, cursor: 'pointer' }}>
-                Track Interest as Taxable Income
-              </label>
-            </div>
-            {trackInterestAsIncome && (
-              <div className="form-field" style={{ minWidth: '150px' }}>
-                <label htmlFor="interest-rate">Interest Rate (%)</label>
-                <input
-                  id="interest-rate"
-                  type="number"
-                  step="0.1"
-                  placeholder="Interest Rate"
-                  value={interestRate}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setInterestRate(e.target.value)}
-                  title="Interest rate as a percentage of the asset's total value (e.g., 1.5% for interest income)"
-                />
+          {!isRetirementAccount && (
+            <>
+              <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
+                  <input
+                    id="track-interest-as-income"
+                    type="checkbox"
+                    checked={trackInterestAsIncome}
+                    onChange={(e) => {
+                      setTrackInterestAsIncome(e.target.checked);
+                      if (!e.target.checked) {
+                        setInterestRate(""); // Clear interest rate when unchecked
+                      }
+                    }}
+                  />
+                  <label htmlFor="track-interest-as-income" style={{ margin: 0, cursor: 'pointer' }}>
+                    Track Interest as Taxable Income
+                  </label>
+                </div>
+                {trackInterestAsIncome && (
+                  <div className="form-field" style={{ minWidth: '150px' }}>
+                    <label htmlFor="interest-rate">Interest Rate (%)</label>
+                    <input
+                      id="interest-rate"
+                      type="number"
+                      step="0.1"
+                      placeholder="Interest Rate"
+                      value={interestRate}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setInterestRate(e.target.value)}
+                      title="Interest rate as a percentage of the asset's total value (e.g., 1.5% for interest income)"
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
-              <input
-                id="track-dividends-as-income"
-                type="checkbox"
-                checked={trackDividendsAsIncome}
-                onChange={(e) => {
-                  setTrackDividendsAsIncome(e.target.checked);
-                  if (!e.target.checked) {
-                    setDividendRate(""); // Clear dividend rate when unchecked
-                  }
-                }}
-              />
-              <label htmlFor="track-dividends-as-income" style={{ margin: 0, cursor: 'pointer' }}>
-                Track Dividends as Taxable Income
-              </label>
-            </div>
-            {trackDividendsAsIncome && (
-              <div className="form-field" style={{ minWidth: '150px' }}>
-                <label htmlFor="dividend-rate">Dividend Rate (%)</label>
-                <input
-                  id="dividend-rate"
-                  type="number"
-                  step="0.1"
-                  placeholder="Dividend Rate"
-                  value={dividendRate}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setDividendRate(e.target.value)}
-                  title="Dividend rate as a percentage of the asset's total value (e.g., 2% for dividend yield)"
-                />
+              <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
+                  <input
+                    id="track-dividends-as-income"
+                    type="checkbox"
+                    checked={trackDividendsAsIncome}
+                    onChange={(e) => {
+                      setTrackDividendsAsIncome(e.target.checked);
+                      if (!e.target.checked) {
+                        setDividendRate(""); // Clear dividend rate when unchecked
+                      }
+                    }}
+                  />
+                  <label htmlFor="track-dividends-as-income" style={{ margin: 0, cursor: 'pointer' }}>
+                    Track Dividends as Taxable Income
+                  </label>
+                </div>
+                {trackDividendsAsIncome && (
+                  <div className="form-field" style={{ minWidth: '150px' }}>
+                    <label htmlFor="dividend-rate">Dividend Rate (%)</label>
+                    <input
+                      id="dividend-rate"
+                      type="number"
+                      step="0.1"
+                      placeholder="Dividend Rate"
+                      value={dividendRate}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setDividendRate(e.target.value)}
+                      title="Dividend rate as a percentage of the asset's total value (e.g., 2% for dividend yield)"
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
-          {(trackInterestAsIncome || trackDividendsAsIncome) && (
-            <div style={{ 
-              marginTop: '8px', 
-              padding: '8px', 
-              backgroundColor: '#e7f3ff', 
-              borderRadius: '4px',
-              fontSize: '0.9rem',
-              color: '#0066cc'
-            }}>
-              When enabled, linked income items will be created/updated to track interest/dividends as taxable income. The Internal Growth Rate above represents the asset's appreciation (e.g., equity growth), while the Interest/Dividend Rates represent income generated. Dividends will be automatically reinvested back into the asset.
-            </div>
+          {isRetirementAccount ? (
+            <>
+              {/* Retirement account: Interest and Dividends are reinvested (not taxable) */}
+              <div className="form-row" style={{ marginTop: '12px' }}>
+                <div className="form-field">
+                  <label htmlFor="retirement-interest-rate">Interest Rate (%)</label>
+                  <input
+                    id="retirement-interest-rate"
+                    type="number"
+                    step="0.1"
+                    placeholder="Interest Rate"
+                    value={retirementInterestRate}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setRetirementInterestRate(e.target.value)}
+                    title="Interest rate that will be added to the asset's growth (reinvested, not taxable)"
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="retirement-dividend-rate">Dividend Rate (%)</label>
+                  <input
+                    id="retirement-dividend-rate"
+                    type="number"
+                    step="0.1"
+                    placeholder="Dividend Rate"
+                    value={retirementDividendRate}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setRetirementDividendRate(e.target.value)}
+                    title="Dividend rate that will be added to the asset's growth (reinvested, not taxable)"
+                  />
+                </div>
+              </div>
+              <div style={{ 
+                marginTop: '8px', 
+                padding: '8px', 
+                backgroundColor: '#e7f3ff', 
+                borderRadius: '4px',
+                fontSize: '0.9rem',
+                color: '#0066cc'
+              }}>
+                For retirement accounts, interest and dividends are automatically reinvested (added to the asset's growth rate) and are not tracked as taxable income. The total growth rate will be: Internal Growth Rate + Interest Rate + Dividend Rate.
+              </div>
+            </>
+          ) : (
+            (trackInterestAsIncome || trackDividendsAsIncome) && (
+              <div style={{ 
+                marginTop: '8px', 
+                padding: '8px', 
+                backgroundColor: '#e7f3ff', 
+                borderRadius: '4px',
+                fontSize: '0.9rem',
+                color: '#0066cc'
+              }}>
+                When enabled, linked income items will be created/updated to track interest/dividends as taxable income. The Internal Growth Rate above represents the asset's appreciation (e.g., equity growth), while the Interest/Dividend Rates represent income generated. Dividends will be automatically reinvested back into the asset.
+              </div>
+            )
           )}
 
           <div className="form-actions">
