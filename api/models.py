@@ -172,6 +172,16 @@ class UserSettings(Base):
     person2_last_name = Column(String, default="")
     person2_birthdate = Column(String, default="") # New field for person 2's birthdate
     person2_cell_phone = Column(String, default="") # New field for person 2's cell phone
+    # Social Security fields for Person 1
+    person1_ss_pia = Column(Float, nullable=True)  # Social Security Full Retirement Monthly Benefit (PIA)
+    person1_ss_retirement_date = Column(String, nullable=True)  # Social Security Retirement Date (YYYY-MM-DD)
+    person1_ss_cola = Column(Float, nullable=True)  # Social Security COLA (avg) - used as Annual Increase Percentage
+    person1_ss_monthly_benefit = Column(Float, nullable=True)  # Calculated Social Security Monthly Benefit
+    # Social Security fields for Person 2
+    person2_ss_pia = Column(Float, nullable=True)  # Social Security Full Retirement Monthly Benefit (PIA)
+    person2_ss_retirement_date = Column(String, nullable=True)  # Social Security Retirement Date (YYYY-MM-DD)
+    person2_ss_cola = Column(Float, nullable=True)  # Social Security COLA (avg) - used as Annual Increase Percentage
+    person2_ss_monthly_benefit = Column(Float, nullable=True)  # Calculated Social Security Monthly Benefit
     address = Column(String, default="")
     city = Column(String, default="")
     state = Column(String, default="")

@@ -7,9 +7,11 @@ import models
 import schemas
 import database
 import auth
+from utils.social_security import calculate_fra, fra_to_date, calculate_monthly_benefit, calculate_spousal_benefit
 
 # Constant to identify the federal tax expense item (must match frontend)
 FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+SOCIAL_SECURITY_INCOME_DESCRIPTION_PREFIX = "Social Security - "
 
 logger = logging.getLogger(__name__)
 
@@ -309,6 +311,162 @@ def update_user_settings(
             setattr(user_settings, key, value)
         elif key != "calculate_federal_tax":  # Skip calculate_federal_tax as it's already handled above
             setattr(user_settings, key, value)
+
+    # Handle Social Security fields - calculate monthly benefits and create/update income items
+    # Get current values (from update_data if present, otherwise from user_settings)
+    person1_ss_pia = update_data.get("person1_ss_pia", user_settings.person1_ss_pia)
+    person1_ss_retirement_date = update_data.get("person1_ss_retirement_date", user_settings.person1_ss_retirement_date)
+    person1_birthdate = update_data.get("person1_birthdate", user_settings.person1_birthdate)
+    person1_ss_cola = update_data.get("person1_ss_cola", user_settings.person1_ss_cola)
+    person2_ss_pia = update_data.get("person2_ss_pia", user_settings.person2_ss_pia)
+    person2_ss_retirement_date = update_data.get("person2_ss_retirement_date", user_settings.person2_ss_retirement_date)
+    person2_birthdate = update_data.get("person2_birthdate", user_settings.person2_birthdate)
+    person2_ss_cola = update_data.get("person2_ss_cola", user_settings.person2_ss_cola)
+    person1_first_name = update_data.get("person1_first_name", user_settings.person1_first_name)
+    person2_first_name = update_data.get("person2_first_name", user_settings.person2_first_name)
+    
+    # Person 1 Social Security
+    if any(key in update_data for key in ["person1_ss_pia", "person1_ss_retirement_date", "person1_birthdate"]):
+        if person1_ss_pia and person1_ss_retirement_date and person1_birthdate:
+            # Calculate monthly benefit
+            fra_date = fra_to_date(person1_birthdate)
+            monthly_benefit = calculate_monthly_benefit(
+                person1_ss_pia,
+                person1_ss_retirement_date,
+                fra_date,
+                person1_birthdate
+            )
+            user_settings.person1_ss_monthly_benefit = monthly_benefit
+            
+            # Create or update income item
+            ss_income_description = f"{SOCIAL_SECURITY_INCOME_DESCRIPTION_PREFIX}{person1_first_name or 'Person 1'}"
+            ss_income = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == True,
+                models.CashFlowItem.description == ss_income_description
+            ).first()
+            
+            # Get income categories
+            income_categories = user_settings.income_categories or []
+            ss_category = "Social Security" if "Social Security" in income_categories else (income_categories[0] if income_categories else "Other")
+            
+            yearly_value = monthly_benefit * 12
+            annual_increase = person1_ss_cola if person1_ss_cola else 0.0
+            
+            if ss_income:
+                # Update existing item
+                ss_income.yearly_value = yearly_value
+                ss_income.annual_increase_percent = annual_increase
+                ss_income.start_date = person1_ss_retirement_date
+                ss_income.person = person1_first_name or "Person 1"
+                ss_income.category = ss_category
+                logger.info(f"Updated Social Security income item for Person 1: {yearly_value}")
+            else:
+                # Create new item
+                ss_income = models.CashFlowItem(
+                    owner_id=current_user.id,
+                    is_income=True,
+                    category=ss_category,
+                    description=ss_income_description,
+                    frequency="yearly",
+                    yearly_value=yearly_value,
+                    annual_increase_percent=annual_increase,
+                    start_date=person1_ss_retirement_date,
+                    person=person1_first_name or "Person 1",
+                    taxable=True,  # Social Security may be partially taxable, but we'll default to taxable
+                )
+                db.add(ss_income)
+                logger.info(f"Created Social Security income item for Person 1: {yearly_value}")
+        else:
+            # If required fields are missing, clear benefit and delete income item
+            user_settings.person1_ss_monthly_benefit = None
+            ss_income_description = f"{SOCIAL_SECURITY_INCOME_DESCRIPTION_PREFIX}{person1_first_name or 'Person 1'}"
+            ss_income = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == True,
+                models.CashFlowItem.description == ss_income_description
+            ).first()
+            if ss_income:
+                db.delete(ss_income)
+                logger.info(f"Deleted Social Security income item for Person 1")
+    
+    # Person 2 Social Security
+    if any(key in update_data for key in ["person2_ss_pia", "person2_ss_retirement_date", "person2_birthdate", "person1_ss_pia", "person1_birthdate"]):
+        if person2_ss_pia and person2_ss_retirement_date and person2_birthdate:
+            # Calculate Person 2's own benefit
+            person2_fra_date = fra_to_date(person2_birthdate)
+            person2_own_benefit = calculate_monthly_benefit(
+                person2_ss_pia,
+                person2_ss_retirement_date,
+                person2_fra_date,
+                person2_birthdate
+            )
+            
+            # Calculate spousal benefit if Person 1 data is available
+            # Person 2's benefit is the higher of their own benefit or spousal benefit
+            monthly_benefit = person2_own_benefit
+            if person1_ss_pia:
+                spousal_benefit = calculate_spousal_benefit(
+                    person1_ss_pia,
+                    person2_ss_retirement_date,
+                    person2_fra_date,
+                    person2_birthdate
+                )
+                monthly_benefit = max(person2_own_benefit, spousal_benefit)
+            
+            user_settings.person2_ss_monthly_benefit = monthly_benefit
+            
+            # Create or update income item
+            ss_income_description = f"{SOCIAL_SECURITY_INCOME_DESCRIPTION_PREFIX}{person2_first_name or 'Person 2'}"
+            ss_income = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == True,
+                models.CashFlowItem.description == ss_income_description
+            ).first()
+            
+            # Get income categories
+            income_categories = user_settings.income_categories or []
+            ss_category = "Social Security" if "Social Security" in income_categories else (income_categories[0] if income_categories else "Other")
+            
+            yearly_value = monthly_benefit * 12
+            annual_increase = person2_ss_cola if person2_ss_cola else 0.0
+            
+            if ss_income:
+                # Update existing item
+                ss_income.yearly_value = yearly_value
+                ss_income.annual_increase_percent = annual_increase
+                ss_income.start_date = person2_ss_retirement_date
+                ss_income.person = person2_first_name or "Person 2"
+                ss_income.category = ss_category
+                logger.info(f"Updated Social Security income item for Person 2: {yearly_value}")
+            else:
+                # Create new item
+                ss_income = models.CashFlowItem(
+                    owner_id=current_user.id,
+                    is_income=True,
+                    category=ss_category,
+                    description=ss_income_description,
+                    frequency="yearly",
+                    yearly_value=yearly_value,
+                    annual_increase_percent=annual_increase,
+                    start_date=person2_ss_retirement_date,
+                    person=person2_first_name or "Person 2",
+                    taxable=True,  # Social Security may be partially taxable, but we'll default to taxable
+                )
+                db.add(ss_income)
+                logger.info(f"Created Social Security income item for Person 2: {yearly_value}")
+        else:
+            # If required fields are missing, clear benefit and delete income item
+            user_settings.person2_ss_monthly_benefit = None
+            ss_income_description = f"{SOCIAL_SECURITY_INCOME_DESCRIPTION_PREFIX}{person2_first_name or 'Person 2'}"
+            ss_income = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == True,
+                models.CashFlowItem.description == ss_income_description
+            ).first()
+            if ss_income:
+                db.delete(ss_income)
+                logger.info(f"Deleted Social Security income item for Person 2")
 
     db.commit()
     db.refresh(user_settings)

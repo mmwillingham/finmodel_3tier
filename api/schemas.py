@@ -254,6 +254,16 @@ class UserSettingsBase(BaseModel):
     person2_last_name: str = ""
     person2_birthdate: Optional[str] = None # Make optional
     person2_cell_phone: Optional[str] = None # Make optional
+    # Social Security fields for Person 1
+    person1_ss_pia: Optional[float] = None  # Social Security Full Retirement Monthly Benefit (PIA)
+    person1_ss_retirement_date: Optional[str] = None  # Social Security Retirement Date (YYYY-MM-DD)
+    person1_ss_cola: Optional[float] = None  # Social Security COLA (avg) - used as Annual Increase Percentage
+    person1_ss_monthly_benefit: Optional[float] = None  # Calculated Social Security Monthly Benefit
+    # Social Security fields for Person 2
+    person2_ss_pia: Optional[float] = None  # Social Security Full Retirement Monthly Benefit (PIA)
+    person2_ss_retirement_date: Optional[str] = None  # Social Security Retirement Date (YYYY-MM-DD)
+    person2_ss_cola: Optional[float] = None  # Social Security COLA (avg) - used as Annual Increase Percentage
+    person2_ss_monthly_benefit: Optional[float] = None  # Calculated Social Security Monthly Benefit
     address: str = ""
     city: str = ""
     state: str = ""
@@ -284,6 +294,16 @@ class UserSettingsUpdate(BaseModel):
     person2_last_name: Optional[str] = None
     person2_birthdate: Optional[str] = None
     person2_cell_phone: Optional[str] = None
+    # Social Security fields for Person 1
+    person1_ss_pia: Optional[float] = None
+    person1_ss_retirement_date: Optional[str] = None
+    person1_ss_cola: Optional[float] = None
+    person1_ss_monthly_benefit: Optional[float] = None
+    # Social Security fields for Person 2
+    person2_ss_pia: Optional[float] = None
+    person2_ss_retirement_date: Optional[str] = None
+    person2_ss_cola: Optional[float] = None
+    person2_ss_monthly_benefit: Optional[float] = None
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None

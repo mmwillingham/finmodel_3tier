@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming you have this component
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
+import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity';
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
@@ -45,6 +46,14 @@ const ProfileSettingsPage = () => {
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [taxFilingStatus, setTaxFilingStatus] = useState("Single");
+  // Social Security fields for Person 1
+  const [person1SSPIA, setPerson1SSPIA] = useState("");
+  const [person1SSRetirementDate, setPerson1SSRetirementDate] = useState("");
+  const [person1SSCOLA, setPerson1SSCOLA] = useState("");
+  // Social Security fields for Person 2
+  const [person2SSPIA, setPerson2SSPIA] = useState("");
+  const [person2SSRetirementDate, setPerson2SSRetirementDate] = useState("");
+  const [person2SSCOLA, setPerson2SSCOLA] = useState("");
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -68,6 +77,13 @@ const ProfileSettingsPage = () => {
       setState(res.data.state || "");
       setZipCode(res.data.zip_code || "");
       setTaxFilingStatus(res.data.tax_filing_status || "Single");
+      // Load Social Security fields
+      setPerson1SSPIA(res.data.person1_ss_pia?.toString() || "");
+      setPerson1SSRetirementDate(res.data.person1_ss_retirement_date || "");
+      setPerson1SSCOLA(res.data.person1_ss_cola?.toString() || "");
+      setPerson2SSPIA(res.data.person2_ss_pia?.toString() || "");
+      setPerson2SSRetirementDate(res.data.person2_ss_retirement_date || "");
+      setPerson2SSCOLA(res.data.person2_ss_cola?.toString() || "");
     } catch (e) {
       console.error('Failed to load profile settings', e);
       setError('Failed to load profile settings.');
@@ -98,6 +114,13 @@ const ProfileSettingsPage = () => {
         state: state,
         zip_code: zipCode,
         tax_filing_status: taxFilingStatus,
+        // Social Security fields
+        person1_ss_pia: person1SSPIA ? parseFloat(person1SSPIA) : null,
+        person1_ss_retirement_date: person1SSRetirementDate || null,
+        person1_ss_cola: person1SSCOLA ? parseFloat(person1SSCOLA) : null,
+        person2_ss_pia: person2SSPIA ? parseFloat(person2SSPIA) : null,
+        person2_ss_retirement_date: person2SSRetirementDate || null,
+        person2_ss_cola: person2SSCOLA ? parseFloat(person2SSCOLA) : null,
       });
       setMessage('Profile settings saved successfully!');
       setTimeout(() => {
@@ -245,6 +268,163 @@ const ProfileSettingsPage = () => {
             placeholder="(XXX) XXX-XXXX"
           />
         </div>
+
+        {/* Social Security Section for Person 1 */}
+        <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
+          <h3 style={{ marginBottom: '20px', color: '#333' }}>Person 1 - Social Security</h3>
+          <div className="form-group-horizontal">
+            <label htmlFor="person1-ss-fra">
+              Full Retirement Age (FRA)
+            </label>
+            <input
+              id="person1-ss-fra"
+              type="text"
+              value={formatFRADisplay(person1Birthdate)}
+              disabled
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              placeholder="Calculated from date of birth"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person1-ss-pia">
+              Full Retirement Monthly Benefit (PIA)
+            </label>
+            <input
+              id="person1-ss-pia"
+              type="number"
+              step="0.01"
+              value={person1SSPIA}
+              onChange={(e) => setPerson1SSPIA(e.target.value)}
+              placeholder="Available at ssa.gov"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person1-ss-retirement-date">
+              Social Security Retirement Date
+            </label>
+            <input
+              id="person1-ss-retirement-date"
+              type="date"
+              value={person1SSRetirementDate}
+              onChange={(e) => setPerson1SSRetirementDate(e.target.value)}
+              min={getMinRetirementDate(person1Birthdate) || undefined}
+              placeholder="After 62nd birthday"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person1-ss-cola">
+              Social Security COLA (avg) %
+            </label>
+            <input
+              id="person1-ss-cola"
+              type="number"
+              step="0.1"
+              value={person1SSCOLA}
+              onChange={(e) => setPerson1SSCOLA(e.target.value)}
+              placeholder="Average COLA percentage"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person1-ss-monthly-benefit">
+              Monthly Benefit (calculated)
+            </label>
+            <input
+              id="person1-ss-monthly-benefit"
+              type="text"
+              value={person1SSPIA && person1SSRetirementDate ? 
+                `$${calculateMonthlyBenefit(parseFloat(person1SSPIA), person1SSRetirementDate, calculateFRADate(person1Birthdate), person1Birthdate).toFixed(2)}` : 
+                ''}
+              disabled
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              placeholder="Calculated based on PIA and retirement date"
+            />
+          </div>
+        </div>
+
+        {/* Social Security Section for Person 2 */}
+        <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
+          <h3 style={{ marginBottom: '20px', color: '#333' }}>Person 2 (Spouse) - Social Security</h3>
+          <div style={{ 
+            padding: '10px 15px', 
+            backgroundColor: '#e7f3ff', 
+            borderLeft: '4px solid #0066cc',
+            borderRadius: '4px',
+            fontSize: '0.9rem',
+            color: '#004085',
+            marginBottom: '15px'
+          }}>
+            <strong>Note:</strong> Spousal benefit calculations assume Person 1 is the higher earner and both spouses are alive. 
+            Person 2's benefit is the higher of their own benefit or the spousal benefit (32.5-50% of Person 1's PIA, based on when Person 2 claims relative to Person 2's FRA).
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person2-ss-fra">
+              Full Retirement Age (FRA)
+            </label>
+            <input
+              id="person2-ss-fra"
+              type="text"
+              value={formatFRADisplay(person2Birthdate)}
+              disabled
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              placeholder="Calculated from date of birth"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person2-ss-pia">
+              Full Retirement Monthly Benefit (PIA)
+            </label>
+            <input
+              id="person2-ss-pia"
+              type="number"
+              step="0.01"
+              value={person2SSPIA}
+              onChange={(e) => setPerson2SSPIA(e.target.value)}
+              placeholder="Available at ssa.gov"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person2-ss-retirement-date">
+              Social Security Retirement Date
+            </label>
+            <input
+              id="person2-ss-retirement-date"
+              type="date"
+              value={person2SSRetirementDate}
+              onChange={(e) => setPerson2SSRetirementDate(e.target.value)}
+              min={getMinRetirementDate(person2Birthdate) || undefined}
+              placeholder="After 62nd birthday"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person2-ss-cola">
+              Social Security COLA (avg) %
+            </label>
+            <input
+              id="person2-ss-cola"
+              type="number"
+              step="0.1"
+              value={person2SSCOLA}
+              onChange={(e) => setPerson2SSCOLA(e.target.value)}
+              placeholder="Average COLA percentage"
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="person2-ss-monthly-benefit">
+              Monthly Benefit (calculated)
+            </label>
+            <input
+              id="person2-ss-monthly-benefit"
+              type="text"
+              value={person2SSPIA && person2SSRetirementDate ? 
+                `$${calculateMonthlyBenefit(parseFloat(person2SSPIA), person2SSRetirementDate, calculateFRADate(person2Birthdate), person2Birthdate).toFixed(2)}` : 
+                ''}
+              disabled
+              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              placeholder="Calculated based on PIA and retirement date (higher of own or spousal benefit)"
+            />
+          </div>
+        </div>
+
         <div className="form-group-horizontal">
           <label htmlFor="address">
             Address
