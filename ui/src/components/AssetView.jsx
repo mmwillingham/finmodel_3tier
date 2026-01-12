@@ -54,6 +54,13 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     handleCloseModal(); // Close modal on successful save
   };
 
+  // Helper to get account name from account_id
+  const getAccountName = (accountId) => {
+    if (!accountId || !accounts || accounts.length === 0) return '-';
+    const account = accounts.find(acc => acc.id === accountId);
+    return account ? `${account.brokerage} - ${account.account_name}` : '-';
+  };
+
   const handleSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -91,13 +98,6 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
   });
 
   const total = assets.reduce((sum, item) => sum + (item.value || 0), 0);
-
-  // Helper to get account name from account_id
-  const getAccountName = (accountId) => {
-    if (!accountId || !accounts || accounts.length === 0) return '-';
-    const account = accounts.find(acc => acc.id === accountId);
-    return account ? `${account.brokerage} - ${account.account_name}` : '-';
-  };
 
   // Download functions (unchanged)
   const handleDownloadTablePdf = async (tableRef, filename) => {
