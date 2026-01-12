@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming you have this component
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
-import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity';
+import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity.js';
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
