@@ -457,7 +457,7 @@ const AccountsSettingsPage = () => {
                     <thead>
                       <tr>
                         <th style={{ minWidth: '80px' }}>Owner</th>
-                        {editingAccount && <th style={{ minWidth: '120px' }}>Brokerage</th>}
+                        <th style={{ minWidth: '120px' }}>Brokerage</th>
                         <th style={{ minWidth: '120px' }}>Account Name</th>
                         <th style={{ minWidth: '120px' }}>Account Number</th>
                         <th style={{ minWidth: '100px' }}>Retirement</th>
@@ -546,7 +546,13 @@ const AccountsSettingsPage = () => {
                                   </span>
                                 )}
                               </td>
-                              {editingAccount && <td></td>}
+                              <td>
+                                {account.brokerage_id ? (
+                                  brokerages.find(b => b.id === account.brokerage_id)?.name || '-'
+                                ) : (
+                                  '-'
+                                )}
+                              </td>
                               <td style={{ fontWeight: 500 }}>{account.account_name}</td>
                               <td>{account.account_number || '-'}</td>
                               <td>{account.is_retirement ? 'Yes' : 'No'}</td>

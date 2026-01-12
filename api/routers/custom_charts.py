@@ -779,10 +779,20 @@ def update_custom_chart(
                 else:
                     print(f"--- WARNING: Could not find item {item_id} of type {item_type} for user {current_user.id} during chart update. ---"); sys.stdout.flush()
             elif item_type and item_id is None:
+                # Get selected account IDs from series config
+                selected_account_ids = series_config.get('selected_account_ids', [])
+                if isinstance(selected_account_ids, str):
+                    try:
+                        selected_account_ids = json.loads(selected_account_ids) if selected_account_ids else []
+                    except:
+                        selected_account_ids = []
+                
                 if item_type == 'assets':
                     query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
                     if category:  # Filter by category if specified
                         query = query.filter(models.Asset.category == category)
+                    if selected_account_ids:  # Filter by account if specified
+                        query = query.filter(models.Asset.account_id.in_(selected_account_ids))
                     items = query.all()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -1064,6 +1074,12 @@ def update_custom_chart(
                     except (ValueError, TypeError):
                         continue
                 category = series_config.get('category')
+                selected_account_ids = series_config.get('selected_account_ids', [])
+                if isinstance(selected_account_ids, str):
+                    try:
+                        selected_account_ids = json.loads(selected_account_ids) if selected_account_ids else []
+                    except:
+                        selected_account_ids = []
                 
                 if item_type and item_id:
                     account = fetch_and_convert_item(db, current_user, item_type, item_id)
@@ -1080,6 +1096,8 @@ def update_custom_chart(
                         query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
                         if category:
                             query = query.filter(models.Asset.category == category)
+                        if selected_account_ids:  # Filter by account if specified
+                            query = query.filter(models.Asset.account_id.in_(selected_account_ids))
                         items = query.all()
                         for item in items:
                             accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -1387,11 +1405,21 @@ def recalculate_all_charts(
                                     elif item.linked_item_id:
                                         linked_asset_ids_needed.add(item.linked_item_id)
                     elif item_type and item_id is None:
+                        # Get selected account IDs from series config
+                        selected_account_ids = series_config.get('selected_account_ids', [])
+                        if isinstance(selected_account_ids, str):
+                            try:
+                                selected_account_ids = json.loads(selected_account_ids) if selected_account_ids else []
+                            except:
+                                selected_account_ids = []
+                        
                         # Aggregate logic (simplified - see update_custom_chart for full implementation)
                         if item_type == 'assets':
                             query = db.query(models.Asset).filter(models.Asset.owner_id == current_user.id)
                             if category:
                                 query = query.filter(models.Asset.category == category)
+                            if selected_account_ids:  # Filter by account if specified
+                                query = query.filter(models.Asset.account_id.in_(selected_account_ids))
                             items = query.all()
                             for item in items:
                                 accounts_for_projection.append(schemas.ProjectedAccountCreate(
