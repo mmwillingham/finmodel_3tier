@@ -24,6 +24,7 @@ export default function CashFlowFormModal({
   const [percentage, setPercentage] = useState(""); // New state for percentage
   const [reinvestDividends, setReinvestDividends] = useState(false); // NEW: Whether to reinvest dividends
   const [reinvestmentAccountId, setReinvestmentAccountId] = useState(null); // NEW: Account ID for reinvestment
+  const [isQualifiedDividend, setIsQualifiedDividend] = useState(true); // NEW: Whether dividends are qualified (defaults to true)
   const [availableLinkedItems, setAvailableLinkedItems] = useState({
     assets: [],
     liabilities: [],
@@ -108,6 +109,7 @@ export default function CashFlowFormModal({
           setPercentage(itemToEdit.percentage !== null ? itemToEdit.percentage.toString() : "");
           setReinvestDividends(itemToEdit.reinvest_dividends || false); // NEW: Initialize dividend reinvestment
           setReinvestmentAccountId(itemToEdit.reinvestment_account_id || null); // NEW: Initialize reinvestment account
+          setIsQualifiedDividend(itemToEdit.is_qualified_dividend !== undefined ? itemToEdit.is_qualified_dividend : true); // NEW: Initialize qualified dividend (default to true)
 
         } else {
           // Ensure empty defaults for new item
@@ -134,6 +136,7 @@ export default function CashFlowFormModal({
           setPercentage("");
           setReinvestDividends(false); // NEW: Reset dividend reinvestment
           setReinvestmentAccountId(null); // NEW: Reset reinvestment account
+          setIsQualifiedDividend(true); // NEW: Reset qualified dividend (default to true)
         }
       } catch (e) {
         console.error("Failed to load settings or item", e);
@@ -231,6 +234,7 @@ export default function CashFlowFormModal({
       contributes_to_asset_id: type === "expense" ? newItem.contributes_to_asset_id : null, // NEW: Only for expenses
       reinvest_dividends: (type === "income" && (newItem.category?.toLowerCase().includes("dividend") || newItem.description?.toLowerCase().includes("dividend"))) ? reinvestDividends : false, // NEW: Only for dividend income
       reinvestment_account_id: (type === "income" && reinvestDividends) ? reinvestmentAccountId : null, // NEW: Only if reinvesting dividends
+      is_qualified_dividend: type === "income" ? isQualifiedDividend : null, // NEW: Whether dividends are qualified (only for income items, defaults to true)
     };
 
     try {
@@ -577,6 +581,21 @@ export default function CashFlowFormModal({
                       [type === "income" ? "taxable" : "tax_deductible"]: e.target.value === "Yes",
                     })
                   }
+                >
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+            )}
+            {type === "income" && (
+              <div className="form-field"> {/* Qualified Dividend - only for income items */} 
+                <label htmlFor="qualified-dividend-select">
+                  Qualified Dividend
+                </label>
+                <select
+                  id="qualified-dividend-select"
+                  value={isQualifiedDividend ? "Yes" : "No"}
+                  onChange={(e) => setIsQualifiedDividend(e.target.value === "Yes")}
                 >
                   <option value="Yes">Yes</option>
                   <option value="No">No</option>

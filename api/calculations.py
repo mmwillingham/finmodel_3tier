@@ -327,6 +327,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             
             # Track taxable income and tax-deductible expenses for federal tax calculation
             current_year_taxable_income = 0.0
+            current_year_qualified_dividends = 0.0  # NEW: Track qualified dividends separately
             current_year_tax_deductible_expenses = 0.0
             
             # Dictionary to store annual flow values for income/expense items (since they reset to 0)
@@ -587,7 +588,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             if cash_flow_item:
                                 if projected_account.account_type == "income" and cash_flow_item.is_income and cash_flow_item.taxable:
                                     # Use the absolute value (new_balance is positive for income)
-                                    current_year_taxable_income += abs(new_balance)
+                                    income_amount = abs(new_balance)
+                                    current_year_taxable_income += income_amount
+                                    # Track qualified dividends separately if applicable
+                                    if cash_flow_item.is_qualified_dividend:
+                                        current_year_qualified_dividends += income_amount
                                 elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
                                     # Skip federal tax expense item itself
                                     if base_item_name != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
@@ -767,7 +772,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     user_settings.tax_filing_status or "Single",
                                     user_settings.person1_birthdate,
                                     user_settings.person2_birthdate,
-                                    current_projection_year
+                                    current_projection_year,
+                                    qualified_dividends=current_year_qualified_dividends
                                 )
                                 federal_tax_expense_value = tax_owed or 0.0
                                 

@@ -6,6 +6,7 @@ Calculates federal income tax based on:
 - Age (65+ gets higher standard deduction)
 - Taxable income (income minus deductions)
 - Tax-deductible expenses
+- Qualified dividends (taxed at capital gains rates: 0%, 15%, 20%)
 
 Uses 2025 federal tax brackets and standard deductions.
 """
@@ -67,6 +68,32 @@ STANDARD_DEDUCTION_HEAD_OF_HOUSEHOLD = 22400
 # Additional standard deduction for age 65+ (2025)
 ADDITIONAL_DEDUCTION_65_PLUS = 1900  # Per person 65 or older
 
+# 2025 Qualified Dividend / Long-Term Capital Gains Tax Brackets
+# These are the thresholds for determining the rate on qualified dividends
+QUALIFIED_DIVIDEND_BRACKETS_SINGLE = [
+    (0, 0.0),           # 0% up to $47,025
+    (47025, 0.15),      # 15% from $47,025 to $518,900
+    (518900, 0.20),     # 20% above $518,900
+]
+
+QUALIFIED_DIVIDEND_BRACKETS_MARRIED_JOINTLY = [
+    (0, 0.0),           # 0% up to $94,050
+    (94050, 0.15),      # 15% from $94,050 to $583,750
+    (583750, 0.20),     # 20% above $583,750
+]
+
+QUALIFIED_DIVIDEND_BRACKETS_MARRIED_SEPARATELY = [
+    (0, 0.0),           # 0% up to $47,025
+    (47025, 0.15),      # 15% from $47,025 to $291,850
+    (291850, 0.20),     # 20% above $291,850
+]
+
+QUALIFIED_DIVIDEND_BRACKETS_HEAD_OF_HOUSEHOLD = [
+    (0, 0.0),           # 0% up to $63,000
+    (63000, 0.15),      # 15% from $63,000 to $551,350
+    (551350, 0.20),     # 20% above $551,350
+]
+
 
 def get_tax_brackets(filing_status: str) -> List[Tuple[float, float]]:
     """Get tax brackets based on filing status."""
@@ -78,6 +105,18 @@ def get_tax_brackets(filing_status: str) -> List[Tuple[float, float]]:
         "Qualifying Surviving Spouse": TAX_BRACKETS_MARRIED_JOINTLY,  # Uses same brackets as Married Filing Jointly
     }
     return status_map.get(filing_status, TAX_BRACKETS_SINGLE)
+
+
+def get_qualified_dividend_brackets(filing_status: str) -> List[Tuple[float, float]]:
+    """Get qualified dividend tax brackets based on filing status."""
+    status_map = {
+        "Single": QUALIFIED_DIVIDEND_BRACKETS_SINGLE,
+        "Married Filing Jointly": QUALIFIED_DIVIDEND_BRACKETS_MARRIED_JOINTLY,
+        "Married Filing Separately": QUALIFIED_DIVIDEND_BRACKETS_MARRIED_SEPARATELY,
+        "Head of Household": QUALIFIED_DIVIDEND_BRACKETS_HEAD_OF_HOUSEHOLD,
+        "Qualifying Surviving Spouse": QUALIFIED_DIVIDEND_BRACKETS_MARRIED_JOINTLY,  # Uses same brackets as Married Filing Jointly
+    }
+    return status_map.get(filing_status, QUALIFIED_DIVIDEND_BRACKETS_SINGLE)
 
 
 def get_standard_deduction(filing_status: str, person1_age: int = 0, person2_age: int = 0) -> float:
@@ -153,17 +192,7 @@ def calculate_tax(
     # Get standard deduction
     standard_deduction = get_standard_deduction(filing_status, person1_age, person2_age)
     
-    # Adjusted gross income (AGI) = taxable_income + standard_deduction (assuming we're given taxable income after standard deduction)
-    # Actually, if taxable_income is already after deductions, we use it directly
-    # But we need to check: taxable_income should be AFTER standard deduction
-    # For now, assume taxable_income is the AGI minus deductions
-    # So AGI = taxable_income + deductions
-    # But we want to calculate tax on taxable_income (which is AGI - deductions)
-    
     # Taxable income for calculation (should be after standard deduction)
-    # If the input is already taxable income (after deductions), use it
-    # Otherwise, we'd subtract standard deduction first, but we assume it's already done
-    
     income_to_tax = max(0, taxable_income)  # Ensure non-negative
     
     # Get appropriate tax brackets
@@ -193,6 +222,58 @@ def calculate_tax(
     return round(tax, 2)
 
 
+def calculate_qualified_dividend_tax(
+    qualified_dividend_amount: float,
+    total_taxable_income: float,
+    filing_status: str,
+    current_year: int = None,
+) -> float:
+    """
+    Calculate tax on qualified dividends using capital gains rates.
+    
+    Qualified dividends are taxed at special rates (0%, 15%, 20%) based on the taxpayer's
+    total taxable income. All qualified dividends are taxed at the same rate, which is
+    determined by the taxpayer's total taxable income level.
+    
+    Args:
+        qualified_dividend_amount: Amount of qualified dividends
+        total_taxable_income: Total taxable income (ordinary income + qualified dividends, after deductions)
+        filing_status: Tax filing status
+        current_year: Current year (for consistency, though rates don't change mid-year)
+    
+    Returns:
+        Tax owed on qualified dividends
+    """
+    if qualified_dividend_amount <= 0:
+        return 0.0
+    
+    if current_year is None:
+        current_year = datetime.now().year
+    
+    # Get qualified dividend brackets
+    qd_brackets = get_qualified_dividend_brackets(filing_status)
+    
+    # Determine the rate based on total taxable income
+    # All qualified dividends are taxed at the same rate, based on total taxable income
+    rate = 0.0
+    for i, (threshold, bracket_rate) in enumerate(qd_brackets):
+        if i < len(qd_brackets) - 1:
+            next_threshold = qd_brackets[i + 1][0]
+            if total_taxable_income >= threshold and total_taxable_income < next_threshold:
+                rate = bracket_rate
+                break
+        else:
+            # Last bracket (top bracket)
+            if total_taxable_income >= threshold:
+                rate = bracket_rate
+                break
+    
+    # Apply the rate to all qualified dividends
+    tax = qualified_dividend_amount * rate
+    
+    return round(tax, 2)
+
+
 def calculate_taxable_income(
     total_income: float,
     tax_deductible_expenses: float = 0.0,
@@ -200,17 +281,19 @@ def calculate_taxable_income(
     person1_birthdate: str = None,
     person2_birthdate: str = None,
     current_year: int = None,
+    qualified_dividends: float = 0.0,
 ) -> Tuple[float, float, float]:
     """
     Calculate taxable income and tax.
     
     Args:
-        total_income: Total taxable income (sum of all income items with taxable=True)
+        total_income: Total taxable income (sum of all income items with taxable=True, including qualified dividends)
         tax_deductible_expenses: Total tax-deductible expenses (sum of expenses with tax_deductible=True)
         filing_status: Tax filing status
         person1_birthdate: Birthdate of person 1 (YYYY-MM-DD format)
         person2_birthdate: Birthdate of person 2 (YYYY-MM-DD format, optional)
         current_year: Current year for age calculation
+        qualified_dividends: Amount of qualified dividends (subset of total_income, taxed at capital gains rates)
     
     Returns:
         Tuple of (taxable_income, standard_deduction, tax_owed)
@@ -231,7 +314,25 @@ def calculate_taxable_income(
     # Taxable income = AGI - standard deduction
     taxable_income = max(0, agi - standard_deduction)
     
-    # Calculate tax
-    tax_owed = calculate_tax(taxable_income, filing_status, person1_birthdate, person2_birthdate, current_year)
+    # Separate ordinary income and qualified dividends
+    # Note: qualified_dividends is already included in total_income, so we subtract it to get ordinary income
+    ordinary_income = max(0, taxable_income - qualified_dividends)
+    qualified_dividend_income = min(qualified_dividends, taxable_income)
+    
+    # Calculate tax on ordinary income
+    ordinary_tax = calculate_tax(ordinary_income, filing_status, person1_birthdate, person2_birthdate, current_year)
+    
+    # Calculate tax on qualified dividends (if any)
+    qualified_tax = 0.0
+    if qualified_dividend_income > 0:
+        qualified_tax = calculate_qualified_dividend_tax(
+            qualified_dividend_income,
+            taxable_income,
+            filing_status,
+            current_year
+        )
+    
+    # Total tax = tax on ordinary income + tax on qualified dividends
+    tax_owed = ordinary_tax + qualified_tax
     
     return (taxable_income, standard_deduction, tax_owed)
