@@ -25,7 +25,7 @@ export default function CashFlowFormModal({
   const [reinvestDividends, setReinvestDividends] = useState(false); // NEW: Whether to reinvest dividends
   const [reinvestmentAccountId, setReinvestmentAccountId] = useState(null); // NEW: Account ID for reinvestment
   const [isQualifiedDividend, setIsQualifiedDividend] = useState(true); // NEW: Whether dividends are qualified (defaults to true)
-  const [allowValueOverwrite, setAllowValueOverwrite] = useState(true); // NEW: Whether system can overwrite yearly_value (defaults to True)
+  const [allowValueOverwrite, setAllowValueOverwrite] = useState(false); // NEW: Whether user can overwrite the generated value (defaults to False - system controls)
   const [availableLinkedItems, setAvailableLinkedItems] = useState({
     assets: [],
     liabilities: [],
@@ -111,7 +111,7 @@ export default function CashFlowFormModal({
           setReinvestDividends(itemToEdit.reinvest_dividends || false); // NEW: Initialize dividend reinvestment
           setReinvestmentAccountId(itemToEdit.reinvestment_account_id || null); // NEW: Initialize reinvestment account
           setIsQualifiedDividend(itemToEdit.is_qualified_dividend !== undefined ? itemToEdit.is_qualified_dividend : true); // NEW: Initialize qualified dividend (default to true)
-          setAllowValueOverwrite(itemToEdit.allow_value_overwrite !== undefined ? itemToEdit.allow_value_overwrite : true); // NEW: Initialize allow value overwrite (default to true)
+          setAllowValueOverwrite(itemToEdit.allow_value_overwrite !== undefined ? itemToEdit.allow_value_overwrite : false); // NEW: Initialize allow value overwrite (default to false - system controls by default)
 
         } else {
           // Ensure empty defaults for new item
@@ -139,7 +139,7 @@ export default function CashFlowFormModal({
           setReinvestDividends(false); // NEW: Reset dividend reinvestment
           setReinvestmentAccountId(null); // NEW: Reset reinvestment account
           setIsQualifiedDividend(true); // NEW: Reset qualified dividend (default to true)
-          setAllowValueOverwrite(true); // NEW: Reset allow value overwrite (default to true)
+          setAllowValueOverwrite(false); // NEW: Reset allow value overwrite (default to false - system controls)
         }
       } catch (e) {
         console.error("Failed to load settings or item", e);
@@ -354,7 +354,23 @@ export default function CashFlowFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="value-input">Value</label>
+              <label htmlFor="value-input">
+                Value
+                {((itemToEdit?.description?.startsWith("Social Security - ")) || (newItem.description?.startsWith("Social Security - "))) && (
+                  <span style={{ marginLeft: '10px', fontSize: '0.85em', fontWeight: 'normal' }}>
+                    <input
+                      type="checkbox"
+                      id="allow-overwrite-checkbox"
+                      checked={allowValueOverwrite}
+                      onChange={(e) => setAllowValueOverwrite(e.target.checked)}
+                      style={{ marginRight: '5px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="allow-overwrite-checkbox" style={{ cursor: 'pointer', fontWeight: 'normal' }}>
+                      Allow Overwrite
+                    </label>
+                  </span>
+                )}
+              </label>
               {newItem.description === "Federal Income Tax (Calculated)" ? (
                 <div style={{ padding: '8px', backgroundColor: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', fontSize: '0.9em', color: '#666' }}>
                   This value is calculated automatically during projections based on your taxable income and tax filing status.
@@ -367,7 +383,7 @@ export default function CashFlowFormModal({
                   value={isDynamic ? "" : newItem.value}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
-                  disabled={isDynamic}
+                  disabled={isDynamic || ((itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - ")) && !allowValueOverwrite)}
                 />
               )}
             </div>
