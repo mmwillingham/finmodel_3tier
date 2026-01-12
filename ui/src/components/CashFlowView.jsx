@@ -405,6 +405,8 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         item={editingItem}
         type={type}
         onSaveSuccess={handleSaveSuccess}
+        incomeItems={incomeItems}
+        expenseItems={expenseItems}
       />
 
       <ConfirmDialog

@@ -5,7 +5,11 @@ import AssetService from "../services/asset.service"; // New import
 import LiabilityService from "../services/liability.service"; // New import
 import Modal from "./Modal"; // Import the generic Modal component
 import MultiSelectCheckbox from "./MultiSelectCheckbox"; // Import the multi-select checkbox component
+import { useAuth } from '../context/AuthContext';
+import { calculateTaxableIncome } from '../utils/taxCalculator';
 import "./CashFlowFormModal.css"; // Specific styling for this form
+
+const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
 
 export default function CashFlowFormModal({
   isOpen, // From Modal component
@@ -13,7 +17,53 @@ export default function CashFlowFormModal({
   item: itemToEdit, // The item data if we're editing
   type, // 'income' or 'expense'
   onSaveSuccess, // Callback after successful save
+  incomeItems = [], // Income items for tax calculation
+  expenseItems = [], // Expense items for tax calculation
 }) {
+  const { userSettings } = useAuth();
+  
+  // Calculate current year federal tax for Federal Income Tax expense item
+  const calculateCurrentYearTax = () => {
+    if (!userSettings || (itemToEdit?.description || newItem.description) !== FEDERAL_TAX_EXPENSE_DESCRIPTION) {
+      return null;
+    }
+    
+    try {
+      const currentYear = new Date().getFullYear();
+      
+      // Sum taxable income (excluding the Federal Income Tax expense item itself)
+      const totalTaxableIncome = (incomeItems || []).reduce((sum, item) => {
+        if (item.taxable && item.yearly_value) {
+          return sum + (item.yearly_value || 0);
+        }
+        return sum;
+      }, 0);
+      
+      // Sum tax-deductible expenses (excluding the Federal Income Tax expense item itself)
+      const totalTaxDeductibleExpenses = (expenseItems || []).reduce((sum, item) => {
+        if (item.description !== FEDERAL_TAX_EXPENSE_DESCRIPTION && item.tax_deductible && item.yearly_value) {
+          return sum + (item.yearly_value || 0);
+        }
+        return sum;
+      }, 0);
+      
+      const taxResult = calculateTaxableIncome(
+        totalTaxableIncome,
+        totalTaxDeductibleExpenses,
+        userSettings.tax_filing_status || "Single",
+        userSettings.person1_birthdate,
+        userSettings.person2_birthdate,
+        currentYear
+      );
+      
+      return Math.round(taxResult.taxOwed || 0);
+    } catch (error) {
+      console.error('Error calculating current year tax:', error);
+      return null;
+    }
+  };
+  
+  const currentYearTaxValue = calculateCurrentYearTax();
   const [typeOptions, setTypeOptions] = useState([]);
   const [personOptions, setPersonOptions] = useState([]);
   const [defaultInflation, setDefaultInflation] = useState(2.0);
@@ -78,9 +128,13 @@ export default function CashFlowFormModal({
 
         // --- Initialize form data based on itemToEdit or defaults ---
         if (itemToEdit) {
-          const displayValue = itemToEdit.frequency === 'monthly'
-            ? (itemToEdit.yearly_value / 12).toString()
-            : itemToEdit.yearly_value.toString();
+          const isSocialSecurityItem = itemToEdit.description?.startsWith("Social Security - ");
+          const rawValue = itemToEdit.frequency === 'monthly'
+            ? (itemToEdit.yearly_value / 12)
+            : itemToEdit.yearly_value;
+          const displayValue = isSocialSecurityItem
+            ? Math.round(rawValue).toString()
+            : rawValue.toString();
 
           // Map person: if null, use "Family", otherwise use the person name
           let mappedPerson = "Family";
@@ -111,7 +165,9 @@ export default function CashFlowFormModal({
           setReinvestDividends(itemToEdit.reinvest_dividends || false); // NEW: Initialize dividend reinvestment
           setReinvestmentAccountId(itemToEdit.reinvestment_account_id || null); // NEW: Initialize reinvestment account
           setIsQualifiedDividend(itemToEdit.is_qualified_dividend !== undefined ? itemToEdit.is_qualified_dividend : true); // NEW: Initialize qualified dividend (default to true)
-          setAllowValueOverwrite(itemToEdit.allow_value_overwrite !== undefined ? itemToEdit.allow_value_overwrite : false); // NEW: Initialize allow value overwrite (default to false - system controls by default)
+          // For Social Security items, always default to false (system controls) regardless of database value
+          const isSocialSecurity = itemToEdit.description?.startsWith("Social Security - ");
+          setAllowValueOverwrite(isSocialSecurity ? false : (itemToEdit.allow_value_overwrite !== undefined ? itemToEdit.allow_value_overwrite : false)); // NEW: Initialize allow value overwrite (default to false - system controls by default)
 
         } else {
           // Ensure empty defaults for new item
@@ -221,7 +277,7 @@ export default function CashFlowFormModal({
       description: newItem.description,
       frequency: newItem.frequency || "yearly", // Fallback if empty
       // Value handling: if dynamic, send 0 or null; backend will calculate. Otherwise, send parsed value.
-      value: isDynamic ? 0.0 : parseFloat(newItem.value),
+      value: isDynamic ? 0.0 : (() => { const val = parseFloat(newItem.value) || 0; const isSS = (itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - ")); return isSS ? Math.round(val) : val; })(),
       annual_increase_percent: type === "income" ? parseFloat(newItem.annual_increase_percent || 0) : 0,
       inflation_percent: type === "expense" ? parseFloat(newItem.inflation_percent || defaultInflation) : 0,
       person: newItem.person === "Family" ? null : (newItem.person || null),
@@ -370,17 +426,39 @@ export default function CashFlowFormModal({
                 </div>
               )}
               {newItem.description === "Federal Income Tax (Calculated)" ? (
-                <div style={{ padding: '8px', backgroundColor: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', fontSize: '0.9em', color: '#666' }}>
-                  This value is calculated automatically during projections based on your taxable income and tax filing status.
-                </div>
+                <>
+                  <input
+                    id="value-input"
+                    type="number"
+                    step="1"
+                    value={currentYearTaxValue !== null ? currentYearTaxValue : (itemToEdit?.yearly_value || 0)}
+                    disabled
+                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  />
+                  <div style={{ marginTop: '6px', fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>
+                    This value is calculated automatically during projections based on your taxable income and tax filing status. The value shown is for the current year ({new Date().getFullYear()}).
+                  </div>
+                </>
               ) : (
                 <input
                   id="value-input"
                   type="number"
+                  step="1"
                   placeholder={isDynamic ? "Calculated Dynamically" : "Value"}
-                  value={isDynamic ? "" : newItem.value}
+                  value={isDynamic ? "" : (() => {
+                    const isSS = (itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - "));
+                    if (isSS && newItem.value) {
+                      const numVal = parseFloat(newItem.value);
+                      return isNaN(numVal) ? newItem.value : Math.round(numVal).toString();
+                    }
+                    return newItem.value;
+                  })()}
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const isSS = (itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - "));
+                    setNewItem({ ...newItem, value: isSS && val ? Math.round(parseFloat(val) || 0).toString() : val });
+                  }}
                   disabled={isDynamic || ((itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - ")) && !allowValueOverwrite)}
                 />
               )}
