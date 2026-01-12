@@ -156,6 +156,53 @@ const AccountsSettingsPage = () => {
     });
   };
 
+  const handleDeleteBrokerage = async (brokerageId, brokerageName) => {
+    try {
+      // Check if brokerage is in use
+      const usage = await BrokerageService.checkBrokerageUsage(brokerageId);
+      
+      if (usage.in_use) {
+        const accountList = usage.account_names.length > 0 
+          ? `\n\nLinked accounts:\n${usage.account_names.map(name => `  • ${name}`).join('\n')}`
+          : '';
+        setConfirmDialog({
+          isOpen: true,
+          title: 'Cannot Delete Brokerage',
+          message: `Cannot delete brokerage "${brokerageName}" because it is linked to ${usage.account_count} account(s).${accountList}\n\nPlease remove or reassign all accounts linked to this brokerage before deleting it.`,
+          onConfirm: () => {
+            setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
+          }
+        });
+        return;
+      }
+
+      // Brokerage is not in use, proceed with deletion
+      setConfirmDialog({
+        isOpen: true,
+        title: 'Delete Brokerage',
+        message: `Are you sure you want to delete the brokerage "${brokerageName}"?`,
+        onConfirm: async () => {
+          try {
+            await BrokerageService.deleteBrokerage(brokerageId);
+            setMessage('Brokerage deleted successfully!');
+            loadData();
+            setTimeout(() => setMessage(''), 2000);
+          } catch (e) {
+            console.error('Failed to delete brokerage', e);
+            const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+            setMessage(errorMessage);
+            setTimeout(() => setMessage(''), 3000);
+          }
+        }
+      });
+    } catch (e) {
+      console.error('Failed to check brokerage usage', e);
+      const errorMessage = e.response?.data?.detail || 'Error checking brokerage usage';
+      setMessage(errorMessage);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
   // Group accounts by brokerage
   const accountsByBrokerage = accounts.reduce((acc, account) => {
     const key = account.brokerage || 'Unknown';
@@ -268,10 +315,33 @@ const AccountsSettingsPage = () => {
                   backgroundColor: '#e0edfb', 
                   borderRadius: '6px', 
                   fontSize: '0.85em',
-                  fontWeight: 500
+                  fontWeight: 500,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}
               >
                 {b.name}
+                {b.owner_id === currentUser?.id && (
+                  <button
+                    onClick={() => handleDeleteBrokerage(b.id, b.name)}
+                    className="delete-icon-btn"
+                    title="Delete Brokerage"
+                    style={{ 
+                      padding: '2px 4px', 
+                      fontSize: '0.9em',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#dc3545',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    🗑️
+                  </button>
+                )}
               </span>
             ))}
           </div>
@@ -387,6 +457,7 @@ const AccountsSettingsPage = () => {
                     <thead>
                       <tr>
                         <th style={{ minWidth: '80px' }}>Owner</th>
+                        {editingAccount && <th style={{ minWidth: '120px' }}>Brokerage</th>}
                         <th style={{ minWidth: '120px' }}>Account Name</th>
                         <th style={{ minWidth: '120px' }}>Account Number</th>
                         <th style={{ minWidth: '100px' }}>Retirement</th>
@@ -475,6 +546,7 @@ const AccountsSettingsPage = () => {
                                   </span>
                                 )}
                               </td>
+                              {editingAccount && <td></td>}
                               <td style={{ fontWeight: 500 }}>{account.account_name}</td>
                               <td>{account.account_number || '-'}</td>
                               <td>{account.is_retirement ? 'Yes' : 'No'}</td>

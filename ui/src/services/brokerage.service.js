@@ -50,6 +50,16 @@ const BrokerageService = {
       throw error;
     }
   },
+
+  async checkBrokerageUsage(brokerageId) {
+    try {
+      const response = await ApiService.get(`/brokerages/${brokerageId}/usage`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking brokerage usage:', error);
+      throw error;
+    }
+  },
 };
 
 export default BrokerageService;

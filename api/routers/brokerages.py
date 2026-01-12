@@ -123,13 +123,38 @@ def update_brokerage(
     db.refresh(db_brokerage)
     return db_brokerage
 
+@router.get("/{brokerage_id}/usage", response_model=dict)
+def check_brokerage_usage(
+    brokerage_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """Check if a brokerage is in use (linked to any accounts)."""
+    db_brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == brokerage_id).first()
+    if not db_brokerage:
+        raise HTTPException(status_code=404, detail="Brokerage not found")
+    
+    # Check ownership
+    if db_brokerage.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to check this brokerage")
+    
+    # Check if brokerage is linked to any accounts
+    linked_accounts = db.query(models.Account).filter(models.Account.brokerage_id == brokerage_id).all()
+    account_count = len(linked_accounts)
+    
+    return {
+        "in_use": account_count > 0,
+        "account_count": account_count,
+        "account_names": [acc.account_name for acc in linked_accounts] if account_count > 0 else []
+    }
+
 @router.delete("/{brokerage_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_brokerage(
     brokerage_id: int,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Delete a brokerage (requires ownership). Will set brokerage_id to NULL on linked accounts."""
+    """Delete a brokerage (requires ownership). Will only delete if not in use."""
     db_brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == brokerage_id).first()
     if not db_brokerage:
         raise HTTPException(status_code=404, detail="Brokerage not found")
@@ -138,10 +163,14 @@ def delete_brokerage(
     if db_brokerage.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="You do not have permission to delete this brokerage")
     
-    # Set brokerage_id to NULL for linked accounts (cascade handled by database)
+    # Check if brokerage is linked to any accounts
     linked_accounts = db.query(models.Account).filter(models.Account.brokerage_id == brokerage_id).all()
-    for account in linked_accounts:
-        account.brokerage_id = None
+    if linked_accounts:
+        account_names = [acc.account_name for acc in linked_accounts]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete brokerage '{db_brokerage.name}' because it is linked to {len(linked_accounts)} account(s): {', '.join(account_names)}"
+        )
     
     db.delete(db_brokerage)
     db.commit()
