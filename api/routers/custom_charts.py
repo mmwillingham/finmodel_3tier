@@ -333,7 +333,20 @@ def create_custom_chart(
                         # Handle dynamic items (linked to asset)
                         contribution = 0.0
                         account_name = item.description
-                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                        # Check for multi-select linked assets first (newer format)
+                        if item.linked_asset_ids and len(item.linked_asset_ids) > 0 and item.linked_item_type == "asset" and item.percentage is not None:
+                            # Multi-select: Get all linked asset names
+                            linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                            if linked_assets:
+                                # Store linked asset names (comma-separated) in account name with special marker
+                                # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0"
+                                asset_names = [asset.name for asset in linked_assets]
+                                linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                                account_name = item.description + linked_marker
+                                for asset_id in item.linked_asset_ids:
+                                    linked_asset_ids_needed.add(asset_id)
+                        elif item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            # Single linked asset (backward compatibility)
                             linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
                             if linked_asset:
                                 linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
