@@ -452,14 +452,31 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     if projected_account.account_type == "liability" and current_balance > 0:
                         current_balance = -abs(current_balance)
                     
-                    # Check if this is a dynamic cashflow item (linked to an asset)
+                    # Check if this is a dynamic cashflow item (linked to an asset or income)
                     # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0" (single asset)
                     # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0" (multiple assets)
+                    # Format: "ItemName|LINKED_INCOME:IncomeItemName|PERCENTAGE:10.0" (linked to income)
                     linked_asset_names = []
                     linked_percentage = None
+                    linked_income_name = None
                     base_account_name = projected_account.name
                     
-                    if "|LINKED:" in projected_account.name and "|PERCENTAGE:" in projected_account.name:
+                    # Check for expense linked to income
+                    if "|LINKED_INCOME:" in projected_account.name and "|PERCENTAGE:" in projected_account.name and projected_account.account_type == "expense":
+                        parts = projected_account.name.split("|LINKED_INCOME:")
+                        if len(parts) == 2:
+                            base_account_name = parts[0]
+                            rest = parts[1]
+                            percent_parts = rest.split("|PERCENTAGE:")
+                            if len(percent_parts) == 2:
+                                linked_income_name = percent_parts[0].strip()
+                                try:
+                                    linked_percentage = float(percent_parts[1])
+                                except ValueError:
+                                    linked_percentage = None
+                    
+                    # Check for item linked to asset(s)
+                    elif "|LINKED:" in projected_account.name and "|PERCENTAGE:" in projected_account.name:
                         # Extract linked asset name(s) and percentage
                         parts = projected_account.name.split("|LINKED:")
                         if len(parts) == 2:
@@ -479,6 +496,64 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # Skip calculation if item is not active for this year (for income/expense items)
                     if not is_active_for_year and projected_account.account_type in ["income", "expense"]:
                         adjusted_annual_contribution = 0.0
+                    elif linked_income_name and linked_percentage is not None and projected_account.account_type == "expense":
+                        # Expense linked to income - calculate based on linked income value
+                        linked_income_flow_value = 0.0
+                        # Look for the income value in annual_flow_values (it should already be calculated)
+                        for flow_name, flow_value in annual_flow_values.items():
+                            base_flow_name = flow_name.split("|LINKED:")[0].split("|LINKED_INCOME:")[0]
+                            if base_flow_name == linked_income_name:
+                                linked_income_flow_value = flow_value  # Income is positive
+                                break
+                        
+                        # If not found, try to find the income item and calculate it
+                        if linked_income_flow_value == 0.0:
+                            # Query the linked income item to calculate its value for this year
+                            linked_income_item = None
+                            for income_item in all_income_items:
+                                if income_item.description == linked_income_name:
+                                    linked_income_item = income_item
+                                    break
+                            
+                            if linked_income_item:
+                                income_year_fraction = calculate_year_fraction(
+                                    linked_income_item.start_date,
+                                    linked_income_item.end_date,
+                                    current_projection_year
+                                )
+                                
+                                if income_year_fraction > 0.0:
+                                    # Check if it's a dynamic income item
+                                    if linked_income_item.linked_item_type == "asset" and linked_income_item.percentage is not None:
+                                        # Recalculate from linked assets
+                                        linked_asset_ids = []
+                                        if hasattr(linked_income_item, 'linked_asset_ids') and linked_income_item.linked_asset_ids:
+                                            linked_asset_ids = linked_income_item.linked_asset_ids
+                                        if linked_income_item.linked_item_id:
+                                            if linked_income_item.linked_item_id not in linked_asset_ids:
+                                                linked_asset_ids = [linked_income_item.linked_item_id] + linked_asset_ids
+                                        
+                                        if linked_asset_ids:
+                                            total_linked_asset_value = 0.0
+                                            for asset_id in linked_asset_ids:
+                                                for asset in all_assets:
+                                                    if asset.id == asset_id and asset.name in account_current_balances:
+                                                        total_linked_asset_value += abs(account_current_balances[asset.name])
+                                                        break
+                                            
+                                            if total_linked_asset_value > 0:
+                                                linked_income_flow_value = total_linked_asset_value * (linked_income_item.percentage / 100.0) * income_year_fraction
+                                    else:
+                                        # Fixed income - calculate with growth
+                                        base_yearly_value = linked_income_item.yearly_value
+                                        effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
+                                        growth_factor = pow(1 + effective_growth_rate, year - 1)
+                                        linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
+                        
+                        # Calculate expense as percentage of income
+                        expense_amount = abs(linked_income_flow_value) * (linked_percentage / 100.0)
+                        adjusted_annual_contribution = -expense_amount  # Negative for expense
+                        print(f"--- DEBUG: Expense '{base_account_name}' linked to income '{linked_income_name}': {expense_amount:.2f} ({linked_percentage}% of {linked_income_flow_value:.2f}) ---"); sys.stdout.flush()
                     elif linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
                         # Dynamic item: recalculate contribution based on linked asset(s) current value
                         # Only calculate if item is active for this year
@@ -573,14 +648,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     growth_on_balance = current_balance * effective_growth_rate
                     
                     # Calculate growth on contributions (assuming contributions occur mid-year on average for 0.5 factor)
-                    # For dynamic items, growth on contributions is typically 0 since the value is recalculated each year
-                    growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not (linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None) else 0.0
+                    # For dynamic items (linked to assets or income), growth on contributions is typically 0 since the value is recalculated each year
+                    is_dynamic_for_growth = (linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None) or (linked_income_name and linked_percentage is not None)
+                    growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not is_dynamic_for_growth else 0.0
                     
                     # New balance for the end of the current year
                     # For income/expense items, we track the annual flow value (they don't accumulate like assets/liabilities)
                     if projected_account.account_type in ["income", "expense"]:
-                        # Check if this is a dynamic item (linked to assets)
-                        is_dynamic_item = linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None
+                        # Check if this is a dynamic item (linked to assets or income)
+                        is_dynamic_item = (linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None) or (linked_income_name and linked_percentage is not None)
                         
                         if is_dynamic_item:
                             # For dynamic items, the value is already calculated and doesn't need growth applied

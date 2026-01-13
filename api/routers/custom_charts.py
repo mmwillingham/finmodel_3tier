@@ -537,35 +537,41 @@ def create_custom_chart(
                             accounts_for_projection.append(asset_account)
                             added_account_names.add(linked_asset.name)
                 elif item.linked_item_id and item.linked_item_type == "income" and item.percentage is not None:
-                    # Linked to income - ensure the linked income item is included
+                    # Linked to income - ensure the linked income item is included and mark the expense
                     linked_income = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item.linked_item_id, models.CashFlowItem.owner_id == current_user.id).first()
-                    if linked_income and linked_income.description not in included_income_names:
-                        # Auto-include the linked income item
-                        income_contribution = 0.0
-                        income_account_name = linked_income.description
-                        if linked_income.linked_asset_ids and len(linked_income.linked_asset_ids) > 0:
-                            linked_income_assets = db.query(models.Asset).filter(models.Asset.id.in_(linked_income.linked_asset_ids)).all()
-                            if linked_income_assets:
-                                asset_names = [asset.name for asset in linked_income_assets]
-                                linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{linked_income.percentage}"
-                                income_account_name = linked_income.description + linked_marker
-                        elif linked_income.linked_item_id:
-                            linked_income_asset = db.query(models.Asset).filter(models.Asset.id == linked_income.linked_item_id).first()
-                            if linked_income_asset:
-                                linked_marker = f"|LINKED:{linked_income_asset.name}|PERCENTAGE:{linked_income.percentage}"
-                                income_account_name = linked_income.description + linked_marker
-                        else:
-                            income_contribution = linked_income.yearly_value / 12
-                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
-                            name=income_account_name,
-                            account_type='income',
-                            initial_value=0.0,
-                            contribution=income_contribution,
-                            growth_rate=linked_income.annual_increase_percent,
-                            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=linked_income.start_date, end_date=linked_income.end_date
-                        ))
-                        included_income_names.add(linked_income.description)
+                    if linked_income:
+                        # Add marker to expense name to indicate it's linked to income
+                        expense_linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
+                        account_name = item.description + expense_linked_marker
+                        
+                        if linked_income.description not in included_income_names:
+                            # Auto-include the linked income item
+                            income_contribution = 0.0
+                            income_account_name = linked_income.description
+                            if linked_income.linked_asset_ids and len(linked_income.linked_asset_ids) > 0:
+                                linked_income_assets = db.query(models.Asset).filter(models.Asset.id.in_(linked_income.linked_asset_ids)).all()
+                                if linked_income_assets:
+                                    asset_names = [asset.name for asset in linked_income_assets]
+                                    linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{linked_income.percentage}"
+                                    income_account_name = linked_income.description + linked_marker
+                            elif linked_income.linked_item_id:
+                                linked_income_asset = db.query(models.Asset).filter(models.Asset.id == linked_income.linked_item_id).first()
+                                if linked_income_asset:
+                                    linked_marker = f"|LINKED:{linked_income_asset.name}|PERCENTAGE:{linked_income.percentage}"
+                                    income_account_name = linked_income.description + linked_marker
+                            else:
+                                income_contribution = linked_income.yearly_value / 12
+                            accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                                name=income_account_name,
+                                account_type='income',
+                                initial_value=0.0,
+                                contribution=income_contribution,
+                                growth_rate=linked_income.annual_increase_percent,
+                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=linked_income.start_date, end_date=linked_income.end_date
+                            ))
+                            included_income_names.add(linked_income.description)
+                    contribution = 0.0  # Expense linked to income has 0 contribution (calculated dynamically)
                 else:
                     contribution = -(item.yearly_value / 12)
                 accounts_for_projection.append(schemas.ProjectedAccountCreate(

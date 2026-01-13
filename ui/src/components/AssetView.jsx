@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import AssetService from "../services/asset.service";
@@ -62,21 +62,14 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     setSortConfig({ key, direction });
   };
 
-  // Helper to get account name from account_id
-  const getAccountName = (accountId) => {
+  // Helper to get account name from account_id - use useCallback to ensure stable reference
+  const getAccountName = useCallback((accountId) => {
     if (!accountId || !accounts || accounts.length === 0) return '-';
     const account = accounts.find(acc => acc.id === accountId);
     return account ? `${account.brokerage} - ${account.account_name}` : '-';
-  };
+  }, [accounts]);
 
   const sortedAssets = useMemo(() => {
-    // Define getAccountName inside useMemo to avoid initialization issues
-    const getAccountNameLocal = (accountId) => {
-      if (!accountId || !accounts || accounts.length === 0) return '-';
-      const account = accounts.find(acc => acc.id === accountId);
-      return account ? `${account.brokerage} - ${account.account_name}` : '-';
-    };
-
     return [...assets].sort((a, b) => {
       if (!sortConfig.key) return 0;
 
@@ -85,8 +78,8 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
 
       // Handle account name sorting
       if (sortConfig.key === 'account') {
-        aValue = getAccountNameLocal(a.account_id);
-        bValue = getAccountNameLocal(b.account_id);
+        aValue = getAccountName(a.account_id);
+        bValue = getAccountName(b.account_id);
       }
 
       // Handle null/undefined values
