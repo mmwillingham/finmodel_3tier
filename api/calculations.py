@@ -763,12 +763,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
                                         print(f"--- DEBUG: Calculated fixed income '{linked_income_item.description}' for year {year}: {base_yearly_value:.2f} * {growth_factor:.4f} * {income_year_fraction:.4f} = {linked_income_flow_value:.2f} ---"); sys.stdout.flush()
                                 
-                                # Calculate expense as percentage of income
+                                # Calculate expense as percentage of income (already prorated by income_year_fraction)
                                 expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
                                 print(f"--- DEBUG: Dynamic expense '{exp_item.description}' ({exp_item.percentage}% of '{linked_income_item.description}' = {expense_amount:.2f}) contributing to asset '{target_asset.name}' ---"); sys.stdout.flush()
                                 
                                 # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
-                                annual_flow_values[exp_item.description] = -expense_amount * expense_year_fraction
+                                # Use expense_year_fraction to prorate the expense amount for this year
+                                annual_flow_values[exp_item.description] = -expense_amount
                     else:
                         # Fixed expense - calculate with growth
                         base_yearly_value = exp_item.yearly_value
