@@ -57,7 +57,10 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       if (key.endsWith('_Value')) {
         let itemNameFromKey = key.replace('_Value', '');
         // Extract base name if it contains LINKED markers (for dynamic items)
-        if (itemNameFromKey.includes('|LINKED:')) {
+        // Handle both |LINKED: (for assets) and |LINKED_INCOME: (for expenses linked to income)
+        if (itemNameFromKey.includes('|LINKED_INCOME:')) {
+          itemNameFromKey = itemNameFromKey.split('|LINKED_INCOME:')[0];
+        } else if (itemNameFromKey.includes('|LINKED:')) {
           itemNameFromKey = itemNameFromKey.split('|LINKED:')[0];
         }
         const value = dataPoint[key] || 0;

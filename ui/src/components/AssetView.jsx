@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import AssetService from "../services/asset.service";
@@ -73,12 +73,6 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     return map;
   }, [accounts]);
 
-  // Helper function for account name lookup (used in rendering)
-  const getAccountName = useCallback((accountId) => {
-    if (!accountId) return '-';
-    return accountMap.get(accountId) || '-';
-  }, [accountMap]);
-
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => {
       if (!sortConfig.key) return 0;
@@ -151,7 +145,7 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
       const formattedData = assets.map(asset => ({
         Name: asset.name,
         Category: asset.category,
-        Account: getAccountName(asset.account_id),
+        Account: asset.account_id ? (accountMap.get(asset.account_id) || '-') : '-',
         Value: asset.value,
         'Percent': asset.annual_increase_percent,
         'Annual Change': asset.annual_change_type,
@@ -223,7 +217,7 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
             <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
               <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
               <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
-              <td className="cashflow-table-cell">{getAccountName(item.account_id)}</td>
+              <td className="cashflow-table-cell">{item.account_id ? (accountMap.get(item.account_id) || '-') : '-'}</td>
               <td className="cashflow-table-cell">{formatCurrency(item.value)}</td>
               <td className="cashflow-table-cell">{item.annual_change_type}</td>
               <td className="cashflow-table-cell">{item.annual_increase_percent}%</td>
