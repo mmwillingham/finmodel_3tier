@@ -495,9 +495,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
               </tbody>
             </table>
             {/* Download buttons for table */}
-            <div className="table-actions">
-              <button onClick={() => handleDownloadPdf(tableRef, `${chartConfig.name}_Table`)} className="download-btn">Download Table PDF</button>
-              <button onClick={() => handleDownloadCsv(`${chartConfig.name}_Table`)} className="download-btn">Download Table CSV</button>
+            <div className="table-actions" style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+              <button onClick={() => handleDownloadPdf(tableRef, `${chartConfig.name}_Table`)} className="btn-primary-modern">Download PDF</button>
+              <button onClick={() => handleDownloadCsv(`${chartConfig.name}_Table`)} className="btn-primary-modern">Download CSV</button>
             </div>
           </div>
         )}

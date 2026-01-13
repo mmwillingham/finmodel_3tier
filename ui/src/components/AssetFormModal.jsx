@@ -25,8 +25,13 @@ export default function AssetFormModal({
   const [existingLinkedDividendId, setExistingLinkedDividendId] = useState(null);
   const [warningMessage, setWarningMessage] = useState("");
   
-  // Check if the selected account is a retirement account
-  const selectedAccount = accounts.find(acc => acc.id === (itemToEdit?.account_id || newItem.account_id));
+  // Check if the selected account is a retirement account (use useMemo to avoid initialization issues)
+  const selectedAccount = React.useMemo(() => {
+    if (!accounts || accounts.length === 0) return null;
+    const accountId = itemToEdit?.account_id || newItem.account_id;
+    return accounts.find(acc => acc.id === accountId);
+  }, [accounts, itemToEdit?.account_id, newItem.account_id]);
+  
   const isRetirementAccount = selectedAccount?.is_retirement || false;
 
   const [newItem, setNewItem] = useState({

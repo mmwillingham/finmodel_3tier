@@ -100,6 +100,17 @@ export default function CashFlowFormModal({
             mappedPerson = itemToEdit.person;
           }
           
+          // For one-time items, ensure start_date and end_date are the same
+          const isOneTime = itemToEdit.frequency === 'one-time';
+          let startDate = itemToEdit.start_date || "";
+          let endDate = itemToEdit.end_date || "";
+          if (isOneTime) {
+            // Use start_date if available, otherwise end_date, otherwise empty
+            const oneTimeDate = startDate || endDate || "";
+            startDate = oneTimeDate;
+            endDate = oneTimeDate;
+          }
+
           setNewItem(prev => ({
             ...prev,
             ...itemToEdit,
@@ -109,8 +120,8 @@ export default function CashFlowFormModal({
             inflation_percent: itemToEdit.inflation_percent ?? inflation,
             taxable: itemToEdit.taxable ?? false,
             tax_deductible: itemToEdit.tax_deductible ?? false,
-            start_date: itemToEdit.start_date || "",
-            end_date: itemToEdit.end_date || "",
+            start_date: startDate,
+            end_date: endDate,
             contributes_to_asset_id: itemToEdit.contributes_to_asset_id || null, // NEW
           }));
           // Initialize dynamic fields if present in itemToEdit
@@ -664,7 +675,7 @@ export default function CashFlowFormModal({
                 placeholder="Start Date"
                 value={newItem.start_date}
                 onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value })}
-                disabled={isDynamic} // Disable if dynamic
+                disabled={isDynamic || newItem.frequency === "one-time"} // Disable if dynamic or one-time
               />
             </div>
 
@@ -676,7 +687,7 @@ export default function CashFlowFormModal({
                 placeholder="End Date"
                 value={newItem.end_date || ""}
                 onChange={(e) => setNewItem({ ...newItem, end_date: e.target.value })}
-                disabled={isDynamic} // Disable if dynamic
+                disabled={isDynamic || newItem.frequency === "one-time"} // Disable if dynamic or one-time
               />
             </div>
 

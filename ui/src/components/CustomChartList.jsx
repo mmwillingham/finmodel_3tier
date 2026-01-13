@@ -67,7 +67,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   const handleRecalculateAll = async () => {
     setConfirmDialog({
       isOpen: true,
-      title: 'Recalculate All Charts',
+      title: 'Recalculate All',
       message: 'This will recalculate all charts with current data. Continue?',
       onConfirm: async () => {
         setRecalculating(true);
@@ -153,7 +153,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
           disabled={recalculating || charts.length === 0}
           style={{ backgroundColor: recalculating ? '#ccc' : '#28a745', opacity: charts.length === 0 ? 0.5 : 1 }}
         >
-          {recalculating ? 'Recalculating...' : 'Recalculate All Charts'}
+          {recalculating ? 'Recalculating...' : 'Recalculate All'}
         </button>
       </div>
 

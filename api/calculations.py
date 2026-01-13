@@ -579,18 +579,32 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # New balance for the end of the current year
                     # For income/expense items, we track the annual flow value (they don't accumulate like assets/liabilities)
                     if projected_account.account_type in ["income", "expense"]:
-                        # For cashflow items, apply growth each year: yearly_value * (1 + growth_rate)^(year-1)
-                        # adjusted_annual_contribution is the base yearly value (year 1), we need to apply compound growth
-                        # For expenses, adjusted_annual_contribution is already negative, so we apply growth to the absolute value
-                        base_yearly_value = abs(adjusted_annual_contribution)
-                        # Apply growth: value grows by (1 + growth_rate)^(year-1), where year is 1-indexed
-                        growth_factor = pow(1 + effective_growth_rate, year - 1)  # year is 1-indexed
-                        new_balance = base_yearly_value * growth_factor
-                        # Prorate the value based on how many months the item is active in this year
-                        new_balance = new_balance * year_fraction
-                        # Restore sign: expenses are negative, income is positive
-                        if projected_account.account_type == "expense":
-                            new_balance = -new_balance
+                        # Check if this is a dynamic item (linked to assets)
+                        is_dynamic_item = linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None
+                        
+                        if is_dynamic_item:
+                            # For dynamic items, the value is already calculated and doesn't need growth applied
+                            # The growth is built into the asset values themselves
+                            base_yearly_value = abs(adjusted_annual_contribution)
+                            # Prorate the value based on how many months the item is active in this year
+                            new_balance = base_yearly_value * year_fraction
+                            # Restore sign: expenses are negative, income is positive
+                            if projected_account.account_type == "expense":
+                                new_balance = -new_balance
+                        else:
+                            # For fixed cashflow items, apply growth each year: yearly_value * (1 + growth_rate)^(year-1)
+                            # adjusted_annual_contribution is the base yearly value (year 1), we need to apply compound growth
+                            # For expenses, adjusted_annual_contribution is already negative, so we apply growth to the absolute value
+                            base_yearly_value = abs(adjusted_annual_contribution)
+                            # Apply growth: value grows by (1 + growth_rate)^(year-1), where year is 1-indexed
+                            growth_factor = pow(1 + effective_growth_rate, year - 1)  # year is 1-indexed
+                            new_balance = base_yearly_value * growth_factor
+                            # Prorate the value based on how many months the item is active in this year
+                            new_balance = new_balance * year_fraction
+                            # Restore sign: expenses are negative, income is positive
+                            if projected_account.account_type == "expense":
+                                new_balance = -new_balance
+                        
                         # Store the annual flow value before resetting to 0 (needed for data_json)
                         annual_flow_values[projected_account.name] = new_balance
                         
@@ -702,32 +716,32 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 models.CashFlowItem.is_income == True
                             ).first()
                             if linked_income_item:
-                                # Find the linked income item's annual flow value
-                                linked_income_flow_value = 0.0
-                                for flow_name, flow_value in annual_flow_values.items():
-                                    base_name = flow_name.split("|LINKED:")[0]
-                                    if base_name == linked_income_item.description:
-                                        linked_income_flow_value = flow_value  # Income is positive
-                                        break
+                                # Check if income item is active for this year first
+                                current_projection_year = current_year + year - 1
+                                income_year_fraction = calculate_year_fraction(
+                                    linked_income_item.start_date,
+                                    linked_income_item.end_date,
+                                    current_projection_year
+                                )
                                 
-                                # If not found in annual_flow_values, calculate it as fixed income
-                                if linked_income_flow_value == 0.0:
-                                    # Check if income item is active for this year
-                                    current_projection_year = current_year + year - 1
-                                    income_year_fraction = calculate_year_fraction(
-                                        linked_income_item.start_date,
-                                        linked_income_item.end_date,
-                                        current_projection_year
-                                    )
+                                if income_year_fraction <= 0.0:
+                                    # Income item is not active for this year, so expense should be 0
+                                    linked_income_flow_value = 0.0
+                                else:
+                                    # Find the linked income item's annual flow value
+                                    linked_income_flow_value = 0.0
+                                    for flow_name, flow_value in annual_flow_values.items():
+                                        base_name = flow_name.split("|LINKED:")[0]
+                                        if base_name == linked_income_item.description:
+                                            linked_income_flow_value = flow_value  # Income is positive
+                                            break
                                     
-                                    if income_year_fraction > 0.0:
+                                    # If not found in annual_flow_values, calculate it as fixed income
+                                    if linked_income_flow_value == 0.0:
                                         base_yearly_value = linked_income_item.yearly_value
                                         effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
                                         growth_factor = pow(1 + effective_growth_rate, year - 1)
                                         linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
-                                    else:
-                                        # Income item is not active for this year, so expense should be 0
-                                        linked_income_flow_value = 0.0
                                 
                                 # Calculate expense as percentage of income
                                 expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)

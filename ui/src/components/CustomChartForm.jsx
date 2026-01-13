@@ -502,7 +502,7 @@ export default function CustomChartForm({
 
         <div className="modal-actions">
           <button type="submit" disabled={loading}>
-            {loading ? "Saving..." : (chartId ? "Update Chart" : "Create Chart")}
+            {loading ? "Saving..." : (chartId ? "Update" : "Create Chart")}
           </button>
           <button type="button" onClick={onCancel} disabled={loading}>Cancel</button>
         </div>
