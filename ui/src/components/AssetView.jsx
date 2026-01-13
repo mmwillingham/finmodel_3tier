@@ -73,6 +73,12 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     return map;
   }, [accounts]);
 
+  // Helper function for account name lookup (used in rendering)
+  const getAccountName = useCallback((accountId) => {
+    if (!accountId) return '-';
+    return accountMap.get(accountId) || '-';
+  }, [accountMap]);
+
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => {
       if (!sortConfig.key) return 0;

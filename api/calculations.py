@@ -500,71 +500,59 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     if not is_active_for_year and projected_account.account_type in ["income", "expense"]:
                         adjusted_annual_contribution = 0.0
                     elif linked_income_name and linked_percentage is not None and projected_account.account_type == "expense":
-                        # Expense linked to income - calculate based on linked income value
+                        # Expense linked to income - always recalculate income value (don't rely on annual_flow_values which might be stale)
+                        # This ensures the expense adjusts correctly when income changes or ends
                         linked_income_flow_value = 0.0
-                        # Look for the income value in annual_flow_values (it should already be calculated)
-                        # First try exact match, then try base name match
-                        if linked_income_name in annual_flow_values:
-                            linked_income_flow_value = annual_flow_values[linked_income_name]  # Income is positive
-                        else:
-                            # Try matching by base name (in case income item has markers like |LINKED:)
-                            for flow_name, flow_value in annual_flow_values.items():
-                                base_flow_name = flow_name.split("|LINKED:")[0].split("|LINKED_INCOME:")[0]
-                                if base_flow_name == linked_income_name:
-                                    linked_income_flow_value = flow_value  # Income is positive
-                                    break
                         
-                        # If not found, try to find the income item and calculate it
-                        if linked_income_flow_value == 0.0:
-                            # Query the linked income item from database
-                            linked_income_item = None
-                            if db:
-                                linked_income_item = db.query(models.CashFlowItem).filter(
-                                    models.CashFlowItem.owner_id == owner_id,
-                                    models.CashFlowItem.is_income == True,
-                                    models.CashFlowItem.description == linked_income_name
-                                ).first()
-                            else:
-                                # Fallback: search in cash_flow_items_by_description if available
-                                if linked_income_name in cash_flow_items_by_description:
-                                    item = cash_flow_items_by_description[linked_income_name]
-                                    if item.is_income:
-                                        linked_income_item = item
+                        # Query the linked income item from database
+                        linked_income_item = None
+                        if db:
+                            linked_income_item = db.query(models.CashFlowItem).filter(
+                                models.CashFlowItem.owner_id == owner_id,
+                                models.CashFlowItem.is_income == True,
+                                models.CashFlowItem.description == linked_income_name
+                            ).first()
+                        else:
+                            # Fallback: search in cash_flow_items_by_description if available
+                            if linked_income_name in cash_flow_items_by_description:
+                                item = cash_flow_items_by_description[linked_income_name]
+                                if item.is_income:
+                                    linked_income_item = item
+                        
+                        if linked_income_item:
+                            income_year_fraction = calculate_year_fraction(
+                                linked_income_item.start_date,
+                                linked_income_item.end_date,
+                                current_projection_year
+                            )
                             
-                            if linked_income_item:
-                                income_year_fraction = calculate_year_fraction(
-                                    linked_income_item.start_date,
-                                    linked_income_item.end_date,
-                                    current_projection_year
-                                )
-                                
-                                if income_year_fraction > 0.0:
-                                    # Check if it's a dynamic income item
-                                    if linked_income_item.linked_item_type == "asset" and linked_income_item.percentage is not None:
-                                        # Recalculate from linked assets
-                                        linked_asset_ids = []
-                                        if hasattr(linked_income_item, 'linked_asset_ids') and linked_income_item.linked_asset_ids:
-                                            linked_asset_ids = linked_income_item.linked_asset_ids
-                                        if linked_income_item.linked_item_id:
-                                            if linked_income_item.linked_item_id not in linked_asset_ids:
-                                                linked_asset_ids = [linked_income_item.linked_item_id] + linked_asset_ids
+                            if income_year_fraction > 0.0:
+                                # Check if it's a dynamic income item
+                                if linked_income_item.linked_item_type == "asset" and linked_income_item.percentage is not None:
+                                    # Recalculate from linked assets (for current year)
+                                    linked_asset_ids = []
+                                    if hasattr(linked_income_item, 'linked_asset_ids') and linked_income_item.linked_asset_ids:
+                                        linked_asset_ids = linked_income_item.linked_asset_ids
+                                    if linked_income_item.linked_item_id:
+                                        if linked_income_item.linked_item_id not in linked_asset_ids:
+                                            linked_asset_ids = [linked_income_item.linked_item_id] + linked_asset_ids
+                                    
+                                    if linked_asset_ids:
+                                        total_linked_asset_value = 0.0
+                                        for asset_id in linked_asset_ids:
+                                            for asset in all_assets:
+                                                if asset.id == asset_id and asset.name in account_current_balances:
+                                                    total_linked_asset_value += abs(account_current_balances[asset.name])
+                                                    break
                                         
-                                        if linked_asset_ids:
-                                            total_linked_asset_value = 0.0
-                                            for asset_id in linked_asset_ids:
-                                                for asset in all_assets:
-                                                    if asset.id == asset_id and asset.name in account_current_balances:
-                                                        total_linked_asset_value += abs(account_current_balances[asset.name])
-                                                        break
-                                            
-                                            if total_linked_asset_value > 0:
-                                                linked_income_flow_value = total_linked_asset_value * (linked_income_item.percentage / 100.0) * income_year_fraction
-                                    else:
-                                        # Fixed income - calculate with growth
-                                        base_yearly_value = linked_income_item.yearly_value
-                                        effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
-                                        growth_factor = pow(1 + effective_growth_rate, year - 1)
-                                        linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
+                                        if total_linked_asset_value > 0:
+                                            linked_income_flow_value = total_linked_asset_value * (linked_income_item.percentage / 100.0) * income_year_fraction
+                                else:
+                                    # Fixed income - calculate with growth for this specific year
+                                    base_yearly_value = linked_income_item.yearly_value
+                                    effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
+                                    growth_factor = pow(1 + effective_growth_rate, year - 1)
+                                    linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
                         
                         # Calculate expense as percentage of income
                         expense_amount = abs(linked_income_flow_value) * (linked_percentage / 100.0)
