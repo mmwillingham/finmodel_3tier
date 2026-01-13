@@ -74,8 +74,8 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
         if item:
             print(f"--- DEBUG: Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)}) ---"); sys.stdout.flush()
             account_type = 'income' if is_income_item else 'expense'
-            # For dynamic items (linked to asset), contribution will be recalculated each year in projection
-            # Store initial contribution as 0 for dynamic items - it will be recalculated based on linked asset
+            # For dynamic items (linked to asset or income), contribution will be recalculated each year in projection
+            # Store initial contribution as 0 for dynamic items - it will be recalculated based on linked asset/income
             contribution = 0.0
             if item.linked_item_type == "asset" and item.percentage is not None:
                 # Check for multi-select linked assets first
@@ -102,6 +102,17 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                         print(f"--- DEBUG: Dynamic item {item.description} linked to asset {linked_asset.name} with {item.percentage}% ---"); sys.stdout.flush()
                     else:
                         account_name = item.description
+                else:
+                    account_name = item.description
+            elif item.linked_item_type == "income" and item.percentage is not None:
+                # Linked to income - add marker so calculations.py recognizes it
+                linked_income = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item.linked_item_id, models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == True).first()
+                if linked_income:
+                    # Store linked income name in account name with special marker for projection calculation
+                    # Format: "ItemName|LINKED_INCOME:IncomeName|PERCENTAGE:10.0"
+                    linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
+                    account_name = item.description + linked_marker
+                    print(f"--- DEBUG: Dynamic item {item.description} linked to income {linked_income.description} with {item.percentage}% ---"); sys.stdout.flush()
                 else:
                     account_name = item.description
             else:
