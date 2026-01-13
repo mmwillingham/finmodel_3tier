@@ -503,11 +503,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Expense linked to income - calculate based on linked income value
                         linked_income_flow_value = 0.0
                         # Look for the income value in annual_flow_values (it should already be calculated)
-                        for flow_name, flow_value in annual_flow_values.items():
-                            base_flow_name = flow_name.split("|LINKED:")[0].split("|LINKED_INCOME:")[0]
-                            if base_flow_name == linked_income_name:
-                                linked_income_flow_value = flow_value  # Income is positive
-                                break
+                        # First try exact match, then try base name match
+                        if linked_income_name in annual_flow_values:
+                            linked_income_flow_value = annual_flow_values[linked_income_name]  # Income is positive
+                        else:
+                            # Try matching by base name (in case income item has markers like |LINKED:)
+                            for flow_name, flow_value in annual_flow_values.items():
+                                base_flow_name = flow_name.split("|LINKED:")[0].split("|LINKED_INCOME:")[0]
+                                if base_flow_name == linked_income_name:
+                                    linked_income_flow_value = flow_value  # Income is positive
+                                    break
                         
                         # If not found, try to find the income item and calculate it
                         if linked_income_flow_value == 0.0:

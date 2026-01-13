@@ -73,12 +73,6 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     return map;
   }, [accounts]);
 
-  // Helper function for account name lookup
-  const getAccountName = (accountId) => {
-    if (!accountId) return '-';
-    return accountMap.get(accountId) || '-';
-  };
-
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => {
       if (!sortConfig.key) return 0;
@@ -107,7 +101,7 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [assets, sortConfig, getAccountName]);
+  }, [assets, sortConfig, accountMap]);
 
   const total = assets.reduce((sum, item) => sum + (item.value || 0), 0);
 
