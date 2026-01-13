@@ -54,7 +54,7 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     handleCloseModal(); // Close modal on successful save
   };
 
-  // Helper to get account name from account_id
+  // Helper to get account name from account_id (must be defined before sortedAssets)
   const getAccountName = (accountId) => {
     if (!accountId || !accounts || accounts.length === 0) return '-';
     const account = accounts.find(acc => acc.id === accountId);

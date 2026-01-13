@@ -146,7 +146,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
       <h3>Your Custom Charts and Tables</h3>
       {message && <div className="message">{message}</div>}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <button className="create-chart-btn" onClick={onCreateNewChart}>Create New Charts and Tables</button>
+        <button className="create-chart-btn" onClick={onCreateNewChart}>Create</button>
         <button 
           className="create-chart-btn" 
           onClick={handleRecalculateAll}

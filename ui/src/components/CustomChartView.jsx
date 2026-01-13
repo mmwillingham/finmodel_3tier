@@ -464,7 +464,13 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
         {(currentDisplayType === "table" || currentDisplayType === "both") && chartData.datasets.length > 0 && (
           <div className="table-container">
-            <h3>Year-by-Year Breakdown</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3>Year-by-Year Breakdown</h3>
+              <div className="table-actions" style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => handleDownloadPdf(tableRef, `${chartConfig.name}_Table`)} className="btn-primary-modern">Download PDF</button>
+                <button onClick={() => handleDownloadCsv(`${chartConfig.name}_Table`)} className="btn-primary-modern">Download CSV</button>
+              </div>
+            </div>
             <table ref={tableRef} className="custom-chart-table">
               <thead>
                 <tr>
@@ -494,11 +500,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                 ))}
               </tbody>
             </table>
-            {/* Download buttons for table */}
-            <div className="table-actions" style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-              <button onClick={() => handleDownloadPdf(tableRef, `${chartConfig.name}_Table`)} className="btn-primary-modern">Download PDF</button>
-              <button onClick={() => handleDownloadCsv(`${chartConfig.name}_Table`)} className="btn-primary-modern">Download CSV</button>
-            </div>
           </div>
         )}
       </div>
