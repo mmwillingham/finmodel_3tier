@@ -434,8 +434,10 @@ export default function CashFlowFormModal({
                         disabled
                         style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                       />
-                      <div style={{ marginTop: '6px', fontSize: '0.85em', color: '#666', fontStyle: 'italic' }}>
-                        This value is calculated automatically during projections based on your taxable income and tax filing status. The value shown is for the current year ({new Date().getFullYear()}).
+                      <div style={{ marginTop: '6px', fontSize: '0.85em', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
+                        This value is calculated automatically during projections based on your taxable income and tax filing status.
+                        <br />
+                        The value shown is for the current year ({new Date().getFullYear()}).
                       </div>
                     </>
                   );
