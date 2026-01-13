@@ -463,6 +463,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     
                     # Check for expense linked to income
                     if "|LINKED_INCOME:" in projected_account.name and "|PERCENTAGE:" in projected_account.name and projected_account.account_type == "expense":
+                        print(f"--- DEBUG: Found expense linked to income: {projected_account.name} ---"); sys.stdout.flush()
                         parts = projected_account.name.split("|LINKED_INCOME:")
                         if len(parts) == 2:
                             base_account_name = parts[0]
@@ -472,8 +473,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 linked_income_name = percent_parts[0].strip()
                                 try:
                                     linked_percentage = float(percent_parts[1])
+                                    print(f"--- DEBUG: Parsed expense '{base_account_name}' linked to income '{linked_income_name}' at {linked_percentage}% ---"); sys.stdout.flush()
                                 except ValueError:
                                     linked_percentage = None
+                                    print(f"--- WARNING: Could not parse percentage for expense linked to income: {projected_account.name} ---"); sys.stdout.flush()
                     
                     # Check for item linked to asset(s)
                     elif "|LINKED:" in projected_account.name and "|PERCENTAGE:" in projected_account.name:
@@ -685,7 +688,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 new_balance = -new_balance
                         
                         # Store the annual flow value before resetting to 0 (needed for data_json)
-                        annual_flow_values[projected_account.name] = new_balance
+                        # Use base_account_name for expenses linked to income so charts can match it correctly
+                        flow_key = base_account_name if (linked_income_name and linked_percentage is not None) else projected_account.name
+                        annual_flow_values[flow_key] = new_balance
+                        # Also store with full name for backward compatibility
+                        if flow_key != projected_account.name:
+                            annual_flow_values[projected_account.name] = new_balance
                         
                         # Track taxable income and tax-deductible expenses for federal tax calculation
                         if calculate_federal_tax and is_active_for_year:
