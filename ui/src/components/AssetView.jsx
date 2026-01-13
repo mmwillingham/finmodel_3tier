@@ -62,14 +62,12 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     setSortConfig({ key, direction });
   };
 
-  // Helper to get account name from account_id
-  const getAccountName = useMemo(() => {
-    return (accountId) => {
-      if (!accountId || !accounts || accounts.length === 0) return '-';
-      const account = accounts.find(acc => acc.id === accountId);
-      return account ? `${account.brokerage} - ${account.account_name}` : '-';
-    };
-  }, [accounts]);
+  // Helper to get account name from account_id (defined as regular function to avoid initialization issues)
+  const getAccountName = (accountId) => {
+    if (!accountId || !accounts || accounts.length === 0) return '-';
+    const account = accounts.find(acc => acc.id === accountId);
+    return account ? `${account.brokerage} - ${account.account_name}` : '-';
+  };
 
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => {
@@ -99,7 +97,7 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [assets, sortConfig, getAccountName]);
+  }, [assets, sortConfig, accounts]);
 
   const total = assets.reduce((sum, item) => sum + (item.value || 0), 0);
 

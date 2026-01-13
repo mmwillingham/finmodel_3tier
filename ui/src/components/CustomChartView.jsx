@@ -452,8 +452,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         </div>
         {(currentDisplayType === "chart" || currentDisplayType === "both") && (
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleDownloadPng} className="btn-primary-modern">Download PNG</button>
             <button onClick={() => handleDownloadPdf(chartRef, `${chartConfig.name}_Chart`)} className="btn-primary-modern">Download PDF</button>
+            <button onClick={handleDownloadPng} className="btn-primary-modern">Download PNG</button>
           </div>
         )}
       </div>
