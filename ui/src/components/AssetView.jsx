@@ -62,19 +62,22 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     setSortConfig({ key, direction });
   };
 
-  // Helper function for account name lookup (using useMemo to create a stable function)
-  const getAccountName = useMemo(() => {
-    const accountMap = new Map();
+  // Create account map for lookups
+  const accountMap = useMemo(() => {
+    const map = new Map();
     if (accounts && accounts.length > 0) {
       accounts.forEach(acc => {
-        accountMap.set(acc.id, `${acc.brokerage} - ${acc.account_name}`);
+        map.set(acc.id, `${acc.brokerage} - ${acc.account_name}`);
       });
     }
-    return (accountId) => {
-      if (!accountId) return '-';
-      return accountMap.get(accountId) || '-';
-    };
+    return map;
   }, [accounts]);
+
+  // Helper function for account name lookup
+  const getAccountName = (accountId) => {
+    if (!accountId) return '-';
+    return accountMap.get(accountId) || '-';
+  };
 
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => {
@@ -83,10 +86,10 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
       let aValue = a[sortConfig.key];
       let bValue = b[sortConfig.key];
 
-      // Handle account name sorting
+      // Handle account name sorting - inline lookup to avoid function reference issues
       if (sortConfig.key === 'account') {
-        aValue = getAccountName(a.account_id);
-        bValue = getAccountName(b.account_id);
+        aValue = accountMap.get(a.account_id) || '-';
+        bValue = accountMap.get(b.account_id) || '-';
       }
 
       // Handle null/undefined values

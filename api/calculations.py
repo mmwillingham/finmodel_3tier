@@ -511,12 +511,20 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         
                         # If not found, try to find the income item and calculate it
                         if linked_income_flow_value == 0.0:
-                            # Query the linked income item to calculate its value for this year
+                            # Query the linked income item from database
                             linked_income_item = None
-                            for income_item in all_income_items:
-                                if income_item.description == linked_income_name:
-                                    linked_income_item = income_item
-                                    break
+                            if db:
+                                linked_income_item = db.query(models.CashFlowItem).filter(
+                                    models.CashFlowItem.owner_id == owner_id,
+                                    models.CashFlowItem.is_income == True,
+                                    models.CashFlowItem.description == linked_income_name
+                                ).first()
+                            else:
+                                # Fallback: search in cash_flow_items_by_description if available
+                                if linked_income_name in cash_flow_items_by_description:
+                                    item = cash_flow_items_by_description[linked_income_name]
+                                    if item.is_income:
+                                        linked_income_item = item
                             
                             if linked_income_item:
                                 income_year_fraction = calculate_year_fraction(
