@@ -331,6 +331,26 @@ export default function AssetFormModal({
   };
 
   const cancelEdit = () => {
+    // Reset form state
+    setNewItem({
+      name: "",
+      category: "",
+      value: "",
+      annual_increase_percent: 0,
+      annual_change_type: "increase",
+      account_id: null,
+      start_date: "",
+      end_date: "",
+    });
+    setTrackInterestAsIncome(false);
+    setInterestRate("");
+    setTrackDividendsAsIncome(false);
+    setDividendRate("");
+    setRetirementInterestRate("");
+    setRetirementDividendRate("");
+    setExistingLinkedInterestId(null);
+    setExistingLinkedDividendId(null);
+    setWarningMessage("");
     onClose();
   };
 

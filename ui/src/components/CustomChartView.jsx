@@ -55,7 +55,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
     for (const key in dataPoint) {
       if (key.endsWith('_Value')) {
-        const itemNameFromKey = key.replace('_Value', '');
+        let itemNameFromKey = key.replace('_Value', '');
+        // Extract base name if it contains LINKED markers (for dynamic items)
+        if (itemNameFromKey.includes('|LINKED:')) {
+          itemNameFromKey = itemNameFromKey.split('|LINKED:')[0];
+        }
         const value = dataPoint[key] || 0;
 
         // Find the item in the appropriate array to get its category
@@ -262,7 +266,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         },
         title: {
           display: true,
-          text: `Estate Springboard - ${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+          text: `${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
         },
         tooltip: {
           callbacks: {
@@ -308,7 +312,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         },
         plugins: { // Re-configure plugins for pie charts specifically
           legend: { position: 'top' },
-          title: { display: true, text: `Financial Project - ${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}` },
+          title: { display: true, text: `${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}` },
           tooltip: {
             callbacks: {
               label: function(context) {
@@ -433,7 +437,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       <button onClick={onBack} className="back-btn">← Back to Custom Charts and Tables</button>
       <div className="chart-actions">
         {onEdit && (
-          <button onClick={() => onEdit(chartId)} className="edit-btn">Edit Chart</button>
+          <button onClick={() => onEdit(chartId)} className="btn-primary-modern">Edit</button>
         )}
         {(currentDisplayType === "chart" || currentDisplayType === "both") && (
           <>
@@ -448,7 +452,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
             onChange={(e) => setShowChartTotals(e.target.checked)}
             disabled={showChartTotalsDisabled}
           />
-          Show Chart Totals
+          Show Totals
         </label>
       </div>
       <div className="chart-display-area">
@@ -471,7 +475,16 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                 </tr>
               </thead>
               <tbody>
-                {chartData.labels.map((year, yearIndex) => (
+                {chartData.labels.map((year, yearIndex) => {
+                  // Calculate total value for this row (year) for sorting
+                  const rowTotal = chartData.datasets.reduce((sum, dataset) => {
+                    const value = dataset.data[yearIndex] || 0;
+                    return sum + (typeof value === 'number' ? value : parseFloat(value) || 0);
+                  }, 0);
+                  return { year, yearIndex, rowTotal };
+                })
+                .sort((a, b) => b.rowTotal - a.rowTotal) // Sort by total value descending
+                .map(({ year, yearIndex }) => (
                   <tr key={year}>
                     <td>{year}</td>
                     {chartData.datasets.map(dataset => (

@@ -458,9 +458,8 @@ export default function CustomChartForm({
                         checked={series.itemize || false}
                         onChange={(e) => {
                           handleSeriesChange(index, 'itemize', e.target.checked);
-                          // When enabling itemize, clear any account or category filters to show all items
+                          // When enabling itemize, clear account filters but preserve category
                           if (e.target.checked) {
-                            handleSeriesChange(index, 'category', '');
                             handleSeriesChange(index, 'selected_account_ids', []);
                           }
                         }}

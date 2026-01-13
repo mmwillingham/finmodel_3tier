@@ -474,8 +474,21 @@ export default function CashFlowFormModal({
                 <option value="">Select Frequency</option>
                 <option value="monthly">Monthly</option>
                 <option value="yearly">Yearly</option>
+                <option value="one-time">One-time</option>
               </select>
             </div>
+            {newItem.frequency === "one-time" && (
+              <div className="form-field">
+                <label htmlFor="one-time-date">Date</label>
+                <input
+                  id="one-time-date"
+                  type="date"
+                  value={newItem.start_date || ""}
+                  onChange={(e) => setNewItem({ ...newItem, start_date: e.target.value, end_date: e.target.value })}
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* New row for dynamic item configuration */}

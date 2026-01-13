@@ -19,6 +19,7 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     """
     Calculate the fraction of a year an item is active based on start_date and end_date.
     Returns a value between 0 and 1 representing the fraction of the year.
+    For one-time items (start_date == end_date), returns 1.0 for the year the date falls in.
     
     Args:
         start_date_str: Start date in YYYY-MM-DD format or None
@@ -26,7 +27,7 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
         projection_year: The year to check (e.g., 2027)
     
     Returns:
-        Fraction of the year (0 to 1), e.g., 0.5833 for 7 months
+        Fraction of the year (0 to 1), e.g., 0.5833 for 7 months, 1.0 for one-time items
     """
     year_start = date(projection_year, 1, 1)  # January 1 of the year
     year_end = date(projection_year, 12, 31)  # December 31 of the year
@@ -47,6 +48,18 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
             end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
             # If item ends during the year, use that date; otherwise use year end
             item_end = end_date_obj if end_date_obj < year_end else year_end
+        except (ValueError, TypeError):
+            pass
+    
+    # Special handling for one-time items (start_date == end_date)
+    # Return 1.0 for the year the date falls in
+    if start_date_str and end_date_str and start_date_str == end_date_str:
+        try:
+            one_time_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            if year_start <= one_time_date <= year_end:
+                return 1.0
+            else:
+                return 0.0
         except (ValueError, TypeError):
             pass
     
@@ -699,10 +712,22 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 
                                 # If not found in annual_flow_values, calculate it as fixed income
                                 if linked_income_flow_value == 0.0:
-                                    base_yearly_value = linked_income_item.yearly_value
-                                    effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
-                                    growth_factor = pow(1 + effective_growth_rate, year - 1)
-                                    linked_income_flow_value = base_yearly_value * growth_factor
+                                    # Check if income item is active for this year
+                                    current_projection_year = current_year + year - 1
+                                    income_year_fraction = calculate_year_fraction(
+                                        linked_income_item.start_date,
+                                        linked_income_item.end_date,
+                                        current_projection_year
+                                    )
+                                    
+                                    if income_year_fraction > 0.0:
+                                        base_yearly_value = linked_income_item.yearly_value
+                                        effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
+                                        growth_factor = pow(1 + effective_growth_rate, year - 1)
+                                        linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
+                                    else:
+                                        # Income item is not active for this year, so expense should be 0
+                                        linked_income_flow_value = 0.0
                                 
                                 # Calculate expense as percentage of income
                                 expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
