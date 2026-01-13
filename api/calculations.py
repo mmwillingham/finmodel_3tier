@@ -591,6 +591,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             # Restore sign: expenses are negative, income is positive
                             if projected_account.account_type == "expense":
                                 new_balance = -new_balance
+                            # Debug logging for dynamic items with 0 value
+                            if projected_account.account_type == "income" and new_balance == 0.0 and linked_asset_names:
+                                print(f"--- WARNING: Dynamic income item '{base_account_name}' has 0 value. Linked assets: {linked_asset_names}, Percentage: {linked_percentage} ---"); sys.stdout.flush()
                         else:
                             # For fixed cashflow items, apply growth each year: yearly_value * (1 + growth_rate)^(year-1)
                             # adjusted_annual_contribution is the base yearly value (year 1), we need to apply compound growth
@@ -771,6 +774,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 # Calculate expense as percentage of income
                                 expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
                                 print(f"--- DEBUG: Dynamic expense '{exp_item.description}' ({exp_item.percentage}% of '{linked_income_item.description}' = {expense_amount:.2f}) contributing to asset '{target_asset.name}' ---"); sys.stdout.flush()
+                                
+                                # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
+                                annual_flow_values[exp_item.description] = -expense_amount * expense_year_fraction
                     else:
                         # Fixed expense - calculate with growth
                         base_yearly_value = exp_item.yearly_value
@@ -785,6 +791,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             current_projection_year
                         )
                         expense_amount = expense_amount * expense_year_fraction
+                        
+                        # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
+                        annual_flow_values[exp_item.description] = -expense_amount
                     
                     # Add the expense amount to the asset balance
                     if expense_amount > 0:

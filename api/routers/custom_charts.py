@@ -375,14 +375,33 @@ def create_custom_chart(
                     items = query.all()
                     print(f"--- DEBUG: Found {len(items)} expense items for item_type={item_type}, category={category} ---"); sys.stdout.flush()
                     for item in items:
-                        # Handle dynamic items (linked to asset)
+                        # Handle dynamic items (linked to asset or income)
                         contribution = 0.0
                         account_name = item.description
-                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                        # Check for multi-select linked assets first (newer format)
+                        if item.linked_asset_ids and len(item.linked_asset_ids) > 0 and item.linked_item_type == "asset" and item.percentage is not None:
+                            # Multi-select: Get all linked asset names
+                            linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                            if linked_assets:
+                                # Store linked asset names (comma-separated) in account name with special marker
+                                # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0"
+                                asset_names = [asset.name for asset in linked_assets]
+                                linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                                account_name = item.description + linked_marker
+                                for asset_id in item.linked_asset_ids:
+                                    linked_asset_ids_needed.add(asset_id)
+                        elif item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            # Single linked asset (backward compatibility)
                             linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
                             if linked_asset:
                                 linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
                                 account_name = item.description + linked_marker
+                                linked_asset_ids_needed.add(item.linked_item_id)
+                        elif item.linked_item_id and item.linked_item_type == "income" and item.percentage is not None:
+                            # Linked to income - no asset IDs needed, but mark as dynamic
+                            # The account name doesn't need a marker for income-linked expenses
+                            # They're handled differently in calculations.py
+                            pass
                         else:
                             contribution = -(item.yearly_value / 12)
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -395,8 +414,6 @@ def create_custom_chart(
                             start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
-                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                            linked_asset_ids_needed.add(item.linked_item_id)
                 else:
                     print(f"--- WARNING: Unsupported aggregate item type: {item_type} for user {current_user.id} ---"); sys.stdout.flush()
             else:

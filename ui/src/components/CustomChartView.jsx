@@ -435,17 +435,12 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   return (
     <div className="custom-chart-view-container">
       <button onClick={onBack} className="back-btn">← Back to Custom Charts and Tables</button>
-      <div className="chart-actions">
-        {onEdit && (
-          <button onClick={() => onEdit(chartId)} className="btn-primary-modern">Edit</button>
-        )}
-        {(currentDisplayType === "chart" || currentDisplayType === "both") && (
-          <>
-            <button onClick={handleDownloadPng} className="download-btn">Download Chart PNG</button>
-            <button onClick={() => handleDownloadPdf(chartRef, `${chartConfig.name}_Chart`)} className="download-btn">Download Chart PDF</button>
-          </>
-        )}
-        <label className="show-totals-toggle">
+      <div className="chart-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {onEdit && (
+            <button onClick={() => onEdit(chartId)} className="btn-primary-modern">Edit</button>
+          )}
+          <label className="show-totals-toggle" style={{ margin: 0 }}>
           <input
             type="checkbox"
             checked={showChartTotals}
@@ -454,6 +449,13 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           />
           Show Totals
         </label>
+        </div>
+        {(currentDisplayType === "chart" || currentDisplayType === "both") && (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={handleDownloadPng} className="btn-primary-modern">Download PNG</button>
+            <button onClick={() => handleDownloadPdf(chartRef, `${chartConfig.name}_Chart`)} className="btn-primary-modern">Download PDF</button>
+          </div>
+        )}
       </div>
       <div className="chart-display-area">
         {(currentDisplayType === "chart" || currentDisplayType === "both") && (

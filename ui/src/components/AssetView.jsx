@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import AssetService from "../services/asset.service";
@@ -54,13 +54,6 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     handleCloseModal(); // Close modal on successful save
   };
 
-  // Helper to get account name from account_id (must be defined before sortedAssets)
-  const getAccountName = (accountId) => {
-    if (!accountId || !accounts || accounts.length === 0) return '-';
-    const account = accounts.find(acc => acc.id === accountId);
-    return account ? `${account.brokerage} - ${account.account_name}` : '-';
-  };
-
   const handleSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -69,33 +62,44 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
     setSortConfig({ key, direction });
   };
 
-  const sortedAssets = [...assets].sort((a, b) => {
-    if (!sortConfig.key) return 0;
+  // Helper to get account name from account_id
+  const getAccountName = useMemo(() => {
+    return (accountId) => {
+      if (!accountId || !accounts || accounts.length === 0) return '-';
+      const account = accounts.find(acc => acc.id === accountId);
+      return account ? `${account.brokerage} - ${account.account_name}` : '-';
+    };
+  }, [accounts]);
 
-    let aValue = a[sortConfig.key];
-    let bValue = b[sortConfig.key];
+  const sortedAssets = useMemo(() => {
+    return [...assets].sort((a, b) => {
+      if (!sortConfig.key) return 0;
 
-    // Handle account name sorting
-    if (sortConfig.key === 'account') {
-      aValue = getAccountName(a.account_id);
-      bValue = getAccountName(b.account_id);
-    }
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
 
-    // Handle null/undefined values
-    if (aValue == null) aValue = '';
-    if (bValue == null) bValue = '';
+      // Handle account name sorting
+      if (sortConfig.key === 'account') {
+        aValue = getAccountName(a.account_id);
+        bValue = getAccountName(b.account_id);
+      }
 
-    // Handle numeric values
-    if (sortConfig.key === 'value' || sortConfig.key === 'annual_increase_percent') {
-      aValue = parseFloat(aValue) || 0;
-      bValue = parseFloat(bValue) || 0;
-    }
+      // Handle null/undefined values
+      if (aValue == null) aValue = '';
+      if (bValue == null) bValue = '';
 
-    // Compare values
-    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
+      // Handle numeric values
+      if (sortConfig.key === 'value' || sortConfig.key === 'annual_increase_percent') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      }
+
+      // Compare values
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [assets, sortConfig, getAccountName]);
 
   const total = assets.reduce((sum, item) => sum + (item.value || 0), 0);
 
