@@ -110,7 +110,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       // Convert expense items to ProjectedAccountCreate format
       // Include ALL expenses (even those that contribute to assets, as they reduce cash flow)
       const expenseAccounts = (expenseItems || []).map(expense => {
-          // Handle dynamic items (linked to asset)
+          // Handle dynamic items (linked to asset or income)
           let accountName = expense.description;
           let contribution = 0.0;
           
@@ -120,6 +120,13 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             const linkedAsset = assets.find(a => a.id === expense.linked_item_id);
             if (linkedAsset) {
               accountName = `${expense.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${expense.percentage}`;
+            }
+          } else if (expense.linked_item_id && expense.linked_item_type === "income" && expense.percentage !== null && expense.percentage !== undefined) {
+            // This is a dynamic expense linked to income - will be recalculated each year in backend
+            // Find the linked income item
+            const linkedIncome = incomeItems.find(i => i.id === expense.linked_item_id);
+            if (linkedIncome) {
+              accountName = `${expense.description}|LINKED_INCOME:${linkedIncome.description}|PERCENTAGE:${expense.percentage}`;
             }
           } else {
             // Fixed expense item

@@ -25,15 +25,6 @@ export default function AssetFormModal({
   const [existingLinkedDividendId, setExistingLinkedDividendId] = useState(null);
   const [warningMessage, setWarningMessage] = useState("");
   
-  // Check if the selected account is a retirement account (use useMemo to avoid initialization issues)
-  const selectedAccount = React.useMemo(() => {
-    if (!accounts || accounts.length === 0) return null;
-    const accountId = itemToEdit?.account_id || newItem.account_id;
-    return accounts.find(acc => acc.id === accountId);
-  }, [accounts, itemToEdit?.account_id, newItem.account_id]);
-  
-  const isRetirementAccount = selectedAccount?.is_retirement || false;
-
   const [newItem, setNewItem] = useState({
     name: "",
     category: "",
@@ -44,6 +35,15 @@ export default function AssetFormModal({
     start_date: "",
     end_date: "",
   });
+  
+  // Check if the selected account is a retirement account (use useMemo to avoid initialization issues)
+  const selectedAccount = React.useMemo(() => {
+    if (!accounts || accounts.length === 0) return null;
+    const accountId = itemToEdit?.account_id || newItem.account_id;
+    return accounts.find(acc => acc.id === accountId);
+  }, [accounts, itemToEdit?.account_id, newItem.account_id]);
+  
+  const isRetirementAccount = selectedAccount?.is_retirement || false;
 
   useEffect(() => {
     if (!isOpen) return; // Only load when modal is open
