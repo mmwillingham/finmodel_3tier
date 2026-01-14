@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
+import { calculateYearFraction } from '../utils/dateUtils';
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -38,9 +39,17 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
         assets.forEach(asset => {
           baseAssetProjections[asset.name] = [];
           for (let i = 0; i <= projectionYears; i++) {
-            const growthRate = (asset.annual_increase_percent || 0) / 100;
-            const assetValue = asset.value * Math.pow(1 + growthRate, i);
-            baseAssetProjections[asset.name].push(assetValue);
+            const projectionYear = currentYear + i;
+            // Check if asset is active for this year (respects end_date)
+            const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
+            if (yearFraction > 0) {
+              const growthRate = (asset.annual_increase_percent || 0) / 100;
+              const assetValue = asset.value * Math.pow(1 + growthRate, i);
+              baseAssetProjections[asset.name].push(assetValue);
+            } else {
+              // Asset has ended, set value to 0
+              baseAssetProjections[asset.name].push(0);
+            }
           }
         });
         
@@ -230,9 +239,15 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
 
           let totalLiabilities = 0;
           liabilities.forEach(liability => {
-            const growthRate = (liability.annual_increase_percent || 0) / 100;
-            const liabilityValue = liability.value * Math.pow(1 + growthRate, year);
-            totalLiabilities += liabilityValue;
+            const projectionYear = currentYear + year;
+            // Check if liability is active for this year (respects end_date)
+            const yearFraction = calculateYearFraction(liability.start_date, liability.end_date, projectionYear);
+            if (yearFraction > 0) {
+              const growthRate = (liability.annual_increase_percent || 0) / 100;
+              const liabilityValue = liability.value * Math.pow(1 + growthRate, year);
+              totalLiabilities += liabilityValue;
+            }
+            // If liability has ended (yearFraction === 0), don't add to total (value is 0)
           });
 
           const netWorth = totalAssets - totalLiabilities;
