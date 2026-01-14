@@ -415,52 +415,63 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         decrease_by_principal = liability.decrease_by_principal_yearly if liability else False
                         create_payment_expense = liability.create_payment_expense if liability else False
                         
-                        # Calculate new balance
-                        if decrease_by_principal:
-                            # Decrease by principal paid this year
-                            remaining_principal = calculate_amortized_loan_balance(
-                                principal=projected_account.principal_amount,
-                                annual_interest_rate_percent=projected_account.interest_rate,
-                                loan_term_months=projected_account.loan_term_months,
-                                loan_start_date=loan_start_date_obj,
-                                calculation_date=calculation_date_obj
-                            )
-                            new_balance = -abs(remaining_principal)
+                        # For amortized loans, if item is not active for this year (after end date), set balance to 0
+                        if not is_active_for_year:
+                            new_balance = 0.0
+                            adjusted_annual_contribution = 0.0
+                            growth_on_balance = 0.0
+                            growth_on_contributions = 0.0
+                            # Store zero balance for this year
+                            account_values_for_year[f"{projected_account.name}_Value"] = new_balance
+                            # Update balance for next year
+                            account_current_balances[projected_account.name] = new_balance
                         else:
-                            # Use standard amortization calculation
-                            remaining_principal = calculate_amortized_loan_balance(
-                                principal=projected_account.principal_amount,
-                                annual_interest_rate_percent=projected_account.interest_rate,
-                                loan_term_months=projected_account.loan_term_months,
-                                loan_start_date=loan_start_date_obj,
-                                calculation_date=calculation_date_obj
-                            )
-                            new_balance = -abs(remaining_principal)
-                        
-                        # Handle expense creation for payment
-                        if create_payment_expense:
-                            # Add payment amount to expense flow
-                            payment_expense = breakdown['total_payment']
-                            # Create a synthetic expense entry for this liability payment
-                            if projected_account.name not in annual_flow_values:
-                                annual_flow_values[projected_account.name + "_Payment"] = -payment_expense  # Negative for expense
-                                current_year_total_expense_flow += payment_expense
-                                print(f"--- DEBUG: Created payment expense of {payment_expense:.2f} for {projected_account.name} ---"); sys.stdout.flush()
-                        
-                        # Store principal/interest breakdown for this year
-                        account_values_for_year[f"{projected_account.name}_Principal"] = breakdown['principal_paid']
-                        account_values_for_year[f"{projected_account.name}_Interest"] = breakdown['interest_paid']
-                        account_values_for_year[f"{projected_account.name}_Payment"] = breakdown['total_payment']
-                        # Store the liability balance value for this year (needed for charts)
-                        account_values_for_year[f"{projected_account.name}_Value"] = new_balance
-                        
-                        # For amortized loans, the 'contribution' is the monthly payment, which is handled in the balance calculation itself.
-                        adjusted_annual_contribution = 0.0
-                        growth_on_balance = 0.0
-                        growth_on_contributions = 0.0
-                        
-                        # Update balance for next year
-                        account_current_balances[projected_account.name] = new_balance
+                            # Calculate new balance
+                            if decrease_by_principal:
+                                # Decrease by principal paid this year
+                                remaining_principal = calculate_amortized_loan_balance(
+                                    principal=projected_account.principal_amount,
+                                    annual_interest_rate_percent=projected_account.interest_rate,
+                                    loan_term_months=projected_account.loan_term_months,
+                                    loan_start_date=loan_start_date_obj,
+                                    calculation_date=calculation_date_obj
+                                )
+                                new_balance = -abs(remaining_principal)
+                            else:
+                                # Use standard amortization calculation
+                                remaining_principal = calculate_amortized_loan_balance(
+                                    principal=projected_account.principal_amount,
+                                    annual_interest_rate_percent=projected_account.interest_rate,
+                                    loan_term_months=projected_account.loan_term_months,
+                                    loan_start_date=loan_start_date_obj,
+                                    calculation_date=calculation_date_obj
+                                )
+                                new_balance = -abs(remaining_principal)
+                            
+                            # Handle expense creation for payment
+                            if create_payment_expense:
+                                # Add payment amount to expense flow
+                                payment_expense = breakdown['total_payment']
+                                # Create a synthetic expense entry for this liability payment
+                                if projected_account.name not in annual_flow_values:
+                                    annual_flow_values[projected_account.name + "_Payment"] = -payment_expense  # Negative for expense
+                                    current_year_total_expense_flow += payment_expense
+                                    print(f"--- DEBUG: Created payment expense of {payment_expense:.2f} for {projected_account.name} ---"); sys.stdout.flush()
+                            
+                            # Store principal/interest breakdown for this year
+                            account_values_for_year[f"{projected_account.name}_Principal"] = breakdown['principal_paid']
+                            account_values_for_year[f"{projected_account.name}_Interest"] = breakdown['interest_paid']
+                            account_values_for_year[f"{projected_account.name}_Payment"] = breakdown['total_payment']
+                            # Store the liability balance value for this year (needed for charts)
+                            account_values_for_year[f"{projected_account.name}_Value"] = new_balance
+                            
+                            # For amortized loans, the 'contribution' is the monthly payment, which is handled in the balance calculation itself.
+                            adjusted_annual_contribution = 0.0
+                            growth_on_balance = 0.0
+                            growth_on_contributions = 0.0
+                            
+                            # Update balance for next year
+                            account_current_balances[projected_account.name] = new_balance
 
                     except ValueError:
                         print(f"--- DEBUG: Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation. (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
