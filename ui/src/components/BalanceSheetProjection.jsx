@@ -43,7 +43,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
           interest_rate: null,
           loan_term_months: null,
           loan_start_date: null,
-          monthly_payment: null
+          monthly_payment: null,
+          start_date: asset.start_date || null,
+          end_date: asset.end_date || null
         };
       });
 
@@ -59,7 +61,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         interest_rate: liability.interest_rate || null,
         loan_term_months: liability.loan_term_months || null,
         loan_start_date: liability.loan_start_date || null,
-        monthly_payment: liability.monthly_payment || null
+        monthly_payment: liability.monthly_payment || null,
+        start_date: liability.start_date || null,
+        end_date: liability.end_date || null
       }));
 
       // Convert income items to ProjectedAccountCreate format

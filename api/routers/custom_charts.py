@@ -45,7 +45,8 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 initial_value=item.value,
                 contribution=0.0,  # Contributions from expenses are now handled by backend
                 growth_rate=item.annual_increase_percent,
-                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                start_date=item.start_date, end_date=item.end_date
             )
         else:
             print(f"--- WARNING: Asset with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()
@@ -64,7 +65,8 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 interest_rate=item.interest_rate,
                 loan_term_months=item.loan_term_months,
                 loan_start_date=item.loan_start_date,
-                monthly_payment=item.monthly_payment
+                monthly_payment=item.monthly_payment,
+                start_date=item.start_date, end_date=item.end_date
             )
         else:
             print(f"--- WARNING: Liability with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()
@@ -330,7 +332,8 @@ def create_custom_chart(
                             interest_rate=item.interest_rate,
                             loan_term_months=item.loan_term_months,
                             loan_start_date=item.loan_start_date,
-                            monthly_payment=item.monthly_payment
+                            monthly_payment=item.monthly_payment,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                 elif item_type == 'income':
                     query = db.query(models.CashFlowItem).filter(
@@ -929,7 +932,8 @@ def update_custom_chart(
                             interest_rate=item.interest_rate,
                             loan_term_months=item.loan_term_months,
                             loan_start_date=item.loan_start_date,
-                            monthly_payment=item.monthly_payment
+                            monthly_payment=item.monthly_payment,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                 elif item_type == 'income':
                     query = db.query(models.CashFlowItem).filter(

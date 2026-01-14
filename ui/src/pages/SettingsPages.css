@@ -266,7 +266,23 @@
     font-size: 0.95em;
 }
 
-.settings-page-container .save-button,
+.settings-page-container .save-button {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    margin-top: 0; /* Remove margin, will be handled by actions container */
+}
+
+.settings-page-container .save-button:hover {
+    background-color: #0056b3;
+}
+
 .settings-page-container .change-password-btn,
 .settings-page-container .help-admin-controls button {
     background-color: var(--color-accent);
@@ -281,7 +297,6 @@
     margin-top: 0; /* Remove margin, will be handled by actions container */
 }
 
-.settings-page-container .save-button:hover,
 .settings-page-container .change-password-btn:hover,
 .settings-page-container .help-admin-controls button:hover {
     background-color: var(--color-accent-hover);

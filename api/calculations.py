@@ -316,7 +316,26 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
         # Dictionary to hold current balances for each account, updated yearly
         # For income/expense items, initial_value is 0 (they don't have balances)
-        account_current_balances = {acc.name: acc.initial_value for acc in projected_accounts_for_db}
+        # For assets/liabilities with start_date, initialize with 0 (they'll be initialized in their first active year)
+        account_current_balances = {}
+        for acc in projected_accounts_for_db:
+            if acc.account_type in ["asset", "liability"] and acc.start_date:
+                # Check if start_date is after the projection start year
+                try:
+                    start_date_obj = datetime.strptime(acc.start_date, "%Y-%m-%d").date()
+                    projection_start_year = date(current_year, 1, 1)
+                    if start_date_obj > projection_start_year:
+                        # Asset/liability starts mid-year, initialize with 0
+                        account_current_balances[acc.name] = 0.0
+                    else:
+                        # Asset/liability starts in first year, use initial_value
+                        account_current_balances[acc.name] = acc.initial_value
+                except (ValueError, TypeError):
+                    # Invalid date format, use initial_value as fallback
+                    account_current_balances[acc.name] = acc.initial_value
+            else:
+                # No start_date or not asset/liability, use initial_value
+                account_current_balances[acc.name] = acc.initial_value
         yearly_data_points = {} # NEW: Dictionary to build up data for data_json
 
         # Initialize global totals for the entire projection period
@@ -352,18 +371,24 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
                 
-                # Check if income/expense item is active for this year and calculate proration fraction
+                # Check if item is active for this year and calculate proration fraction
                 # This check must happen BEFORE calculating contributions so inactive items are skipped
-                year_fraction = 1.0  # Default to full year if no dates or if not income/expense
+                current_projection_year = current_year + year - 1
+                year_fraction = 1.0  # Default to full year if no dates
                 is_active_for_year = True
-                if projected_account.account_type in ["income", "expense"]:
-                    current_projection_year = current_year + year - 1
+                if projected_account.account_type in ["income", "expense", "asset", "liability"]:
                     year_fraction = calculate_year_fraction(
                         projected_account.start_date,
                         projected_account.end_date,
                         current_projection_year
                     )
                     is_active_for_year = year_fraction > 0.0
+                
+                # For assets/liabilities that start mid-year, initialize with initial_value in their first active year
+                if projected_account.account_type in ["asset", "liability"] and is_active_for_year and current_balance == 0.0 and projected_account.start_date:
+                    # This is the first year the asset/liability becomes active, initialize with initial_value
+                    current_balance = projected_account.initial_value
+                    account_current_balances[projected_account.name] = current_balance
                 
                 # Special handling for amortized loans
                 if projected_account.account_type == "liability" and projected_account.loan_type == "amortized" and projected_account.principal_amount is not None and projected_account.interest_rate is not None and projected_account.loan_term_months is not None and projected_account.loan_start_date is not None:
@@ -648,13 +673,17 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # Annual increase/decrease rate
                     effective_growth_rate = projected_account.growth_rate / 100.0
 
-                    # Calculate growth on existing balance
+                    # Calculate growth on existing balance (prorate for partial years for assets/liabilities)
                     growth_on_balance = current_balance * effective_growth_rate
+                    if projected_account.account_type in ["asset", "liability"]:
+                        growth_on_balance = growth_on_balance * year_fraction
                     
                     # Calculate growth on contributions (assuming contributions occur mid-year on average for 0.5 factor)
                     # For dynamic items (linked to assets or income), growth on contributions is typically 0 since the value is recalculated each year
                     is_dynamic_for_growth = (linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None) or (linked_income_name and linked_percentage is not None)
                     growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not is_dynamic_for_growth else 0.0
+                    if projected_account.account_type in ["asset", "liability"]:
+                        growth_on_contributions = growth_on_contributions * year_fraction
                     
                     # New balance for the end of the current year
                     # For income/expense items, we track the annual flow value (they don't accumulate like assets/liabilities)
