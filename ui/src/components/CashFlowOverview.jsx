@@ -1192,53 +1192,60 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       const inflationRate = (userSettings?.default_inflation_percent || 2.0) / 100;
       
       includedIncomeItems.forEach(item => {
-        const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
-        const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
         const currentProjectionYear = currentYear + year;
         
-        if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
-          let itemValue = item.yearly_value || 0;
-          
-          // Handle dynamic items (linked to assets)
-          if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
-            const linkedAsset = assets.find(a => a.id === item.linked_item_id);
-            if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
-              const projectedAssetValue = assetProjections[linkedAsset.id][year];
-              itemValue = projectedAssetValue * (item.percentage / 100.0);
-            }
-          } else {
-            // Fixed value item - apply growth rate
-            const growthRate = (item.annual_increase_percent || 0) / 100;
-            itemValue = itemValue * Math.pow(1 + growthRate, year);
+        // Check if item is active in this year and calculate proration
+        const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
+        
+        if (yearFraction <= 0) {
+          // Item is not active in this year
+          return;
+        }
+        
+        let itemValue = item.yearly_value || 0;
+        
+        // Handle dynamic items (linked to assets)
+        if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+          const linkedAsset = assets.find(a => a.id === item.linked_item_id);
+          if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
+            const projectedAssetValue = assetProjections[linkedAsset.id][year];
+            itemValue = projectedAssetValue * (item.percentage / 100.0);
           }
-          
-          // Count as taxable income if taxable
-          if (item.taxable) {
-            totalTaxableIncome += itemValue;
+        } else {
+          // Fixed value item - apply growth rate
+          const growthRate = (item.annual_increase_percent || 0) / 100;
+          itemValue = itemValue * Math.pow(1 + growthRate, year);
+        }
+        
+        // Prorate the value based on how many months the item is active in this year
+        itemValue = itemValue * yearFraction;
+        
+        // Count as taxable income if taxable
+        if (item.taxable) {
+          totalTaxableIncome += itemValue;
+        }
+        
+        // Check if this is a reinvested dividend - exclude from cash flow
+        const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
+        const shouldReinvest = isDividend && item.reinvest_dividends;
+        
+        if (shouldReinvest) {
+          // Determine which asset to add to
+          let targetAssetId = item.reinvestment_account_id;
+          if (!targetAssetId && item.linked_item_id && item.linked_item_type === "asset") {
+            targetAssetId = item.linked_item_id;
           }
-          
-          // Check if this is a reinvested dividend - exclude from cash flow
-          const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
-          const shouldReinvest = isDividend && item.reinvest_dividends;
-          
-          if (shouldReinvest) {
-            // Determine which asset to add to
-            let targetAssetId = item.reinvestment_account_id;
-            if (!targetAssetId && item.linked_item_id && item.linked_item_type === "asset") {
-              targetAssetId = item.linked_item_id;
+          if (targetAssetId) {
+            // Track for adding to asset projection
+            if (!reinvestedDividendsByAsset[targetAssetId]) {
+              reinvestedDividendsByAsset[targetAssetId] = 0;
             }
-            if (targetAssetId) {
-              // Track for adding to asset projection
-              if (!reinvestedDividendsByAsset[targetAssetId]) {
-                reinvestedDividendsByAsset[targetAssetId] = 0;
-              }
-              reinvestedDividendsByAsset[targetAssetId] += itemValue;
-            }
-            // Don't add to cashIn - dividends are reinvested, not received as cash
-          } else {
-            // Not reinvested - add to cash flow
-            cashIn += itemValue;
+            reinvestedDividendsByAsset[targetAssetId] += itemValue;
           }
+          // Don't add to cashIn - dividends are reinvested, not received as cash
+        } else {
+          // Not reinvested - add to cash flow
+          cashIn += itemValue;
         }
       });
       
