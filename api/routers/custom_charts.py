@@ -1963,6 +1963,22 @@ def recalculate_chart(
                             if linked_asset:
                                 linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
                                 account_name = item.description + linked_marker
+                                linked_asset_ids_needed.add(item.linked_item_id)
+                        elif item.linked_item_id and item.linked_item_type == "income" and item.percentage is not None:
+                            # Linked to income - add marker so calculations.py recognizes it
+                            linked_income = db.query(models.CashFlowItem).filter(
+                                models.CashFlowItem.id == item.linked_item_id,
+                                models.CashFlowItem.owner_id == current_user.id,
+                                models.CashFlowItem.is_income == True
+                            ).first()
+                            if linked_income:
+                                # Store linked income name in account name with special marker for projection calculation
+                                # Format: "ItemName|LINKED_INCOME:IncomeName|PERCENTAGE:10.0"
+                                linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
+                                account_name = item.description + linked_marker
+                                print(f"--- DEBUG: Dynamic expense {item.description} linked to income {linked_income.description} with {item.percentage}% (recalculate_chart) ---"); sys.stdout.flush()
+                            else:
+                                account_name = item.description
                         else:
                             contribution = -(item.yearly_value / 12)
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -1973,8 +1989,10 @@ def recalculate_chart(
                             start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
-                        if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                            linked_asset_ids_needed.add(item.linked_item_id)
+                        # Extract base name for LINKED_INCOME markers too
+                        if "|LINKED_INCOME:" in account_name:
+                            base_name = account_name.split("|LINKED_INCOME:")[0]
+                            added_account_names.add(base_name)
         
         # Auto-include linked assets, all income/expenses, and auto-disbursements
         # (Same logic as recalculate_all_charts - simplified for brevity)
