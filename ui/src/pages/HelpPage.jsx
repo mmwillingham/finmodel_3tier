@@ -20,14 +20,9 @@ const HelpPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const currentToken = AuthService.getToken();
-      if (!currentToken) {
-        setError('Authentication token missing. Please log in again.');
-        setLoading(false);
-        return;
-      }
-      const settings = await globalSettingsService.getGlobalSettings(currentToken);
-      setHelpContent(settings.help_content || '<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>');
+      // Use public endpoint for reading (requires authentication, not admin)
+      const content = await globalSettingsService.getHelpAboutContent();
+      setHelpContent(content.help_content || '<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>');
     } catch (err) {
       console.error('Failed to fetch help content:', err);
       setError('Failed to load help content.');

@@ -220,9 +220,10 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
           {sortedLiabilities.map((item) => {
             // Check for missing required fields (name, category, value/principal_amount)
             // For amortized loans, principal_amount is required; for ordinary, value is required
+            // Note: value of 0 is allowed (TESTING_PLAN.md assumes 0 is valid)
             const hasMissingValue = item.loan_type === 'amortized' 
-              ? (!item.principal_amount || item.principal_amount === 0)
-              : (!item.value || item.value === 0 || item.value === null || item.value === undefined);
+              ? (item.principal_amount === null || item.principal_amount === undefined)
+              : (item.value === null || item.value === undefined);
             const hasMissingFields = !item.name || !item.category || hasMissingValue;
             const rowStyle = hasMissingFields ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {};
             const missingFields = [
@@ -233,11 +234,11 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
             
             return (
             <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
-              <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
+              <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Name</span>}</td>
               <td className="cashflow-table-cell">
                 {item.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving'}
               </td> {/* NEW: Type Value */}
-              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
+              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Category</span>}</td>
               <td className="cashflow-table-cell">
                 {item.loan_type === 'amortized' ? formatCurrency(item.principal_amount) : formatCurrency(item.value)}
               </td>

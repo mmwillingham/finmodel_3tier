@@ -460,6 +460,27 @@ def update_global_settings(
 
 app.include_router(admin_router, prefix="/admin")
 
+# Public endpoint for reading help/about content (requires authentication, not admin)
+@app.get("/content/help-about", response_model=schemas.PublicContentResponse, tags=["content"], summary="Get help and about content (public read)")
+def get_help_about_content(
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)  # Requires authentication, not admin
+):
+    """
+    Retrieves help and about content. Accessible by any authenticated user.
+    """
+    global_settings = db.query(models.GlobalSettings).first()
+    if not global_settings:
+        # Return default content if global settings don't exist
+        return schemas.PublicContentResponse(
+            help_content="<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>",
+            about_content="<h1>About</h1><p>This is a placeholder for about content. Administrators can edit this content.</p>"
+        )
+    return schemas.PublicContentResponse(
+        help_content=global_settings.help_content,
+        about_content=global_settings.about_content
+    )
+
 @app.post("/categories/check-usage", response_model=bool, tags=["categories"])
 def check_category_usage(
     category_check: schemas.CategoryUsageCheck,

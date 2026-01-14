@@ -213,14 +213,15 @@ export default function AssetView({ assets, refreshAssets, refreshCashflow, acco
         <tbody>
           {sortedAssets.map((item) => {
             // Check for missing required fields (name, category, value)
-            const hasMissingFields = !item.name || !item.category || (item.value === null || item.value === undefined || item.value === 0);
+            // Note: value of 0 is allowed (TESTING_PLAN.md test 2.4 assumes 0 is valid)
+            const hasMissingFields = !item.name || !item.category || (item.value === null || item.value === undefined);
             const rowStyle = hasMissingFields ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {};
-            const missingFields = [!item.name && 'Name', !item.category && 'Category', (!item.value || item.value === 0) && 'Value'].filter(Boolean);
+            const missingFields = [!item.name && 'Name', !item.category && 'Category', (item.value === null || item.value === undefined) && 'Value'].filter(Boolean);
             
             return (
             <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
-              <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
-              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing</span>}</td>
+              <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Name</span>}</td>
+              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Category</span>}</td>
               <td className="cashflow-table-cell">{item.account_id ? (accountMap.get(item.account_id) || '-') : '-'}</td>
               <td className="cashflow-table-cell">{formatCurrency(item.value)}</td>
               <td className="cashflow-table-cell">{item.annual_change_type}</td>

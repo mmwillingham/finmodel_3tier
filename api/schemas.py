@@ -333,13 +333,20 @@ class GlobalSettingsUpdate(BaseModel):
     income_categories: Optional[List[str]] = None
     expense_categories: Optional[List[str]] = None
     help_content: Optional[str] = None
+    about_content: Optional[str] = None
 
 class GlobalSettingsOut(GlobalSettingsBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     help_content: Optional[str] = None
+    about_content: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
+
+class PublicContentResponse(BaseModel):
+    """Schema for public content endpoints (help/about) - readable by any authenticated user"""
+    help_content: Optional[str] = None
+    about_content: Optional[str] = None
 
 
 # --- BROKERAGE SCHEMAS ---
