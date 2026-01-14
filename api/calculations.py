@@ -314,6 +314,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             )
             projected_accounts_for_db.append(projected_account)
 
+        # Get current year for accurate loan balance calculations
+        current_year = date.today().year
+        
         # Dictionary to hold current balances for each account, updated yearly
         # For income/expense items, initial_value is 0 (they don't have balances)
         # For assets/liabilities with start_date, initialize with 0 (they'll be initialized in their first active year)
@@ -341,9 +344,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Initialize global totals for the entire projection period
         total_contributed_overall = 0.0
         total_growth_overall = 0.0
-        
-        # Get current year for accurate loan balance calculations
-        current_year = date.today().year
 
         # Main Projection Loop
         for year in range(1, years + 1):
