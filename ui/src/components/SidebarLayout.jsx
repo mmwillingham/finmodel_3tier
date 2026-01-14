@@ -149,8 +149,19 @@ export default function SidebarLayout() {
     };
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
     
+    // Listen for navigation to home from Header
+    const handleNavigateToHome = () => {
+      setView('new-home');
+      setCashFlowView(null);
+      setCustomChartView(null);
+      setSelectedChartId(null);
+      setChartToViewId(null);
+    };
+    window.addEventListener('navigateToHome', handleNavigateToHome);
+    
     return () => {
       window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
+      window.removeEventListener('navigateToHome', handleNavigateToHome);
     };
   }, [refreshSettings, refreshAllData, viewingUserId]); // Refresh when viewingUserId changes
 
@@ -624,6 +635,7 @@ export default function SidebarLayout() {
             <AssetView 
               assets={assets}
               refreshAssets={refreshAssets}
+              refreshCashflow={refreshCashflow}
               accounts={accounts}
             />
           </div>

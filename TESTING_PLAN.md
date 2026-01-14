@@ -103,10 +103,16 @@ This plan provides systematic testing scenarios for all calculation aspects of t
 - Income: 4% of asset value annually
 
 **Test Cases:**
-- [ ] Year 1: $40,000 (1,000,000 * 0.04)
-- [ ] Year 2: $42,000 (1,050,000 * 0.04)
-- [ ] Year 3: $44,100 (1,102,500 * 0.04)
-- [ ] Income adjusts as asset grows
+- [ ] Year 1: Asset = $1,050,000, Income = $40,000 (1,000,000 * 0.04)
+  - Asset grows: 1,000,000 * 1.05 = 1,050,000
+  - Income based on beginning asset value: 1,000,000 * 0.04 = 40,000
+- [ ] Year 2: Asset = $1,102,500, Income = $42,000 (1,050,000 * 0.04)
+  - Asset grows: 1,050,000 * 1.05 = 1,102,500
+  - Income based on previous year's asset value: 1,050,000 * 0.04 = 42,000
+- [ ] Year 3: Asset = $1,157,625, Income = $44,100 (1,102,500 * 0.04)
+  - Asset grows: 1,102,500 * 1.05 = 1,157,625
+  - Income based on previous year's asset value: 1,102,500 * 0.04 = 44,100
+- [ ] Income adjusts as asset grows (recalculated each year based on current asset value)
 
 **Verify in:**
 - Custom Charts

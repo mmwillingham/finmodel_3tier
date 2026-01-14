@@ -38,6 +38,8 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
       await CustomChartService.recalculate(chartId);
       setMessage("Chart recalculated successfully!");
       fetchCharts(); // Refresh the list to show updated data
+      // Dispatch event to notify CustomChartView to refresh
+      window.dispatchEvent(new CustomEvent('chartRecalculated', { detail: { chartId } }));
     } catch (error) {
       console.error("Error recalculating chart:", error);
       setMessage("Failed to recalculate chart.");
@@ -77,6 +79,8 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
           const data = response.data;
           setMessage(`Successfully recalculated ${data.recalculated_count} of ${data.total_charts} charts.${data.errors.length > 0 ? ` ${data.errors.length} error(s) occurred.` : ''}`);
           fetchCharts(); // Refresh the list to show updated data
+          // Dispatch event to notify CustomChartView to refresh all charts
+          window.dispatchEvent(new CustomEvent('chartRecalculated', { detail: { chartId: 'all' } }));
         } catch (error) {
           console.error("Error recalculating charts:", error);
           setMessage("Failed to recalculate charts. Please try again.");

@@ -295,6 +295,23 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     if (chartId) {
       fetchAndPrepareChart();
     }
+
+    // Listen for chart recalculation events
+    const handleChartRecalculated = (event) => {
+      const recalculatedChartId = event.detail?.chartId;
+      // If this chart was recalculated, or if all charts were recalculated, refresh this chart
+      if (recalculatedChartId === chartId || recalculatedChartId === 'all') {
+        if (chartId) {
+          fetchAndPrepareChart();
+        }
+      }
+    };
+
+    window.addEventListener('chartRecalculated', handleChartRecalculated);
+
+    return () => {
+      window.removeEventListener('chartRecalculated', handleChartRecalculated);
+    };
   }, [chartId, prepareChartData]); // prepareChartData is a dependency
 
   const getChartComponent = () => {

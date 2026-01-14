@@ -6,7 +6,7 @@ import AssetFormModal from "./AssetFormModal"; // Import the new AssetFormModal
 import ConfirmDialog from "./ConfirmDialog";
 import "./AssetView.css";
 
-export default function AssetView({ assets, refreshAssets, accounts = [] }) {
+export default function AssetView({ assets, refreshAssets, refreshCashflow, accounts = [] }) {
   const [showAssetModal, setShowAssetModal] = useState(false); // State to control modal visibility
   const [selectedAsset, setSelectedAsset] = useState(null); // State to hold asset being edited
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
@@ -51,6 +51,10 @@ export default function AssetView({ assets, refreshAssets, accounts = [] }) {
 
   const handleSaveSuccess = async () => {
     await refreshAssets(); // Refresh assets after save
+    // Also refresh income items since "Track Interest as Taxable Income" creates/updates income items
+    if (refreshCashflow) {
+      await refreshCashflow();
+    }
     handleCloseModal(); // Close modal on successful save
   };
 

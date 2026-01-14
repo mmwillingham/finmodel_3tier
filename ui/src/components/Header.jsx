@@ -31,11 +31,16 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
         setShowDropdown(false); // Close dropdown after navigation
     };
 
+    const handleLogoClick = () => {
+        // Dispatch event to notify SidebarLayout to reset to home view
+        window.dispatchEvent(new CustomEvent('navigateToHome'));
+    };
+
     return (
         <header className="app-header">
             <nav>
                 <div className="logo">
-                    <Link to="/">
+                    <Link to="/" onClick={handleLogoClick}>
                         <img src="/vault-logo.jpg" alt="" style={{ height: '32px', verticalAlign: 'middle', marginRight: '8px' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
                         <span>Estate Springboard</span>
                     </Link>
