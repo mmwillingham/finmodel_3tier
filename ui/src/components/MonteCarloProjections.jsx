@@ -9,6 +9,9 @@ import { calculateTaxableIncome } from '../utils/taxCalculator';
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+// Constant to identify the federal tax expense item (must match backend)
+const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
+
 export default function MonteCarloProjections({ incomeItems, expenseItems, assets, liabilities, projectionYears, formatCurrency }) {
   const { userSettings } = useAuth();
   const currentYear = new Date().getFullYear();
@@ -141,6 +144,37 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
                 const variation = (Math.random() * volatility * 2 - volatility) / 100;
                 const variedValue = baseValue * (1 + variation);
                 itemValue = variedValue * (item.percentage / 100.0);
+              }
+            } else if (item.linked_item_id && item.linked_item_type === "income" && item.percentage !== null) {
+              // Expense linked to income - calculate based on linked income value
+              const linkedIncomeItem = incomeItems.find(i => i.id === item.linked_item_id);
+              if (linkedIncomeItem) {
+                // Calculate the linked income value for this year
+                let linkedIncomeValue = linkedIncomeItem.yearly_value || 0;
+                
+                // Check if linked income is also dynamic (linked to asset)
+                if (linkedIncomeItem.linked_item_id && linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null) {
+                  const linkedAsset = assets.find(a => a.id === linkedIncomeItem.linked_item_id);
+                  if (linkedAsset && baseAssetProjections[linkedAsset.name]) {
+                    const baseValue = baseAssetProjections[linkedAsset.name][year];
+                    const variation = (Math.random() * volatility * 2 - volatility) / 100;
+                    const variedValue = baseValue * (1 + variation);
+                    linkedIncomeValue = variedValue * (linkedIncomeItem.percentage / 100.0);
+                  }
+                } else {
+                  // Fixed income - apply growth rate with variation
+                  const variation = (Math.random() * volatility * 2 - volatility) / 100;
+                  const increaseRate = (linkedIncomeItem.annual_increase_percent || 0) / 100;
+                  linkedIncomeValue = linkedIncomeItem.yearly_value * Math.pow(1 + increaseRate, year) * (1 + variation);
+                }
+                
+                // Calculate expense as percentage of linked income
+                itemValue = linkedIncomeValue * (item.percentage / 100.0);
+              } else {
+                // Linked income item not found - use fixed value with inflation and variation
+                const variation = (Math.random() * volatility * 2 - volatility) / 100;
+                const inflationRate = (item.inflation_percent || 2.0) / 100;
+                itemValue = item.yearly_value * Math.pow(1 + inflationRate, year) * (1 + variation);
               }
             } else {
               // Add random variation to fixed expenses

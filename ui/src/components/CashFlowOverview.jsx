@@ -987,7 +987,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         
         let itemValue = item.yearly_value;
         
-        // Handle dynamic items (linked to assets)
+        // Handle dynamic items (linked to assets or income)
         if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
           // Find the linked asset
           const linkedAsset = assets.find(a => a.id === item.linked_item_id);
@@ -995,6 +995,37 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             // Recalculate based on projected asset value for this year
             const projectedAssetValue = assetProjections[linkedAsset.id][year];
             itemValue = projectedAssetValue * (item.percentage / 100.0);
+          }
+        } else if (item.linked_item_id && item.linked_item_type === "income" && item.percentage !== null && item.percentage !== undefined) {
+          // Expense linked to income - calculate based on linked income value
+          const linkedIncomeItem = incomeItems.find(i => i.id === item.linked_item_id);
+          if (linkedIncomeItem) {
+            // Calculate the linked income value for this year
+            let linkedIncomeValue = linkedIncomeItem.yearly_value || 0;
+            
+            // Check if linked income is also dynamic (linked to asset)
+            if (linkedIncomeItem.linked_item_id && linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null && linkedIncomeItem.percentage !== undefined) {
+              const linkedAsset = assets.find(a => a.id === linkedIncomeItem.linked_item_id);
+              if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
+                const projectedAssetValue = assetProjections[linkedAsset.id][year];
+                linkedIncomeValue = projectedAssetValue * (linkedIncomeItem.percentage / 100.0);
+              }
+            } else {
+              // Fixed income - apply growth rate
+              const growthRate = (linkedIncomeItem.annual_increase_percent || 0) / 100;
+              linkedIncomeValue = linkedIncomeValue * Math.pow(1 + growthRate, year);
+            }
+            
+            // Prorate linked income value based on its active period
+            const linkedIncomeYearFraction = calculateYearFraction(linkedIncomeItem.start_date, linkedIncomeItem.end_date, currentProjectionYear);
+            linkedIncomeValue = linkedIncomeValue * linkedIncomeYearFraction;
+            
+            // Calculate expense as percentage of linked income
+            itemValue = linkedIncomeValue * (item.percentage / 100.0);
+          } else {
+            // Linked income item not found - use fixed value with inflation
+            const inflationRate = (item.inflation_percent || 0) / 100;
+            itemValue = item.yearly_value * Math.pow(1 + inflationRate, year);
           }
         } else {
           // Fixed value item - apply inflation rate

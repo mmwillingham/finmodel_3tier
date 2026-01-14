@@ -165,7 +165,18 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         const existingProjections = await ProjectionService.getProjections();
         const existing = existingProjections.find(p => p.name === "Balance Sheet Projection");
         if (existing) {
-          projectionId = existing.id;
+          // Try to get details to check if we have edit permission
+          try {
+            const details = await ProjectionService.getProjectionDetails(existing.id);
+            // If we can get details, check if we can update by attempting to update
+            // But first, verify we own it (owner_id should match current user)
+            // Since we can't check owner_id from frontend, we'll try to update and catch 403
+            projectionId = existing.id;
+          } catch (e) {
+            // If we can't get details or don't have permission, create new
+            console.log("Cannot access existing projection, will create new one");
+            projectionId = null;
+          }
         }
       } catch (e) {
         console.log("Could not check for existing projection, will create new one");
@@ -173,8 +184,18 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
 
       let projection;
       if (projectionId) {
-        // Update existing projection
-        projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
+        try {
+          // Try to update existing projection
+          projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
+        } catch (err) {
+          // If update fails (e.g., 403 Forbidden), create a new one instead
+          if (err.response?.status === 403) {
+            console.log("No permission to update existing projection, creating new one");
+            projection = await ProjectionService.createProjection(projectionRequest);
+          } else {
+            throw err; // Re-throw other errors
+          }
+        }
       } else {
         // Create new projection
         projection = await ProjectionService.createProjection(projectionRequest);
