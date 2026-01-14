@@ -239,6 +239,26 @@ This plan provides systematic testing scenarios for all calculation aspects of t
 - Balance Sheet Projections
 - Custom Charts (liability balance over time)
 
+### 4.4 Amortized Loan with Payment Expense
+**Setup:**
+- Create 1 amortized loan: $100,000 principal, 5% interest, 30 years
+- Create corresponding expense item for the monthly payment amount
+- Liability decreases by principal amount each year (balance decreases)
+- Expense tracks the payment amount (interest + principal)
+
+**Test Cases:**
+- [ ] Year 1: Liability balance decreases (principal payment portion)
+- [ ] Year 1: Expense = annual payment amount (12 * monthly payment)
+- [ ] Year 2: Liability balance continues decreasing
+- [ ] Year 2: Expense continues at payment amount
+- [ ] Verify liability balance decreases correctly each year
+- [ ] Verify expense amount matches loan payment
+
+**Verify in:**
+- Balance Sheet Projections (liability balance)
+- Cash Flow Overview (expense amount)
+- Custom Charts (both liability and expense)
+
 ---
 
 ## 5. Tax Calculations
