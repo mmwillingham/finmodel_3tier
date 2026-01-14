@@ -526,14 +526,14 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
               </thead>
               <tbody>
                 {chartData.labels.map((year, yearIndex) => {
-                  // Calculate total value for this row (year) for sorting
-                  const rowTotal = chartData.datasets.reduce((sum, dataset) => {
-                    const value = dataset.data[yearIndex] || 0;
-                    return sum + (typeof value === 'number' ? value : parseFloat(value) || 0);
-                  }, 0);
-                  return { year, yearIndex, rowTotal };
+                  return { year, yearIndex };
                 })
-                .sort((a, b) => b.rowTotal - a.rowTotal) // Sort by total value descending
+                .sort((a, b) => {
+                  // Extract numeric year from "Year 2026" format and sort ascending
+                  const yearA = parseInt(a.year.toString().replace(/\D/g, '')) || 0;
+                  const yearB = parseInt(b.year.toString().replace(/\D/g, '')) || 0;
+                  return yearA - yearB;
+                })
                 .map(({ year, yearIndex }) => (
                   <tr key={year}>
                     <td>{year}</td>
