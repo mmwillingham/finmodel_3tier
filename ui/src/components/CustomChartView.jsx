@@ -48,14 +48,16 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     // If a specific item is selected (by ID), find it first to get its description
     let selectedItem = null;
     if (selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0) {
+      // Convert selectedItemId to number for comparison (handles string/number mismatch)
+      const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
       if (targetDataType === 'assets') {
-        selectedItem = assets.find(a => a.id === selectedItemId);
+        selectedItem = assets.find(a => a.id === itemIdNum || a.id === selectedItemId);
       } else if (targetDataType === 'liabilities') {
-        selectedItem = liabilities.find(l => l.id === selectedItemId);
+        selectedItem = liabilities.find(l => l.id === itemIdNum || l.id === selectedItemId);
       } else if (targetDataType === 'income') {
-        selectedItem = incomeItems.find(i => i.id === selectedItemId);
+        selectedItem = incomeItems.find(i => i.id === itemIdNum || i.id === selectedItemId);
       } else if (targetDataType === 'expenses') {
-        selectedItem = expenseItems.find(e => e.id === selectedItemId);
+        selectedItem = expenseItems.find(e => e.id === itemIdNum || e.id === selectedItemId);
       }
       
       if (DEBUG_MODE && selectedItem) {
