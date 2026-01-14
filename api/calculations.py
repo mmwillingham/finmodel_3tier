@@ -288,7 +288,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
         # Initialize lists for new models
         projected_accounts_for_db: List[models.ProjectedAccount] = []
-        time_series_data_for_db: List[models.ProjectionTimeSeriesData] = []
 
         # Prepare initial projected accounts based on input
         # These will be associated with the Projection after it's created and has an ID
@@ -750,26 +749,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Update for next year's starting balance
                         account_current_balances[projected_account.name] = new_balance
                 
-                # Record time series data for this account
-                time_series_data_for_db.append(models.ProjectionTimeSeriesData(
-                    year=year,
-                    value_type="account_balance",
-                    value=new_balance,
-                    account=projected_account # Link to the model instance
-                ))
-                time_series_data_for_db.append(models.ProjectionTimeSeriesData(
-                    year=year,
-                    value_type="contribution_flow",
-                    value=adjusted_annual_contribution,
-                    account=projected_account
-                ))
-                time_series_data_for_db.append(models.ProjectionTimeSeriesData(
-                    year=year,
-                    value_type="growth_value",
-                    value=(growth_on_balance + growth_on_contributions),
-                    account=projected_account
-                ))
-                
                 # Note: Date checking for income/expense items is now done at the start of the loop
                 # If item is not active, adjusted_annual_contribution is already set to 0.0
                 
@@ -1074,13 +1053,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 **account_values # Individual account balances with _Value suffix
             }
 
-            time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_assets", value=current_year_total_assets))
-            time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_liabilities", value=current_year_total_liabilities))
-            time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="net_worth", value=current_year_net_worth))
-            time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_income_flow", value=current_year_total_income_flow))
-            time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="total_expense_flow", value=current_year_total_expense_flow))
-            time_series_data_for_db.append(models.ProjectionTimeSeriesData(year=year, value_type="net_cash_flow", value=current_year_total_income_flow + current_year_total_expense_flow))
-
 
         # Final value is the net worth at the end of the last projected year
         final_value_projection = current_year_net_worth if years > 0 else sum(acc.initial_value for acc in projected_accounts_for_db)
@@ -1097,8 +1069,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             "total_contributed": total_contributed_overall,
             "total_growth": total_growth_overall,
             "projected_accounts": projected_accounts_for_db,
-            "time_series_data": time_series_data_for_db,
-            "data_json": data_json_string # NEW: Include the JSON string of yearly data
+            "data_json": data_json_string # Include the JSON string of yearly data
         }
     except Exception as e:
         print(f"--- CRITICAL ERROR in calculate_projection: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()

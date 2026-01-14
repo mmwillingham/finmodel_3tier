@@ -77,7 +77,6 @@ class Projection(Base):
 
     owner = relationship("User", back_populates="projections")
     accounts_data = relationship("ProjectedAccount", cascade="all, delete-orphan", back_populates="projection")
-    time_series_data = relationship("ProjectionTimeSeriesData", cascade="all, delete-orphan", back_populates="projection")
 
 
 class ProjectedAccount(Base):
@@ -104,22 +103,6 @@ class ProjectedAccount(Base):
     
     # Relationship back to the Projection
     projection = relationship("Projection", back_populates="accounts_data")
-
-
-class ProjectionTimeSeriesData(Base):
-    __tablename__ = "projection_time_series_data"
-
-    id = Column(Integer, primary_key=True, index=True)
-    projection_id = Column(Integer, ForeignKey("projections.id", ondelete="CASCADE"), nullable=False)
-    account_id = Column(Integer, ForeignKey("projected_accounts.id", ondelete="CASCADE"), nullable=True) # Optional: link to a specific account
-    
-    year = Column(Integer, index=True)
-    value_type = Column(String, index=True)
-    value = Column(Float)
-
-    # Relationships
-    projection = relationship("Projection", back_populates="time_series_data")
-    account = relationship("ProjectedAccount")
 
 
 class CashFlowItem(Base):

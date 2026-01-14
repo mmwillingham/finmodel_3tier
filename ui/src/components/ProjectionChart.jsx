@@ -94,24 +94,27 @@ export default function ProjectionChart({ projection, projectionId }) {
   }, [proj]);
 
   if (loading) return <div>Loading chart...</div>;
-  if (!proj || !proj.time_series_data || proj.time_series_data.length === 0) {
+  
+  // Parse data_json instead of using time_series_data
+  let chartData = [];
+  if (proj?.data_json) {
+    try {
+      chartData = JSON.parse(proj.data_json);
+    } catch (e) {
+      console.error("Error parsing data_json:", e);
+    }
+  }
+  
+  if (!proj || !chartData || chartData.length === 0) {
     return <div>No projection data available to chart.</div>;
   }
 
-  // Extract unique years for labels
-  const years = [...new Set(proj.time_series_data.map(d => d.year))].sort((a, b) => a - b);
-  const labels = years.map(y => `Year ${y}`);
-
+  // Extract years and labels from data_json
+  const labels = chartData.map(row => `Year ${row.Year}`);
   const datasets = [];
 
   // --- Add Net Worth data ---
-  const netWorthData = years.map(year => {
-    const dataPoint = proj.time_series_data.find(
-      d => d.year === year && d.value_type === "net_worth" && d.account_id === null
-    );
-    return dataPoint ? dataPoint.value : 0;
-  });
-
+  const netWorthData = chartData.map(row => row["Net Worth"] || 0);
   datasets.push({
     label: "Net Worth",
     data: netWorthData,
@@ -121,14 +124,8 @@ export default function ProjectionChart({ projection, projectionId }) {
     fill: true,
   });
 
-  // --- Add individual account balances (optional, can be expanded later) ---
-  // For now, let's just add Total Assets and Total Liabilities
-  const totalAssetsData = years.map(year => {
-    const dataPoint = proj.time_series_data.find(
-      d => d.year === year && d.value_type === "total_assets" && d.account_id === null
-    );
-    return dataPoint ? dataPoint.value : 0;
-  });
+  // --- Add Total Assets and Total Liabilities ---
+  const totalAssetsData = chartData.map(row => row["Total Assets"] || 0);
   datasets.push({
     label: "Total Assets",
     data: totalAssetsData,
@@ -138,12 +135,7 @@ export default function ProjectionChart({ projection, projectionId }) {
     fill: false,
   });
 
-  const totalLiabilitiesData = years.map(year => {
-    const dataPoint = proj.time_series_data.find(
-      d => d.year === year && d.value_type === "total_liabilities" && d.account_id === null
-    );
-    return dataPoint ? dataPoint.value : 0;
-  });
+  const totalLiabilitiesData = chartData.map(row => row["Total Liabilities"] || 0);
   datasets.push({
     label: "Total Liabilities",
     data: totalLiabilitiesData,

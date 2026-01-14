@@ -100,18 +100,6 @@ class ProjectedAccountOut(ProjectedAccountBase):
     projection_id: int
     model_config = ConfigDict(from_attributes=True)
 
-class ProjectionTimeSeriesDataBase(BaseModel):
-    year: int
-    value_type: str
-    value: float
-
-class ProjectionTimeSeriesDataOut(ProjectionTimeSeriesDataBase):
-    id: int
-    projection_id: int
-    account_id: Optional[int] = None
-    model_config = ConfigDict(from_attributes=True)
-
-
 # --- CALCULATION INPUT SCHEMAS ---
 
 class ProjectionRequest(BaseModel):
@@ -136,7 +124,7 @@ class ProjectionResponse(BaseModel):
     total_growth: float
     timestamp: Optional[datetime] = None
     accounts_data: List[ProjectedAccountOut] = [] # NEW
-    time_series_data: List[ProjectionTimeSeriesDataOut] = [] # NEW
+    time_series_data: List[dict] = []  # Deprecated - use data_json instead. Kept for backward compatibility.
     data_json: Optional[str] = None  # NEW: Include data_json from calculations
     
     model_config = ConfigDict(from_attributes=True)
@@ -159,8 +147,8 @@ class ProjectionDetailOut(BaseModel):
     total_contributed: float | None = None
     total_growth: float | None = None
     accounts_data: List[ProjectedAccountOut] = [] # NEW
-    time_series_data: List[ProjectionTimeSeriesDataOut] = [] # NEW
-    data_json: Optional[str] = None  # NEW: Include data_json (reconstructed from time_series_data if needed)
+    time_series_data: List[dict] = []  # Deprecated - use data_json instead. Kept for backward compatibility.
+    data_json: Optional[str] = None  # NEW: Include data_json
     model_config = ConfigDict(from_attributes=True)
 
 # --- CASH FLOW SCHEMAS ---

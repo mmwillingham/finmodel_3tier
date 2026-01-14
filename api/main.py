@@ -736,15 +736,10 @@ def create_projection(
         acc.projection_id = db_projection.id
         db.add(acc)
 
-    for ts_data in projection_results["time_series_data"]:
-        ts_data.projection_id = db_projection.id
-        db.add(ts_data)
-
     db.commit()
     db.refresh(db_projection) # Refresh to load relationships
 
     # Construct response with data_json from calculations
-    # Note: We exclude time_series_data from the response to save memory since data_json contains all the information
     return schemas.ProjectionResponse(
         id=db_projection.id,
         name=db_projection.name,
@@ -767,7 +762,6 @@ def get_projection_details(
     """
     Retrieves a single projection if the user has view permission."""
     
-    # Don't eagerly load time_series_data to save memory - we'll reconstruct data_json if needed
     projection = (
         db.query(models.Projection)
         .options(joinedload(models.Projection.accounts_data))
@@ -806,10 +800,7 @@ def get_projection_details(
             projection.last_calculated_at = datetime.utcnow()
             projection.timestamp = datetime.utcnow()
             
-            # Delete old time series data and accounts
-            db.query(models.ProjectionTimeSeriesData).filter(
-                models.ProjectionTimeSeriesData.projection_id == projection_id
-            ).delete()
+            # Delete old accounts
             db.query(models.ProjectedAccount).filter(
                 models.ProjectedAccount.projection_id == projection_id
             ).delete()
@@ -818,9 +809,6 @@ def get_projection_details(
             for acc in result["projected_accounts"]:
                 acc.projection_id = projection.id
                 db.add(acc)
-            for ts_data in result["time_series_data"]:
-                ts_data.projection_id = projection.id
-                db.add(ts_data)
             
             db.commit()
             db.refresh(projection)
@@ -872,7 +860,6 @@ def update_projection(
 ):
     """
     Updates an existing projection if user has edit permission."""
-    # Don't eagerly load time_series_data to save memory
     projection = (
         db.query(models.Projection)
         .options(joinedload(models.Projection.accounts_data))
@@ -899,7 +886,6 @@ def update_projection(
     
     # Delete existing associated data
     db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
-    db.query(models.ProjectionTimeSeriesData).filter(models.ProjectionTimeSeriesData.projection_id == projection_id).delete()
     db.commit()
 
     # Recalculate projection
@@ -931,12 +917,6 @@ def update_projection(
             acc.projection_id = projection.id
             db.add(acc)
 
-        # Note: We still save time_series_data for historical tracking, but we don't return it in the response
-        # This is a trade-off: database storage (cheap) vs memory during response (expensive)
-        for ts_data in result["time_series_data"]:
-            ts_data.projection_id = projection.id
-            db.add(ts_data)
-
         db.commit()
         db.refresh(projection) # Refresh to load relationships
     except Exception as e:
@@ -945,7 +925,6 @@ def update_projection(
         raise HTTPException(status_code=500, detail=f"Failed to save projection data: {str(e)}")
     
     # Construct response with data_json from database (stored during calculation)
-    # Note: We exclude time_series_data from the response to save memory since data_json contains all the information
     return schemas.ProjectionDetailOut(
         id=projection.id,
         name=projection.name,
@@ -987,7 +966,8 @@ def debug_run_projection_calculation(
             total_contributed=projection_results["total_contributed"],
             total_growth=projection_results["total_growth"],
             accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
-            time_series_data=[schemas.ProjectionTimeSeriesDataOut.model_validate(ts) for ts in projection_results["time_series_data"]]
+            time_series_data=[],  # No longer used - use data_json instead
+            data_json=projection_results.get("data_json")
         )
         return temp_projection_response
 
