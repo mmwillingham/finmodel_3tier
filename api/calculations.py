@@ -745,7 +745,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
                     else:
-                        new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
+                        # For assets/liabilities, if item is not active for this year (after end date), set balance to 0
+                        if not is_active_for_year and projected_account.account_type in ["asset", "liability"]:
+                            new_balance = 0.0
+                        else:
+                            new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
                         # Update for next year's starting balance
                         account_current_balances[projected_account.name] = new_balance
                 
