@@ -35,23 +35,43 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     let sum = 0;
     const targetDataType = series.data_type;
     const targetCategory = series.category;
-    const targetLabel = series.label; // Use series.label to match specific item names
+    const targetLabel = series.label; // Label is ONLY for display, never used for matching
     const selectedItemId = series.selected_item_id || series.item_id; // Check for specific item selection
 
-    // Special handling for amortized liabilities
-    if (targetDataType === 'liabilities') {
-        const matchingLiability = liabilities.find(l => l.name === targetLabel && l.category === targetCategory);
-        if (matchingLiability && matchingLiability.loan_type === 'amortized') {
-            // Backend stores amortized liability balance as "LoanName_Value"
-            const valueKey = `${targetLabel}_Value`;
-            const value = dataPoint[valueKey] || 0;
-            // Return absolute value since liabilities are displayed as positive
-            return Math.abs(value);
-        }
+    // Debug logging (set to false to disable)
+    const DEBUG_MODE = false; // Set to true for detailed debugging
+    if (DEBUG_MODE && targetDataType === 'expenses') {
+      console.log(`DEBUG getAggregatedValue START: targetLabel: "${targetLabel}" (display only), targetCategory: "${targetCategory}", selectedItemId: ${selectedItemId}`);
+      console.log(`DEBUG getAggregatedValue: expenseItems:`, expenseItems.map(e => ({ id: e.id, description: e.description, category: e.category })));
     }
 
-    // If a specific item is selected (by ID), match by exact label/name
-    const hasSpecificSelection = selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0;
+    // If a specific item is selected (by ID), find it first to get its description
+    let selectedItem = null;
+    if (selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0) {
+      if (targetDataType === 'assets') {
+        selectedItem = assets.find(a => a.id === selectedItemId);
+      } else if (targetDataType === 'liabilities') {
+        selectedItem = liabilities.find(l => l.id === selectedItemId);
+      } else if (targetDataType === 'income') {
+        selectedItem = incomeItems.find(i => i.id === selectedItemId);
+      } else if (targetDataType === 'expenses') {
+        selectedItem = expenseItems.find(e => e.id === selectedItemId);
+      }
+      
+      if (DEBUG_MODE && selectedItem) {
+        console.log(`DEBUG getAggregatedValue: Found selected item by ID ${selectedItemId}:`, { description: selectedItem.description || selectedItem.name, category: selectedItem.category });
+      }
+    }
+
+    // Special handling for amortized liabilities - use selectedItem if available, otherwise fallback to label
+    if (targetDataType === 'liabilities' && selectedItem && selectedItem.loan_type === 'amortized') {
+        // Backend stores amortized liability balance as "LoanName_Value"
+        const liabilityName = selectedItem.name;
+        const valueKey = `${liabilityName}_Value`;
+        const value = dataPoint[valueKey] || 0;
+        // Return absolute value since liabilities are displayed as positive
+        return Math.abs(value);
+    }
 
     for (const key in dataPoint) {
       if (key.endsWith('_Value')) {
@@ -101,24 +121,44 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         }
 
         if (itemMatchesDataType) {
-          // If a specific item is selected, only match by exact name/label
-          if (hasSpecificSelection && targetLabel) {
-            if (itemName === targetLabel) {
+          // Debug logging
+          if (DEBUG_MODE && targetDataType === 'expenses') {
+            console.log(`DEBUG getAggregatedValue: Checking expense - itemNameFromKey: "${itemNameFromKey}", itemName: "${itemName}", itemCategory: "${itemCategory}", targetCategory: "${targetCategory}", selectedItem:`, selectedItem ? { id: selectedItem.id, description: selectedItem.description || selectedItem.name } : null, `value: ${value}`);
+          }
+          
+          // Matching logic (label is NEVER used for matching):
+          // 1. If a specific item is selected (by ID), match by item description/name
+          if (selectedItem) {
+            const selectedItemName = selectedItem.description || selectedItem.name;
+            if (itemName === selectedItemName) {
               sum += value;
+              if (DEBUG_MODE && targetDataType === 'expenses') {
+                console.log(`DEBUG getAggregatedValue: Matched by selectedItem ID (${selectedItemId}) - itemName: "${itemName}", selectedItemName: "${selectedItemName}", value: ${value}, sum now: ${sum}`);
+              }
+            } else if (DEBUG_MODE && targetDataType === 'expenses') {
+              console.log(`DEBUG getAggregatedValue: Selected item name mismatch - itemName: "${itemName}", selectedItemName: "${selectedItemName}"`);
             }
-          } else if (hasSpecificSelection && !targetLabel) {
-            // Item selected but label not set - try to match by item name from data
-            // This can happen if label wasn't set properly - match any item that exists
-            sum += value;
-          } else if (targetCategory && targetCategory !== "") {
-            // Filter by category: only include if the item's category matches
+          } 
+          // 2. If category is specified, match by category
+          else if (targetCategory && targetCategory !== "") {
             if (itemCategory === targetCategory) {
               sum += value;
+              if (DEBUG_MODE && targetDataType === 'expenses') {
+                console.log(`DEBUG getAggregatedValue: Matched by category "${targetCategory}", value: ${value}, sum now: ${sum}`);
+              }
+            } else if (DEBUG_MODE && targetDataType === 'expenses') {
+              console.log(`DEBUG getAggregatedValue: Category mismatch - itemCategory: "${itemCategory}", targetCategory: "${targetCategory}"`);
             }
-          } else {
-            // No category filter: include all items of the target data type
+          } 
+          // 3. Otherwise, include all items of the target data type
+          else {
             sum += value;
+            if (DEBUG_MODE && targetDataType === 'expenses') {
+              console.log(`DEBUG getAggregatedValue: Matched by data type (no filters), value: ${value}, sum now: ${sum}`);
+            }
           }
+        } else if (DEBUG_MODE && targetDataType === 'expenses') {
+          console.log(`DEBUG getAggregatedValue: Item not found in expenseItems - itemNameFromKey: "${itemNameFromKey}", available expenses:`, expenseItems.map(e => ({ id: e.id, description: e.description })));
         }
       }
     }
@@ -160,7 +200,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
         const dataValues = parsedDataJson.map(dataPoint => {
           const valueForSeries = getAggregatedValue(dataPoint, series);
-          console.log(`DEBUG (CustomChartView.jsx): Year ${dataPoint.Year}, Series: ${series.label}, Data Type: ${series.data_type}, Category: ${series.category}, Final Value: ${valueForSeries}`);
           return valueForSeries;
         });
 
