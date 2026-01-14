@@ -21,6 +21,7 @@ _SECRET_KEY
 
 
 ### Triggers
+```
 https://console.cloud.google.com/cloud-build/triggers?invt=AcFsNQ&project=financial-model-cloud
 $ gcloud builds triggers describe finmodel-ci-cd --region=us-east1
 createTime: '2025-12-16T15:56:53.693595831Z'
@@ -50,5 +51,5 @@ substitutions:
   _PUBLIC_BACKEND_URL: https://finmodel-backend-service-526419047208.us-east1.run.app
   _USE_CREDENTIALS: 'True'
   _VALIDATE_CERTS: 'True'
-
+```
 
