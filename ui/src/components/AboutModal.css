@@ -1,0 +1,148 @@
+.about-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.about-modal-content {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1001;
+  color: #333;
+}
+
+.about-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 1px solid #eee;
+}
+
+.about-modal-header h2 {
+  margin: 0;
+  font-size: 1.8em;
+  color: #282c34;
+}
+
+.about-modal-close {
+  background: none;
+  border: none;
+  font-size: 2em;
+  cursor: pointer;
+  color: #555;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.about-modal-close:hover {
+  color: #000;
+}
+
+.about-modal-body {
+  padding: 30px;
+}
+
+.about-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  text-align: center;
+  border: 1px solid #c3e6cb;
+}
+
+.about-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  text-align: center;
+  border: 1px solid #f5c6cb;
+}
+
+.about-admin-controls {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.about-admin-controls button {
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  color: #333;
+  transition: background-color 0.2s ease;
+}
+
+.about-admin-controls .save-button {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.about-admin-controls .save-button:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+.about-admin-controls button:hover {
+  background-color: #e2e6ea;
+}
+
+.about-content-display {
+  margin-top: 20px;
+}
+
+.about-loading {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.about-content-display textarea {
+  font-family: inherit;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.about-content-display div {
+  line-height: 1.6;
+}
+
+.about-content-display h1,
+.about-content-display h2,
+.about-content-display h3 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.about-content-display p {
+  margin-bottom: 1em;
+}
