@@ -179,7 +179,11 @@ def calculate_tax(
     Returns:
         Total federal income tax owed
     """
+    import sys
+    print(f"--- DEBUG calculate_tax: taxable_income={taxable_income}, filing_status={filing_status}, current_year={current_year} ---"); sys.stdout.flush()
+    
     if taxable_income <= 0:
+        print(f"--- DEBUG calculate_tax: Returning 0.0 because taxable_income <= 0 ---"); sys.stdout.flush()
         return 0.0
     
     if current_year is None:
@@ -189,7 +193,7 @@ def calculate_tax(
     person1_age = calculate_age_from_birthdate(person1_birthdate, current_year)
     person2_age = calculate_age_from_birthdate(person2_birthdate, current_year) if person2_birthdate else 0
     
-    # Get standard deduction
+    # Get standard deduction (note: this is calculated but not used, as taxable_income already has deductions applied)
     standard_deduction = get_standard_deduction(filing_status, person1_age, person2_age)
     
     # Taxable income for calculation (should be after standard deduction)
@@ -197,6 +201,7 @@ def calculate_tax(
     
     # Get appropriate tax brackets
     brackets = get_tax_brackets(filing_status)
+    print(f"--- DEBUG calculate_tax: income_to_tax={income_to_tax}, brackets={brackets} ---"); sys.stdout.flush()
     
     # Calculate tax using progressive brackets
     tax = 0.0
@@ -213,13 +218,20 @@ def calculate_tax(
                 # Last bracket (top bracket)
                 amount_in_bracket = income_to_tax - previous_bracket
             
+            print(f"--- DEBUG calculate_tax: Bracket {i}: threshold={bracket_threshold}, rate={rate}, previous_bracket={previous_bracket}, amount_in_bracket={amount_in_bracket} ---"); sys.stdout.flush()
+            
             if amount_in_bracket > 0:
-                tax += amount_in_bracket * rate
+                bracket_tax = amount_in_bracket * rate
+                tax += bracket_tax
+                print(f"--- DEBUG calculate_tax: Bracket {i}: bracket_tax={bracket_tax}, cumulative_tax={tax} ---"); sys.stdout.flush()
                 previous_bracket = brackets[i + 1][0] if i < len(brackets) - 1 else income_to_tax
         else:
+            print(f"--- DEBUG calculate_tax: Breaking at bracket {i} because income_to_tax <= previous_bracket ---"); sys.stdout.flush()
             break
     
-    return round(tax, 2)
+    final_tax = round(tax, 2)
+    print(f"--- DEBUG calculate_tax: Final tax={final_tax} ---"); sys.stdout.flush()
+    return final_tax
 
 
 def calculate_qualified_dividend_tax(
@@ -298,29 +310,39 @@ def calculate_taxable_income(
     Returns:
         Tuple of (taxable_income, standard_deduction, tax_owed)
     """
+    import sys
+    print(f"--- DEBUG calculate_taxable_income: total_income={total_income}, tax_deductible_expenses={tax_deductible_expenses}, filing_status={filing_status}, current_year={current_year}, qualified_dividends={qualified_dividends} ---"); sys.stdout.flush()
+    
     if current_year is None:
         current_year = datetime.now().year
     
     # Calculate ages
     person1_age = calculate_age_from_birthdate(person1_birthdate, current_year)
     person2_age = calculate_age_from_birthdate(person2_birthdate, current_year) if person2_birthdate else 0
+    print(f"--- DEBUG calculate_taxable_income: person1_age={person1_age}, person2_age={person2_age} ---"); sys.stdout.flush()
     
     # Get standard deduction
     standard_deduction = get_standard_deduction(filing_status, person1_age, person2_age)
+    print(f"--- DEBUG calculate_taxable_income: standard_deduction={standard_deduction} ---"); sys.stdout.flush()
     
     # Calculate Adjusted Gross Income (AGI) = total income - tax deductible expenses
     agi = max(0, total_income - tax_deductible_expenses)
+    print(f"--- DEBUG calculate_taxable_income: agi={agi} ---"); sys.stdout.flush()
     
     # Taxable income = AGI - standard deduction
     taxable_income = max(0, agi - standard_deduction)
+    print(f"--- DEBUG calculate_taxable_income: taxable_income={taxable_income} ---"); sys.stdout.flush()
     
     # Separate ordinary income and qualified dividends
     # Note: qualified_dividends is already included in total_income, so we subtract it to get ordinary income
     ordinary_income = max(0, taxable_income - qualified_dividends)
     qualified_dividend_income = min(qualified_dividends, taxable_income)
+    print(f"--- DEBUG calculate_taxable_income: ordinary_income={ordinary_income}, qualified_dividend_income={qualified_dividend_income} ---"); sys.stdout.flush()
     
     # Calculate tax on ordinary income
+    print(f"--- DEBUG calculate_taxable_income: Calling calculate_tax with ordinary_income={ordinary_income} ---"); sys.stdout.flush()
     ordinary_tax = calculate_tax(ordinary_income, filing_status, person1_birthdate, person2_birthdate, current_year)
+    print(f"--- DEBUG calculate_taxable_income: ordinary_tax={ordinary_tax} ---"); sys.stdout.flush()
     
     # Calculate tax on qualified dividends (if any)
     qualified_tax = 0.0
@@ -331,8 +353,10 @@ def calculate_taxable_income(
             filing_status,
             current_year
         )
+        print(f"--- DEBUG calculate_taxable_income: qualified_tax={qualified_tax} ---"); sys.stdout.flush()
     
     # Total tax = tax on ordinary income + tax on qualified dividends
     tax_owed = ordinary_tax + qualified_tax
+    print(f"--- DEBUG calculate_taxable_income: Final tax_owed={tax_owed} (ordinary_tax={ordinary_tax} + qualified_tax={qualified_tax}) ---"); sys.stdout.flush()
     
     return (taxable_income, standard_deduction, tax_owed)
