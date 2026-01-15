@@ -2,7 +2,8 @@ import json
 import logging
 import traceback
 import sys
-print(f"--- DEBUG: api/calculations.py LOADED ---"); sys.stdout.flush()
+# Disabled verbose debug logging - only keeping tax-related logs
+# print(f"--- DEBUG: api/calculations.py LOADED ---"); sys.stdout.flush()
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -242,9 +243,10 @@ def calculate_annual_principal_interest(
 
 def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCreate], db: Session, owner_id: int) -> dict:
     try:
-        print(f"--- DEBUG: TOP OF calculate_projection function. Owner ID: {owner_id} ---"); sys.stdout.flush()
-        print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---"); sys.stdout.flush()
-        print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} ---"); sys.stdout.flush() # NEW DEBUG
+        # Disabled verbose debug logging
+        # print(f"--- DEBUG: TOP OF calculate_projection function. Owner ID: {owner_id} ---"); sys.stdout.flush()
+        # print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---"); sys.stdout.flush()
+        # print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} ---"); sys.stdout.flush()
 
         # Load user settings for surplus asset and other settings
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == owner_id).first()
@@ -272,10 +274,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 cash_flow_items_by_id[item.id] = item
             # Debug: Log what income items are loaded
             income_items_loaded = [f"{item.id}:{item.description}(taxable={item.taxable})" for item in all_cash_flow_items if item.is_income]
-            print(f"--- DEBUG: Loaded {len(income_items_loaded)} income items for tax calculation: {income_items_loaded} ---"); sys.stdout.flush()
+            # Disabled verbose debug logging
+            # print(f"--- DEBUG: Loaded {len(income_items_loaded)} income items for tax calculation: {income_items_loaded} ---"); sys.stdout.flush()
             # Also log all cash flow items for debugging
             all_items_loaded = [f"{item.id}:{item.description}(is_income={item.is_income},taxable={item.taxable if item.is_income else 'N/A'})" for item in all_cash_flow_items]
-            print(f"--- DEBUG: Loaded {len(all_items_loaded)} total cash flow items: {all_items_loaded} ---"); sys.stdout.flush()
+            # Disabled verbose debug logging
+            # print(f"--- DEBUG: Loaded {len(all_items_loaded)} total cash flow items: {all_items_loaded} ---"); sys.stdout.flush()
 
         # Load auto-disbursement rules
         auto_disbursements = db.query(models.AutoDisbursement).filter(
@@ -299,7 +303,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Prepare initial projected accounts based on input
         # These will be associated with the Projection after it's created and has an ID
         for acc_schema in accounts:
-            print(f"--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} ---"); sys.stdout.flush()
+            # Disabled verbose debug logging
+            # print(f"--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} ---"); sys.stdout.flush()
             projected_account = models.ProjectedAccount(
                 name=acc_schema.name,
                 account_type=acc_schema.account_type,
@@ -355,7 +360,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
         # Main Projection Loop
         for year in range(1, years + 1):
-            print(f"--- DEBUG: Starting projection for Year {year} ---"); sys.stdout.flush()
+            # Disabled verbose debug logging
+            # print(f"--- DEBUG: Starting projection for Year {year} ---"); sys.stdout.flush()
 
             # Yearly aggregates
             current_year_total_assets = 0.0
@@ -465,7 +471,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 if projected_account.name not in annual_flow_values:
                                     annual_flow_values[projected_account.name + "_Payment"] = -payment_expense  # Negative for expense
                                     current_year_total_expense_flow += payment_expense
-                                    print(f"--- DEBUG: Created payment expense of {payment_expense:.2f} for {projected_account.name} ---"); sys.stdout.flush()
+                                    # Disabled verbose debug logging
+                                    # print(f"--- DEBUG: Created payment expense of {payment_expense:.2f} for {projected_account.name} ---"); sys.stdout.flush()
                             
                             # Store principal/interest breakdown for this year
                             account_values_for_year[f"{projected_account.name}_Principal"] = breakdown['principal_paid']
@@ -483,7 +490,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             account_current_balances[projected_account.name] = new_balance
 
                     except ValueError:
-                        print(f"--- DEBUG: Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation. (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
+                        # Disabled verbose debug logging (errors still logged)
+                        # print(f"--- DEBUG: Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation. (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
                         # Fallback to standard projection logic if date is invalid
                         new_balance = current_balance + (current_balance * (projected_account.growth_rate / 100.0)) + (projected_account.contribution * 12)
                         adjusted_annual_contribution = projected_account.contribution * 12
@@ -507,7 +515,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     
                     # Check for expense linked to income
                     if "|LINKED_INCOME:" in projected_account.name and "|PERCENTAGE:" in projected_account.name and projected_account.account_type == "expense":
-                        print(f"--- DEBUG: Found expense linked to income: {projected_account.name} ---"); sys.stdout.flush()
+                        # Disabled verbose debug logging
+                        # print(f"--- DEBUG: Found expense linked to income: {projected_account.name} ---"); sys.stdout.flush()
                         parts = projected_account.name.split("|LINKED_INCOME:")
                         if len(parts) == 2:
                             base_account_name = parts[0]
@@ -517,7 +526,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 linked_income_name = percent_parts[0].strip()
                                 try:
                                     linked_percentage = float(percent_parts[1])
-                                    print(f"--- DEBUG: Parsed expense '{base_account_name}' linked to income '{linked_income_name}' at {linked_percentage}% ---"); sys.stdout.flush()
+                                    # Disabled verbose debug logging
+                                    # print(f"--- DEBUG: Parsed expense '{base_account_name}' linked to income '{linked_income_name}' at {linked_percentage}% ---"); sys.stdout.flush()
                                 except ValueError:
                                     linked_percentage = None
                                     print(f"--- WARNING: Could not parse percentage for expense linked to income: {projected_account.name} ---"); sys.stdout.flush()
@@ -601,7 +611,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Calculate expense as percentage of income
                         expense_amount = abs(linked_income_flow_value) * (linked_percentage / 100.0)
                         adjusted_annual_contribution = -expense_amount  # Negative for expense
-                        print(f"--- DEBUG: Expense '{base_account_name}' linked to income '{linked_income_name}': {expense_amount:.2f} ({linked_percentage}% of {linked_income_flow_value:.2f}) ---"); sys.stdout.flush()
+                        # Disabled verbose debug logging
+                        # print(f"--- DEBUG: Expense '{base_account_name}' linked to income '{linked_income_name}': {expense_amount:.2f} ({linked_percentage}% of {linked_income_flow_value:.2f}) ---"); sys.stdout.flush()
                     elif linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
                         # Dynamic item: recalculate contribution based on linked asset(s) current value
                         # Only calculate if item is active for this year
@@ -666,7 +677,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 else:
                                     # For non-retirement accounts, dividends/interest are available for spending
                                     adjusted_annual_contribution = yearly_value
-                                    print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {len(linked_asset_names)} assets total value={total_linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} (available for spending) ---"); sys.stdout.flush()
+                                    # Disabled verbose debug logging
+                                    # print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {len(linked_asset_names)} assets total value={total_linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} (available for spending) ---"); sys.stdout.flush()
                             else:
                                 # Expenses (shouldn't normally be dynamic, but handle if needed)
                                 adjusted_annual_contribution = -yearly_value
@@ -753,13 +765,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             cash_flow_item = None
                             
                             # Debug: Log what we're looking for
-                            print(f"--- DEBUG: Year {year} - Processing {projected_account.account_type} '{projected_account.name}' (cash_flow_item_id={projected_account.cash_flow_item_id}, base_account_name='{base_account_name}', new_balance={new_balance:.2f}) ---"); sys.stdout.flush()
+                            # Disabled verbose debug logging
+                            # print(f"--- DEBUG: Year {year} - Processing {projected_account.account_type} '{projected_account.name}' (cash_flow_item_id={projected_account.cash_flow_item_id}, base_account_name='{base_account_name}', new_balance={new_balance:.2f}) ---"); sys.stdout.flush()
                             
                             # Try ID-based lookup first (preferred method)
                             if projected_account.cash_flow_item_id:
                                 cash_flow_item = cash_flow_items_by_id.get(projected_account.cash_flow_item_id)
                                 if cash_flow_item:
-                                    print(f"--- DEBUG: Year {year} - Found CashFlowItem by ID {projected_account.cash_flow_item_id}: description='{cash_flow_item.description}', is_income={cash_flow_item.is_income}, taxable={cash_flow_item.taxable if hasattr(cash_flow_item, 'taxable') else 'N/A'} ---"); sys.stdout.flush()
+                                    # Disabled verbose debug logging (keeping tax-related logs)
+                                    # print(f"--- DEBUG: Year {year} - Found CashFlowItem by ID {projected_account.cash_flow_item_id}: description='{cash_flow_item.description}', is_income={cash_flow_item.is_income}, taxable={cash_flow_item.taxable if hasattr(cash_flow_item, 'taxable') else 'N/A'} ---"); sys.stdout.flush()
                                 else:
                                     print(f"--- DEBUG: Year {year} - CashFlowItem with ID {projected_account.cash_flow_item_id} not found in cash_flow_items_by_id. This should not happen. ---"); sys.stdout.flush()
                             
@@ -784,13 +798,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         income_amount = abs(new_balance)
                                         current_year_taxable_income += income_amount
                                         lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
-                                        print(f"--- DEBUG: Year {year} - Added taxable income ({lookup_method}, {cash_flow_item.description}): {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
+                                        # Keeping this log - it's tax-related but might be verbose. Uncomment if needed for debugging
+                                        # print(f"--- DEBUG: Year {year} - Added taxable income ({lookup_method}, {cash_flow_item.description}): {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
                                         # Track qualified dividends separately if applicable
                                         if cash_flow_item.is_qualified_dividend:
                                             current_year_qualified_dividends += income_amount
                                     else:
                                         lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
-                                        print(f"--- DEBUG: Year {year} - Income item ({lookup_method}, {cash_flow_item.description}) has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
+                                        # Disabled verbose debug logging (tax-related but verbose - uncomment if needed)
+                                        # print(f"--- DEBUG: Year {year} - Income item ({lookup_method}, {cash_flow_item.description}) has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
                                 elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
                                     # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
                                     if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
@@ -915,11 +931,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
                                         growth_factor = pow(1 + effective_growth_rate, year - 1)
                                         linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
-                                        print(f"--- DEBUG: Calculated fixed income '{linked_income_item.description}' for year {year}: {base_yearly_value:.2f} * {growth_factor:.4f} * {income_year_fraction:.4f} = {linked_income_flow_value:.2f} ---"); sys.stdout.flush()
+                                        # Disabled verbose debug logging
+                                        # print(f"--- DEBUG: Calculated fixed income '{linked_income_item.description}' for year {year}: {base_yearly_value:.2f} * {growth_factor:.4f} * {income_year_fraction:.4f} = {linked_income_flow_value:.2f} ---"); sys.stdout.flush()
                                 
                                 # Calculate expense as percentage of income (already prorated by income_year_fraction)
                                 expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
-                                print(f"--- DEBUG: Dynamic expense '{exp_item.description}' ({exp_item.percentage}% of '{linked_income_item.description}' = {expense_amount:.2f}) contributing to asset '{target_asset.name}' ---"); sys.stdout.flush()
+                                # Disabled verbose debug logging
+                                # print(f"--- DEBUG: Dynamic expense '{exp_item.description}' ({exp_item.percentage}% of '{linked_income_item.description}' = {expense_amount:.2f}) contributing to asset '{target_asset.name}' ---"); sys.stdout.flush()
                                 
                                 # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
                                 # Use expense_year_fraction to prorate the expense amount for this year
@@ -947,7 +965,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         balance_before_expense = account_current_balances.get(target_asset.name, 0.0)
                         account_current_balances[target_asset.name] += expense_amount
                         balance_after_expense = account_current_balances[target_asset.name]
-                        print(f"--- DEBUG: Year {year} - Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_expense:.2f} -> {balance_after_expense:.2f} ---"); sys.stdout.flush()
+                        # Disabled verbose debug logging
+                        # print(f"--- DEBUG: Year {year} - Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_expense:.2f} -> {balance_after_expense:.2f} ---"); sys.stdout.flush()
             
             # Calculate federal income tax if enabled
             federal_tax_expense_value = 0.0
@@ -1062,7 +1081,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 balance_before_surplus = account_current_balances[surplus_asset_name]
                 account_current_balances[surplus_asset_name] += surplus_deficit
                 balance_after_surplus = account_current_balances[surplus_asset_name]
-                print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Balance before surplus: {balance_before_surplus:.2f}, Surplus added: {surplus_deficit:.2f}, Balance after surplus: {balance_after_surplus:.2f} ---"); sys.stdout.flush()
+                # Disabled verbose debug logging
+                # print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Balance before surplus: {balance_before_surplus:.2f}, Surplus added: {surplus_deficit:.2f}, Balance after surplus: {balance_after_surplus:.2f} ---"); sys.stdout.flush()
 
             # Apply auto-disbursement transfers
             year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
@@ -1112,7 +1132,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 account_current_balances[source_name] -= transfer_amount
                                 account_current_balances[target_name] += transfer_amount
                                 balance_after_transfer = account_current_balances[target_name]
-                                print(f"--- DEBUG: Year {year} - Applied auto-disbursement: {transfer_amount:.2f} from {source_name} to {target_name}. {target_name} balance: {balance_before_transfer:.2f} -> {balance_after_transfer:.2f} ---"); sys.stdout.flush()
+                                # Disabled verbose debug logging
+                                # print(f"--- DEBUG: Year {year} - Applied auto-disbursement: {transfer_amount:.2f} from {source_name} to {target_name}. {target_name} balance: {balance_before_transfer:.2f} -> {balance_after_transfer:.2f} ---"); sys.stdout.flush()
 
             # Recalculate totals after surplus/deficit and auto-disbursements
             # This ensures assets reflect the transfers
@@ -1189,7 +1210,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Final value is the net worth at the end of the last projected year
         final_value_projection = current_year_net_worth if years > 0 else sum(acc.initial_value for acc in projected_accounts_for_db)
 
-        print(f"--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} ---"); sys.stdout.flush()
+        # Disabled verbose debug logging
+        # print(f"--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} ---"); sys.stdout.flush()
         
         # Convert yearly_data_points to a list of dicts for JSON serialization
         data_for_json = [yearly_data_points[year] for year in sorted(yearly_data_points.keys())]

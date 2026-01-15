@@ -4,7 +4,8 @@ import random
 import traceback
 import sys
 
-print(f"--- DEBUG: api/routers/custom_charts.py LOADED ---"); sys.stdout.flush()
+# Disabled verbose debug logging - only keeping tax-related logs
+# print(f"--- DEBUG: api/routers/custom_charts.py LOADED ---"); sys.stdout.flush()
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
