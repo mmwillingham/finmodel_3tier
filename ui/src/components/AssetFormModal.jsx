@@ -365,7 +365,7 @@ export default function AssetFormModal({
         <div className="add-item-form">
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* First row: Name, Category, Account, Value */} 
             <div className="form-field">
-              <label htmlFor="asset-name">Name</label>
+              <label htmlFor="asset-name">Name *</label>
               <input
                 id="asset-name"
                 type="text"
@@ -376,7 +376,7 @@ export default function AssetFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="asset-category">Category</label>
+              <label htmlFor="asset-category">Category *</label>
               <select id="asset-category" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
                 <option value="">Select Category</option>
                 {categories.map((cat) => (
@@ -404,7 +404,7 @@ export default function AssetFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="asset-value">Value</label>
+              <label htmlFor="asset-value">Value *</label>
               <input
                 id="asset-value"
                 type="number"

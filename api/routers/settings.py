@@ -278,14 +278,17 @@ def update_user_settings(
         
         if calculate_federal_tax_enabled and not federal_tax_expense:
             # Create the federal tax expense item
-            # Use "Taxes" category if it exists, otherwise use first expense category or "Other"
+            # Ensure "Taxes" category exists in expense_categories, add it if missing
             expense_categories = user_settings.expense_categories or []
-            tax_category = "Taxes" if "Taxes" in expense_categories else (expense_categories[0] if expense_categories else "Other")
+            if "Taxes" not in expense_categories:
+                expense_categories.append("Taxes")
+                user_settings.expense_categories = expense_categories
+                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
             
             federal_tax_expense = models.CashFlowItem(
                 owner_id=current_user.id,
                 is_income=False,
-                category=tax_category,
+                category="Taxes",  # Always use "Taxes" category
                 description=FEDERAL_TAX_EXPENSE_DESCRIPTION,
                 frequency="yearly",
                 yearly_value=0.0,  # This will be calculated dynamically in projections
@@ -294,7 +297,18 @@ def update_user_settings(
                 tax_deductible=False
             )
             db.add(federal_tax_expense)
-            logger.info(f"Created federal tax expense item for user {current_user.id}")
+            logger.info(f"Created federal tax expense item for user {current_user.id} with category 'Taxes'")
+        elif calculate_federal_tax_enabled and federal_tax_expense:
+            # Update existing federal tax expense to ensure it has "Taxes" category
+            expense_categories = user_settings.expense_categories or []
+            if "Taxes" not in expense_categories:
+                expense_categories.append("Taxes")
+                user_settings.expense_categories = expense_categories
+                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
+            
+            if federal_tax_expense.category != "Taxes":
+                federal_tax_expense.category = "Taxes"
+                logger.info(f"Updated federal tax expense category to 'Taxes' for user {current_user.id}")
         elif not calculate_federal_tax_enabled and federal_tax_expense:
             # Delete the federal tax expense item
             db.delete(federal_tax_expense)

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import globalSettingsService from '../services/globalSettings.service';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
@@ -8,7 +7,6 @@ import AuthService from '../services/auth.service';
 
 const AboutPage = () => {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   useSettingsBackButton(); // Fix browser back button navigation
   const [aboutContent, setAboutContent] = useState('Loading about content...');
   const [isEditing, setIsEditing] = useState(false);
@@ -95,9 +93,6 @@ const AboutPage = () => {
         ) : (
           <div dangerouslySetInnerHTML={{ __html: aboutContent }} />
         )}
-      </div>
-      <div className="settings-page-actions">
-        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
       </div>
     </div>
   );

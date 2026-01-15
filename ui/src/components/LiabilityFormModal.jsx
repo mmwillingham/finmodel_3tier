@@ -261,7 +261,7 @@ export default function LiabilityFormModal({
             </div>
             {/* Name and Category are common for both types */}
             <div className="form-field">
-              <label htmlFor="name">Name</label>
+              <label htmlFor="name">Name *</label>
               <input
                 id="name"
                 type="text"
@@ -271,7 +271,7 @@ export default function LiabilityFormModal({
               />
             </div>
             <div className="form-field">
-              <label htmlFor="category">Category</label>
+              <label htmlFor="category">Category *</label>
               <select id="category" value={newItem.category} onChange={handleInputChange}>
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
@@ -285,7 +285,7 @@ export default function LiabilityFormModal({
           {newItem.loan_type === "ordinary" && (
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* Fields specific to Ordinary/Revolving loan */}
               <div className="form-field">
-                <label htmlFor="value">Value</label>
+                <label htmlFor="value">Value *</label>
                 <input
                   id="value"
                   type="number"
@@ -326,7 +326,7 @@ export default function LiabilityFormModal({
             <>
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}> {/* Fields specific to Amortized loan */}
               <div className="form-field">
-                  <label htmlFor="principal_amount">Principal Amount</label>
+                  <label htmlFor="principal_amount">Principal Amount *</label>
                 <input
                     id="principal_amount"
                   type="number"
@@ -338,7 +338,7 @@ export default function LiabilityFormModal({
                 />
               </div>
               <div className="form-field">
-                  <label htmlFor="interest_rate">Annual Interest Rate (%)</label>
+                  <label htmlFor="interest_rate">Annual Interest Rate (%) *</label>
                 <input
                     id="interest_rate"
                   type="number"
@@ -350,7 +350,7 @@ export default function LiabilityFormModal({
                 />
               </div>
               <div className="form-field">
-                  <label htmlFor="loan_term_months">Loan Term (Months)</label>
+                  <label htmlFor="loan_term_months">Loan Term (Months) *</label>
                 <input
                     id="loan_term_months"
                   type="number"
@@ -362,7 +362,7 @@ export default function LiabilityFormModal({
                 />
               </div>
               <div className="form-field">
-                  <label htmlFor="loan_start_date">Loan Start Date</label>
+                  <label htmlFor="loan_start_date">Loan Start Date *</label>
                 <input
                     id="loan_start_date"
                   type="date"
@@ -408,19 +408,20 @@ export default function LiabilityFormModal({
               </div>
               {newItem.create_payment_expense && (
                 <div className="form-field">
-                  <label>
-                    Expense Category: *
-                    <select
-                      value={newItem.expense_category || ""}
-                      onChange={(e) => setNewItem({ ...newItem, expense_category: e.target.value })}
-                      required
-                    >
-                      <option value="">Select Category</option>
-                      {expenseCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                  <label htmlFor="expense-category-select">
+                    Expense Category *
                   </label>
+                  <select
+                    id="expense-category-select"
+                    value={newItem.expense_category || ""}
+                    onChange={(e) => setNewItem({ ...newItem, expense_category: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {expenseCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>

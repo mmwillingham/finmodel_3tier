@@ -331,7 +331,7 @@ export default function CashFlowFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="description-input">Description (Name)</label>
+              <label htmlFor="description-input">Description (Name) *</label>
               <input
                 id="description-input"
                 type="text"
@@ -342,7 +342,7 @@ export default function CashFlowFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="category-select">Category</label>
+              <label htmlFor="category-select">Category *</label>
               <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}> 
                 <option value="">Select Category</option>
                 {typeOptions.map((opt) => (
@@ -378,7 +378,7 @@ export default function CashFlowFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="value-input">Value</label>
+              <label htmlFor="value-input">Value{!isDynamic ? ' *' : ''}</label>
               {((itemToEdit?.description?.startsWith("Social Security - ")) || (newItem.description?.startsWith("Social Security - "))) && (
                 <div style={{ marginTop: '5px', marginBottom: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label htmlFor="allow-overwrite-checkbox" style={{ cursor: 'pointer', margin: 0 }}>
@@ -490,7 +490,7 @@ export default function CashFlowFormModal({
             </div>
             {newItem.frequency === "one-time" && (
               <div className="form-field">
-                <label htmlFor="one-time-date">Date</label>
+                <label htmlFor="one-time-date">Date *</label>
                 <input
                   id="one-time-date"
                   type="date"
@@ -508,7 +508,7 @@ export default function CashFlowFormModal({
             {isDynamic && (
               <> 
                 <div className="form-field">
-                  <label htmlFor="linked-item-type-select">Linked Item Type</label>
+                  <label htmlFor="linked-item-type-select">Linked Item Type *</label>
                   <select
                     id="linked-item-type-select"
                     value={linkedItemType}
@@ -523,7 +523,7 @@ export default function CashFlowFormModal({
 
                 <div className="form-field" style={type === "income" && linkedItemType === "asset" ? { gridColumn: "span 2", minWidth: "300px" } : {}}>
                   <label htmlFor="linked-item-select">
-                    {type === "income" && linkedItemType === "asset" ? "Linked Assets (Multi-select)" : "Linked Item"}
+                    {type === "income" && linkedItemType === "asset" ? "Linked Assets (Multi-select) *" : "Linked Item *"}
                   </label>
                   {type === "income" && linkedItemType === "asset" ? (
                     <MultiSelectCheckbox
@@ -561,7 +561,7 @@ export default function CashFlowFormModal({
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="percentage-input">Percentage (%)</label>
+                  <label htmlFor="percentage-input">Percentage (%) *</label>
                   <input
                     id="percentage-input"
                     type="number"
