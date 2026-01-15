@@ -1013,6 +1013,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 )
                                 federal_tax_expense_value = tax_owed or 0.0
                                 
+                                # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
+                                federal_tax_value = -federal_tax_expense_value if federal_tax_expense_value != 0.0 else 0.0
+                                
                                 # Use the account name we found earlier, or find it by name as fallback
                                 if not federal_tax_expense_account_name:
                                     for acc in projected_accounts_for_db:
@@ -1022,11 +1025,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                                 federal_tax_expense_account_name = acc.name
                                                 break
                                 
+                                # Always store the tax value with the constant key first (ensures it's always available)
+                                annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION] = federal_tax_value
+                                
                                 # Update annual_flow_values for federal tax expense (negative for expenses)
+                                # Store with account name if we found it (helps with lookup)
                                 if federal_tax_expense_account_name:
-                                    # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
-                                    federal_tax_value = -federal_tax_expense_value if federal_tax_expense_value != 0.0 else 0.0
-                                    
                                     # Store with the account name (full name from projected_accounts_for_db)
                                     annual_flow_values[federal_tax_expense_account_name] = federal_tax_value
                                     # Also store with display_name (cleaned name) as fallback for chart matching
@@ -1035,11 +1039,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
                                     # Always store with display_name as well (even if same as account_name) to ensure lookup works
                                     annual_flow_values[display_name_for_tax] = federal_tax_value
-                                    # Also store with the exact description for consistency with regular expenses
-                                    annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION] = federal_tax_value
-                                    # Update expense flow total
-                                    current_year_total_expense_flow -= federal_tax_expense_value  # Subtract because expenses are negative
                                     print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored value: {federal_tax_value:.2f}, stored with keys: '{federal_tax_expense_account_name}', '{display_name_for_tax}', '{FEDERAL_TAX_EXPENSE_DESCRIPTION}' ---"); sys.stdout.flush()
+                                else:
+                                    # Account name not found, but we still stored the value with the constant key
+                                    print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored value: {federal_tax_value:.2f}, stored with key: '{FEDERAL_TAX_EXPENSE_DESCRIPTION}' (account name not found in projected_accounts_for_db) ---"); sys.stdout.flush()
+                                
+                                # Update expense flow total
+                                current_year_total_expense_flow -= federal_tax_expense_value  # Subtract because expenses are negative
                             except Exception as e:
                                 print(f"--- WARNING: Error calculating federal tax for year {year}: {e} ---"); sys.stdout.flush()
                         else:
@@ -1150,14 +1156,21 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             
             # Ensure Federal Income Tax is always stored with the exact key the frontend expects
             # This handles cases where the Federal Tax expense item might have a different display_name
-            if calculate_federal_tax and FEDERAL_TAX_EXPENSE_DESCRIPTION in annual_flow_values:
-                federal_tax_value = annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION]
-                # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
-                if federal_tax_value == 0.0 or federal_tax_value == -0.0:
-                    federal_tax_value = 0.0
-                federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
-                account_values[federal_tax_key] = federal_tax_value
-                print(f"--- DEBUG: Year {year} - Explicitly stored Federal Income Tax with key '{federal_tax_key}': {federal_tax_value:.2f} ---"); sys.stdout.flush()
+            if calculate_federal_tax:
+                if FEDERAL_TAX_EXPENSE_DESCRIPTION in annual_flow_values:
+                    federal_tax_value = annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION]
+                    # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
+                    if federal_tax_value == 0.0 or federal_tax_value == -0.0:
+                        federal_tax_value = 0.0
+                    federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
+                    account_values[federal_tax_key] = federal_tax_value
+                    print(f"--- DEBUG: Year {year} - Explicitly stored Federal Income Tax with key '{federal_tax_key}': {federal_tax_value:.2f} ---"); sys.stdout.flush()
+                else:
+                    # Tax calculation is enabled but value not found in annual_flow_values
+                    # This might happen if tax calculation failed or wasn't executed
+                    federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
+                    account_values[federal_tax_key] = 0.0
+                    print(f"--- WARNING: Year {year} - calculate_federal_tax is enabled but Federal Income Tax value not found in annual_flow_values. Setting to 0.0 ---"); sys.stdout.flush()
             
             yearly_data_points[year] = {
                 "Year": current_year + year -1, # Display actual calendar year
