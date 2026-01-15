@@ -1142,6 +1142,14 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             # Add principal/interest breakdown values
             account_values.update(account_values_for_year)
             
+            # Ensure Federal Income Tax is always stored with the exact key the frontend expects
+            # This handles cases where the Federal Tax expense item might have a different display_name
+            if calculate_federal_tax and FEDERAL_TAX_EXPENSE_DESCRIPTION in annual_flow_values:
+                federal_tax_value = annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION]
+                federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
+                account_values[federal_tax_key] = federal_tax_value
+                print(f"--- DEBUG: Year {year} - Explicitly stored Federal Income Tax with key '{federal_tax_key}': {federal_tax_value:.2f} ---"); sys.stdout.flush()
+            
             yearly_data_points[year] = {
                 "Year": current_year + year -1, # Display actual calendar year
                 "Total Assets": current_year_total_assets,
