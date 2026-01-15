@@ -740,18 +740,24 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             base_item_name = base_account_name  # Use base name (without LINKED markers)
                             cash_flow_item = cash_flow_items_by_description.get(base_item_name)
                             if cash_flow_item:
-                                if projected_account.account_type == "income" and cash_flow_item.is_income and cash_flow_item.taxable:
-                                    # Use the absolute value (new_balance is positive for income)
-                                    income_amount = abs(new_balance)
-                                    current_year_taxable_income += income_amount
-                                    # Track qualified dividends separately if applicable
-                                    if cash_flow_item.is_qualified_dividend:
-                                        current_year_qualified_dividends += income_amount
+                                if projected_account.account_type == "income" and cash_flow_item.is_income:
+                                    if cash_flow_item.taxable:
+                                        # Use the absolute value (new_balance is positive for income)
+                                        income_amount = abs(new_balance)
+                                        current_year_taxable_income += income_amount
+                                        # Track qualified dividends separately if applicable
+                                        if cash_flow_item.is_qualified_dividend:
+                                            current_year_qualified_dividends += income_amount
+                                    else:
+                                        print(f"--- DEBUG: Year {year} - Income item '{base_item_name}' has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
                                 elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
                                     # Skip federal tax expense item itself
                                     if base_item_name != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
                                         # Use the absolute value (new_balance is negative for expenses)
                                         current_year_tax_deductible_expenses += abs(new_balance)
+                            else:
+                                if projected_account.account_type == "income":
+                                    print(f"--- DEBUG: Year {year} - Income item '{base_item_name}' not found in cash_flow_items_by_description ---"); sys.stdout.flush()
                         
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
@@ -976,6 +982,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored with keys: '{federal_tax_expense_account_name}', '{display_name_for_tax}', '{FEDERAL_TAX_EXPENSE_DESCRIPTION}' ---"); sys.stdout.flush()
                             except Exception as e:
                                 print(f"--- WARNING: Error calculating federal tax for year {year}: {e} ---"); sys.stdout.flush()
+                        else:
+                            print(f"--- DEBUG: Year {year} - Skipping federal tax calculation: current_year_taxable_income={current_year_taxable_income:.2f} (must be > 0) ---"); sys.stdout.flush()
             
             # Calculate cash flow surplus/deficit and apply to designated asset
             net_cash_flow = current_year_total_income_flow + current_year_total_expense_flow

@@ -34,12 +34,20 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   // Helper function to find value in dataPoint for an item
   // Handles both simple keys and dynamic items with LINKED markers
   const findValueInDataPoint = useCallback((itemName, dataPoint) => {
+    const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
+    
     // Try simple key first: "ItemName_Value"
     const simpleKey = `${itemName}_Value`;
     if (dataPoint[simpleKey] !== undefined) {
       const value = dataPoint[simpleKey];
-      // Handle -0 (negative zero) - convert to 0 for consistency
-      return value === 0 ? 0 : value;
+      // Handle -0 (negative zero) - use Object.is to detect negative zero properly
+      // If it's -0, check if the absolute value is meaningful (non-zero)
+      if (Object.is(value, -0) || Object.is(value, 0)) {
+        // For Federal Tax, if we have -0, it likely means the backend calculated 0
+        // But let's check if there's any other indication it should be non-zero
+        return 0;
+      }
+      return value;
     }
     
     // Try to find key that starts with itemName (for dynamic items with LINKED markers)
@@ -49,6 +57,23 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const value = dataPoint[key];
         // Handle -0 (negative zero) - convert to 0 for consistency
         return value === 0 ? 0 : value;
+      }
+    }
+    
+    // Special case for Federal Income Tax: try to find any key containing the description
+    if (itemName === FEDERAL_TAX_EXPENSE_DESCRIPTION) {
+      // Try exact constant name
+      const federalTaxKey = `${FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value`;
+      if (dataPoint[federalTaxKey] !== undefined) {
+        const value = dataPoint[federalTaxKey];
+        return value === 0 ? 0 : value;
+      }
+      // Try to find any key containing the description
+      for (const key in dataPoint) {
+        if (key.includes(FEDERAL_TAX_EXPENSE_DESCRIPTION) && key.endsWith('_Value')) {
+          const value = dataPoint[key];
+          return value === 0 ? 0 : value;
+        }
       }
     }
     
@@ -136,6 +161,12 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         incomeKeys.forEach(key => {
           console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
         });
+        // Check all expense keys
+        const expenseKeys = Object.keys(dataPoint).filter(k => k.includes('Tax') && k.endsWith('_Value'));
+        console.log(`DEBUG getAggregatedValue: Federal Tax - Expense keys with 'Tax':`, expenseKeys);
+        expenseKeys.forEach(key => {
+          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
+        });
       }
       
       sum += value;
@@ -147,9 +178,38 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       if (DEBUG_MODE && targetDataType === 'expenses' && targetLabel === "Federal Income Tax (Calculated)") {
         const exactKey = `${targetLabel}_Value`;
         console.log(`DEBUG getAggregatedValue: Federal Tax direct lookup - targetLabel: "${targetLabel}", exactKey: "${exactKey}", directValue: ${directValue}, raw dataPoint[exactKey]:`, dataPoint[exactKey]);
+        // Check all keys containing "Federal" or "Tax"
+        const allTaxKeys = Object.keys(dataPoint).filter(k => (k.includes('Federal') || k.includes('Tax')) && k.endsWith('_Value'));
+        console.log(`DEBUG getAggregatedValue: Federal Tax - All keys with 'Federal' or 'Tax':`, allTaxKeys);
+        allTaxKeys.forEach(key => {
+          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
+        });
       }
       if (directValue !== 0 || dataPoint[`${targetLabel}_Value`] !== undefined) {
         return targetDataType === 'expenses' ? Math.abs(directValue) : directValue;
+      }
+    }
+    
+    // Special fallback for Federal Tax when aggregating all expenses or by category
+    // This handles cases where Federal Tax is in data_json but not in expenseItems array
+    // Only apply this when we're NOT filtering by a specific item ID (i.e., aggregating multiple items)
+    if (targetDataType === 'expenses' && !selectedItemId && filteredItems.length > 0) {
+      const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
+      const hasFederalTax = filteredItems.some(item => {
+        const itemName = item.description || item.name;
+        return itemName === FEDERAL_TAX_EXPENSE_DESCRIPTION;
+      });
+      // If we're aggregating expenses but Federal Tax is not in the filtered items,
+      // but it might be in the data, try to add it
+      // This is especially important for "All Expenses" or category-based aggregations
+      if (!hasFederalTax) {
+        const federalTaxValue = findValueInDataPoint(FEDERAL_TAX_EXPENSE_DESCRIPTION, dataPoint);
+        if (federalTaxValue !== 0 || dataPoint[`${FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value`] !== undefined) {
+          if (DEBUG_MODE) {
+            console.log(`DEBUG getAggregatedValue: Federal Tax fallback - found value ${federalTaxValue} for year ${dataPoint.Year}, adding to sum`);
+          }
+          sum += federalTaxValue;
+        }
       }
     }
 

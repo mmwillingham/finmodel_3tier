@@ -643,12 +643,14 @@ def create_custom_chart(
         
         # Auto-include Federal Tax expense if tax calculation is enabled
         FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+        print(f"--- DEBUG: Checking Federal Tax auto-include - user_settings exists: {user_settings is not None}, calculate_federal_tax: {user_settings.calculate_federal_tax if user_settings else 'N/A'} ---"); sys.stdout.flush()
         if user_settings and user_settings.calculate_federal_tax:
             federal_tax_expense = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.owner_id == current_user.id,
                 models.CashFlowItem.is_income == False,
                 models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
             ).first()
+            print(f"--- DEBUG: Federal Tax expense query result: {federal_tax_expense.description if federal_tax_expense else 'NOT FOUND'}, already in included_expense_names: {FEDERAL_TAX_EXPENSE_DESCRIPTION in included_expense_names} ---"); sys.stdout.flush()
             if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
                 print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation ---"); sys.stdout.flush()
                 accounts_for_projection.append(schemas.ProjectedAccountCreate(
@@ -661,6 +663,14 @@ def create_custom_chart(
                     start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
                 ))
                 included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
+            elif not federal_tax_expense:
+                print(f"--- WARNING: Federal Tax expense not found in database for user {current_user.id} ---"); sys.stdout.flush()
+            elif FEDERAL_TAX_EXPENSE_DESCRIPTION in included_expense_names:
+                print(f"--- DEBUG: Federal Tax expense already included in accounts_for_projection ---"); sys.stdout.flush()
+        elif not user_settings:
+            print(f"--- WARNING: user_settings is None, cannot check calculate_federal_tax ---"); sys.stdout.flush()
+        elif not user_settings.calculate_federal_tax:
+            print(f"--- DEBUG: calculate_federal_tax is disabled in user_settings ---"); sys.stdout.flush()
 
         print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush() # NEW DEBUG LINE
         print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush() # NEW DEBUG LINE
