@@ -704,17 +704,25 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # Annual increase/decrease rate
                     effective_growth_rate = projected_account.growth_rate / 100.0
 
-                    # Calculate growth on existing balance (prorate for partial years for assets/liabilities)
-                    growth_on_balance = current_balance * effective_growth_rate
+                    # Calculate growth on existing balance (apply compound growth for partial years for assets/liabilities)
                     if projected_account.account_type in ["asset", "liability"]:
-                        growth_on_balance = growth_on_balance * year_fraction
+                        # Apply compound growth: value * (1 + rate)^year_fraction - 1
+                        # Example: 100,000 * 1.05^0.5 = 102,469.51 for half year at 5%
+                        growth_on_balance = current_balance * (pow(1 + effective_growth_rate, year_fraction) - 1)
+                    else:
+                        # For income/expense items, use simple annual rate (they're flows, not balances)
+                        growth_on_balance = current_balance * effective_growth_rate
                     
                     # Calculate growth on contributions (assuming contributions occur mid-year on average for 0.5 factor)
                     # For dynamic items (linked to assets or income), growth on contributions is typically 0 since the value is recalculated each year
                     is_dynamic_for_growth = (linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None) or (linked_income_name and linked_percentage is not None)
-                    growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not is_dynamic_for_growth else 0.0
                     if projected_account.account_type in ["asset", "liability"]:
-                        growth_on_contributions = growth_on_contributions * year_fraction
+                        # Apply compound growth on contributions for partial years
+                        # Contributions are assumed to occur mid-year, so apply growth for (year_fraction * 0.5) of the year
+                        contribution_growth_period = year_fraction * 0.5  # Contributions occur mid-year
+                        growth_on_contributions = adjusted_annual_contribution * (pow(1 + effective_growth_rate, contribution_growth_period) - 1) if not is_dynamic_for_growth else 0.0
+                    else:
+                        growth_on_contributions = adjusted_annual_contribution * effective_growth_rate * 0.5 if not is_dynamic_for_growth else 0.0
                     
                     # New balance for the end of the current year
                     # For income/expense items, we track the annual flow value (they don't accumulate like assets/liabilities)

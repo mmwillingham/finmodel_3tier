@@ -318,6 +318,9 @@ def create_custom_chart(
                             initial_value=item.value,
                             contribution=0.0,
                             growth_rate=item.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None,
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                 elif item_type == 'liabilities':
                     query = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id)
@@ -457,13 +460,14 @@ def create_custom_chart(
                 print(f"--- DEBUG: Auto-including linked asset '{linked_asset.name}' (ID: {linked_asset_id}) for dynamic item calculation ---"); sys.stdout.flush()
                 asset_account = schemas.ProjectedAccountCreate(
                     name=linked_asset.name,
-                    account_type='asset',
-                    initial_value=linked_asset.value,
-                    contribution=0.0,  # Contributions from expenses are now handled by backend
-                    growth_rate=linked_asset.annual_increase_percent,
-                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
-                )
-                accounts_for_projection.append(asset_account)
+                        account_type='asset',
+                        initial_value=linked_asset.value,
+                        contribution=0.0,  # Contributions from expenses are now handled by backend
+                        growth_rate=linked_asset.annual_increase_percent,
+                        loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                        start_date=linked_asset.start_date, end_date=linked_asset.end_date
+                    )
+                    accounts_for_projection.append(asset_account)
                 added_account_names.add(linked_asset.name)
 
         # Auto-include ALL income and expense items for accurate calculations (surplus/deficit, auto-disbursements, expense contributions)
@@ -501,7 +505,8 @@ def create_custom_chart(
                                 initial_value=linked_asset.value,
                                 contribution=0.0,
                                 growth_rate=linked_asset.annual_increase_percent,
-                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                             )
                             accounts_for_projection.append(asset_account)
                             added_account_names.add(linked_asset.name)
@@ -563,7 +568,8 @@ def create_custom_chart(
                                 initial_value=linked_asset.value,
                                 contribution=0.0,
                                 growth_rate=linked_asset.annual_increase_percent,
-                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                             )
                             accounts_for_projection.append(asset_account)
                             added_account_names.add(linked_asset.name)
@@ -957,6 +963,9 @@ def update_custom_chart(
                             initial_value=item.value,
                             contribution=0.0,
                             growth_rate=item.annual_increase_percent,
+                            loan_type=None, principal_amount=None, interest_rate=None,
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(item.name)
                 elif item_type == 'liabilities':
@@ -1056,13 +1065,14 @@ def update_custom_chart(
                 print(f"--- DEBUG: Auto-including linked asset '{linked_asset.name}' (ID: {linked_asset_id}) for dynamic item calculation ---"); sys.stdout.flush()
                 asset_account = schemas.ProjectedAccountCreate(
                     name=linked_asset.name,
-                    account_type='asset',
-                    initial_value=linked_asset.value,
-                    contribution=0.0,  # Contributions from expenses are now handled by backend
-                    growth_rate=linked_asset.annual_increase_percent,
-                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
-                )
-                accounts_for_projection.append(asset_account)
+                        account_type='asset',
+                        initial_value=linked_asset.value,
+                        contribution=0.0,  # Contributions from expenses are now handled by backend
+                        growth_rate=linked_asset.annual_increase_percent,
+                        loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                        start_date=linked_asset.start_date, end_date=linked_asset.end_date
+                    )
+                    accounts_for_projection.append(asset_account)
                 added_account_names.add(linked_asset.name)
 
         # Auto-include ALL income and expense items for accurate calculations (surplus/deficit, auto-disbursements, expense contributions)
@@ -1100,7 +1110,8 @@ def update_custom_chart(
                                 initial_value=linked_asset.value,
                                 contribution=0.0,
                                 growth_rate=linked_asset.annual_increase_percent,
-                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                             )
                             accounts_for_projection.append(asset_account)
                             added_account_names.add(linked_asset.name)
@@ -1140,7 +1151,8 @@ def update_custom_chart(
                                 initial_value=linked_asset.value,
                                 contribution=0.0,
                                 growth_rate=linked_asset.annual_increase_percent,
-                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                             )
                             accounts_for_projection.append(asset_account)
                             added_account_names.add(linked_asset.name)
@@ -1305,6 +1317,9 @@ def update_custom_chart(
                                 initial_value=item.value,
                                 contribution=0.0,
                                 growth_rate=item.annual_increase_percent,
+                                loan_type=None, principal_amount=None, interest_rate=None,
+                                loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=item.start_date, end_date=item.end_date
                             ))
                             added_account_names.add(item.name)
                     elif item_type == 'liabilities':
@@ -1664,7 +1679,8 @@ def recalculate_all_charts(
                                     name=item.name, account_type='asset', initial_value=item.value,
                                     contribution=0.0, growth_rate=item.annual_increase_percent,
                                     loan_type=None, principal_amount=None, interest_rate=None,
-                                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                    loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                    start_date=item.start_date, end_date=item.end_date
                                 ))
                                 added_account_names.add(item.name)
                         elif item_type == 'liabilities':
@@ -1777,7 +1793,8 @@ def recalculate_all_charts(
                             name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
                             contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
-                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=linked_asset.start_date, end_date=linked_asset.end_date
                         ))
                         added_account_names.add(linked_asset.name)
                 
@@ -1809,7 +1826,8 @@ def recalculate_all_charts(
                                                 name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
                                                 contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
                                                 loan_type=None, principal_amount=None, interest_rate=None,
-                                                loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                                loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                                             ))
                                             added_account_names.add(linked_asset.name)
                             # Fall back to single linked_item_id for backward compatibility
@@ -1859,7 +1877,8 @@ def recalculate_all_charts(
                                                 name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
                                                 contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
                                                 loan_type=None, principal_amount=None, interest_rate=None,
-                                                loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                                loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                                             ))
                                             added_account_names.add(linked_asset.name)
                             # Fall back to single linked_item_id for backward compatibility
@@ -1918,7 +1937,8 @@ def recalculate_all_charts(
                             name=source_asset.name, account_type='asset', initial_value=source_asset.value,
                             contribution=0.0, growth_rate=source_asset.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
-                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=source_asset.start_date, end_date=source_asset.end_date
                         ))
                         added_account_names.add(source_asset.name)
                     if target_asset and target_asset.name not in added_account_names:
@@ -1926,7 +1946,8 @@ def recalculate_all_charts(
                             name=target_asset.name, account_type='asset', initial_value=target_asset.value,
                             contribution=0.0, growth_rate=target_asset.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
-                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=target_asset.start_date, end_date=target_asset.end_date
                         ))
                         added_account_names.add(target_asset.name)
                 
@@ -2056,7 +2077,8 @@ def recalculate_chart(
                             name=item.name, account_type='asset', initial_value=item.value,
                             contribution=0.0, growth_rate=item.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
-                            loan_term_months=None, loan_start_date=None, monthly_payment=None
+                            loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=item.start_date, end_date=item.end_date
                         ))
                         added_account_names.add(item.name)
                 elif item_type == 'liabilities':
@@ -2158,7 +2180,8 @@ def recalculate_chart(
                     name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
                     contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
                     loan_type=None, principal_amount=None, interest_rate=None,
-                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                    loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=linked_asset.start_date, end_date=linked_asset.end_date
                 )
                 accounts_for_projection.append(asset_account)
                 added_account_names.add(linked_asset.name)
@@ -2192,7 +2215,8 @@ def recalculate_chart(
                                 name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
                                 contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
                                 loan_type=None, principal_amount=None, interest_rate=None,
-                                loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                             )
                             accounts_for_projection.append(asset_account)
                             added_account_names.add(linked_asset.name)
@@ -2225,7 +2249,8 @@ def recalculate_chart(
                                 name=linked_asset.name, account_type='asset', initial_value=linked_asset.value,
                                 contribution=0.0, growth_rate=linked_asset.annual_increase_percent,
                                 loan_type=None, principal_amount=None, interest_rate=None,
-                                loan_term_months=None, loan_start_date=None, monthly_payment=None
+                                loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                                start_date=linked_asset.start_date, end_date=linked_asset.end_date
                             )
                             accounts_for_projection.append(asset_account)
                             added_account_names.add(linked_asset.name)
@@ -2271,7 +2296,8 @@ def recalculate_chart(
                     name=source_asset.name, account_type='asset', initial_value=source_asset.value,
                     contribution=0.0, growth_rate=source_asset.annual_increase_percent,
                     loan_type=None, principal_amount=None, interest_rate=None,
-                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                    loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=source_asset.start_date, end_date=source_asset.end_date
                 )
                 accounts_for_projection.append(asset_account)
                 added_account_names.add(source_asset.name)
@@ -2280,7 +2306,8 @@ def recalculate_chart(
                     name=target_asset.name, account_type='asset', initial_value=target_asset.value,
                     contribution=0.0, growth_rate=target_asset.annual_increase_percent,
                     loan_type=None, principal_amount=None, interest_rate=None,
-                    loan_term_months=None, loan_start_date=None, monthly_payment=None
+                    loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=target_asset.start_date, end_date=target_asset.end_date
                 )
                 accounts_for_projection.append(asset_account)
                 added_account_names.add(target_asset.name)
