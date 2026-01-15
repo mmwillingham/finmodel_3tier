@@ -962,9 +962,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 # Update annual_flow_values for federal tax expense (negative for expenses)
                                 if federal_tax_expense_account_name:
                                     annual_flow_values[federal_tax_expense_account_name] = -federal_tax_expense_value
+                                    # Also store with display_name (cleaned name) as fallback for chart matching
+                                    display_name_for_tax = federal_tax_expense_account_name.split("|LINKED:")[0] if "|LINKED:" in federal_tax_expense_account_name else federal_tax_expense_account_name
+                                    if "|LINKED_INCOME:" in display_name_for_tax:
+                                        display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
+                                    if display_name_for_tax != federal_tax_expense_account_name:
+                                        annual_flow_values[display_name_for_tax] = -federal_tax_expense_value
                                     # Update expense flow total
                                     current_year_total_expense_flow -= federal_tax_expense_value  # Subtract because expenses are negative
-                                    print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f} ---"); sys.stdout.flush()
+                                    print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored with key: {federal_tax_expense_account_name} ---"); sys.stdout.flush()
                             except Exception as e:
                                 print(f"--- WARNING: Error calculating federal tax for year {year}: {e} ---"); sys.stdout.flush()
             
@@ -1048,9 +1054,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             for acc in projected_accounts_for_db:
                 # Clean account name for display (remove LINKED markers)
                 display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
+                # Also check for LINKED_INCOME marker
+                if "|LINKED_INCOME:" in display_name:
+                    display_name = display_name.split("|LINKED_INCOME:")[0]
                 # For income/expense items, use annual flow value; for others, use account balance
                 if acc.account_type in ["income", "expense"]:
-                    account_values[f"{display_name}_Value"] = annual_flow_values.get(acc.name, 0.0)
+                    # Try to get value using acc.name first, then try display_name as fallback
+                    # This handles cases where the value might be stored with the cleaned name
+                    value = annual_flow_values.get(acc.name, annual_flow_values.get(display_name, 0.0))
+                    account_values[f"{display_name}_Value"] = value
                 else:
                     account_values[f"{display_name}_Value"] = account_current_balances.get(acc.name, 0.0)
             
