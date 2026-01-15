@@ -511,7 +511,6 @@ export default function CashFlowFormModal({
             }
             return null;
           })()}
-          </div>
 
           {/* New row for dynamic item configuration */}
           <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(6, 1fr)' : 'repeat(7, 1fr)', gap: '10px' }}>
