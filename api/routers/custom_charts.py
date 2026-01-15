@@ -5,6 +5,7 @@ import traceback
 import sys
 
 # Disabled verbose debug logging - only keeping tax-related logs
+# # Disabled verbose debug logging - only keeping tax-related logs
 # print(f"--- DEBUG: api/routers/custom_charts.py LOADED ---"); sys.stdout.flush()
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -28,7 +29,8 @@ try:
         tags=["Custom Charts"],
         responses={404: {"description": "Not found"}},
     )
-    print(f"--- DEBUG: Custom Charts Router instantiated with prefix: {router.prefix} ---"); sys.stdout.flush() # NEW DEBUG
+    # Disabled verbose debug logging
+    # print(f"--- DEBUG: Custom Charts Router instantiated with prefix: {router.prefix} ---"); sys.stdout.flush()
 except Exception as e:
     print(f"--- CRITICAL ERROR: Failed to instantiate Custom Charts Router: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
     raise
@@ -679,8 +681,9 @@ def create_custom_chart(
         elif not user_settings.calculate_federal_tax:
             print(f"--- DEBUG: calculate_federal_tax is disabled in user_settings ---"); sys.stdout.flush()
 
-        print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush() # NEW DEBUG LINE
-        print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush() # NEW DEBUG LINE
+        # Disabled verbose debug logging - JSON dumps are very large
+        # print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
+        # print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush()
         
         import calculations # Lazy import (absolute import like liabilities.py uses)
         projection_results = calculations.calculate_projection(
@@ -689,9 +692,10 @@ def create_custom_chart(
             db=db,
             owner_id=current_user.id
         )
-        print(f"--- DEBUG: Projection calculation successful. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
-        print(f"--- DEBUG: data_json content after calculation, before model assignment: {projection_results.get('data_json')} ---"); sys.stdout.flush() # NEW DEBUG LINE
-        print(f"--- DEBUG: data_json content before saving in create_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush() # Debug log for create
+        # Disabled verbose debug logging - data_json dumps are huge
+        # print(f"--- DEBUG: Projection calculation successful. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
+        # print(f"--- DEBUG: data_json content after calculation, before model assignment: {projection_results.get('data_json')} ---"); sys.stdout.flush()
+        # print(f"--- DEBUG: data_json content before saving in create_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush()
 
         # Explicitly assign each field to ensure data_json is not missed
         db_chart = models.CustomChart(
@@ -711,7 +715,8 @@ def create_custom_chart(
         db.add(db_chart)
         db.commit()
         db.refresh(db_chart)
-        print(f"--- DEBUG: Custom chart {db_chart.name} created with ID {db_chart.id} and projection results. ---"); sys.stdout.flush()
+        # Disabled verbose debug logging
+        # print(f"--- DEBUG: Custom chart {db_chart.name} created with ID {db_chart.id} and projection results. ---"); sys.stdout.flush()
         return db_chart
     except Exception as e:
         print(f"--- CRITICAL ERROR in create_custom_chart: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
@@ -767,7 +772,8 @@ def read_custom_chart(
     if not has_permission:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this chart")
     
-    print(f"--- DEBUG: data_json content AFTER retrieval from DB in read_custom_chart (ID: {chart_id}): {chart.data_json} ---"); sys.stdout.flush()
+    # Disabled verbose debug logging - data_json dumps are huge
+    # print(f"--- DEBUG: data_json content AFTER retrieval from DB in read_custom_chart (ID: {chart_id}): {chart.data_json} ---"); sys.stdout.flush()
     return chart
 
 @router.put("/{chart_id}", response_model=schemas.CustomChartOut)
