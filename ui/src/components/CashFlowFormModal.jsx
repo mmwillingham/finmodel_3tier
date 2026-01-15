@@ -31,7 +31,7 @@ export default function CashFlowFormModal({
   const [percentage, setPercentage] = useState(""); // New state for percentage
   const [reinvestDividends, setReinvestDividends] = useState(false); // NEW: Whether to reinvest dividends
   const [reinvestmentAccountId, setReinvestmentAccountId] = useState(null); // NEW: Account ID for reinvestment
-  const [isQualifiedDividend, setIsQualifiedDividend] = useState(true); // NEW: Whether dividends are qualified (defaults to true)
+  const [isQualifiedDividend, setIsQualifiedDividend] = useState(false); // NEW: Whether dividends are qualified (defaults to false)
   const [allowValueOverwrite, setAllowValueOverwrite] = useState(false); // NEW: Whether user can overwrite the generated value (defaults to False - system controls)
   const [availableLinkedItems, setAvailableLinkedItems] = useState({
     assets: [],
@@ -132,7 +132,7 @@ export default function CashFlowFormModal({
           setPercentage(itemToEdit.percentage !== null ? itemToEdit.percentage.toString() : "");
           setReinvestDividends(itemToEdit.reinvest_dividends || false); // NEW: Initialize dividend reinvestment
           setReinvestmentAccountId(itemToEdit.reinvestment_account_id || null); // NEW: Initialize reinvestment account
-          setIsQualifiedDividend(itemToEdit.is_qualified_dividend !== undefined ? itemToEdit.is_qualified_dividend : true); // NEW: Initialize qualified dividend (default to true)
+          setIsQualifiedDividend(itemToEdit.is_qualified_dividend !== undefined ? itemToEdit.is_qualified_dividend : false); // NEW: Initialize qualified dividend (default to false)
           // For Social Security items, always default to false (system controls) regardless of database value
           const isSocialSecurity = itemToEdit.description?.startsWith("Social Security - ");
           setAllowValueOverwrite(isSocialSecurity ? false : (itemToEdit.allow_value_overwrite !== undefined ? itemToEdit.allow_value_overwrite : false)); // NEW: Initialize allow value overwrite (default to false - system controls by default)
@@ -162,7 +162,7 @@ export default function CashFlowFormModal({
           setPercentage("");
           setReinvestDividends(false); // NEW: Reset dividend reinvestment
           setReinvestmentAccountId(null); // NEW: Reset reinvestment account
-          setIsQualifiedDividend(true); // NEW: Reset qualified dividend (default to true)
+          setIsQualifiedDividend(false); // NEW: Reset qualified dividend (default to false)
           setAllowValueOverwrite(false); // NEW: Reset allow value overwrite (default to false - system controls)
         }
       } catch (e) {
@@ -261,7 +261,7 @@ export default function CashFlowFormModal({
       contributes_to_asset_id: type === "expense" ? newItem.contributes_to_asset_id : null, // NEW: Only for expenses
       reinvest_dividends: (type === "income" && (newItem.category?.toLowerCase().includes("dividend") || newItem.description?.toLowerCase().includes("dividend"))) ? reinvestDividends : false, // NEW: Only for dividend income
       reinvestment_account_id: (type === "income" && reinvestDividends) ? reinvestmentAccountId : null, // NEW: Only if reinvesting dividends
-      is_qualified_dividend: type === "income" ? isQualifiedDividend : null, // NEW: Whether dividends are qualified (only for income items, defaults to true)
+      is_qualified_dividend: type === "income" ? isQualifiedDividend : null, // NEW: Whether dividends are qualified (only for income items, defaults to false)
       allow_value_overwrite: allowValueOverwrite, // NEW: Whether system can overwrite yearly_value
     };
 
@@ -722,9 +722,9 @@ export default function CashFlowFormModal({
               </div>
             )}
             {type === "income" && (
-              <div className="form-field"> {/* Qualified Dividend - only for income items */} 
+              <div className="form-field"> {/* Qualified Dividends / Capital Gains - only for income items */} 
                 <label htmlFor="qualified-dividend-select">
-                  Qualified Dividend
+                  Qualified Dividends / Capital Gains
                 </label>
                 <select
                   id="qualified-dividend-select"

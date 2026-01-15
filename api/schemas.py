@@ -182,7 +182,7 @@ class CashFlowCreate(BaseModel):
     contributes_to_asset_id: Optional[int] = None # NEW: For expense items that contribute to an asset
     reinvest_dividends: Optional[bool] = False  # NEW: Whether to reinvest dividends (for income items)
     reinvestment_account_id: Optional[int] = None  # NEW: Account ID to reinvest into (optional, defaults to source asset)
-    is_qualified_dividend: Optional[bool] = True  # NEW: Whether dividends are qualified (defaults to True)
+    is_qualified_dividend: Optional[bool] = False  # NEW: Whether dividends are qualified (defaults to False)
     allow_value_overwrite: Optional[bool] = True  # NEW: Whether system can overwrite yearly_value (defaults to True)
 
 class CashFlowUpdate(BaseModel):
