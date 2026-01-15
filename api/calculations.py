@@ -269,6 +269,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             ).all()
             for item in all_cash_flow_items:
                 cash_flow_items_by_description[item.description] = item
+            # Debug: Log what income items are loaded
+            income_items_loaded = [item.description for item in all_cash_flow_items if item.is_income]
+            print(f"--- DEBUG: Loaded {len(income_items_loaded)} income items for tax calculation: {income_items_loaded} ---"); sys.stdout.flush()
 
         # Load auto-disbursement rules
         auto_disbursements = db.query(models.AutoDisbursement).filter(
@@ -739,12 +742,17 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         if calculate_federal_tax and is_active_for_year:
                             base_item_name = base_account_name  # Use base name (without LINKED markers)
                             cash_flow_item = cash_flow_items_by_description.get(base_item_name)
+                            if projected_account.account_type == "income":
+                                # Debug: Log all lookup attempts for income items
+                                available_keys = list(cash_flow_items_by_description.keys())
+                                print(f"--- DEBUG: Year {year} - Looking up income item '{base_item_name}' (projected_account.name='{projected_account.name}') in cash_flow_items_by_description. Available keys: {available_keys} ---"); sys.stdout.flush()
                             if cash_flow_item:
                                 if projected_account.account_type == "income" and cash_flow_item.is_income:
                                     if cash_flow_item.taxable:
                                         # Use the absolute value (new_balance is positive for income)
                                         income_amount = abs(new_balance)
                                         current_year_taxable_income += income_amount
+                                        print(f"--- DEBUG: Year {year} - Added taxable income '{base_item_name}': {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
                                         # Track qualified dividends separately if applicable
                                         if cash_flow_item.is_qualified_dividend:
                                             current_year_qualified_dividends += income_amount
@@ -757,7 +765,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         current_year_tax_deductible_expenses += abs(new_balance)
                             else:
                                 if projected_account.account_type == "income":
-                                    print(f"--- DEBUG: Year {year} - Income item '{base_item_name}' not found in cash_flow_items_by_description ---"); sys.stdout.flush()
+                                    available_keys = list(cash_flow_items_by_description.keys())
+                                    print(f"--- DEBUG: Year {year} - Income item '{base_item_name}' (projected_account.name='{projected_account.name}') not found in cash_flow_items_by_description. Available keys: {available_keys} ---"); sys.stdout.flush()
                         
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
@@ -944,6 +953,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     if federal_tax_expense_item:
                         # Calculate federal tax using the taxable income and tax-deductible expenses
                         # we tracked during the projection loop
+                        print(f"--- DEBUG: Year {year} - Before tax calculation: current_year_taxable_income={current_year_taxable_income:.2f}, current_year_tax_deductible_expenses={current_year_tax_deductible_expenses:.2f} ---"); sys.stdout.flush()
                         if current_year_taxable_income > 0:
                             try:
                                 _, _, tax_owed = calculate_taxable_income(
