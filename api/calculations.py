@@ -255,22 +255,23 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             if surplus_asset:
                 surplus_asset_name = surplus_asset.name
         
-        # Constant to identify the federal tax expense item (must match frontend and settings router)
+        # Constant to identify the federal tax expense item (DEPRECATED: Use cash_flow_item_id instead)
         FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
         
         # Check if federal tax calculation is enabled
         calculate_federal_tax = user_settings.calculate_federal_tax if user_settings else False
         
-        # Pre-load CashFlowItems for tax calculation (keyed by description for fast lookup)
-        cash_flow_items_by_description = {}
-        if calculate_federal_tax and db:
+        # Pre-load CashFlowItems for tax calculation (keyed by ID for reliable lookup)
+        # This replaces the fragile description-based matching with ID-based lookups
+        cash_flow_items_by_id = {}
+        if db:
             all_cash_flow_items = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.owner_id == owner_id
             ).all()
             for item in all_cash_flow_items:
-                cash_flow_items_by_description[item.description] = item
+                cash_flow_items_by_id[item.id] = item
             # Debug: Log what income items are loaded
-            income_items_loaded = [item.description for item in all_cash_flow_items if item.is_income]
+            income_items_loaded = [f"{item.id}:{item.description}" for item in all_cash_flow_items if item.is_income]
             print(f"--- DEBUG: Loaded {len(income_items_loaded)} income items for tax calculation: {income_items_loaded} ---"); sys.stdout.flush()
 
         # Load auto-disbursement rules
@@ -311,7 +312,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 monthly_payment=acc_schema.monthly_payment,
                 # Fields for cash flow items (income/expense)
                 start_date=acc_schema.start_date,
-                end_date=acc_schema.end_date
+                end_date=acc_schema.end_date,
+                # NEW: Store cash_flow_item_id for reliable ID-based lookups
+                cash_flow_item_id=acc_schema.cash_flow_item_id
                 # projection_id will be set later
             )
             projected_accounts_for_db.append(projected_account)
@@ -739,34 +742,28 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             annual_flow_values[projected_account.name] = new_balance
                         
                         # Track taxable income and tax-deductible expenses for federal tax calculation
-                        if calculate_federal_tax and is_active_for_year:
-                            base_item_name = base_account_name  # Use base name (without LINKED markers)
-                            cash_flow_item = cash_flow_items_by_description.get(base_item_name)
-                            if projected_account.account_type == "income":
-                                # Debug: Log all lookup attempts for income items
-                                available_keys = list(cash_flow_items_by_description.keys())
-                                print(f"--- DEBUG: Year {year} - Looking up income item '{base_item_name}' (projected_account.name='{projected_account.name}') in cash_flow_items_by_description. Available keys: {available_keys} ---"); sys.stdout.flush()
+                        # NEW: Use ID-based lookup instead of fragile description-based matching
+                        if calculate_federal_tax and is_active_for_year and projected_account.cash_flow_item_id:
+                            cash_flow_item = cash_flow_items_by_id.get(projected_account.cash_flow_item_id)
                             if cash_flow_item:
                                 if projected_account.account_type == "income" and cash_flow_item.is_income:
                                     if cash_flow_item.taxable:
                                         # Use the absolute value (new_balance is positive for income)
                                         income_amount = abs(new_balance)
                                         current_year_taxable_income += income_amount
-                                        print(f"--- DEBUG: Year {year} - Added taxable income '{base_item_name}': {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
+                                        print(f"--- DEBUG: Year {year} - Added taxable income (ID:{projected_account.cash_flow_item_id}, {cash_flow_item.description}): {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
                                         # Track qualified dividends separately if applicable
                                         if cash_flow_item.is_qualified_dividend:
                                             current_year_qualified_dividends += income_amount
                                     else:
-                                        print(f"--- DEBUG: Year {year} - Income item '{base_item_name}' has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
+                                        print(f"--- DEBUG: Year {year} - Income item (ID:{projected_account.cash_flow_item_id}, {cash_flow_item.description}) has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
                                 elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
-                                    # Skip federal tax expense item itself
-                                    if base_item_name != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
+                                    # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
+                                    if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
                                         # Use the absolute value (new_balance is negative for expenses)
                                         current_year_tax_deductible_expenses += abs(new_balance)
                             else:
-                                if projected_account.account_type == "income":
-                                    available_keys = list(cash_flow_items_by_description.keys())
-                                    print(f"--- DEBUG: Year {year} - Income item '{base_item_name}' (projected_account.name='{projected_account.name}') not found in cash_flow_items_by_description. Available keys: {available_keys} ---"); sys.stdout.flush()
+                                print(f"--- DEBUG: Year {year} - CashFlowItem with ID {projected_account.cash_flow_item_id} not found in cash_flow_items_by_id. This should not happen. ---"); sys.stdout.flush()
                         
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
@@ -922,12 +919,27 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             federal_tax_expense_value = 0.0
             federal_tax_expense_account_name = None
             if calculate_federal_tax and user_settings:
-                # Find the federal tax expense item
-                federal_tax_expense_item = db.query(models.CashFlowItem).filter(
-                    models.CashFlowItem.owner_id == owner_id,
-                    models.CashFlowItem.is_income == False,
-                    models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
-                ).first()
+                # Find the federal tax expense item (NEW: Use ID-based lookup where possible)
+                # First try to find it in projected_accounts_for_db by cash_flow_item_id
+                federal_tax_expense_item_id = None
+                for acc in projected_accounts_for_db:
+                    if acc.account_type == "expense" and acc.cash_flow_item_id:
+                        cash_flow_item = cash_flow_items_by_id.get(acc.cash_flow_item_id)
+                        if cash_flow_item and cash_flow_item.description == FEDERAL_TAX_EXPENSE_DESCRIPTION:
+                            federal_tax_expense_item_id = acc.cash_flow_item_id
+                            federal_tax_expense_account_name = acc.name
+                            break
+                
+                # Fallback: query by description if not found in projected_accounts_for_db (shouldn't happen)
+                federal_tax_expense_item = None
+                if federal_tax_expense_item_id:
+                    federal_tax_expense_item = cash_flow_items_by_id.get(federal_tax_expense_item_id)
+                else:
+                    federal_tax_expense_item = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == owner_id,
+                        models.CashFlowItem.is_income == False,
+                        models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+                    ).first()
                 
                 if federal_tax_expense_item:
                     # Check if expense is active for this year
@@ -967,13 +979,14 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 )
                                 federal_tax_expense_value = tax_owed or 0.0
                                 
-                                # Find the federal tax expense account name in projected_accounts_for_db
-                                for acc in projected_accounts_for_db:
-                                    if acc.account_type == "expense":
-                                        display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
-                                        if display_name == FEDERAL_TAX_EXPENSE_DESCRIPTION:
-                                            federal_tax_expense_account_name = acc.name
-                                            break
+                                # Use the account name we found earlier, or find it by name as fallback
+                                if not federal_tax_expense_account_name:
+                                    for acc in projected_accounts_for_db:
+                                        if acc.account_type == "expense":
+                                            display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
+                                            if display_name == FEDERAL_TAX_EXPENSE_DESCRIPTION:
+                                                federal_tax_expense_account_name = acc.name
+                                                break
                                 
                                 # Update annual_flow_values for federal tax expense (negative for expenses)
                                 if federal_tax_expense_account_name:

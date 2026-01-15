@@ -100,6 +100,8 @@ class ProjectedAccount(Base):
     # Fields for cash flow items (income/expense)
     start_date = Column(String, nullable=True)  # YYYY-MM-DD format for income/expense start date
     end_date = Column(String, nullable=True)  # YYYY-MM-DD format for income/expense end date
+    # NEW: ID reference to CashFlowItem for reliable lookups (instead of description-based matching)
+    cash_flow_item_id = Column(Integer, ForeignKey("cashflow_items.id", ondelete="SET NULL"), nullable=True)  # ID of the CashFlowItem this account represents (for income/expense types)
     
     # Relationship back to the Projection
     projection = relationship("Projection", back_populates="accounts_data")

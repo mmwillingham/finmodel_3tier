@@ -107,7 +107,8 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
           loan_start_date: null,
           monthly_payment: null,
           start_date: income.start_date || null,
-          end_date: income.end_date || null
+          end_date: income.end_date || null,
+          cash_flow_item_id: income.id  // NEW: Store cash_flow_item_id for reliable ID-based lookups
         };
       });
 
@@ -150,7 +151,8 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             interest_rate: null,
             loan_term_months: null,
             loan_start_date: null,
-            monthly_payment: null
+            monthly_payment: null,
+            cash_flow_item_id: expense.id  // NEW: Store cash_flow_item_id for reliable ID-based lookups
           };
         });
 

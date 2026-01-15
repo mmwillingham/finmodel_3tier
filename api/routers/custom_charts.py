@@ -128,7 +128,8 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 contribution=contribution,
                 growth_rate=item.annual_increase_percent if is_income_item else item.inflation_percent,
                 loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                start_date=item.start_date, end_date=item.end_date
+                start_date=item.start_date, end_date=item.end_date,
+                cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
             )
         else:
             print(f"--- WARNING: CashFlowItem with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()
@@ -333,7 +334,8 @@ def create_custom_chart(
                             loan_term_months=item.loan_term_months,
                             loan_start_date=item.loan_start_date,
                             monthly_payment=item.monthly_payment,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                 elif item_type == 'income':
                     query = db.query(models.CashFlowItem).filter(
@@ -375,7 +377,8 @@ def create_custom_chart(
                             contribution=contribution,
                             growth_rate=item.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                 elif item_type == 'expenses':
@@ -435,7 +438,8 @@ def create_custom_chart(
                             contribution=contribution,
                             growth_rate=item.inflation_percent,
                             loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                 else:
@@ -592,7 +596,8 @@ def create_custom_chart(
                                 contribution=income_contribution,
                                 growth_rate=linked_income.annual_increase_percent,
                                 loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                                start_date=linked_income.start_date, end_date=linked_income.end_date
+                                start_date=linked_income.start_date, end_date=linked_income.end_date,
+                                cash_flow_item_id=linked_income.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                             ))
                             included_income_names.add(linked_income.description)
                     contribution = 0.0  # Expense linked to income has 0 contribution (calculated dynamically)
@@ -660,7 +665,8 @@ def create_custom_chart(
                     contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
                     growth_rate=0.0,
                     loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                    start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
+                    start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date,
+                    cash_flow_item_id=federal_tax_expense.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                 ))
                 included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
             elif not federal_tax_expense:
@@ -964,7 +970,8 @@ def update_custom_chart(
                             loan_term_months=item.loan_term_months,
                             loan_start_date=item.loan_start_date,
                             monthly_payment=item.monthly_payment,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                 elif item_type == 'income':
                     query = db.query(models.CashFlowItem).filter(
@@ -992,7 +999,8 @@ def update_custom_chart(
                             contribution=contribution,
                             growth_rate=item.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
@@ -1023,7 +1031,8 @@ def update_custom_chart(
                             contribution=contribution,
                             growth_rate=item.inflation_percent,
                             loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
@@ -1816,7 +1825,8 @@ def recalculate_all_charts(
                             contribution=contribution, growth_rate=item.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
                             loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         included_income_names.add(item.description)
                 
@@ -1880,7 +1890,8 @@ def recalculate_all_charts(
                             contribution=contribution, growth_rate=item.inflation_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
                             loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         included_expense_names.add(item.description)
                         # Extract base name for LINKED_INCOME markers too
@@ -2077,7 +2088,8 @@ def recalculate_chart(
                             contribution=contribution, growth_rate=item.annual_increase_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
                             loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
@@ -2121,7 +2133,8 @@ def recalculate_chart(
                             contribution=contribution, growth_rate=item.inflation_percent,
                             loan_type=None, principal_amount=None, interest_rate=None,
                             loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                            start_date=item.start_date, end_date=item.end_date
+                            start_date=item.start_date, end_date=item.end_date,
+                            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                         # Extract base name for LINKED_INCOME markers too

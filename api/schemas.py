@@ -90,6 +90,8 @@ class ProjectedAccountBase(BaseModel):
     # Fields for cash flow items (income/expense)
     start_date: Optional[str] = None  # YYYY-MM-DD format for income/expense start date
     end_date: Optional[str] = None  # YYYY-MM-DD format for income/expense end date
+    # NEW: ID reference to CashFlowItem for reliable lookups (instead of description-based matching)
+    cash_flow_item_id: Optional[int] = None  # ID of the CashFlowItem this account represents (for income/expense types)
 
 
 class ProjectedAccountCreate(ProjectedAccountBase):
