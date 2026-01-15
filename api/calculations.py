@@ -774,6 +774,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 if cash_flow_item:
                                     # Disabled verbose debug logging (keeping tax-related logs)
                                     # print(f"--- DEBUG: Year {year} - Found CashFlowItem by ID {projected_account.cash_flow_item_id}: description='{cash_flow_item.description}', is_income={cash_flow_item.is_income}, taxable={cash_flow_item.taxable if hasattr(cash_flow_item, 'taxable') else 'N/A'} ---"); sys.stdout.flush()
+                                    pass
                                 else:
                                     print(f"--- DEBUG: Year {year} - CashFlowItem with ID {projected_account.cash_flow_item_id} not found in cash_flow_items_by_id. This should not happen. ---"); sys.stdout.flush()
                             
