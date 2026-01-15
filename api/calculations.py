@@ -742,28 +742,59 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             annual_flow_values[projected_account.name] = new_balance
                         
                         # Track taxable income and tax-deductible expenses for federal tax calculation
-                        # NEW: Use ID-based lookup instead of fragile description-based matching
-                        if calculate_federal_tax and is_active_for_year and projected_account.cash_flow_item_id:
-                            cash_flow_item = cash_flow_items_by_id.get(projected_account.cash_flow_item_id)
+                        # NEW: Use ID-based lookup, with fallback to description-based for backward compatibility
+                        if calculate_federal_tax and is_active_for_year:
+                            # Initialize base_item_name here so it's available for all code paths
+                            base_item_name = base_account_name
+                            
+                            cash_flow_item = None
+                            
+                            # Debug: Log what we're looking for
+                            print(f"--- DEBUG: Year {year} - Processing {projected_account.account_type} '{projected_account.name}' (cash_flow_item_id={projected_account.cash_flow_item_id}, base_account_name='{base_account_name}', new_balance={new_balance:.2f}) ---"); sys.stdout.flush()
+                            
+                            # Try ID-based lookup first (preferred method)
+                            if projected_account.cash_flow_item_id:
+                                cash_flow_item = cash_flow_items_by_id.get(projected_account.cash_flow_item_id)
+                                if cash_flow_item:
+                                    print(f"--- DEBUG: Year {year} - Found CashFlowItem by ID {projected_account.cash_flow_item_id}: description='{cash_flow_item.description}', is_income={cash_flow_item.is_income}, taxable={cash_flow_item.taxable if hasattr(cash_flow_item, 'taxable') else 'N/A'} ---"); sys.stdout.flush()
+                                else:
+                                    print(f"--- DEBUG: Year {year} - CashFlowItem with ID {projected_account.cash_flow_item_id} not found in cash_flow_items_by_id. This should not happen. ---"); sys.stdout.flush()
+                            
+                            # Fallback to description-based lookup for backward compatibility (old projections without cash_flow_item_id)
+                            if not cash_flow_item and projected_account.account_type in ["income", "expense"]:
+                                # Use base account name (remove LINKED markers) for lookup
+                                # Build description-based lookup map by searching through cash_flow_items_by_id
+                                print(f"--- DEBUG: Year {year} - Attempting fallback description-based lookup for '{base_item_name}' (cash_flow_item_id is NULL or not found). Available items in cash_flow_items_by_id: {[f'{item.id}:{item.description}' for item in cash_flow_items_by_id.values()]} ---"); sys.stdout.flush()
+                                for item in cash_flow_items_by_id.values():
+                                    if item.description == base_item_name:
+                                        cash_flow_item = item
+                                        print(f"--- DEBUG: Year {year} - Using fallback description-based lookup for '{base_item_name}' (cash_flow_item_id is NULL) - Found: ID={item.id}, description='{item.description}', is_income={item.is_income}, taxable={item.taxable if hasattr(item, 'taxable') else 'N/A'} ---"); sys.stdout.flush()
+                                        break
+                                
+                                if not cash_flow_item:
+                                    print(f"--- DEBUG: Year {year} - Fallback lookup failed: No CashFlowItem found with description='{base_item_name}' ---"); sys.stdout.flush()
+                            
                             if cash_flow_item:
                                 if projected_account.account_type == "income" and cash_flow_item.is_income:
                                     if cash_flow_item.taxable:
                                         # Use the absolute value (new_balance is positive for income)
                                         income_amount = abs(new_balance)
                                         current_year_taxable_income += income_amount
-                                        print(f"--- DEBUG: Year {year} - Added taxable income (ID:{projected_account.cash_flow_item_id}, {cash_flow_item.description}): {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
+                                        lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
+                                        print(f"--- DEBUG: Year {year} - Added taxable income ({lookup_method}, {cash_flow_item.description}): {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
                                         # Track qualified dividends separately if applicable
                                         if cash_flow_item.is_qualified_dividend:
                                             current_year_qualified_dividends += income_amount
                                     else:
-                                        print(f"--- DEBUG: Year {year} - Income item (ID:{projected_account.cash_flow_item_id}, {cash_flow_item.description}) has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
+                                        lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
+                                        print(f"--- DEBUG: Year {year} - Income item ({lookup_method}, {cash_flow_item.description}) has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
                                 elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
                                     # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
                                     if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
                                         # Use the absolute value (new_balance is negative for expenses)
                                         current_year_tax_deductible_expenses += abs(new_balance)
                             else:
-                                print(f"--- DEBUG: Year {year} - CashFlowItem with ID {projected_account.cash_flow_item_id} not found in cash_flow_items_by_id. This should not happen. ---"); sys.stdout.flush()
+                                print(f"--- DEBUG: Year {year} - CashFlowItem not found for {projected_account.account_type} '{projected_account.name}' (base_account_name='{base_account_name}'). Skipping tax calculation for this item. ---"); sys.stdout.flush()
                         
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0

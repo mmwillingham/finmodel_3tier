@@ -39,14 +39,30 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     // Try simple key first: "ItemName_Value"
     const simpleKey = `${itemName}_Value`;
     if (dataPoint[simpleKey] !== undefined) {
-      const value = dataPoint[simpleKey];
-      // Handle -0 (negative zero) - use Object.is to detect negative zero properly
-      // If it's -0, check if the absolute value is meaningful (non-zero)
-      if (Object.is(value, -0) || Object.is(value, 0)) {
-        // For Federal Tax, if we have -0, it likely means the backend calculated 0
-        // But let's check if there's any other indication it should be non-zero
-        return 0;
+      let value = dataPoint[simpleKey];
+      // Handle -0 (negative zero) - convert to 0 for consistency
+      // But preserve actual negative values (expenses are stored as negative in backend)
+      if (Object.is(value, -0)) {
+        // Check if this is really a -0 (negative zero) or if we should look for actual value
+        // If the raw value is exactly -0 and we're dealing with Federal Tax, check if there's an actual tax amount
+        if (itemName === FEDERAL_TAX_EXPENSE_DESCRIPTION) {
+          // For Federal Tax, -0 might mean the backend stored 0, but let's check the actual numeric value
+          // Parse as number to handle any string conversions
+          value = Number(value);
+          // If it's actually -0, convert to 0; but if it's a real negative number, keep it
+          if (value === 0 && Object.is(dataPoint[simpleKey], -0)) {
+            // It's truly -0, check if we should read it differently
+            // For now, return 0 if it's -0
+            return 0;
+          }
+        } else {
+          // For other items, convert -0 to 0
+          if (Object.is(value, -0)) {
+            return 0;
+          }
+        }
       }
+      // Return the actual value (could be negative for expenses)
       return value;
     }
     
@@ -56,7 +72,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       if (key.endsWith('_Value') && key.startsWith(itemName)) {
         const value = dataPoint[key];
         // Handle -0 (negative zero) - convert to 0 for consistency
-        return value === 0 ? 0 : value;
+        // But keep negative values (expenses are stored as negative in backend)
+        if (Object.is(value, -0)) {
+          return 0;
+        }
+        return value;
       }
     }
     
@@ -66,13 +86,23 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       const federalTaxKey = `${FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value`;
       if (dataPoint[federalTaxKey] !== undefined) {
         const value = dataPoint[federalTaxKey];
-        return value === 0 ? 0 : value;
+        // Handle -0 (negative zero) - convert to 0 for consistency
+        if (Object.is(value, -0)) {
+          return 0;
+        }
+        // Federal Tax is stored as negative (expense), return as-is
+        return value;
       }
       // Try to find any key containing the description
       for (const key in dataPoint) {
         if (key.includes(FEDERAL_TAX_EXPENSE_DESCRIPTION) && key.endsWith('_Value')) {
           const value = dataPoint[key];
-          return value === 0 ? 0 : value;
+          // Handle -0 (negative zero) - convert to 0 for consistency
+          if (Object.is(value, -0)) {
+            return 0;
+          }
+          // Federal Tax is stored as negative (expense), return as-is
+          return value;
         }
       }
     }
@@ -152,23 +182,24 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       if (DEBUG_MODE && targetDataType === 'expenses' && itemName === "Federal Income Tax (Calculated)") {
         const exactKey = `${itemName}_Value`;
         const rawValue = dataPoint[exactKey];
-        const isNegativeZero = rawValue === 0 && 1/rawValue === -Infinity;
-        console.log(`DEBUG getAggregatedValue: Federal Tax - itemName: "${itemName}", exactKey: "${exactKey}", value from findValueInDataPoint: ${value}, raw dataPoint[exactKey]:`, rawValue, `(type: ${typeof rawValue}, is -0: ${isNegativeZero})`);
+        const isNegativeZero = Object.is(rawValue, -0);
+        console.log(`DEBUG getAggregatedValue: Federal Tax - itemName: "${itemName}", exactKey: "${exactKey}", value from findValueInDataPoint: ${value}, raw dataPoint[exactKey]:`, rawValue, `(type: ${typeof rawValue}, is -0: ${isNegativeZero}, is negative: ${rawValue < 0})`);
         console.log(`DEBUG getAggregatedValue: Federal Tax - Year: ${dataPoint.Year}, all keys:`, Object.keys(dataPoint));
+        // Check all keys containing "Federal" or "Tax"
+        const allTaxKeys = Object.keys(dataPoint).filter(k => (k.includes('Federal') || k.includes('Tax')) && k.endsWith('_Value'));
+        console.log(`DEBUG getAggregatedValue: Federal Tax - All keys with 'Federal' or 'Tax':`, allTaxKeys);
+        allTaxKeys.forEach(key => {
+          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]} (type: ${typeof dataPoint[key]}, is negative: ${dataPoint[key] < 0})`);
+        });
         // Also check if there's taxable income in the data
         const incomeKeys = Object.keys(dataPoint).filter(k => k.includes('income') && k.endsWith('_Value') && !k.includes('Total'));
         console.log(`DEBUG getAggregatedValue: Federal Tax - Income keys found:`, incomeKeys);
         incomeKeys.forEach(key => {
           console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
         });
-        // Check all expense keys
-        const expenseKeys = Object.keys(dataPoint).filter(k => k.includes('Tax') && k.endsWith('_Value'));
-        console.log(`DEBUG getAggregatedValue: Federal Tax - Expense keys with 'Tax':`, expenseKeys);
-        expenseKeys.forEach(key => {
-          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
-        });
       }
       
+      // Add the value (expenses are negative, will be converted to positive at the end)
       sum += value;
     });
     
