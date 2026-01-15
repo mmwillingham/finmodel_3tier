@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List
 import logging
 
@@ -279,10 +280,11 @@ def update_user_settings(
         if calculate_federal_tax_enabled and not federal_tax_expense:
             # Create the federal tax expense item
             # Ensure "Taxes" category exists in expense_categories, add it if missing
-            expense_categories = user_settings.expense_categories or []
+            expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
             if "Taxes" not in expense_categories:
                 expense_categories.append("Taxes")
                 user_settings.expense_categories = expense_categories
+                flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
                 logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
             
             federal_tax_expense = models.CashFlowItem(
@@ -297,13 +299,15 @@ def update_user_settings(
                 tax_deductible=False
             )
             db.add(federal_tax_expense)
+            db.flush()  # Flush to ensure the expense is available for commit
             logger.info(f"Created federal tax expense item for user {current_user.id} with category 'Taxes'")
         elif calculate_federal_tax_enabled and federal_tax_expense:
             # Update existing federal tax expense to ensure it has "Taxes" category
-            expense_categories = user_settings.expense_categories or []
+            expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
             if "Taxes" not in expense_categories:
                 expense_categories.append("Taxes")
                 user_settings.expense_categories = expense_categories
+                flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
                 logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
             
             if federal_tax_expense.category != "Taxes":

@@ -436,21 +436,14 @@ export default function CashFlowFormModal({
                   }
                   
                   return (
-                    <>
-                      <input
-                        id="value-input"
-                        type="number"
-                        step="1"
-                        value={currentYearTaxValue !== null ? currentYearTaxValue : (itemToEdit?.yearly_value || 0)}
-                        disabled
-                        style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                      />
-                      <div style={{ marginTop: '6px', fontSize: '0.85em', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
-                        This value is calculated automatically during projections based on your taxable income and tax filing status.
-                        <br />
-                        The value shown is for the current year ({new Date().getFullYear()}).
-                      </div>
-                    </>
+                    <input
+                      id="value-input"
+                      type="number"
+                      step="1"
+                      value={currentYearTaxValue !== null ? currentYearTaxValue : (itemToEdit?.yearly_value || 0)}
+                      disabled
+                      style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                    />
                   );
                 }
                 return null;
@@ -500,6 +493,24 @@ export default function CashFlowFormModal({
                 />
               </div>
             )}
+          </div>
+          {/* Separate row for Federal Income Tax value note */}
+          {(() => {
+            const description = itemToEdit?.description || newItem.description;
+            const isFederalTax = description === FEDERAL_TAX_EXPENSE_DESCRIPTION;
+            if (isFederalTax) {
+              return (
+                <div className="form-row" style={{ gridTemplateColumns: '1fr', marginTop: '10px' }}>
+                  <div style={{ fontSize: '0.85em', color: '#666', fontStyle: 'italic', lineHeight: '1.4', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+                    This value is calculated automatically during projections based on your taxable income and tax filing status.
+                    <br />
+                    The value shown is for the current year ({new Date().getFullYear()}).
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
           </div>
 
           {/* New row for dynamic item configuration */}
