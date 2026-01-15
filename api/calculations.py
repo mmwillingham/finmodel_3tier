@@ -271,8 +271,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             for item in all_cash_flow_items:
                 cash_flow_items_by_id[item.id] = item
             # Debug: Log what income items are loaded
-            income_items_loaded = [f"{item.id}:{item.description}" for item in all_cash_flow_items if item.is_income]
+            income_items_loaded = [f"{item.id}:{item.description}(taxable={item.taxable})" for item in all_cash_flow_items if item.is_income]
             print(f"--- DEBUG: Loaded {len(income_items_loaded)} income items for tax calculation: {income_items_loaded} ---"); sys.stdout.flush()
+            # Also log all cash flow items for debugging
+            all_items_loaded = [f"{item.id}:{item.description}(is_income={item.is_income},taxable={item.taxable if item.is_income else 'N/A'})" for item in all_cash_flow_items]
+            print(f"--- DEBUG: Loaded {len(all_items_loaded)} total cash flow items: {all_items_loaded} ---"); sys.stdout.flush()
 
         # Load auto-disbursement rules
         auto_disbursements = db.query(models.AutoDisbursement).filter(
