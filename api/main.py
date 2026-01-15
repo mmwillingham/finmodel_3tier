@@ -1098,6 +1098,7 @@ def create_cashflow(
         end_date=payload.end_date,
         taxable=payload.taxable,
         tax_deductible=payload.taxable,
+        is_qualified_dividend=payload.is_qualified_dividend if hasattr(payload, 'is_qualified_dividend') else False,
         linked_item_id=payload.linked_item_id,
         linked_item_type=payload.linked_item_type,
         percentage=payload.percentage,
@@ -1109,6 +1110,43 @@ def create_cashflow(
     db.add(item)
     db.commit()
     db.refresh(item)
+    
+    # If income is added and calculate_federal_tax is enabled, ensure Federal Tax expense exists
+    if payload.is_income:
+        user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
+        if user_settings and user_settings.calculate_federal_tax:
+            FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+            federal_tax_expense = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == False,
+                models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+            ).first()
+            
+            if not federal_tax_expense:
+                # Ensure "Taxes" category exists in expense_categories, add it if missing
+                expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
+                if "Taxes" not in expense_categories:
+                    expense_categories.append("Taxes")
+                    user_settings.expense_categories = expense_categories
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(user_settings, "expense_categories")
+                
+                # Create the federal tax expense item
+                federal_tax_expense = models.CashFlowItem(
+                    owner_id=current_user.id,
+                    is_income=False,
+                    category="Taxes",
+                    description=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                    frequency="yearly",
+                    yearly_value=0.0,  # This will be calculated dynamically in projections
+                    inflation_percent=0.0,
+                    taxable=False,
+                    tax_deductible=False
+                )
+                db.add(federal_tax_expense)
+                db.commit()
+                logger.info(f"Auto-created federal tax expense item for user {current_user.id} when income was added")
+    
     return item
 
 @app.put("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
