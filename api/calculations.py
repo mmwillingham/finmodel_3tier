@@ -1021,19 +1021,22 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 
                                 # Update annual_flow_values for federal tax expense (negative for expenses)
                                 if federal_tax_expense_account_name:
+                                    # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
+                                    federal_tax_value = -federal_tax_expense_value if federal_tax_expense_value != 0.0 else 0.0
+                                    
                                     # Store with the account name (full name from projected_accounts_for_db)
-                                    annual_flow_values[federal_tax_expense_account_name] = -federal_tax_expense_value
+                                    annual_flow_values[federal_tax_expense_account_name] = federal_tax_value
                                     # Also store with display_name (cleaned name) as fallback for chart matching
                                     display_name_for_tax = federal_tax_expense_account_name.split("|LINKED:")[0] if "|LINKED:" in federal_tax_expense_account_name else federal_tax_expense_account_name
                                     if "|LINKED_INCOME:" in display_name_for_tax:
                                         display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
                                     # Always store with display_name as well (even if same as account_name) to ensure lookup works
-                                    annual_flow_values[display_name_for_tax] = -federal_tax_expense_value
+                                    annual_flow_values[display_name_for_tax] = federal_tax_value
                                     # Also store with the exact description for consistency with regular expenses
-                                    annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION] = -federal_tax_expense_value
+                                    annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION] = federal_tax_value
                                     # Update expense flow total
                                     current_year_total_expense_flow -= federal_tax_expense_value  # Subtract because expenses are negative
-                                    print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored with keys: '{federal_tax_expense_account_name}', '{display_name_for_tax}', '{FEDERAL_TAX_EXPENSE_DESCRIPTION}' ---"); sys.stdout.flush()
+                                    print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored value: {federal_tax_value:.2f}, stored with keys: '{federal_tax_expense_account_name}', '{display_name_for_tax}', '{FEDERAL_TAX_EXPENSE_DESCRIPTION}' ---"); sys.stdout.flush()
                             except Exception as e:
                                 print(f"--- WARNING: Error calculating federal tax for year {year}: {e} ---"); sys.stdout.flush()
                         else:
@@ -1146,6 +1149,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             # This handles cases where the Federal Tax expense item might have a different display_name
             if calculate_federal_tax and FEDERAL_TAX_EXPENSE_DESCRIPTION in annual_flow_values:
                 federal_tax_value = annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION]
+                # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
+                if federal_tax_value == 0.0 or federal_tax_value == -0.0:
+                    federal_tax_value = 0.0
                 federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
                 account_values[federal_tax_key] = federal_tax_value
                 print(f"--- DEBUG: Year {year} - Explicitly stored Federal Income Tax with key '{federal_tax_key}': {federal_tax_value:.2f} ---"); sys.stdout.flush()
