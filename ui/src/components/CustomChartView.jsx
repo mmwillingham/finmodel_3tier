@@ -37,14 +37,18 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     // Try simple key first: "ItemName_Value"
     const simpleKey = `${itemName}_Value`;
     if (dataPoint[simpleKey] !== undefined) {
-      return dataPoint[simpleKey];
+      const value = dataPoint[simpleKey];
+      // Handle -0 (negative zero) - convert to 0 for consistency
+      return value === 0 ? 0 : value;
     }
     
     // Try to find key that starts with itemName (for dynamic items with LINKED markers)
     // e.g., "ItemName|LINKED:AssetName|PERCENTAGE:10.0_Value"
     for (const key in dataPoint) {
       if (key.endsWith('_Value') && key.startsWith(itemName)) {
-        return dataPoint[key];
+        const value = dataPoint[key];
+        // Handle -0 (negative zero) - convert to 0 for consistency
+        return value === 0 ? 0 : value;
       }
     }
     
@@ -55,15 +59,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     let sum = 0;
     const targetDataType = series.data_type;
     const targetCategory = series.category;
-    const targetLabel = series.label; // Label is ONLY for display, never used for matching
-    const selectedItemId = series.selected_item_id || series.item_id; // Check for specific item selection
+    const targetLabel = series.label; // Used as fallback when ID doesn't match
+    const selectedItemId = series.selected_item_id || series.item_id;
 
-    // Debug logging (set to false to disable)
-    const DEBUG_MODE = false; // Set to true for detailed debugging
-    if (DEBUG_MODE && targetDataType === 'expenses') {
-      console.log(`DEBUG getAggregatedValue START: targetLabel: "${targetLabel}" (display only), targetCategory: "${targetCategory}", selectedItemId: ${selectedItemId}`);
-      console.log(`DEBUG getAggregatedValue: expenseItems:`, expenseItems.map(e => ({ id: e.id, description: e.description, category: e.category })));
-    }
+    // Debug logging (disabled by default)
+    const DEBUG_MODE = true; // Temporarily enabled to debug Federal Tax issue
 
     // Get the appropriate array of items based on data type
     let items = [];
@@ -76,7 +76,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     } else if (targetDataType === 'expenses') {
       items = expenseItems;
     } else {
-      return 0; // Unknown data type
+      return 0;
     }
 
     // Special handling for amortized liabilities when a specific item is selected
@@ -84,9 +84,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
       const selectedItem = items.find(l => (l.id === itemIdNum || l.id === selectedItemId) && l.loan_type === 'amortized');
       if (selectedItem) {
-        // Backend stores amortized liability balance as "LoanName_Value"
         const value = findValueInDataPoint(selectedItem.name, dataPoint);
-        return Math.abs(value); // Return absolute value since liabilities are displayed as positive
+        return Math.abs(value);
       }
     }
 
@@ -98,42 +97,68 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
       filteredItems = items.filter(item => item.id === itemIdNum || item.id === selectedItemId);
       
-      if (DEBUG_MODE && filteredItems.length === 0) {
-        console.log(`DEBUG getAggregatedValue: Selected item ID ${selectedItemId} not found in ${targetDataType} array`);
+      // If ID doesn't match, try to find by label (handles stale IDs from recreated items)
+      if (filteredItems.length === 0 && targetLabel) {
+        filteredItems = items.filter(item => {
+          const itemName = item.description || item.name;
+          return itemName === targetLabel;
+        });
+      }
+      
+      // If still not found but we have a label, look up value directly from dataPoint
+      if (filteredItems.length === 0 && targetLabel) {
+        const value = findValueInDataPoint(targetLabel, dataPoint);
+        if (value !== 0 || dataPoint[`${targetLabel}_Value`] !== undefined) {
+          return targetDataType === 'expenses' ? Math.abs(value) : value;
+        }
       }
     }
     // 2. If category is specified, filter by category
     else if (targetCategory && targetCategory !== "") {
       filteredItems = items.filter(item => item.category === targetCategory);
-      
-      if (DEBUG_MODE && targetDataType === 'expenses') {
-        console.log(`DEBUG getAggregatedValue: Filtered by category "${targetCategory}", found ${filteredItems.length} items`);
-      }
     }
-    // 3. Otherwise, include all items of the target data type (no filtering)
+    // 3. Otherwise, include all items of the target data type
 
     // Iterate through filtered items and sum their values from dataPoint
     filteredItems.forEach(item => {
-      // Get the item name/description for lookup
       const itemName = item.description || item.name;
-      
-      // Find the value in dataPoint (handles both simple and dynamic items)
-      // For amortized liabilities, the key is "LoanName_Value" (same format, handled by findValueInDataPoint)
       const value = findValueInDataPoint(itemName, dataPoint);
       
-      if (DEBUG_MODE && targetDataType === 'expenses') {
-        console.log(`DEBUG getAggregatedValue: Item "${itemName}" (ID: ${item.id}, Category: ${item.category}) - value: ${value}`);
+      if (DEBUG_MODE && targetDataType === 'expenses' && itemName === "Federal Income Tax (Calculated)") {
+        const exactKey = `${itemName}_Value`;
+        const rawValue = dataPoint[exactKey];
+        const isNegativeZero = rawValue === 0 && 1/rawValue === -Infinity;
+        console.log(`DEBUG getAggregatedValue: Federal Tax - itemName: "${itemName}", exactKey: "${exactKey}", value from findValueInDataPoint: ${value}, raw dataPoint[exactKey]:`, rawValue, `(type: ${typeof rawValue}, is -0: ${isNegativeZero})`);
+        console.log(`DEBUG getAggregatedValue: Federal Tax - Year: ${dataPoint.Year}, all keys:`, Object.keys(dataPoint));
+        // Also check if there's taxable income in the data
+        const incomeKeys = Object.keys(dataPoint).filter(k => k.includes('income') && k.endsWith('_Value') && !k.includes('Total'));
+        console.log(`DEBUG getAggregatedValue: Federal Tax - Income keys found:`, incomeKeys);
+        incomeKeys.forEach(key => {
+          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
+        });
       }
       
       sum += value;
     });
+    
+    // If no items found but we have a selectedItemId and label, try direct lookup
+    if (filteredItems.length === 0 && selectedItemId && targetLabel) {
+      const directValue = findValueInDataPoint(targetLabel, dataPoint);
+      if (DEBUG_MODE && targetDataType === 'expenses' && targetLabel === "Federal Income Tax (Calculated)") {
+        const exactKey = `${targetLabel}_Value`;
+        console.log(`DEBUG getAggregatedValue: Federal Tax direct lookup - targetLabel: "${targetLabel}", exactKey: "${exactKey}", directValue: ${directValue}, raw dataPoint[exactKey]:`, dataPoint[exactKey]);
+      }
+      if (directValue !== 0 || dataPoint[`${targetLabel}_Value`] !== undefined) {
+        return targetDataType === 'expenses' ? Math.abs(directValue) : directValue;
+      }
+    }
 
-    // Special handling for expenses and liabilities to display as positive values if needed
+    // Special handling for expenses and liabilities to display as positive values
     if (targetDataType === 'expenses' || (targetDataType === 'liabilities' && sum < 0)) {
       return Math.abs(sum);
     }
     return sum;
-  }, [assets, liabilities, incomeItems, expenseItems, findValueInDataPoint]); // Added findValueInDataPoint dependency
+  }, [assets, liabilities, incomeItems, expenseItems, findValueInDataPoint]);
 
   const prepareChartData = useCallback((fetchedConfig) => {
     let parsedDataJson = [];

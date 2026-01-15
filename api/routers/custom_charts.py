@@ -640,6 +640,27 @@ def create_custom_chart(
                 )
                 accounts_for_projection.append(asset_account)
                 added_account_names.add(target_asset.name)
+        
+        # Auto-include Federal Tax expense if tax calculation is enabled
+        FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+        if user_settings and user_settings.calculate_federal_tax:
+            federal_tax_expense = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == False,
+                models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+            ).first()
+            if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation ---"); sys.stdout.flush()
+                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                    name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                    account_type='expense',
+                    initial_value=0.0,
+                    contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                    growth_rate=0.0,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
+                ))
+                included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
 
         print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush() # NEW DEBUG LINE
         print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush() # NEW DEBUG LINE
@@ -1159,6 +1180,27 @@ def update_custom_chart(
                 )
                 accounts_for_projection.append(asset_account)
                 added_account_names.add(target_asset.name)
+        
+        # Auto-include Federal Tax expense if tax calculation is enabled
+        FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+        if user_settings and user_settings.calculate_federal_tax:
+            federal_tax_expense = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == False,
+                models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+            ).first()
+            if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation (update) ---"); sys.stdout.flush()
+                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                    name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                    account_type='expense',
+                    initial_value=0.0,
+                    contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                    growth_rate=0.0,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
+                ))
+                included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
 
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
 
@@ -1466,6 +1508,27 @@ def update_custom_chart(
                     )
                     accounts_for_projection.append(asset_account)
                     added_account_names.add(target_asset.name)
+            
+            # Auto-include Federal Tax expense if tax calculation is enabled
+            FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+            if user_settings and user_settings.calculate_federal_tax:
+                federal_tax_expense = db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == False,
+                    models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+                ).first()
+                if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                    print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation (recalculate_all) ---"); sys.stdout.flush()
+                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                        name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                        account_type='expense',
+                        initial_value=0.0,
+                        contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                        growth_rate=0.0,
+                        loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                        start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
+                    ))
+                    included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
 
             try:
                 import calculations
@@ -1839,6 +1902,27 @@ def recalculate_all_charts(
                         ))
                         added_account_names.add(target_asset.name)
                 
+                # Auto-include Federal Tax expense if tax calculation is enabled
+                FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+                if user_settings and user_settings.calculate_federal_tax:
+                    federal_tax_expense = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == False,
+                        models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+                    ).first()
+                    if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                        print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation (recalculate) ---"); sys.stdout.flush()
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                            account_type='expense',
+                            initial_value=0.0,
+                            contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                            growth_rate=0.0,
+                            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
+                        ))
+                        included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
+                
                 # Recalculate projection
                 import calculations
                 projection_results = calculations.calculate_projection(
@@ -2170,6 +2254,27 @@ def recalculate_chart(
                 )
                 accounts_for_projection.append(asset_account)
                 added_account_names.add(target_asset.name)
+        
+        # Auto-include Federal Tax expense if tax calculation is enabled
+        FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+        if user_settings and user_settings.calculate_federal_tax:
+            federal_tax_expense = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == False,
+                models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
+            ).first()
+            if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation (recalculate) ---"); sys.stdout.flush()
+                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                    name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                    account_type='expense',
+                    initial_value=0.0,
+                    contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                    growth_rate=0.0,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
+                ))
+                included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
         
         # Recalculate projection
         try:
