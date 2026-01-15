@@ -1002,7 +1002,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         print(f"--- DEBUG: Year {year} - Before tax calculation: current_year_taxable_income={current_year_taxable_income:.2f}, current_year_tax_deductible_expenses={current_year_tax_deductible_expenses:.2f} ---"); sys.stdout.flush()
                         if current_year_taxable_income > 0:
                             try:
-                                _, _, tax_owed = calculate_taxable_income(
+                                print(f"--- DEBUG: Year {year} - Calling calculate_taxable_income with: income={current_year_taxable_income:.2f}, expenses={current_year_tax_deductible_expenses:.2f}, filing_status={user_settings.tax_filing_status or 'Single'}, year={current_projection_year}, qualified_dividends={current_year_qualified_dividends:.2f} ---"); sys.stdout.flush()
+                                taxable_income_result, standard_deduction_result, tax_owed = calculate_taxable_income(
                                     current_year_taxable_income,
                                     current_year_tax_deductible_expenses,
                                     user_settings.tax_filing_status or "Single",
@@ -1011,6 +1012,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     current_projection_year,
                                     qualified_dividends=current_year_qualified_dividends
                                 )
+                                print(f"--- DEBUG: Year {year} - calculate_taxable_income returned: taxable_income={taxable_income_result:.2f}, standard_deduction={standard_deduction_result:.2f}, tax_owed={tax_owed:.2f} ---"); sys.stdout.flush()
                                 federal_tax_expense_value = tax_owed or 0.0
                                 
                                 # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
