@@ -832,8 +832,45 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             new_balance = 0.0
                         else:
                             new_balance = current_balance + adjusted_annual_contribution + growth_on_balance + growth_on_contributions
+                        
+                        # Store the balance value for this year (needed for charts)
+                        # If asset/liability ends mid-year, store 0 (asset no longer exists at end of year)
+                        # Otherwise, store the calculated balance
+                        value_to_store = 0.0
+                        if projected_account.account_type in ["asset", "liability"] and projected_account.end_date:
+                            try:
+                                end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
+                                year_end_date = date(current_projection_year, 12, 31)
+                                # If end_date is in this year and before year end, store 0 (asset ends mid-year)
+                                if end_date_obj.year == current_projection_year and end_date_obj < year_end_date:
+                                    value_to_store = 0.0
+                                else:
+                                    value_to_store = new_balance
+                            except (ValueError, TypeError):
+                                # If end_date parsing fails, use new_balance
+                                value_to_store = new_balance
+                        else:
+                            value_to_store = new_balance
+                        
+                        account_values_for_year[f"{projected_account.name}_Value"] = value_to_store
+                        
                         # Update for next year's starting balance
-                        account_current_balances[projected_account.name] = new_balance
+                        # If item ends this year (year_fraction < 1.0 and end_date is in this year), 
+                        # set balance to 0 for next year since asset no longer exists after end_date
+                        if projected_account.account_type in ["asset", "liability"] and projected_account.end_date:
+                            try:
+                                end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
+                                year_end_date = date(current_projection_year, 12, 31)
+                                # If end_date is in this year and before year end, balance should be 0 next year
+                                if end_date_obj.year == current_projection_year and end_date_obj < year_end_date:
+                                    account_current_balances[projected_account.name] = 0.0
+                                else:
+                                    account_current_balances[projected_account.name] = new_balance
+                            except (ValueError, TypeError):
+                                # If end_date parsing fails, use new_balance
+                                account_current_balances[projected_account.name] = new_balance
+                        else:
+                            account_current_balances[projected_account.name] = new_balance
                 
                 # Note: Date checking for income/expense items is now done at the start of the loop
                 # If item is not active, adjusted_annual_contribution is already set to 0.0

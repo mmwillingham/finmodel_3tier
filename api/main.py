@@ -1098,7 +1098,7 @@ def create_cashflow(
         end_date=payload.end_date,
         taxable=payload.taxable,
         tax_deductible=payload.taxable,
-        is_qualified_dividend=payload.is_qualified_dividend if hasattr(payload, 'is_qualified_dividend') else False,
+        is_qualified_dividend=getattr(payload, 'is_qualified_dividend', False),
         linked_item_id=payload.linked_item_id,
         linked_item_type=payload.linked_item_type,
         percentage=payload.percentage,
@@ -1125,11 +1125,13 @@ def create_cashflow(
             if not federal_tax_expense:
                 # Ensure "Taxes" category exists in expense_categories, add it if missing
                 expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
+                taxes_category_modified = False
                 if "Taxes" not in expense_categories:
                     expense_categories.append("Taxes")
                     user_settings.expense_categories = expense_categories
                     from sqlalchemy.orm.attributes import flag_modified
                     flag_modified(user_settings, "expense_categories")
+                    taxes_category_modified = True
                 
                 # Create the federal tax expense item
                 federal_tax_expense = models.CashFlowItem(
@@ -1144,7 +1146,11 @@ def create_cashflow(
                     tax_deductible=False
                 )
                 db.add(federal_tax_expense)
-                db.commit()
+                # Commit both the user_settings update (if modified) and the new federal tax expense
+                if taxes_category_modified:
+                    db.commit()  # Commit user_settings changes
+                else:
+                    db.commit()  # Commit federal_tax_expense
                 logger.info(f"Auto-created federal tax expense item for user {current_user.id} when income was added")
     
     return item
