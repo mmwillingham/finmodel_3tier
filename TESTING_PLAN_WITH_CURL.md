@@ -240,7 +240,7 @@ INCOME_2_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 2.1",
     "frequency": "yearly",
     "value": 100000,
@@ -287,7 +287,7 @@ INCOME_2_2_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 2.2",
     "frequency": "yearly",
     "value": 200000,
@@ -413,7 +413,7 @@ INCOME_2_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Salary\",
+    \"category\": \"Salary, Wages, Tips\",
     \"description\": \"Test Income 2.4\",
     \"frequency\": \"yearly\",
     \"value\": 100000,
@@ -553,7 +553,7 @@ INCOME_3_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 3.3",
     "frequency": "yearly",
     "value": 200000,
@@ -891,7 +891,7 @@ INCOME_5_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 5.1",
     "frequency": "yearly",
     "value": 100000,
@@ -956,7 +956,7 @@ INCOME_5_2A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 5.2A",
     "frequency": "yearly",
     "value": 80000,
@@ -976,7 +976,7 @@ INCOME_5_2B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 5.2B",
     "frequency": "yearly",
     "value": 20000,
@@ -1037,7 +1037,7 @@ INCOME_5_3A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 5.3A (Taxable)",
     "frequency": "yearly",
     "value": 100000,
@@ -1256,7 +1256,7 @@ INCOME_6_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 6.3",
     "frequency": "yearly",
     "value": 100000,
@@ -1466,7 +1466,7 @@ INCOME_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 7.1",
     "frequency": "yearly",
     "value": 0,
@@ -1614,7 +1614,7 @@ INCOME_7_4A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 7.4A",
     "frequency": "yearly",
     "value": 100000,
@@ -1634,7 +1634,7 @@ INCOME_7_4B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 7.4B",
     "frequency": "yearly",
     "value": 50000,
@@ -1872,7 +1872,7 @@ INCOME_8_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Salary",
+    "category": "Salary, Wages, Tips",
     "description": "Test Income 8.3",
     "frequency": "yearly",
     "value": 100000,
