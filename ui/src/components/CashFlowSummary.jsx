@@ -69,16 +69,33 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
     
     // Calculate income for this year
     const yearIncome = incomeItems.reduce((sum, item) => {
-      let itemValue = item.yearly_value;
+      let itemValue = item.yearly_value || 0;
       
-      // Handle dynamic items (linked to assets)
-      if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
-        // Find the linked asset
-        const linkedAsset = assets.find(a => a.id === item.linked_item_id);
-        if (linkedAsset && assetProjections[linkedAsset.name] && assetProjections[linkedAsset.name][i] !== undefined) {
-          // Recalculate based on projected asset value for this year
-          const projectedAssetValue = assetProjections[linkedAsset.name][i];
-          itemValue = projectedAssetValue * (item.percentage / 100.0);
+      // Handle dynamic items (linked to assets) - check both linked_item_id and linked_asset_ids
+      const isDynamicAssetLinked = item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined;
+      if (isDynamicAssetLinked) {
+        // Get linked asset IDs - check linked_asset_ids first, then linked_item_id
+        let linkedAssetIds = [];
+        if (item.linked_asset_ids && Array.isArray(item.linked_asset_ids) && item.linked_asset_ids.length > 0) {
+          linkedAssetIds = item.linked_asset_ids;
+        } else if (item.linked_item_id) {
+          linkedAssetIds = [item.linked_item_id];
+        }
+        
+        // Calculate dividend from linked assets (by name for CashFlowSummary)
+        if (linkedAssetIds.length > 0) {
+          let totalAssetValue = 0;
+          linkedAssetIds.forEach(assetId => {
+            const linkedAsset = assets.find(a => a.id === assetId);
+            if (linkedAsset && assetProjections[linkedAsset.name] && assetProjections[linkedAsset.name][i] !== undefined) {
+              totalAssetValue += assetProjections[linkedAsset.name][i];
+            }
+          });
+          itemValue = totalAssetValue * (item.percentage / 100.0);
+        } else {
+          // Fallback: if no linked assets found, treat as fixed
+          const increaseRate = (item.annual_increase_percent || 0) / 100;
+          itemValue = item.yearly_value * Math.pow(1 + increaseRate, i);
         }
       } else {
         // Fixed value item - apply growth rate

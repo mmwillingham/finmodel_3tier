@@ -1106,11 +1106,19 @@ echo "NOTE: In the UI, enable 'Track Dividends as Taxable Income' at 2% to auto-
 ```
 
 **Expected Values:**
-- Year 1: Asset = $100,000.00
-- Year 1: Dividend income = $2,000.00 (100,000 * 0.02)
-- Year 1: Asset after reinvestment = $107,000.00 (100,000 * 1.05 + 2,000) or $102,000.00 (if growth and dividend are separate)
-- Year 2: Asset grows from Year 1 end value
-- Year 2: Dividend income = 2% of Year 1 end asset value
+- Year 2026:
+  - Asset beginning balance: $100,000.00
+  - Dividend income: $2,000.00 (100,000 * 0.02)
+  - Asset growth (5%): $5,000.00 (100,000 * 0.05)
+  - Dividend reinvested: $2,000.00
+  - Asset end balance: $107,000.00 (100,000 + 5,000 growth + 2,000 dividend)
+- Year 2027:
+  - Asset beginning balance: $107,000.00 (from previous year)
+  - Dividend income: $2,140.00 (107,000 * 0.02)
+  - Asset growth (5%): $5,350.00 (107,000 * 0.05)
+  - Dividend reinvested: $2,140.00
+  - Asset end balance: $114,490.00 (107,000 + 5,350 growth + 2,140 dividend)
+- Year 2028 and beyond: Asset continues to grow with dividends reinvested each year
 
 **Verify in:**
 - Custom Charts (income and asset)
