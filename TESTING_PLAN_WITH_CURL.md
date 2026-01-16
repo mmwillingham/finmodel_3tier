@@ -463,7 +463,7 @@ EXPENSE_3_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": false,
-    "category": "Living",
+    "category": "Clothing",
     "description": "Test Expense 3.1",
     "frequency": "yearly",
     "value": 10000,
@@ -509,7 +509,7 @@ EXPENSE_3_2_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": false,
-    "category": "Living",
+    "category": "Clothing",
     "description": "Test Expense 3.2",
     "frequency": "yearly",
     "value": 12000,
@@ -1276,7 +1276,7 @@ EXPENSE_6_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": false,
-    "category": "Living",
+    "category": "Clothing",
     "description": "Test Expense 6.3",
     "frequency": "yearly",
     "value": 80000,
@@ -1486,7 +1486,7 @@ EXPENSE_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": false,
-    "category": "Living",
+    "category": "Clothing",
     "description": "Test Expense 7.1",
     "frequency": "yearly",
     "value": 0,
