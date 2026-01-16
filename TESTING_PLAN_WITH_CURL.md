@@ -1178,14 +1178,15 @@ ASSET_6_2B_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   }' | jq -r '.id')
 
 # Create auto-disbursement
-DISBURSEMENT_6_2_ID=$(curl -s -X POST "${API_BASE}/auto_disbursements/" \
+DISBURSEMENT_6_2_ID=$(curl -s -X POST "${API_BASE}/auto-disbursements/" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
+    \"name\": \"Test Auto-Disbursement 6.2\",
     \"source_asset_id\": ${ASSET_6_2A_ID},
-    \"destination_asset_id\": ${ASSET_6_2B_ID},
-    \"amount\": 5000,
-    \"frequency\": \"yearly\",
+    \"target_asset_id\": ${ASSET_6_2B_ID},
+    \"transfer_type\": \"dollar_amount\",
+    \"transfer_value\": 5000,
     \"start_date\": \"2026-01-01\",
     \"end_date\": null
   }" | jq -r '.id')
@@ -1205,7 +1206,7 @@ echo "Created Asset IDs: $ASSET_6_2A_ID, $ASSET_6_2B_ID, Disbursement ID: $DISBU
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/auto_disbursements/${DISBURSEMENT_6_2_ID}" \
+curl -s -X DELETE "${API_BASE}/auto-disbursements/${DISBURSEMENT_6_2_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
 curl -s -X DELETE "${API_BASE}/assets/${ASSET_6_2A_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
@@ -1946,7 +1947,7 @@ cleanup_all() {
   done
   
   for id in "${DISBURSEMENT_IDS[@]}"; do
-    curl -s -X DELETE "${API_BASE}/auto_disbursements/${id}" \
+    curl -s -X DELETE "${API_BASE}/auto-disbursements/${id}" \
       -H "Authorization: Bearer ${TOKEN}" > /dev/null
   done
   
@@ -2054,7 +2055,7 @@ chmod +x run_all_tests.sh
 | Expenses | `POST /cashflow?is_income=false` | `GET /cashflow?is_income=false` | `GET /cashflow/{id}` | `PUT /cashflow/{id}` | `DELETE /cashflow/{id}` |
 | Liabilities | `POST /liabilities/` | `GET /liabilities/` | `GET /liabilities/{id}` | `PUT /liabilities/{id}` | `DELETE /liabilities/{id}` |
 | Charts | `POST /custom_charts` | `GET /custom_charts` | `GET /custom_charts/{id}` | `PUT /custom_charts/{id}` | `DELETE /custom_charts/{id}` |
-| Auto-Disbursements | `POST /auto_disbursements/` | `GET /auto_disbursements/` | `GET /auto_disbursements/{id}` | `PUT /auto_disbursements/{id}` | `DELETE /auto_disbursements/{id}` |
+| Auto-Disbursements | `POST /auto-disbursements/` | `GET /auto-disbursements/` | `GET /auto-disbursements/{id}` | `PUT /auto-disbursements/{id}` | `DELETE /auto-disbursements/{id}` |
 
 ---
 

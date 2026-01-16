@@ -1283,6 +1283,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 account_current_balances[source_name] -= transfer_amount
                                 account_current_balances[target_name] += transfer_amount
                                 balance_after_transfer = account_current_balances[target_name]
+                                
+                                # Update the stored values in account_values_for_year to include the transfer
+                                # This ensures charts show the correct end-of-year balance after auto-disbursements
+                                source_value_key = f"{source_name}_Value"
+                                target_value_key = f"{target_name}_Value"
+                                if source_value_key in account_values_for_year:
+                                    account_values_for_year[source_value_key] = account_current_balances[source_name]
+                                if target_value_key in account_values_for_year:
+                                    account_values_for_year[target_value_key] = account_current_balances[target_name]
+                                
                                 # Disabled verbose debug logging
                                 # print(f"--- DEBUG: Year {year} - Applied auto-disbursement: {transfer_amount:.2f} from {source_name} to {target_name}. {target_name} balance: {balance_before_transfer:.2f} -> {balance_after_transfer:.2f} ---"); sys.stdout.flush()
 

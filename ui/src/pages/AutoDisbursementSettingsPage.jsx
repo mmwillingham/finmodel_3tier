@@ -297,118 +297,122 @@ const AutoDisbursementSettingsPage = () => {
 
       {/* Auto-Disbursements Tab */}
       {activeTab === 'disbursements' && (
-        <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
-          Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
-        </h3>
-        <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
-          <div className="form-field">
-            <label htmlFor="name">Name *</label>
-            <input
-              id="name"
-              type="text"
-              placeholder="e.g. IRA to Savings"
-              value={newAutoDisbursement.name}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, name: e.target.value })}
-              className="input-modern"
-            />
+        <div className="setting-group card-modern" style={{ display: 'block', marginBottom: '20px' }}>
+          {/* Form Section - Top */}
+          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
+            Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
+          </h3>
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
+              <div className="form-field">
+                <label htmlFor="name">Name *</label>
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="e.g. IRA to Savings"
+                  value={newAutoDisbursement.name}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, name: e.target.value })}
+                  className="input-modern"
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="transfer_type">Transfer Type *</label>
+                <select
+                  id="transfer_type"
+                  value={newAutoDisbursement.transfer_type}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: e.target.value })}
+                  className="input-modern"
+                >
+                  <option value="percentage">Percentage</option>
+                  <option value="dollar_amount">Dollar Amount</option>
+                </select>
+              </div>
+              <div className="form-field">
+                <label htmlFor="source_asset_id">Source Asset *</label>
+                <select
+                  id="source_asset_id"
+                  value={newAutoDisbursement.source_asset_id || ''}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, source_asset_id: e.target.value ? parseInt(e.target.value) : null })}
+                  className="input-modern"
+                >
+                  <option value="">Select Source Asset</option>
+                  {assets && assets.length > 0 ? (
+                    assets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.name} ({asset.category})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No assets available</option>
+                  )}
+                </select>
+              </div>
+              <div className="form-field">
+                <label htmlFor="target_asset_id">Target Asset *</label>
+                <select
+                  id="target_asset_id"
+                  value={newAutoDisbursement.target_asset_id || ''}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, target_asset_id: e.target.value ? parseInt(e.target.value) : null })}
+                  className="input-modern"
+                >
+                  <option value="">Select Target Asset</option>
+                  {assets && assets.length > 0 ? (
+                    assets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.name} ({asset.category})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No assets available</option>
+                  )}
+                </select>
+              </div>
+              <div className="form-field">
+                <label htmlFor="transfer_value">
+                  Transfer Value * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'}/year)
+                </label>
+                <input
+                  id="transfer_value"
+                  type="number"
+                  step={newAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
+                  placeholder={newAutoDisbursement.transfer_type === 'percentage' ? 'e.g., 5' : 'e.g., 5000'}
+                  value={newAutoDisbursement.transfer_value}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_value: e.target.value })}
+                  className="input-modern"
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="start_date">Start Date</label>
+                <input
+                  id="start_date"
+                  type="date"
+                  value={newAutoDisbursement.start_date}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, start_date: e.target.value })}
+                  className="input-modern"
+                />
+                <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
+              </div>
+              <div className="form-field">
+                <label htmlFor="end_date">End Date</label>
+                <input
+                  id="end_date"
+                  type="date"
+                  value={newAutoDisbursement.end_date}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, end_date: e.target.value })}
+                  className="input-modern"
+                />
+                <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
+              </div>
           </div>
-          <div className="form-field">
-            <label htmlFor="transfer_type">Transfer Type *</label>
-            <select
-              id="transfer_type"
-              value={newAutoDisbursement.transfer_type}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: e.target.value })}
-              className="input-modern"
-            >
-              <option value="percentage">Percentage</option>
-              <option value="dollar_amount">Dollar Amount</option>
-            </select>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '12px', marginBottom: '30px' }}>
+            <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern">
+              Add Auto-Disbursement
+            </button>
           </div>
-          <div className="form-field">
-            <label htmlFor="source_asset_id">Source Asset *</label>
-            <select
-              id="source_asset_id"
-              value={newAutoDisbursement.source_asset_id || ''}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, source_asset_id: e.target.value ? parseInt(e.target.value) : null })}
-              className="input-modern"
-            >
-              <option value="">Select Source Asset</option>
-              {assets && assets.length > 0 ? (
-                assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name} ({asset.category})
-                  </option>
-                ))
-              ) : (
-                <option value="" disabled>No assets available</option>
-              )}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="target_asset_id">Target Asset *</label>
-            <select
-              id="target_asset_id"
-              value={newAutoDisbursement.target_asset_id || ''}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, target_asset_id: e.target.value ? parseInt(e.target.value) : null })}
-              className="input-modern"
-            >
-              <option value="">Select Target Asset</option>
-              {assets && assets.length > 0 ? (
-                assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name} ({asset.category})
-                  </option>
-                ))
-              ) : (
-                <option value="" disabled>No assets available</option>
-              )}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="transfer_value">
-              Transfer Value * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'}/year)
-            </label>
-            <input
-              id="transfer_value"
-              type="number"
-              step={newAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
-              placeholder={newAutoDisbursement.transfer_type === 'percentage' ? 'e.g., 5' : 'e.g., 5000'}
-              value={newAutoDisbursement.transfer_value}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_value: e.target.value })}
-              className="input-modern"
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="start_date">Start Date</label>
-            <input
-              id="start_date"
-              type="date"
-              value={newAutoDisbursement.start_date}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, start_date: e.target.value })}
-              className="input-modern"
-            />
-            <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
-          </div>
-          <div className="form-field">
-            <label htmlFor="end_date">End Date</label>
-            <input
-              id="end_date"
-              type="date"
-              value={newAutoDisbursement.end_date}
-              onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, end_date: e.target.value })}
-              className="input-modern"
-            />
-            <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
-          </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '12px' }}>
-          <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern">
-            Add Auto-Disbursement
-          </button>
-        </div>
 
-        <div style={{ marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
+          {/* Divider */}
+          <div style={{ borderTop: '1px solid #eee', marginTop: '30px', marginBottom: '20px' }}></div>
+
+          {/* Existing List Section - Bottom */}
           <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>
             Existing Auto-Disbursements
           </h3>
@@ -417,8 +421,8 @@ const AutoDisbursementSettingsPage = () => {
             No auto-disbursements defined. Add an auto-disbursement above.
           </p>
         ) : (
-          <div style={{ width: '100%', marginTop: '10px' }}>
-            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', fontSize: '0.9em' }}>
+          <div style={{ width: '100%', marginTop: '10px', overflowX: 'auto', overflowY: 'visible' }}>
+            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', fontSize: '0.9em', minWidth: '600px' }}>
             <thead>
               <tr>
                 <th style={{ width: '15%' }}>Name</th>
@@ -547,9 +551,8 @@ const AutoDisbursementSettingsPage = () => {
             </tbody>
           </table>
           </div>
-        )}
+          )}
         </div>
-      </div>
       )}
 
       <div className="settings-page-actions" style={{ marginTop: '20px' }}>
