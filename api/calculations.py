@@ -1028,12 +1028,18 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             
             contributing_income = []
             if db:
+                # Query for income items with contributes_to_asset_id set (preferred method)
+                # Also include items with reinvestment_account_id set (fallback for existing items)
+                from sqlalchemy import or_
                 contributing_income = db.query(models.CashFlowItem).filter(
                     models.CashFlowItem.owner_id == owner_id,
                     models.CashFlowItem.is_income == True,
-                    models.CashFlowItem.contributes_to_asset_id.isnot(None)
+                    or_(
+                        models.CashFlowItem.contributes_to_asset_id.isnot(None),
+                        (models.CashFlowItem.reinvest_dividends == True) & (models.CashFlowItem.reinvestment_account_id.isnot(None))
+                    )
                 ).all()
-                print(f"--- DEBUG: Year {year} - Query executed. Found {len(contributing_income)} income items with contributes_to_asset_id. Items: {[f'{item.id}:{item.description} (contributes_to_asset_id={item.contributes_to_asset_id})' for item in contributing_income]} ---"); sys.stdout.flush()
+                print(f"--- DEBUG: Year {year} - Query executed. Found {len(contributing_income)} income items that contribute to assets. Items: {[f'{item.id}:{item.description} (contributes_to_asset_id={item.contributes_to_asset_id}, reinvestment_account_id={item.reinvestment_account_id}, reinvest_dividends={item.reinvest_dividends})' for item in contributing_income]} ---"); sys.stdout.flush()
             else:
                 print(f"--- WARNING: Year {year} - db is None, cannot query for income items that contribute to assets ---"); sys.stdout.flush()
             
@@ -1050,10 +1056,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     print(f"--- DEBUG: Year {year} - Income item '{income_item.description}' (ID: {income_item.id}) is not active for this year (fraction: {income_year_fraction:.4f}). Skipping. ---"); sys.stdout.flush()
                     continue  # Skip this income for this year
                 
-                print(f"--- DEBUG: Year {year} - Processing income item '{income_item.description}' (ID: {income_item.id}) contributing to asset_id: {income_item.contributes_to_asset_id}, linked_item_id: {income_item.linked_item_id}, linked_item_type: {income_item.linked_item_type}, percentage: {income_item.percentage} ---"); sys.stdout.flush()
+                print(f"--- DEBUG: Year {year} - Processing income item '{income_item.description}' (ID: {income_item.id}) contributing to asset_id: {income_item.contributes_to_asset_id}, reinvestment_account_id: {income_item.reinvestment_account_id}, reinvest_dividends: {income_item.reinvest_dividends}, linked_item_id: {income_item.linked_item_id}, linked_item_type: {income_item.linked_item_type}, percentage: {income_item.percentage} ---"); sys.stdout.flush()
                 
-                # Find the target asset
-                target_asset = db.query(models.Asset).filter(models.Asset.id == income_item.contributes_to_asset_id).first()
+                # Find the target asset - prefer contributes_to_asset_id, fallback to reinvestment_account_id
+                target_asset_id = income_item.contributes_to_asset_id or income_item.reinvestment_account_id
+                if not target_asset_id:
+                    print(f"--- WARNING: Year {year} - Income item '{income_item.description}' has neither contributes_to_asset_id nor reinvestment_account_id set. Skipping reinvestment. ---"); sys.stdout.flush()
+                    continue
+                
+                target_asset = db.query(models.Asset).filter(models.Asset.id == target_asset_id).first()
                 if not target_asset:
                     print(f"--- WARNING: Year {year} - Target asset with ID {income_item.contributes_to_asset_id} not found for income item '{income_item.description}'. Skipping reinvestment. ---"); sys.stdout.flush()
                     continue

@@ -1111,6 +1111,11 @@ def create_cashflow(
         reinvest_dividends=payload.reinvest_dividends if hasattr(payload, 'reinvest_dividends') else False,
         reinvestment_account_id=payload.reinvestment_account_id if hasattr(payload, 'reinvestment_account_id') else None
     )
+    
+    # Debug logging for dividend reinvestment mapping
+    if payload.is_income and hasattr(payload, 'reinvest_dividends') and payload.reinvest_dividends:
+        print(f"--- DEBUG: Creating income item - reinvest_dividends={payload.reinvest_dividends}, reinvestment_account_id={getattr(payload, 'reinvestment_account_id', None)}, contributes_to_asset_id={item.contributes_to_asset_id} ---"); sys.stdout.flush()
+    
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -1185,7 +1190,24 @@ def update_cashflow(
     
     yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
     
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    # Get the update dictionary
+    update_dict = payload.model_dump(exclude_unset=True)
+    
+    # For income items with reinvest_dividends=True, map reinvestment_account_id to contributes_to_asset_id
+    if item.is_income:
+        reinvest_dividends = update_dict.get('reinvest_dividends', item.reinvest_dividends)
+        reinvestment_account_id = update_dict.get('reinvestment_account_id', item.reinvestment_account_id)
+        
+        if reinvest_dividends and reinvestment_account_id:
+            # Map reinvestment_account_id to contributes_to_asset_id for income items
+            update_dict['contributes_to_asset_id'] = reinvestment_account_id
+            print(f"--- DEBUG: Updating income item {item_id} - Mapping reinvestment_account_id {reinvestment_account_id} to contributes_to_asset_id ---"); sys.stdout.flush()
+        elif not reinvest_dividends:
+            # If reinvest_dividends is being set to False, clear contributes_to_asset_id
+            if 'reinvest_dividends' in update_dict:
+                update_dict['contributes_to_asset_id'] = None
+    
+    for key, value in update_dict.items():
         setattr(item, key, value)
     item.yearly_value = yearly_value # Ensure yearly_value is explicitly set after calculation
     
