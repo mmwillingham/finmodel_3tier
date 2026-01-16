@@ -1103,7 +1103,11 @@ def create_cashflow(
         linked_item_type=payload.linked_item_type,
         percentage=payload.percentage,
         linked_asset_ids=payload.linked_asset_ids,
-        contributes_to_asset_id=payload.contributes_to_asset_id,
+        # For income items with reinvest_dividends=True, use reinvestment_account_id as contributes_to_asset_id
+        # For expense items, use contributes_to_asset_id directly
+        contributes_to_asset_id=payload.contributes_to_asset_id if not payload.is_income else (
+            payload.reinvestment_account_id if (hasattr(payload, 'reinvest_dividends') and payload.reinvest_dividends and hasattr(payload, 'reinvestment_account_id') and payload.reinvestment_account_id) else payload.contributes_to_asset_id
+        ),
         reinvest_dividends=payload.reinvest_dividends if hasattr(payload, 'reinvest_dividends') else False,
         reinvestment_account_id=payload.reinvestment_account_id if hasattr(payload, 'reinvestment_account_id') else None
     )
