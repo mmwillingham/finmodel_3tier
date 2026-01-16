@@ -1144,19 +1144,23 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     income_amount = income_amount * income_year_fraction
                 
                 # Add the income amount to the asset balance (dividend reinvestment)
+                print(f"--- DEBUG: Year {year} - About to add income contribution for '{income_item.description}': income_amount={income_amount:.2f}, target_asset='{target_asset.name}' ---"); sys.stdout.flush()
+                
                 if income_amount > 0:
-                        balance_before_income = account_current_balances.get(target_asset.name, 0.0)
-                        account_current_balances[target_asset.name] += income_amount
-                        balance_after_income = account_current_balances[target_asset.name]
-                        # Update the stored value for this asset in account_values_for_year to include the contribution
-                        # This ensures charts show the correct end-of-year balance including dividend reinvestment
-                        asset_value_key = f"{target_asset.name}_Value"
-                        if asset_value_key in account_values_for_year:
-                            account_values_for_year[asset_value_key] = balance_after_income
-                        # Update current_year_total_assets to include the contribution
-                        # This ensures balance sheet projections show correct totals
-                        current_year_total_assets += income_amount
-                        print(f"--- DEBUG: Year {year} - Added income contribution (dividend reinvestment) of {income_amount:.2f} from '{income_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_income:.2f} -> {balance_after_income:.2f} ---"); sys.stdout.flush()
+                    balance_before_income = account_current_balances.get(target_asset.name, 0.0)
+                    account_current_balances[target_asset.name] += income_amount
+                    balance_after_income = account_current_balances[target_asset.name]
+                    # Update the stored value for this asset in account_values_for_year to include the contribution
+                    # This ensures charts show the correct end-of-year balance including dividend reinvestment
+                    asset_value_key = f"{target_asset.name}_Value"
+                    if asset_value_key in account_values_for_year:
+                        account_values_for_year[asset_value_key] = balance_after_income
+                    # Update current_year_total_assets to include the contribution
+                    # This ensures balance sheet projections show correct totals
+                    current_year_total_assets += income_amount
+                    print(f"--- DEBUG: Year {year} - Added income contribution (dividend reinvestment) of {income_amount:.2f} from '{income_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_income:.2f} -> {balance_after_income:.2f} ---"); sys.stdout.flush()
+                else:
+                    print(f"--- WARNING: Year {year} - Income amount is 0 for '{income_item.description}'. Cannot add to asset '{target_asset.name}'. income_amount={income_amount:.2f} ---"); sys.stdout.flush()
             
             # Calculate federal income tax if enabled
             federal_tax_expense_value = 0.0
