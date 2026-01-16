@@ -165,12 +165,18 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           // Calculate expense as percentage of linked income
           itemValue = linkedIncomeValue * (item.percentage / 100.0);
         } else {
-          // Linked income item not found - use fixed value with inflation
-          itemValue = itemValue * Math.pow(1 + inflationRate, year);
+          // Linked income item not found - use fixed value with inflation from item
+          const itemInflationRate = (item.inflation_percent !== null && item.inflation_percent !== undefined) 
+            ? (item.inflation_percent / 100) 
+            : 0; // Use 0 if not specified (no inflation)
+          itemValue = itemValue * Math.pow(1 + itemInflationRate, year);
         }
       } else {
-        // Fixed value item - apply inflation rate
-        itemValue = itemValue * Math.pow(1 + inflationRate, year);
+        // Fixed value item - apply inflation rate from item, not default
+        const itemInflationRate = (item.inflation_percent !== null && item.inflation_percent !== undefined) 
+          ? (item.inflation_percent / 100) 
+          : inflationRate; // Fallback to default if not specified
+        itemValue = itemValue * Math.pow(1 + itemInflationRate, year);
       }
       
       // Prorate the value based on how many months the item is active in this year
@@ -1023,9 +1029,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             // Calculate expense as percentage of linked income
             itemValue = linkedIncomeValue * (item.percentage / 100.0);
           } else {
-            // Linked income item not found - use fixed value with inflation
-            const inflationRate = (item.inflation_percent || 0) / 100;
-            itemValue = item.yearly_value * Math.pow(1 + inflationRate, year);
+            // Linked income item not found - use fixed value with inflation from item
+            const itemInflationRate = (item.inflation_percent !== null && item.inflation_percent !== undefined) 
+              ? (item.inflation_percent / 100) 
+              : 0; // Use 0 if not specified (no inflation)
+            itemValue = item.yearly_value * Math.pow(1 + itemInflationRate, year);
           }
         } else {
           // Fixed value item - apply inflation rate
