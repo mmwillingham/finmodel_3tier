@@ -1022,6 +1022,74 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Disabled verbose debug logging
                         # print(f"--- DEBUG: Year {year} - Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_expense:.2f} -> {balance_after_expense:.2f} ---"); sys.stdout.flush()
             
+            # Apply income that contributes to assets (must happen after income flows are calculated and asset growth has been applied)
+            # This handles dividend reinvestment where dividends are reinvested back into the asset
+            contributing_income = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == owner_id,
+                models.CashFlowItem.is_income == True,
+                models.CashFlowItem.contributes_to_asset_id.isnot(None)
+            ).all() if db else []
+            
+            for income_item in contributing_income:
+                # Check if income is active for this year and calculate proration
+                current_projection_year = current_year + year - 1
+                income_year_fraction = calculate_year_fraction(
+                    income_item.start_date,
+                    income_item.end_date,
+                    current_projection_year
+                )
+                
+                if income_year_fraction <= 0.0:
+                    continue  # Skip this income for this year
+                
+                # Find the target asset
+                target_asset = db.query(models.Asset).filter(models.Asset.id == income_item.contributes_to_asset_id).first()
+                if target_asset and target_asset.name in account_current_balances:
+                    # Calculate the income amount for this year
+                    income_amount = 0.0
+                    
+                    # Check if this income is a dynamic item (linked to assets)
+                    if income_item.linked_item_id and income_item.linked_item_type and income_item.percentage is not None:
+                        # This is a dynamic income item - find it in annual_flow_values
+                        # The income name might have a |LINKED: marker
+                        # The value in annual_flow_values is already calculated based on beginning-of-year asset balance
+                        # which is correct for dividend calculations (dividends are based on beginning balance, then reinvested after growth)
+                        for flow_name, flow_value in annual_flow_values.items():
+                            base_name = flow_name.split("|LINKED:")[0]
+                            if base_name == income_item.description:
+                                income_amount = abs(flow_value)  # Use absolute value (flow_value is positive for income)
+                                break
+                        
+                        # If not found in annual_flow_values, this shouldn't normally happen for dynamic items
+                        # But we'll skip recalculating here since it would use the wrong (after-growth) balance
+                        # The dynamic income should have been calculated earlier in the loop based on beginning-of-year balance
+                        if income_amount == 0.0:
+                            print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset not found in annual_flow_values. Skipping reinvestment calculation. ---"); sys.stdout.flush()
+                    else:
+                        # Fixed income item - calculate with growth
+                        base_yearly_value = income_item.yearly_value
+                        effective_growth_rate = (income_item.annual_increase_percent or 0) / 100.0
+                        growth_factor = pow(1 + effective_growth_rate, year - 1)
+                        income_amount = base_yearly_value * growth_factor
+                        # Prorate based on how many months the income is active in this year
+                        income_amount = income_amount * income_year_fraction
+                    
+                    # Add the income amount to the asset balance (dividend reinvestment)
+                    if income_amount > 0:
+                        balance_before_income = account_current_balances.get(target_asset.name, 0.0)
+                        account_current_balances[target_asset.name] += income_amount
+                        balance_after_income = account_current_balances[target_asset.name]
+                        # Update the stored value for this asset in account_values_for_year to include the contribution
+                        # This ensures charts show the correct end-of-year balance including dividend reinvestment
+                        asset_value_key = f"{target_asset.name}_Value"
+                        if asset_value_key in account_values_for_year:
+                            account_values_for_year[asset_value_key] = balance_after_income
+                        # Update current_year_total_assets to include the contribution
+                        # This ensures balance sheet projections show correct totals
+                        current_year_total_assets += income_amount
+                        # Disabled verbose debug logging
+                        # print(f"--- DEBUG: Year {year} - Added income contribution (dividend reinvestment) of {income_amount:.2f} from '{income_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_income:.2f} -> {balance_after_income:.2f} ---"); sys.stdout.flush()
+            
             # Calculate federal income tax if enabled
             federal_tax_expense_value = 0.0
             federal_tax_expense_account_name = None

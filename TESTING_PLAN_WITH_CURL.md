@@ -746,14 +746,14 @@ LIABILITY_4_3_ID=$(curl -s -X POST "${API_BASE}/liabilities/" \
 echo "Created Liability ID: $LIABILITY_4_3_ID"
 ```
 
-**Expected Values (approximate - actual depends on payment calculation):**
-- Year 1: Balance ≈ $98,000 (after 12 months of payments)
-- Year 2: Balance ≈ $96,000
-- Year 3: Balance ≈ $94,000
+**Expected Values:**
+- Year 2026: Balance = $98,650.41 (after 12 months of payments)
+- Year 2027: Balance = $97,106.00 (after 24 months of payments)
+- Year 2028: Balance = $95,482.57 (after 36 months of payments)
 - Balance decreases over time
 - Final year: Balance = $0
 
-**Note:** Monthly payment will be calculated automatically. For a $100,000 loan at 5% for 30 years, monthly payment ≈ $536.82.
+**Note:** Monthly payment is calculated automatically. For a $100,000 loan at 5% for 30 years, monthly payment = $536.82.
 
 **Verify in:**
 - Balance Sheet Projections
@@ -829,6 +829,8 @@ echo "Deleted Liability ID: $LIABILITY_4_4_ID, Expense ID: $EXPENSE_4_4_ID"
 
 ## 5. Tax Calculations
 
+**IMPORTANT:** Before running the tax calculation tests, you must enable "Calculate Federal Income Tax" in **Settings > Applications**. Without this setting enabled, the Federal Income Tax (Calculated) expense will not be automatically created or calculated.
+
 ### 5.1 Federal Income Tax (Calculated)
 
 **Setup:**
@@ -869,7 +871,21 @@ echo "Enabled federal tax calculation"
 - Federal tax calculated based on tax brackets
 - Tax appears as expense in projections
 - Tax amount matches expected bracket calculation
-- For $100,000 taxable income (Single, 2025): ~$17,400 (approximate)
+- For $100,000 total income (Single, 2026):
+  - Standard deduction: $14,950
+  - Taxable income: $85,050 ($100,000 - $14,950)
+  - Federal tax: $13,625.00
+    - First $11,925 at 10% = $1,192.50
+    - Next $36,550 at 12% = $4,386.00
+    - Next $36,575 at 22% = $8,046.50
+    - Total: $13,625.00
+- For $100,000 total income (Married Filing Jointly, 2026):
+  - Standard deduction: $29,900
+  - Taxable income: $70,100 ($100,000 - $29,900)
+  - Federal tax: $7,935.00
+    - First $23,850 at 10% = $2,385.00
+    - Next $46,250 at 12% = $5,550.00
+    - Total: $7,935.00
 
 **Verify in:**
 - Cash Flow Overview
@@ -1005,7 +1021,7 @@ INCOME_5_3B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Investment",
+    "category": "Investments",
     "description": "Test Income 5.3B (Non-Taxable)",
     "frequency": "yearly",
     "value": 20000,
