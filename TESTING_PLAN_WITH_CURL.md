@@ -1411,7 +1411,499 @@ echo "Deleted Expense ID: $EXPENSE_6_4_ID, Income ID: $INCOME_6_4_ID, Asset IDs:
 
 ---
 
-## 7. Edge Cases
+## 7. Comprehensive Integration Test (All Features)
+
+This test creates a realistic financial scenario that exercises all major features simultaneously:
+- Assets with growth and partial years
+- Liabilities (fixed and amortized)
+- Income (fixed, dynamic, with partial years)
+- Expenses (fixed, dynamic linked to income, contributing to assets, with partial years)
+- Auto-disbursements
+- Surplus asset transfers
+- Tax calculation (if enabled)
+- Dividend reinvestment (via UI)
+
+**Setup:**
+```bash
+# ========================================
+# COMPREHENSIVE INTEGRATION TEST
+# ========================================
+echo "Starting Comprehensive Integration Test..."
+
+# Track all created IDs for cleanup
+ASSET_IDS=()
+INCOME_IDS=()
+EXPENSE_IDS=()
+LIABILITY_IDS=()
+DISBURSEMENT_IDS=()
+
+# --- ASSETS ---
+echo "Creating assets..."
+
+# Asset 1: Investment account with growth
+ASSET_INV=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Investment",
+    "category": "Investment",
+    "value": 200000,
+    "annual_increase_percent": 7.0,
+    "account_id": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+ASSET_IDS+=("$ASSET_INV")
+echo "Created Investment Asset ID: $ASSET_INV"
+
+# Asset 2: Savings account (for surplus transfers)
+ASSET_SAV=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Savings",
+    "category": "Savings",
+    "value": 50000,
+    "annual_increase_percent": 2.0,
+    "account_id": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+ASSET_IDS+=("$ASSET_SAV")
+echo "Created Savings Asset ID: $ASSET_SAV"
+
+# Asset 3: 401K (receives expense contributions)
+ASSET_401K=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test 401K",
+    "category": "Investment",
+    "value": 150000,
+    "annual_increase_percent": 6.0,
+    "account_id": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+ASSET_IDS+=("$ASSET_401K")
+echo "Created 401K Asset ID: $ASSET_401K"
+
+# Asset 4: IRA (source for auto-disbursement)
+ASSET_IRA=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test IRA",
+    "category": "Investment",
+    "value": 100000,
+    "annual_increase_percent": 5.0,
+    "account_id": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+ASSET_IDS+=("$ASSET_IRA")
+echo "Created IRA Asset ID: $ASSET_IRA"
+
+# Asset 5: Brokerage (destination for auto-disbursement, receives dividends)
+ASSET_BROK=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Brokerage",
+    "category": "Investment",
+    "value": 0,
+    "annual_increase_percent": 8.0,
+    "account_id": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+ASSET_IDS+=("$ASSET_BROK")
+echo "Created Brokerage Asset ID: $ASSET_BROK"
+
+# Asset 6: Checking account (for surplus, starts mid-year)
+ASSET_CHK=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Checking",
+    "category": "Checking",
+    "value": 10000,
+    "annual_increase_percent": 0.0,
+    "account_id": null,
+    "start_date": "2026-07-01",
+    "end_date": null
+  }' | jq -r '.id')
+ASSET_IDS+=("$ASSET_CHK")
+echo "Created Checking Asset ID: $ASSET_CHK"
+
+# --- LIABILITIES ---
+echo "Creating liabilities..."
+
+# Liability 1: Fixed mortgage (principal only)
+LIABILITY_MORT=$(curl -s -X POST "${API_BASE}/liabilities/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Mortgage",
+    "category": "Mortgage",
+    "value": 250000,
+    "annual_increase_percent": 0.0,
+    "loan_type": "ordinary",
+    "principal_amount": null,
+    "interest_rate": null,
+    "loan_term_months": null,
+    "loan_start_date": null,
+    "monthly_payment": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+LIABILITY_IDS+=("$LIABILITY_MORT")
+echo "Created Mortgage Liability ID: $LIABILITY_MORT"
+
+# Liability 2: Amortized car loan
+LIABILITY_CAR=$(curl -s -X POST "${API_BASE}/liabilities/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Car Loan",
+    "category": "Car Loan",
+    "value": null,
+    "annual_increase_percent": null,
+    "loan_type": "amortized",
+    "principal_amount": 30000,
+    "interest_rate": 4.5,
+    "loan_term_months": 60,
+    "loan_start_date": "2025-06-01",
+    "monthly_payment": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+LIABILITY_IDS+=("$LIABILITY_CAR")
+echo "Created Car Loan Liability ID: $LIABILITY_CAR"
+
+# --- INCOME ---
+echo "Creating income items..."
+
+# Income 1: Fixed salary with growth
+INCOME_SAL=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Salary, Wages, Tips",
+    "description": "Comp Test Salary",
+    "frequency": "yearly",
+    "value": 100000,
+    "annual_increase_percent": 3.0,
+    "start_date": null,
+    "end_date": null,
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+INCOME_IDS+=("$INCOME_SAL")
+echo "Created Salary Income ID: $INCOME_SAL"
+
+# Income 2: Dynamic income linked to investment (dividends, reinvested via UI)
+# NOTE: For this test, we'll create it manually. In practice, enable "Track Dividends as Taxable Income"
+# on Comp Test Investment asset in the UI to auto-generate this.
+INCOME_DIV=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"is_income\": true,
+    \"category\": \"Dividends (qualified)\",
+    \"description\": \"Comp Test Investment Dividends\",
+    \"frequency\": \"yearly\",
+    \"value\": 0,
+    \"annual_increase_percent\": 0,
+    \"start_date\": null,
+    \"end_date\": null,
+    \"taxable\": true,
+    \"linked_item_id\": ${ASSET_INV},
+    \"linked_item_type\": \"asset\",
+    \"percentage\": 2.0,
+    \"person\": \"Family\",
+    \"reinvest_dividends\": true,
+    \"reinvestment_account_id\": ${ASSET_INV}
+  }" | jq -r '.id')
+INCOME_IDS+=("$INCOME_DIV")
+echo "Created Dividend Income ID: $INCOME_DIV"
+
+# Income 3: Rental income with partial year (starts mid-year)
+INCOME_RENT=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Rental Income",
+    "description": "Comp Test Rental Income",
+    "frequency": "yearly",
+    "value": 24000,
+    "annual_increase_percent": 2.0,
+    "start_date": "2026-07-01",
+    "end_date": null,
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+INCOME_IDS+=("$INCOME_RENT")
+echo "Created Rental Income ID: $INCOME_RENT"
+
+# --- EXPENSES ---
+echo "Creating expense items..."
+
+# Expense 1: Fixed housing expense with inflation
+EXPENSE_HOUSING=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": false,
+    "category": "Housing",
+    "description": "Comp Test Housing",
+    "frequency": "yearly",
+    "value": 36000,
+    "inflation_percent": 3.0,
+    "start_date": null,
+    "end_date": null,
+    "tax_deductible": false,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+EXPENSE_IDS+=("$EXPENSE_HOUSING")
+echo "Created Housing Expense ID: $EXPENSE_HOUSING"
+
+# Expense 2: Dynamic expense linked to income (401K contribution - 10% of salary)
+EXPENSE_401K=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"is_income\": false,
+    \"category\": \"Investments\",
+    \"description\": \"Comp Test 401K Contribution\",
+    \"frequency\": \"yearly\",
+    \"value\": 0,
+    \"inflation_percent\": 0,
+    \"start_date\": null,
+    \"end_date\": null,
+    \"tax_deductible\": true,
+    \"linked_item_id\": ${INCOME_SAL},
+    \"linked_item_type\": \"income\",
+    \"percentage\": 10.0,
+    \"person\": \"Family\",
+    \"contributes_to_asset_id\": ${ASSET_401K}
+  }" | jq -r '.id')
+EXPENSE_IDS+=("$EXPENSE_401K")
+echo "Created 401K Contribution Expense ID: $EXPENSE_401K"
+
+# Expense 3: Fixed expense with partial year (ends mid-year)
+EXPENSE_UTIL=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": false,
+    "category": "Utilities",
+    "description": "Comp Test Utilities",
+    "frequency": "yearly",
+    "value": 6000,
+    "inflation_percent": 2.0,
+    "start_date": null,
+    "end_date": "2027-06-30",
+    "tax_deductible": false,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+EXPENSE_IDS+=("$EXPENSE_UTIL")
+echo "Created Utilities Expense ID: $EXPENSE_UTIL"
+
+# --- AUTO-DISBURSEMENTS ---
+echo "Creating auto-disbursements..."
+
+DISBURSEMENT_IRA=$(curl -s -X POST "${API_BASE}/auto-disbursements/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"name\": \"Comp Test IRA to Brokerage\",
+    \"source_asset_id\": ${ASSET_IRA},
+    \"target_asset_id\": ${ASSET_BROK},
+    \"transfer_type\": \"dollar_amount\",
+    \"transfer_value\": 6500,
+    \"start_date\": \"2026-01-01\",
+    \"end_date\": null
+  }" | jq -r '.id')
+DISBURSEMENT_IDS+=("$DISBURSEMENT_IRA")
+echo "Created Auto-Disbursement ID: $DISBURSEMENT_IRA"
+
+# --- SET SURPLUS ASSET ---
+echo "Setting surplus asset..."
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"surplus_asset_id\": ${ASSET_CHK}
+  }" > /dev/null
+echo "Set surplus asset to Checking account"
+
+# --- ENABLE TAX CALCULATION (if desired) ---
+echo "Enabling federal tax calculation..."
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "calculate_federal_tax": true,
+    "tax_filing_status": "Married Filing Jointly"
+  }' > /dev/null
+echo "Enabled federal tax calculation"
+
+echo ""
+echo "========================================="
+echo "Comprehensive Integration Test Setup Complete!"
+echo "========================================="
+echo ""
+echo "Created:"
+echo "  - Assets: ${#ASSET_IDS[@]}"
+echo "  - Liabilities: ${#LIABILITY_IDS[@]}"
+echo "  - Income Items: ${#INCOME_IDS[@]}"
+echo "  - Expense Items: ${#EXPENSE_IDS[@]}"
+echo "  - Auto-Disbursements: ${#DISBURSEMENT_IDS[@]}"
+echo ""
+```
+
+**Expected Values (Year 2026 - First Full Year):**
+
+**Assets:**
+- **Comp Test Investment**: $218,000.00
+  - Beginning: $200,000.00
+  - Growth (7%): $14,000.00
+  - Dividend reinvested (2% of $200k beginning): $4,000.00
+  - End: $218,000.00 (200k + 14k growth + 4k dividend)
+- **Comp Test Savings**: $51,000.00 (50,000 * 1.02)
+- **Comp Test 401K**: $169,000.00
+  - Beginning: $150,000.00
+  - Growth (6%): $9,000.00
+  - 401K contribution (10% of $100k salary): $10,000.00
+  - End: $169,000.00 (150k + 9k + 10k)
+- **Comp Test IRA**: $98,500.00
+  - Beginning: $100,000.00
+  - Growth (5%): $105,000.00
+  - Auto-disbursement to Brokerage: -$6,500.00
+  - End: $98,500.00
+- **Comp Test Brokerage**: $7,020.00
+  - Beginning: $0.00
+  - Auto-disbursement from IRA: +$6,500.00
+  - Growth (8%): $520.00 (6,500 * 0.08)
+  - End: $7,020.00
+- **Comp Test Checking**: ~$72,860.00 (starts 7/1/2026)
+  - Beginning: $10,000.00 (only active for 6 months from 7/1/2026)
+  - Surplus: Income - Expenses = (100k salary + 12k rental + 4k dividend) - (36k housing + 10k 401k + 6k utils) = $62,860.00
+  - End: ~$72,860.00 (10k beginning + 62.86k surplus, no growth)
+
+**Liabilities:**
+- **Comp Test Mortgage**: $250,000.00 (no growth, fixed)
+- **Comp Test Car Loan**: ~$24,500.00 (amortized, starting 6/1/2025, ~12 months of payments)
+
+**Income:**
+- **Comp Test Salary**: $100,000.00 (Year 1, no growth yet)
+- **Comp Test Investment Dividends**: $4,000.00 (2% of $200k beginning balance, reinvested)
+- **Comp Test Rental Income**: ~$12,000.00 (24k * 0.5, partial year from 7/1/2026 - 6 months)
+- **Total Income**: $116,000.00
+
+**Expenses:**
+- **Comp Test Housing**: $37,080.00 (36k * 1.03, 3% inflation)
+- **Comp Test 401K Contribution**: $10,000.00 (10% of $100k salary in year 1)
+- **Comp Test Utilities**: $6,060.00 (6k * 1.02, 2% inflation, full year)
+- **Federal Income Tax (Calculated)**: ~$7,935.00 (Married Filing Jointly, based on taxable income ~$70k after deductions)
+- **Total Expenses**: ~$61,075.00 (excluding tax, which is calculated separately)
+
+**Cash Flow:**
+- **Surplus/Deficit**: ~$54,925.00 (116k income - 36k housing - 10k 401k - 6k utils - 7.935k tax = ~$54,925, before considering checking account date range)
+
+**Expected Values (Year 2027):**
+
+**Assets:**
+- **Comp Test Investment**: ~$236,000.00 (218k * 1.07 + ~4.4k dividend from beginning balance)
+- **Comp Test Savings**: $52,020.00 (51k * 1.02)
+- **Comp Test 401K**: ~$189,140.00 (169k * 1.06 + 401k contribution from year 2 salary ~$10.6k)
+- **Comp Test IRA**: ~$97,425.00 (98.5k * 1.05 - 6.5k transfer)
+- **Comp Test Brokerage**: ~$14,141.00 (7.02k * 1.08 + 6.5k transfer)
+- **Comp Test Checking**: Accumulates more surplus/deficit
+
+**Liabilities:**
+- **Comp Test Mortgage**: $250,000.00 (still fixed)
+- **Comp Test Car Loan**: ~$20,500.00 (continues amortizing)
+
+**Expected Values (Year 2028):**
+
+**Assets:**
+- **Comp Test Investment**: ~$256,000.00+ (continues growing with dividends)
+- **Comp Test Checking**: Accumulated surplus from previous years
+- Other assets continue growing
+
+**Liabilities:**
+- **Comp Test Car Loan**: ~$16,500.00 (continues amortizing toward $0)
+
+**Verify in:**
+- Custom Charts (all asset, liability, income, and expense series)
+- Balance Sheet Projections (verify asset and liability totals)
+- Cash Flow Overview (verify income, expenses, and surplus/deficit)
+- BASE Model (verify surplus transfers to Checking)
+- Monte Carlo Projections (verify random variation)
+
+**Cleanup:**
+```bash
+# Reset surplus asset and tax settings
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "surplus_asset_id": null,
+    "calculate_federal_tax": false
+  }' > /dev/null
+
+# Delete auto-disbursements
+for id in "${DISBURSEMENT_IDS[@]}"; do
+  curl -s -X DELETE "${API_BASE}/auto-disbursements/${id}" \
+    -H "Authorization: Bearer ${TOKEN}"
+done
+
+# Delete expenses
+for id in "${EXPENSE_IDS[@]}"; do
+  curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
+    -H "Authorization: Bearer ${TOKEN}"
+done
+
+# Delete income items
+for id in "${INCOME_IDS[@]}"; do
+  curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
+    -H "Authorization: Bearer ${TOKEN}"
+done
+
+# Delete liabilities
+for id in "${LIABILITY_IDS[@]}"; do
+  curl -s -X DELETE "${API_BASE}/liabilities/${id}" \
+    -H "Authorization: Bearer ${TOKEN}"
+done
+
+# Delete assets
+for id in "${ASSET_IDS[@]}"; do
+  curl -s -X DELETE "${API_BASE}/assets/${id}" \
+    -H "Authorization: Bearer ${TOKEN}"
+done
+
+echo "Cleanup complete!"
+```
+
+---
+
+## 8. Edge Cases
 
 ### 7.1 Zero Values
 
@@ -1645,7 +2137,7 @@ echo "Deleted Income IDs: $INCOME_7_4A_ID, $INCOME_7_4B_ID"
 
 ---
 
-## 8. Chart-Specific Tests
+## 9. Chart-Specific Tests
 
 ### 8.1 Custom Chart - All Items vs Specific Item
 
@@ -1896,7 +2388,7 @@ echo "Deleted Chart ID: $CHART_8_3_ID, Income ID: $INCOME_8_3_ID"
 
 ---
 
-## 9. Complete Test Script Template
+## 10. Complete Test Script Template
 
 Save this as `run_all_tests.sh`:
 

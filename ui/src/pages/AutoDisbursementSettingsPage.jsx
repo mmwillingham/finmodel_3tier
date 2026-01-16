@@ -292,6 +292,15 @@ const AutoDisbursementSettingsPage = () => {
               Save
             </button>
           </div>
+          <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#f0f7ff', border: '1px solid #b3d9ff', borderRadius: '4px', fontSize: '0.9em', color: '#004085' }}>
+            <strong>Transfer Sequence:</strong>
+            <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+              <li><strong>Auto-Disbursements</strong> are applied at the <strong>beginning of each year</strong>, before asset growth</li>
+              <li><strong>Surplus/Deficit Transfer</strong> is applied at the <strong>end of each year</strong>, after asset growth</li>
+              <li>Sequence: <strong>Auto-Disbursements</strong> → <strong>Asset Growth</strong> → <strong>Surplus/Deficit Transfer</strong></li>
+              <li>This ensures auto-disbursements benefit from growth, while surplus/deficit represents end-of-year cash flow</li>
+            </ul>
+          </div>
         </div>
       )}
 
@@ -411,6 +420,17 @@ const AutoDisbursementSettingsPage = () => {
 
           {/* Divider */}
           <div style={{ borderTop: '1px solid #eee', marginTop: '30px', marginBottom: '20px' }}></div>
+
+          {/* Transfer Sequence Note */}
+          <div style={{ marginTop: '20px', marginBottom: '20px', padding: '12px', backgroundColor: '#f0f7ff', border: '1px solid #b3d9ff', borderRadius: '4px', fontSize: '0.9em', color: '#004085' }}>
+            <strong>Transfer Sequence:</strong>
+            <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+              <li><strong>Auto-Disbursements</strong> are applied at the <strong>beginning of each year</strong>, before asset growth</li>
+              <li><strong>Surplus/Deficit Transfer</strong> is applied at the <strong>end of each year</strong>, after asset growth</li>
+              <li>Sequence: <strong>Auto-Disbursements</strong> → <strong>Asset Growth</strong> → <strong>Surplus/Deficit Transfer</strong></li>
+              <li>This ensures auto-disbursements benefit from growth, while surplus/deficit represents end-of-year cash flow</li>
+            </ul>
+          </div>
 
           {/* Existing List Section - Bottom */}
           <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>

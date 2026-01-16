@@ -382,6 +382,59 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             # Dictionary to store account values for this year (including principal/interest breakdown)
             account_values_for_year = {}
 
+            # Apply auto-disbursement transfers BEFORE growth calculations
+            # Auto-disbursements happen at the beginning of the year, before assets grow
+            # NOTE: Surplus/deficit transfers happen AFTER growth (at end of year) - see below
+            year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
+            year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
+            
+            # Apply auto-disbursements BEFORE growth
+            for disbursement in auto_disbursements:
+                # Check if disbursement is active for this year
+                active = True
+                if disbursement.start_date:
+                    try:
+                        start_date_obj = datetime.strptime(disbursement.start_date, "%Y-%m-%d").date()
+                        # Disbursement is not active if the year ends before the start_date
+                        if year_end_date < start_date_obj:
+                            active = False
+                    except ValueError:
+                        pass
+                if disbursement.end_date and active:
+                    try:
+                        end_date_obj = datetime.strptime(disbursement.end_date, "%Y-%m-%d").date()
+                        # Disbursement is not active if the year starts after the end_date
+                        if year_start_date > end_date_obj:
+                            active = False
+                    except ValueError:
+                        pass
+                
+                if active:
+                    # Find source and target asset names in projection
+                    source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
+                    target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
+                    
+                    if source_asset and target_asset:
+                        source_name = source_asset.name
+                        target_name = target_asset.name
+                        
+                        if source_name in account_current_balances and target_name in account_current_balances:
+                            source_balance = account_current_balances[source_name]
+                            
+                            # Calculate transfer amount
+                            if disbursement.transfer_type == "percentage":
+                                transfer_amount = abs(source_balance) * (disbursement.transfer_value / 100.0)
+                            else:  # dollar_amount
+                                transfer_amount = abs(disbursement.transfer_value)
+                            
+                            # Apply transfer (only if source has sufficient balance)
+                            # This happens BEFORE growth, so source_balance is the beginning-of-year balance
+                            if abs(source_balance) >= transfer_amount:
+                                account_current_balances[source_name] -= transfer_amount
+                                account_current_balances[target_name] += transfer_amount
+                                # Disabled verbose debug logging
+                                # print(f"--- DEBUG: Year {year} - Applied auto-disbursement BEFORE growth: {transfer_amount:.2f} from {source_name} to {target_name}. {source_name}: {source_balance:.2f} -> {account_current_balances[source_name]:.2f} ---"); sys.stdout.flush()
+
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
                 
@@ -854,6 +907,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         
                         account_values_for_year[f"{projected_account.name}_Value"] = value_to_store
                         
+                        # Update the stored value if this asset was affected by auto-disbursements
+                        # (auto-disbursements were applied at the beginning of the year, so the final balance
+                        # after growth will already reflect the transfer, but we need to ensure account_values_for_year
+                        # has the correct end-of-year balance)
+                        # Note: This is handled by the value_to_store calculation above, which uses new_balance
+                        
                         # Update for next year's starting balance
                         # If item ends this year (year_fraction < 1.0 and end_date is in this year), 
                         # set balance to 0 for next year since asset no longer exists after end_date
@@ -1223,11 +1282,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         else:
                             print(f"--- DEBUG: Year {year} - Skipping federal tax calculation: current_year_taxable_income={current_year_taxable_income:.2f} (must be > 0) ---"); sys.stdout.flush()
             
-            # Calculate cash flow surplus/deficit and apply to designated asset
+            # Calculate and apply surplus/deficit transfer AFTER growth calculations
+            # Surplus/deficit transfers happen at the end of the year, after all assets have grown
+            # This represents the cash flow surplus/deficit for the year being moved to the surplus asset
             net_cash_flow = current_year_total_income_flow + current_year_total_expense_flow
             surplus_deficit = current_year_total_income_flow - abs(current_year_total_expense_flow)
             
-            # Apply surplus/deficit to designated asset if configured (before auto-disbursements)
+            # Apply surplus/deficit to designated asset AFTER growth
+            # NOTE: This happens after growth, so the surplus asset has already grown on its beginning balance
+            # The surplus/deficit is then added to the end-of-year balance
             if surplus_asset_name and surplus_asset_name in account_current_balances:
                 balance_before_surplus = account_current_balances[surplus_asset_name]
                 account_current_balances[surplus_asset_name] += surplus_deficit
@@ -1240,70 +1303,19 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     account_values_for_year[surplus_value_key] = account_current_balances[surplus_asset_name]
                 
                 # Disabled verbose debug logging
-                # print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Balance before surplus: {balance_before_surplus:.2f}, Surplus added: {surplus_deficit:.2f}, Balance after surplus: {balance_after_surplus:.2f} ---"); sys.stdout.flush()
+                # print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Applied surplus AFTER growth: {surplus_deficit:.2f}, balance before: {balance_before_surplus:.2f}, balance after: {balance_after_surplus:.2f} ---"); sys.stdout.flush()
 
-            # Apply auto-disbursement transfers
-            year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
-            year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
-            
-            for disbursement in auto_disbursements:
-                # Check if disbursement is active for this year
-                active = True
-                if disbursement.start_date:
-                    try:
-                        start_date_obj = datetime.strptime(disbursement.start_date, "%Y-%m-%d").date()
-                        # Disbursement is not active if the year ends before the start_date
-                        if year_end_date < start_date_obj:
-                            active = False
-                    except ValueError:
-                        pass
-                if disbursement.end_date and active:
-                    try:
-                        end_date_obj = datetime.strptime(disbursement.end_date, "%Y-%m-%d").date()
-                        # Disbursement is not active if the year starts after the end_date
-                        if year_start_date > end_date_obj:
-                            active = False
-                    except ValueError:
-                        pass
-                
-                if active:
-                    # Find source and target asset names in projection
-                    source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
-                    target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
-                    
-                    if source_asset and target_asset:
-                        source_name = source_asset.name
-                        target_name = target_asset.name
-                        
-                        if source_name in account_current_balances and target_name in account_current_balances:
-                            source_balance = account_current_balances[source_name]
-                            
-                            # Calculate transfer amount
-                            if disbursement.transfer_type == "percentage":
-                                transfer_amount = abs(source_balance) * (disbursement.transfer_value / 100.0)
-                            else:  # dollar_amount
-                                transfer_amount = abs(disbursement.transfer_value)
-                            
-                            # Apply transfer (only if source has sufficient balance)
-                            if abs(source_balance) >= transfer_amount:
-                                balance_before_transfer = account_current_balances.get(target_name, 0.0)
-                                account_current_balances[source_name] -= transfer_amount
-                                account_current_balances[target_name] += transfer_amount
-                                balance_after_transfer = account_current_balances[target_name]
-                                
-                                # Update the stored values in account_values_for_year to include the transfer
-                                # This ensures charts show the correct end-of-year balance after auto-disbursements
-                                source_value_key = f"{source_name}_Value"
-                                target_value_key = f"{target_name}_Value"
-                                if source_value_key in account_values_for_year:
-                                    account_values_for_year[source_value_key] = account_current_balances[source_name]
-                                if target_value_key in account_values_for_year:
-                                    account_values_for_year[target_value_key] = account_current_balances[target_name]
-                                
-                                # Disabled verbose debug logging
-                                # print(f"--- DEBUG: Year {year} - Applied auto-disbursement: {transfer_amount:.2f} from {source_name} to {target_name}. {target_name} balance: {balance_before_transfer:.2f} -> {balance_after_transfer:.2f} ---"); sys.stdout.flush()
+            # Note: The calculation sequence is:
+            # 1. Beginning of year: Apply auto-disbursements (transfers between assets before growth)
+            # 2. During loop: Apply growth to all assets
+            # 3. After loop: Calculate income/expense flows and apply surplus/deficit transfer (end of year)
+            # This ensures:
+            # - Auto-disbursements benefit from the same year's growth
+            # - Surplus/deficit is calculated from actual income/expense totals (including dynamic items)
+            # - Surplus/deficit is added after assets have grown, representing end-of-year cash flow transfer
+            # - Auto-disbursements involving the surplus asset operate on the beginning-of-year balance (before surplus is added)
 
-            # Recalculate totals after surplus/deficit and auto-disbursements
+            # Recalculate totals after surplus/deficit (auto-disbursements already applied before growth)
             # This ensures assets reflect the transfers
             current_year_total_assets = 0.0
             for acc in projected_accounts_for_db:
