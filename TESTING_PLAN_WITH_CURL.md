@@ -345,7 +345,7 @@ INCOME_2_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investment\",
+    \"category\": \"Investments\",
     \"description\": \"Test Income 2.3\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -525,7 +525,7 @@ EXPENSE_3_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": false,
-    \"category\": \"Investment\",
+    \"category\": \"Investments\",
     \"description\": \"401K deduction\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -602,7 +602,7 @@ EXPENSE_3_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": false,
-    \"category\": \"Investment\",
+    \"category\": \"Investments\",
     \"description\": \"Test Expense 3.4\",
     \"frequency\": \"yearly\",
     \"value\": 10000,
@@ -1082,7 +1082,7 @@ INCOME_6_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investment\",
+    \"category\": \"Investments\",
     \"description\": \"Dividend Income\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -1304,7 +1304,7 @@ INCOME_6_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investment\",
+    \"category\": \"Investments\",
     \"description\": \"Test Income 6.4\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -1338,7 +1338,7 @@ EXPENSE_6_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": false,
-    \"category\": \"Investment\",
+    \"category\": \"Investments\",
     \"description\": \"Test Expense 6.4\",
     \"frequency\": \"yearly\",
     \"value\": 0,
