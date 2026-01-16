@@ -1077,8 +1077,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 # Calculate the income amount for this year
                 income_amount = 0.0
                 
+                print(f"--- DEBUG: Year {year} - Looking up dividend for '{income_item.description}' in annual_flow_values. Available keys: {list(annual_flow_values.keys())} ---"); sys.stdout.flush()
+                
                 # Check if this income is a dynamic item (linked to assets)
-                if income_item.linked_item_id and income_item.linked_item_type and income_item.percentage is not None:
+                # For dynamic items, check linked_item_id OR linked_asset_ids OR linked_item_type
+                is_dynamic_item = (income_item.linked_item_id or (hasattr(income_item, 'linked_asset_ids') and income_item.linked_asset_ids)) and income_item.linked_item_type and income_item.percentage is not None
+                
+                if is_dynamic_item:
                     # This is a dynamic income item - find it in annual_flow_values
                     # The income name might have a |LINKED: marker
                     # The value in annual_flow_values is already calculated based on beginning-of-year asset balance
@@ -1109,12 +1114,20 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Actually, we need to use the asset value from BEFORE growth was applied
                         # The best approach is to look at account_values_for_year from the previous year
                         # For year 1, use the initial asset value
+                        # Get linked asset IDs - check linked_asset_ids first, then linked_item_id
                         linked_asset_ids = []
                         if hasattr(income_item, 'linked_asset_ids') and income_item.linked_asset_ids:
-                            linked_asset_ids = income_item.linked_asset_ids
+                            linked_asset_ids = income_item.linked_asset_ids if isinstance(income_item.linked_asset_ids, list) else [income_item.linked_asset_ids]
                         if income_item.linked_item_id:
                             if income_item.linked_item_id not in linked_asset_ids:
                                 linked_asset_ids = [income_item.linked_item_id] + linked_asset_ids
+                        
+                        # If no linked_asset_ids found but linked_item_type is asset and percentage is set, 
+                        # this is a dynamic item - use target_asset.id for calculation
+                        if not linked_asset_ids and income_item.linked_item_type == "asset" and income_item.percentage is not None:
+                            # This is a dynamic dividend item - use target asset for calculation
+                            linked_asset_ids = [target_asset.id]
+                            print(f"--- DEBUG: Year {year} - No linked_asset_ids found, but item is dynamic. Using target_asset.id={target_asset.id} for dividend calculation ---"); sys.stdout.flush()
                         
                         if linked_asset_ids and target_asset.id in linked_asset_ids:
                             # For year 1, use initial value; for subsequent years, calculate backwards from current balance
