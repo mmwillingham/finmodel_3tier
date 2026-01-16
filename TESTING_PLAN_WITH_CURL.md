@@ -389,7 +389,7 @@ echo "Deleted Income ID: $INCOME_2_3_ID, Asset ID: $ASSET_2_3_ID"
 
 ---
 
-### 2.4 Income Contributing to Asset
+### 2.4 Income Contributing to Asset (THIS IS NOT BUILT INTO INCOME AND NOT A VALID USE CASE...SKIP)
 
 **Setup:**
 ```bash
