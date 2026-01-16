@@ -1106,15 +1106,17 @@ def create_cashflow(
         # For income items with reinvest_dividends=True, use reinvestment_account_id as contributes_to_asset_id
         # For expense items, use contributes_to_asset_id directly
         contributes_to_asset_id=payload.contributes_to_asset_id if not payload.is_income else (
-            payload.reinvestment_account_id if (hasattr(payload, 'reinvest_dividends') and payload.reinvest_dividends and hasattr(payload, 'reinvestment_account_id') and payload.reinvestment_account_id) else payload.contributes_to_asset_id
+            payload.reinvestment_account_id if (getattr(payload, 'reinvest_dividends', False) and getattr(payload, 'reinvestment_account_id', None)) else payload.contributes_to_asset_id
         ),
         reinvest_dividends=payload.reinvest_dividends if hasattr(payload, 'reinvest_dividends') else False,
         reinvestment_account_id=payload.reinvestment_account_id if hasattr(payload, 'reinvestment_account_id') else None
     )
     
     # Debug logging for dividend reinvestment mapping
-    if payload.is_income and hasattr(payload, 'reinvest_dividends') and payload.reinvest_dividends:
-        print(f"--- DEBUG: Creating income item - reinvest_dividends={payload.reinvest_dividends}, reinvestment_account_id={getattr(payload, 'reinvestment_account_id', None)}, contributes_to_asset_id={item.contributes_to_asset_id} ---"); sys.stdout.flush()
+    if payload.is_income:
+        reinvest_dividends_val = getattr(payload, 'reinvest_dividends', False)
+        reinvestment_account_id_val = getattr(payload, 'reinvestment_account_id', None)
+        print(f"--- DEBUG: Creating income item '{item.description}' - is_income={payload.is_income}, reinvest_dividends={reinvest_dividends_val}, reinvestment_account_id={reinvestment_account_id_val}, contributes_to_asset_id={item.contributes_to_asset_id} ---"); sys.stdout.flush()
     
     db.add(item)
     db.commit()

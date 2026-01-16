@@ -278,9 +278,9 @@ export default function AssetFormModal({
         if (trackDividendsAsIncome && dividendPercent > 0 && assetId) {
         // Create or update linked income item
         const incomeItemName = `${newItem.name} Dividends`;
-        // Try to preserve existing category if updating, otherwise use "Dividends"
+        // Try to preserve existing category if updating, otherwise use "Dividends (qualified)"
         const existingIncome = incomeItems.find(item => item.id === existingLinkedDividendId);
-        const incomeCategory = existingIncome?.category || "Dividends";
+        const incomeCategory = existingIncome?.category || "Dividends (qualified)";
         
         const incomePayload = {
           is_income: true,
