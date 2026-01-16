@@ -22,6 +22,8 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const [showChartTotals, setShowChartTotals] = useState(false); // State for individual chart totals
   const [showChartTotalsDisabled, setShowChartTotalsDisabled] = useState(false); // State to disable totals checkbox when data types differ
     const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type (chart, table, or both)
+  const [hasItemizedSeries, setHasItemizedSeries] = useState(false); // State to track if chart has itemized series
+  const [refreshingItemization, setRefreshingItemization] = useState(false); // State for refresh button loading
 
   const formatValue = useCallback((value, displayType) => {
     if (displayType === 'percentage') {
@@ -352,6 +354,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           console.error("DEBUG (CustomChartView.jsx): Error parsing data_json in useEffect:", parseError);
         }
         // Check if series have different data types - if so, disable totals
+        // Also check if chart has itemized series (series with selected_item_id)
         try {
           const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
           const dataTypes = seriesConfigurations.map(s => s.data_type);
@@ -361,8 +364,15 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           if (hasMultipleDataTypes) {
             setShowChartTotals(false); // Automatically uncheck if multiple data types
           }
+          
+          // Check if any series has selected_item_id (itemized series)
+          const hasItemized = seriesConfigurations.some(s => 
+            (s.selected_item_id || s.item_id) && (s.selected_item_id !== null && s.selected_item_id !== "" && s.selected_item_id !== 0)
+          );
+          setHasItemizedSeries(hasItemized);
         } catch (e) {
           console.error("Error parsing series configurations for totals check:", e);
+          setHasItemizedSeries(false);
         }
         prepareChartData(fetchedConfig); // Call the memoized function
       } catch (error) {
@@ -573,21 +583,135 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
   };
 
+  // Function to refresh itemization - validates and updates item IDs
+  const handleRefreshItemization = async () => {
+    if (!chartConfig) return;
+    
+    setRefreshingItemization(true);
+    setMessage('');
+    
+    try {
+      // Parse series configurations
+      const seriesConfigurations = JSON.parse(chartConfig.series_configurations);
+      let needsUpdate = false;
+      const updatedSeries = seriesConfigurations.map(series => {
+        const selectedItemId = series.selected_item_id || series.item_id;
+        
+        // Only process series with selected_item_id (itemized series)
+        if (!selectedItemId || selectedItemId === "" || selectedItemId === null || selectedItemId === 0) {
+          return series; // No change needed
+        }
+        
+        // Get the appropriate array of items based on data type
+        let items = [];
+        if (series.data_type === 'assets') {
+          items = assets;
+        } else if (series.data_type === 'liabilities') {
+          items = liabilities;
+        } else if (series.data_type === 'income') {
+          items = incomeItems;
+        } else if (series.data_type === 'expenses') {
+          items = expenseItems;
+        } else {
+          return series; // Unknown data type, skip
+        }
+        
+        // Try to find item by ID
+        const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
+        let foundItem = items.find(item => item.id === itemIdNum || item.id === selectedItemId);
+        
+        // If not found by ID, try to find by label/name (handles items that were recreated)
+        if (!foundItem && series.label) {
+          foundItem = items.find(item => {
+            const itemName = item.description || item.name;
+            return itemName === series.label;
+          });
+          
+          // If found by label, update the ID
+          if (foundItem) {
+            needsUpdate = true;
+            return {
+              ...series,
+              selected_item_id: foundItem.id,
+              item_id: foundItem.id, // Also update item_id for backward compatibility
+              label: foundItem.description || foundItem.name, // Update label to match current item name
+            };
+          }
+        }
+        
+        // If item found by ID, verify label matches (handles renamed items)
+        if (foundItem) {
+          const currentItemName = foundItem.description || foundItem.name;
+          if (series.label !== currentItemName) {
+            needsUpdate = true;
+            return {
+              ...series,
+              label: currentItemName, // Update label to match current item name
+            };
+          }
+        }
+        
+        // Item not found and couldn't be matched - series might be invalid, but keep it as-is
+        // The chart will show 0 values for this series until the item is recreated
+        return series;
+      });
+      
+      // If any series were updated, save the updated configuration
+      if (needsUpdate) {
+        const updatedConfig = {
+          ...chartConfig,
+          series_configurations: JSON.stringify(updatedSeries),
+        };
+        
+        await CustomChartService.update(chartId, updatedConfig);
+        setMessage('Itemization refreshed successfully. Chart updated with current item IDs and names.');
+        
+        // Reload the chart to reflect the changes
+        const response = await CustomChartService.get(chartId);
+        const fetchedConfig = response.data;
+        setChartConfig(fetchedConfig);
+        prepareChartData(fetchedConfig);
+      } else {
+        setMessage('Itemization is up to date. All linked items are valid.');
+      }
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error("Error refreshing itemization:", error);
+      setMessage(`Failed to refresh itemization: ${error.response?.data?.detail || error.message}`);
+      setTimeout(() => setMessage(''), 5000);
+    } finally {
+      setRefreshingItemization(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading chart...</div>;
-  }
-
-  if (message) {
-    return <div className="message error">{message}</div>;
   }
 
   return (
     <div className="custom-chart-view-container">
       <button onClick={onBack} className="back-btn">← Back to Custom Charts and Tables</button>
+      {message && (
+        <div className={`message ${message.includes('error') || message.includes('Error') || message.includes('Failed') ? 'error' : 'success'}`} style={{ marginBottom: '15px' }}>
+          {message}
+        </div>
+      )}
       <div className="chart-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           {onEdit && (
             <button onClick={() => onEdit(chartId)} className="btn-primary-modern">Edit</button>
+          )}
+          {hasItemizedSeries && (
+            <button 
+              onClick={handleRefreshItemization} 
+              className="btn-primary-modern"
+              disabled={refreshingItemization}
+              title="Refresh itemization - validates and updates linked item IDs if items were renamed or recreated"
+            >
+              {refreshingItemization ? 'Refreshing...' : 'Refresh Itemization'}
+            </button>
           )}
           <label className="show-totals-toggle" style={{ margin: 0 }}>
           <input

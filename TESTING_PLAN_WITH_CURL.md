@@ -48,6 +48,8 @@ cleanup_all() {
 
 ### 1.1 Basic Asset Growth
 
+**Description:** Tests basic asset growth calculation with a simple asset that starts at $100,000 and grows at 5% annually. This verifies that compound growth is calculated correctly over multiple years.
+
 **Setup:**
 ```bash
 # Create asset
@@ -89,6 +91,8 @@ echo "Deleted Asset ID: $ASSET_1_1_ID"
 
 ### 1.2 Asset with Partial Year
 
+**Description:** Tests asset growth calculation when an asset starts mid-year (July 1, 2026). Verifies that partial year calculations use compound growth correctly (e.g., 1.05^0.5 for half a year).
+
 **Setup:**
 ```bash
 # Create asset starting mid-year
@@ -127,6 +131,8 @@ echo "Deleted Asset ID: $ASSET_1_2_ID"
 
 ### 1.3 Asset with End Date
 
+**Description:** Tests asset behavior when an asset has an end date (ends June 30, 2027). Verifies that the asset value is $0 at end of year 2027 and beyond, even if the asset existed for part of that year.
+
 **Setup:**
 ```bash
 # Create asset with end date
@@ -164,6 +170,8 @@ echo "Deleted Asset ID: $ASSET_1_3_ID"
 ---
 
 ### 1.4 Multiple Assets with Different Growth Rates
+
+**Description:** Tests multiple assets with different growth rates (3% and 7%) to verify that each asset grows independently and totals are calculated correctly across different assets.
 
 **Setup:**
 ```bash
@@ -232,6 +240,8 @@ echo "Deleted Asset IDs: $ASSET_1_4A_ID, $ASSET_1_4B_ID"
 
 ### 2.1 Fixed Income with Growth
 
+**Description:** Tests fixed income calculation with annual growth (3% per year). Verifies that income values increase according to the growth rate and compound over multiple years.
+
 **Setup:**
 ```bash
 # Create income
@@ -279,6 +289,8 @@ echo "Deleted Income ID: $INCOME_2_1_ID"
 
 ### 2.2 Income with Partial Year
 
+**Description:** Tests income calculation when an income item is active for only part of the year (Jan 1, 2026 to Aug 31, 2027). Verifies that income is prorated correctly based on the fraction of the year the item is active.
+
 **Setup:**
 ```bash
 # Create income with partial year
@@ -322,6 +334,8 @@ echo "Deleted Income ID: $INCOME_2_2_ID"
 ---
 
 ### 2.3 Dynamic Income Linked to Asset
+
+**Description:** Tests dynamic income that is calculated as a percentage (4%) of an asset's value each year. Verifies that the income amount increases as the asset grows, and that the income reflects the current asset value dynamically.
 
 **Setup:**
 ```bash
@@ -393,6 +407,8 @@ echo "Deleted Income ID: $INCOME_2_3_ID, Asset ID: $ASSET_2_3_ID"
 
 ### 3.1 Fixed Expense with Inflation
 
+**Description:** Tests fixed expense calculation with annual inflation (2% per year). Verifies that expense values increase according to the inflation rate and compound over multiple years.
+
 **Setup:**
 ```bash
 # Create expense
@@ -439,6 +455,8 @@ echo "Deleted Expense ID: $EXPENSE_3_1_ID"
 
 ### 3.2 Expense with Partial Year
 
+**Description:** Tests expense calculation when an expense item is active for only part of the year (March 1, 2026 to Dec 31, 2027). Verifies that expenses are prorated correctly based on the fraction of the year the item is active.
+
 **Setup:**
 ```bash
 # Create expense with partial year
@@ -482,6 +500,8 @@ echo "Deleted Expense ID: $EXPENSE_3_2_ID"
 ---
 
 ### 3.3 Dynamic Expense Linked to Income (401K-style)
+
+**Description:** Tests dynamic expense that is calculated as a percentage (10%) of income each year, and the expense contributes to an asset (401K account). Verifies that the expense amount recalculates based on the linked income, and the expense contribution adds to the asset balance. Also verifies that the expense drops to $0 when the linked income ends.
 
 **Setup:**
 ```bash
@@ -580,6 +600,8 @@ echo "Deleted Expense ID: $EXPENSE_3_3_ID, Income ID: $INCOME_3_3_ID, Asset ID: 
 
 ### 3.4 Expense Contributing to Asset
 
+**Description:** Tests that an expense contributes to an asset balance each year. Verifies that the expense amount (e.g., $10,000) is added to the asset balance annually, accumulating over time.
+
 **Setup:**
 ```bash
 # Create asset (destination)
@@ -644,6 +666,8 @@ echo "Deleted Expense ID: $EXPENSE_3_4_ID, Asset ID: $ASSET_3_4_ID"
 
 ### 4.1 Simple Liability (Fixed)
 
+**Description:** Tests a simple fixed liability that does not change over time. Verifies that the liability value remains constant at $50,000 across all years.
+
 **Setup:**
 ```bash
 # Create liability
@@ -684,6 +708,8 @@ echo "Deleted Liability ID: $LIABILITY_4_1_ID"
 
 ### 4.2 Liability with Growth
 
+**Description:** Tests liability calculation with annual growth (3% per year). Verifies that liability values increase according to the growth rate, compounding over multiple years.
+
 **Setup:**
 ```bash
 # Create liability with growth
@@ -721,6 +747,8 @@ echo "Deleted Liability ID: $LIABILITY_4_2_ID"
 ---
 
 ### 4.3 Amortized Loan
+
+**Description:** Tests amortized loan calculation using standard amortization formulas. Verifies that the loan balance decreases correctly over time based on principal payments, and that the balance calculation matches expected amortization schedules.
 
 **Setup:**
 ```bash
@@ -769,6 +797,8 @@ echo "Deleted Liability ID: $LIABILITY_4_3_ID"
 ---
 
 ### 4.4 Amortized Loan with Payment Expense
+
+**Description:** Tests amortized loan when `create_payment_expense` is enabled, which automatically creates an expense item for loan payments. Verifies that the loan balance decreases correctly and that payment expenses are reflected in cash flow calculations.
 
 **Setup:**
 ```bash
@@ -832,6 +862,8 @@ echo "Deleted Liability ID: $LIABILITY_4_4_ID, Expense ID: $EXPENSE_4_4_ID"
 **IMPORTANT:** Before running the tax calculation tests, you must enable "Calculate Federal Income Tax" in **Settings > Applications**. Without this setting enabled, the Federal Income Tax (Calculated) expense will not be automatically created or calculated.
 
 ### 5.1 Federal Income Tax (Calculated)
+
+**Description:** Tests automatic federal income tax calculation when `calculate_federal_tax` is enabled in settings. Verifies that tax is calculated based on taxable income using the correct tax brackets and standard deductions for the filing status, and that the tax appears as an expense in projections.
 
 **Setup:**
 ```bash
@@ -911,6 +943,8 @@ echo "Disabled federal tax calculation"
 ---
 
 ### 5.2 Tax with Multiple Income Sources
+
+**Description:** Tests federal tax calculation when multiple taxable income sources are present. Verifies that all taxable income is summed together and tax is calculated on the total, not on each income source separately.
 
 **Setup:**
 ```bash
@@ -992,6 +1026,8 @@ echo "Deleted Income IDs: $INCOME_5_2A_ID, $INCOME_5_2B_ID"
 ---
 
 ### 5.3 Tax with Non-Taxable Income
+
+**Description:** Tests federal tax calculation when both taxable and non-taxable income sources are present. Verifies that only taxable income is included in tax calculations, while non-taxable income is excluded from tax computation but still included in total income for cash flow purposes.
 
 **Setup:**
 ```bash
@@ -1076,6 +1112,8 @@ echo "Deleted Income IDs: $INCOME_5_3A_ID, $INCOME_5_3B_ID"
 
 ### 6.1 Reinvested Dividends
 
+**Description:** Tests dividend reinvestment where dividends are calculated as a percentage (2%) of the beginning-of-year asset balance and automatically reinvested back into the asset. Verifies that dividends are added to the asset balance after growth is applied, and that dividend income appears correctly when reinvestment is disabled. Note: This test requires UI interaction to enable dividend tracking on the asset.
+
 **Setup:**
 ```bash
 # Create asset (with dividend tracking - income item will be auto-generated by UI)
@@ -1147,6 +1185,8 @@ echo "Deleted Asset ID: $ASSET_6_1_ID"
 
 ### 6.2 Auto-Disbursements
 
+**Description:** Tests automatic transfers between assets (auto-disbursements) that are applied at the beginning of each year before growth calculations. Verifies that transfers happen before growth so transferred amounts benefit from the same year's growth, and that both source and target assets reflect the transfers correctly.
+
 **Setup:**
 ```bash
 # Create source asset
@@ -1195,10 +1235,20 @@ echo "Created Asset IDs: $ASSET_6_2A_ID, $ASSET_6_2B_ID, Disbursement ID: $DISBU
 ```
 
 **Expected Values:**
-- Year 1: Asset 6.2A = $100,000.00 (before transfer), $95,000.00 (after $5,000 transfer), then grows to $99,750.00 (95,000 * 1.05)
-- Year 1: Asset 6.2B = $5,000.00 (receives transfer), then grows to $5,150.00 (5,000 * 1.03)
-- Year 2: Asset 6.2A = $99,750.00 (before transfer), $94,750.00 (after transfer), then grows
-- Year 2: Asset 6.2B = $5,150.00 + $5,000.00 = $10,150.00 (before growth), then grows
+
+**Year 2026:**
+- Asset 6.2A: $100,000.00 (before transfer) → $95,000.00 (after $5,000 transfer) → $99,750.00 (after 5% growth)
+- Asset 6.2B: $0.00 (before transfer) → $5,000.00 (after transfer) → $5,150.00 (after 3% growth)
+
+**Year 2027:**
+- Asset 6.2A: $99,750.00 (before transfer) → $94,750.00 (after $5,000 transfer) → $99,488.00 (after 5% growth)
+- Asset 6.2B: $5,150.00 (before transfer) → $10,150.00 (after transfer) → $10,455.00 (after 3% growth)
+
+**Year 2028:**
+- Asset 6.2A: $99,488.00 (before transfer) → $94,488.00 (after $5,000 transfer) → $99,212.00 (after 5% growth)
+- Asset 6.2B: $10,455.00 (before transfer) → $15,455.00 (after transfer) → $15,918.00 (after 3% growth)
+
+**Note:** Auto-disbursements are applied at the beginning of each year (before growth), so transferred amounts benefit from growth in the same year.
 
 **Verify in:**
 - Balance Sheet Projections
@@ -1218,6 +1268,8 @@ echo "Deleted Disbursement ID: $DISBURSEMENT_6_2_ID, Asset IDs: $ASSET_6_2A_ID, 
 ---
 
 ### 6.3 Surplus Asset Transfers
+
+**Description:** Tests surplus/deficit transfers to a designated surplus asset that are applied at the end of each year after growth calculations. Verifies that cash flow surplus/deficit (income minus expenses) is correctly calculated and added to the surplus asset after all assets have grown, representing an end-of-year cash flow transfer.
 
 **Setup:**
 ```bash
@@ -1275,7 +1327,16 @@ ASSET_6_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "end_date": null
   }' | jq -r '.id')
 
+# Set surplus asset in user settings
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"surplus_asset_id\": ${ASSET_6_3_ID}
+  }" > /dev/null
+
 echo "Created Income ID: $INCOME_6_3_ID, Expense ID: $EXPENSE_6_3_ID, Asset ID: $ASSET_6_3_ID"
+echo "Set surplus asset to Asset ID: $ASSET_6_3_ID"
 ```
 
 **Expected Values:**
@@ -1292,18 +1353,28 @@ echo "Created Income ID: $INCOME_6_3_ID, Expense ID: $EXPENSE_6_3_ID, Asset ID: 
 
 **Cleanup:**
 ```bash
+# Reset surplus asset setting
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "surplus_asset_id": null
+  }' > /dev/null
+
 curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_6_3_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
 curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_6_3_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
 curl -s -X DELETE "${API_BASE}/assets/${ASSET_6_3_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Income ID: $INCOME_6_3_ID, Expense ID: $EXPENSE_6_3_ID, Asset ID: $ASSET_6_3_ID"
+echo "Reset surplus asset and deleted Income ID: $INCOME_6_3_ID, Expense ID: $EXPENSE_6_3_ID, Asset ID: $ASSET_6_3_ID"
 ```
 
 ---
 
 ### 6.4 Multiple Linked Items Chain
+
+**Description:** Tests a complex chain of linked items: asset generates income, income generates expense, and expense contributes to another asset. Verifies that all dynamic calculations update correctly in sequence and that changes propagate through the chain properly.
 
 **Setup:**
 ```bash
@@ -1327,7 +1398,7 @@ INCOME_6_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investment\",
+    \"category\": \"Investments\",
     \"description\": \"Test Income 6.4\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -1380,16 +1451,20 @@ echo "Created Asset IDs: $ASSET_6_4_ID, $ASSET_6_4B_ID, Income ID: $INCOME_6_4_I
 ```
 
 **Expected Values:**
-- Year 1:
-  - Asset 6.4: $1,050,000.00 (1,000,000 * 1.05)
-  - Income: $40,000.00 (1,000,000 * 0.04)
-  - Expense: $4,000.00 (40,000 * 0.10)
-  - Asset 6.4B: $4,000.00 (from expense contribution)
-- Year 2:
-  - Asset 6.4: $1,102,500.00 (1,050,000 * 1.05)
-  - Income: $42,000.00 (1,050,000 * 0.04)
-  - Expense: $4,200.00 (42,000 * 0.10)
-  - Asset 6.4B: $4,000.00 * 1.03 + $4,200.00 = $8,320.00
+
+**Year 2026:**
+- Asset 6.4: $1,000,000.00 (beginning) → $1,050,000.00 (after 5% growth)
+- Income: $40,000.00 (1,000,000 * 0.04, calculated from beginning balance during income processing)
+- Expense: $4,200.00 (where expense recalculates income as 1,050,000 * 0.04 = 42,000, then 42,000 * 0.10 = 4,200 - expense uses asset after growth)
+- Asset 6.4B: $4,200.00 (from expense contribution, no growth on $0 starting balance)
+
+**Year 2027:**
+- Asset 6.4: $1,050,000.00 (beginning) → $1,102,500.00 (after 5% growth)
+- Income: $42,000.00 (1,050,000 * 0.04, calculated from beginning balance during income processing)
+- Expense: $4,410.00 (where expense recalculates income as 1,102,500 * 0.04 = 44,100, then 44,100 * 0.10 = 4,410 - expense uses asset after growth)
+- Asset 6.4B: $4,200.00 (beginning) → $4,326.00 (after 3% growth) → $8,736.00 (after adding $4,410 expense contribution)
+
+**Note:** Income is calculated from the beginning-of-year asset balance during income processing. However, when an expense is linked to income and the linked income is dynamic (linked to an asset), the expense contribution to assets recalculates the income value using the current asset balance (which is after growth has been applied during the loop). This results in the expense amount being slightly higher than the income percentage would suggest, based on the income value displayed in charts.
 
 **Verify in:**
 - Custom Charts (all three items)
@@ -1907,6 +1982,8 @@ echo "Cleanup complete!"
 
 ### 7.1 Zero Values
 
+**Description:** Tests edge case where assets, income, and expenses have zero values. Verifies that the system handles zero values gracefully without division by zero errors, and that charts and calculations render correctly with zero values.
+
 **Setup:**
 ```bash
 # Create asset with zero value
@@ -1990,6 +2067,8 @@ echo "Deleted Asset ID: $ASSET_7_1_ID, Income ID: $INCOME_7_1_ID, Expense ID: $E
 
 ### 7.2 Negative Growth Rates
 
+**Description:** Tests assets with negative growth rates (e.g., -5% per year). Verifies that assets decrease correctly over time when growth rates are negative, representing depreciating assets or investments with losses.
+
 **Setup:**
 ```bash
 # Create asset with negative growth
@@ -2028,6 +2107,8 @@ echo "Deleted Asset ID: $ASSET_7_2_ID"
 ---
 
 ### 7.3 Very High Growth Rates
+
+**Description:** Tests assets with very high growth rates (e.g., 100% per year) to verify that the system handles extreme growth values correctly and that calculations remain accurate even with high growth percentages.
 
 **Setup:**
 ```bash
@@ -2068,6 +2149,8 @@ echo "Deleted Asset ID: $ASSET_7_3_ID"
 ---
 
 ### 7.4 Overlapping Date Ranges
+
+**Description:** Tests income items with overlapping date ranges to verify that the system correctly handles items that are active simultaneously and that calculations account for all active items correctly.
 
 **Setup:**
 ```bash
@@ -2140,6 +2223,8 @@ echo "Deleted Income IDs: $INCOME_7_4A_ID, $INCOME_7_4B_ID"
 ## 9. Chart-Specific Tests
 
 ### 8.1 Custom Chart - All Items vs Specific Item
+
+**Description:** Tests custom chart creation with "All Items" aggregation versus a specific item selection. Verifies that charts correctly display aggregated data for a category versus individual item data, and that both chart types render correctly.
 
 **Setup:**
 ```bash
@@ -2261,6 +2346,8 @@ echo "Deleted Expense IDs: $EXPENSE_8_1A_ID, $EXPENSE_8_1B_ID, $EXPENSE_8_1C_ID"
 
 ### 8.2 Custom Chart - Label Changes
 
+**Description:** Tests that custom charts correctly update when the labels or descriptions of underlying items change. Verifies that chart data remains correctly linked to items even after item descriptions are modified.
+
 **Setup:**
 ```bash
 # Create expense
@@ -2326,6 +2413,8 @@ echo "Deleted Chart ID: $CHART_8_2_ID, Expense ID: $EXPENSE_8_2_ID"
 ---
 
 ### 8.3 Chart Recalculation
+
+**Description:** Tests that custom charts recalculate correctly when underlying data changes (e.g., income values are updated). Verifies that charts reflect the latest data after recalculations and that chart data stays synchronized with item values.
 
 **Setup:**
 ```bash

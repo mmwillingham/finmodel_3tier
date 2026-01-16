@@ -128,7 +128,18 @@ export default function CashFlowFormModal({
           setIsDynamic(!!(itemToEdit.linked_item_id || (itemToEdit.linked_asset_ids && itemToEdit.linked_asset_ids.length > 0))); // Set to true if linked_item_id or linked_asset_ids exists
           setLinkedItemType(itemToEdit.linked_item_type || "");
           setLinkedItemId(itemToEdit.linked_item_id || null);
-          setLinkedAssetIds(itemToEdit.linked_asset_ids || []); // NEW: Initialize linked asset IDs
+          // NEW: Initialize linked asset IDs - if item has linked_item_id for an asset but no linked_asset_ids, 
+          // populate linked_asset_ids with the single linked_item_id for backward compatibility
+          if (itemToEdit.linked_asset_ids && itemToEdit.linked_asset_ids.length > 0) {
+            // Item already has linked_asset_ids (multi-select)
+            setLinkedAssetIds(itemToEdit.linked_asset_ids);
+          } else if (itemToEdit.linked_item_id && itemToEdit.linked_item_type === "asset") {
+            // Item has old linked_item_id (single-select) - convert to multi-select array
+            setLinkedAssetIds([itemToEdit.linked_item_id]);
+          } else {
+            // No linked assets
+            setLinkedAssetIds([]);
+          }
           setPercentage(itemToEdit.percentage !== null ? itemToEdit.percentage.toString() : "");
           setReinvestDividends(itemToEdit.reinvest_dividends || false); // NEW: Initialize dividend reinvestment
           setReinvestmentAccountId(itemToEdit.reinvestment_account_id || null); // NEW: Initialize reinvestment account
