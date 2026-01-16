@@ -35,6 +35,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
         const yearlyData = [];
         
         // Pre-calculate base projections for THIS simulation (each simulation needs its own copy)
+        // Note: Contributions from expenses will be added during the year-by-year loop
         const baseAssetProjections = {};
         assets.forEach(asset => {
           baseAssetProjections[asset.name] = [];
@@ -44,6 +45,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
             const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
             if (yearFraction > 0) {
               const growthRate = (asset.annual_increase_percent || 0) / 100;
+              // Calculate asset value with growth, but contributions will be added later
               const assetValue = asset.value * Math.pow(1 + growthRate, i);
               baseAssetProjections[asset.name].push(assetValue);
             } else {
@@ -51,6 +53,12 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               baseAssetProjections[asset.name].push(0);
             }
           }
+        });
+        
+        // Track contributions to assets by year (will be applied after growth)
+        const assetContributionsByYear = {};
+        assets.forEach(asset => {
+          assetContributionsByYear[asset.name] = new Array(projectionYears + 1).fill(0);
         });
         
         // Track reinvested dividends by asset for this simulation
@@ -198,6 +206,15 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
             }
             
             totalExpenses += itemValue;
+            
+            // Handle expenses that contribute to assets
+            if (item.contributes_to_asset_id) {
+              const targetAsset = assets.find(a => a.id === item.contributes_to_asset_id);
+              if (targetAsset && assetContributionsByYear[targetAsset.name]) {
+                // Track contribution for this year (will be added to asset after growth)
+                assetContributionsByYear[targetAsset.name][year] += itemValue;
+              }
+            }
           });
         
           // Calculate federal taxes if the expense item exists
@@ -228,6 +245,24 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
 
           // Calculate net cash flow
           const netCashFlow = totalIncome - totalExpenses;
+          
+          // Apply contributions to assets for this year (after growth has been applied)
+          assets.forEach(asset => {
+            const contribution = assetContributionsByYear[asset.name][year] || 0;
+            if (contribution > 0 && baseAssetProjections[asset.name][year] !== undefined) {
+              // Add contribution to current year
+              baseAssetProjections[asset.name][year] += contribution;
+              
+              // Apply growth to contribution for future years
+              const growthRate = (asset.annual_increase_percent || 0) / 100;
+              for (let futureYear = year + 1; futureYear <= projectionYears; futureYear++) {
+                if (baseAssetProjections[asset.name][futureYear] !== undefined) {
+                  const yearsOfGrowth = futureYear - year;
+                  baseAssetProjections[asset.name][futureYear] += contribution * Math.pow(1 + growthRate, yearsOfGrowth);
+                }
+              }
+            }
+          });
           
           // Calculate net worth (simplified - sum of assets minus liabilities)
           let totalAssets = 0;

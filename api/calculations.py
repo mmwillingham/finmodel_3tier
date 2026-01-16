@@ -1011,6 +1011,14 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         balance_before_expense = account_current_balances.get(target_asset.name, 0.0)
                         account_current_balances[target_asset.name] += expense_amount
                         balance_after_expense = account_current_balances[target_asset.name]
+                        # Update the stored value for this asset in account_values_for_year to include the contribution
+                        # This ensures charts show the correct end-of-year balance including contributions
+                        asset_value_key = f"{target_asset.name}_Value"
+                        if asset_value_key in account_values_for_year:
+                            account_values_for_year[asset_value_key] = balance_after_expense
+                        # Update current_year_total_assets to include the contribution
+                        # This ensures balance sheet projections show correct totals
+                        current_year_total_assets += expense_amount
                         # Disabled verbose debug logging
                         # print(f"--- DEBUG: Year {year} - Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_expense:.2f} -> {balance_after_expense:.2f} ---"); sys.stdout.flush()
             

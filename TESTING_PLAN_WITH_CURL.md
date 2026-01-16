@@ -544,9 +544,19 @@ echo "Created Income ID: $INCOME_3_3_ID, Asset ID: $ASSET_3_3_ID, Expense ID: $E
 ```
 
 **Expected Values:**
-- Year 2026: Expense = $20,000.00 (200,000 * 0.10)
-- Year 2027: Expense = ~$13,333.33 (prorated income * 0.10: 133,333.33 * 0.10)
-- Year 2028: Expense = $0.00 (income ended)
+- Year 2026:
+  - Income = $200,000.00 (full year)
+  - Expense = $20,000.00 (200,000 * 0.10)
+  - Asset (end of year) = $20,000.00 (contribution from expense)
+- Year 2027:
+  - Income = ~$133,150.68 (8 months: 200,000 * 243/365)
+  - Expense = ~$13,315.07 (prorated income * 0.10)
+  - Asset (beginning) = $21,000.00 (previous year * 1.05)
+  - Asset (end of year) = $34,315.07 (21,000 + 13,315.07 contribution)
+- Year 2028:
+  - Income = $0.00 (income ended)
+  - Expense = $0.00 (income ended)
+  - Asset (end of year) = $36,030.82 (previous year * 1.05, no new contributions)
 - **CRITICAL:** Expense must drop to $0 when income ends
 
 **Verify in:**
