@@ -147,9 +147,9 @@ echo "Created Asset ID: $ASSET_1_3_ID"
 ```
 
 **Expected Values:**
-- Year 2026: $105,000.00 (full year: 100,000 * 1.05)
-- Year 2027: ~$51,225.00 (half year: 105,000 * 1.05^0.5)
-- Year 2028: $0.00 (asset no longer exists)
+Year 2026: $105,000 (full year: 100,000 * 1.05) — asset active all year
+Year 2027: $0 (asset ends June 30, so end-of-year value is 0)
+Year 2028: $0 (asset no longer exists)
 
 **Verify in:**
 - All projections and charts
