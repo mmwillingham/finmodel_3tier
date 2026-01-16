@@ -1124,16 +1124,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Dynamic income not linked to asset or lookup failed - should not happen for dividend reinvestment
                         print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset not found in annual_flow_values. Available keys: {list(annual_flow_values.keys())}. Skipping reinvestment calculation. ---"); sys.stdout.flush()
                 else:
-                        # Fixed income item - calculate with growth
-                        base_yearly_value = income_item.yearly_value
-                        effective_growth_rate = (income_item.annual_increase_percent or 0) / 100.0
-                        growth_factor = pow(1 + effective_growth_rate, year - 1)
-                        income_amount = base_yearly_value * growth_factor
-                        # Prorate based on how many months the income is active in this year
-                        income_amount = income_amount * income_year_fraction
-                    
-                    # Add the income amount to the asset balance (dividend reinvestment)
-                    if income_amount > 0:
+                    # Fixed income item - calculate with growth
+                    base_yearly_value = income_item.yearly_value
+                    effective_growth_rate = (income_item.annual_increase_percent or 0) / 100.0
+                    growth_factor = pow(1 + effective_growth_rate, year - 1)
+                    income_amount = base_yearly_value * growth_factor
+                    # Prorate based on how many months the income is active in this year
+                    income_amount = income_amount * income_year_fraction
+                
+                # Add the income amount to the asset balance (dividend reinvestment)
+                if income_amount > 0:
                         balance_before_income = account_current_balances.get(target_asset.name, 0.0)
                         account_current_balances[target_asset.name] += income_amount
                         balance_after_income = account_current_balances[target_asset.name]
