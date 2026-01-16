@@ -1045,12 +1045,31 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             // Calculate the linked income value for this year
             let linkedIncomeValue = linkedIncomeItem.yearly_value || 0;
             
-            // Check if linked income is also dynamic (linked to asset)
-            if (linkedIncomeItem.linked_item_id && linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null && linkedIncomeItem.percentage !== undefined) {
-              const linkedAsset = assets.find(a => a.id === linkedIncomeItem.linked_item_id);
-              if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
-                const projectedAssetValue = assetProjections[linkedAsset.id][year];
-                linkedIncomeValue = projectedAssetValue * (linkedIncomeItem.percentage / 100.0);
+            // Check if linked income is also dynamic (linked to asset) - check both linked_item_id and linked_asset_ids
+            const isNestedDynamicAssetLinked = linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null && linkedIncomeItem.percentage !== undefined;
+            if (isNestedDynamicAssetLinked) {
+              // Get linked asset IDs - check linked_asset_ids first, then linked_item_id
+              let nestedLinkedAssetIds = [];
+              if (linkedIncomeItem.linked_asset_ids && Array.isArray(linkedIncomeItem.linked_asset_ids) && linkedIncomeItem.linked_asset_ids.length > 0) {
+                nestedLinkedAssetIds = linkedIncomeItem.linked_asset_ids;
+              } else if (linkedIncomeItem.linked_item_id) {
+                nestedLinkedAssetIds = [linkedIncomeItem.linked_item_id];
+              }
+              
+              // Calculate dividend from linked assets
+              if (nestedLinkedAssetIds.length > 0) {
+                let totalAssetValue = 0;
+                nestedLinkedAssetIds.forEach(assetId => {
+                  const linkedAsset = assets.find(a => a.id === assetId);
+                  if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
+                    totalAssetValue += assetProjections[linkedAsset.id][year];
+                  }
+                });
+                linkedIncomeValue = totalAssetValue * (linkedIncomeItem.percentage / 100.0);
+              } else {
+                // Fallback: if no linked assets found, treat as fixed
+                const growthRate = (linkedIncomeItem.annual_increase_percent || 0) / 100;
+                linkedIncomeValue = linkedIncomeValue * Math.pow(1 + growthRate, year);
               }
             } else {
               // Fixed income - apply growth rate
@@ -1358,12 +1377,31 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             // Calculate the linked income value for this year
             let linkedIncomeValue = linkedIncomeItem.yearly_value || 0;
             
-            // Check if linked income is also dynamic (linked to asset)
-            if (linkedIncomeItem.linked_item_id && linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null && linkedIncomeItem.percentage !== undefined) {
-              const linkedAsset = assets.find(a => a.id === linkedIncomeItem.linked_item_id);
-              if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
-                const projectedAssetValue = assetProjections[linkedAsset.id][year];
-                linkedIncomeValue = projectedAssetValue * (linkedIncomeItem.percentage / 100.0);
+            // Check if linked income is also dynamic (linked to asset) - check both linked_item_id and linked_asset_ids
+            const isNestedDynamicAssetLinked = linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null && linkedIncomeItem.percentage !== undefined;
+            if (isNestedDynamicAssetLinked) {
+              // Get linked asset IDs - check linked_asset_ids first, then linked_item_id
+              let nestedLinkedAssetIds = [];
+              if (linkedIncomeItem.linked_asset_ids && Array.isArray(linkedIncomeItem.linked_asset_ids) && linkedIncomeItem.linked_asset_ids.length > 0) {
+                nestedLinkedAssetIds = linkedIncomeItem.linked_asset_ids;
+              } else if (linkedIncomeItem.linked_item_id) {
+                nestedLinkedAssetIds = [linkedIncomeItem.linked_item_id];
+              }
+              
+              // Calculate dividend from linked assets
+              if (nestedLinkedAssetIds.length > 0) {
+                let totalAssetValue = 0;
+                nestedLinkedAssetIds.forEach(assetId => {
+                  const linkedAsset = assets.find(a => a.id === assetId);
+                  if (linkedAsset && assetProjections[linkedAsset.id] && assetProjections[linkedAsset.id][year] !== undefined) {
+                    totalAssetValue += assetProjections[linkedAsset.id][year];
+                  }
+                });
+                linkedIncomeValue = totalAssetValue * (linkedIncomeItem.percentage / 100.0);
+              } else {
+                // Fallback: if no linked assets found, treat as fixed
+                const growthRate = (linkedIncomeItem.annual_increase_percent || 0) / 100;
+                linkedIncomeValue = linkedIncomeValue * Math.pow(1 + growthRate, year);
               }
             } else {
               // Fixed income - apply growth rate
