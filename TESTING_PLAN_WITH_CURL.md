@@ -345,7 +345,7 @@ INCOME_2_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investments\",
+    \"category\": \"Investment\",
     \"description\": \"Test Income 2.3\",
     \"frequency\": \"yearly\",
     \"value\": 0,
