@@ -1232,6 +1232,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 balance_before_surplus = account_current_balances[surplus_asset_name]
                 account_current_balances[surplus_asset_name] += surplus_deficit
                 balance_after_surplus = account_current_balances[surplus_asset_name]
+                
+                # Update the stored value in account_values_for_year to include the surplus/deficit
+                # This ensures charts show the correct end-of-year balance after surplus/deficit transfer
+                surplus_value_key = f"{surplus_asset_name}_Value"
+                if surplus_value_key in account_values_for_year:
+                    account_values_for_year[surplus_value_key] = account_current_balances[surplus_asset_name]
+                
                 # Disabled verbose debug logging
                 # print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Balance before surplus: {balance_before_surplus:.2f}, Surplus added: {surplus_deficit:.2f}, Balance after surplus: {balance_after_surplus:.2f} ---"); sys.stdout.flush()
 
