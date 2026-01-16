@@ -1024,11 +1024,18 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             
             # Apply income that contributes to assets (must happen after income flows are calculated and asset growth has been applied)
             # This handles dividend reinvestment where dividends are reinvested back into the asset
-            contributing_income = db.query(models.CashFlowItem).filter(
-                models.CashFlowItem.owner_id == owner_id,
-                models.CashFlowItem.is_income == True,
-                models.CashFlowItem.contributes_to_asset_id.isnot(None)
-            ).all() if db else []
+            print(f"--- DEBUG: Year {year} - Starting income contribution check. db is None: {db is None}, owner_id: {owner_id} ---"); sys.stdout.flush()
+            
+            contributing_income = []
+            if db:
+                contributing_income = db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == owner_id,
+                    models.CashFlowItem.is_income == True,
+                    models.CashFlowItem.contributes_to_asset_id.isnot(None)
+                ).all()
+                print(f"--- DEBUG: Year {year} - Query executed. Found {len(contributing_income)} income items with contributes_to_asset_id. Items: {[f'{item.id}:{item.description} (contributes_to_asset_id={item.contributes_to_asset_id})' for item in contributing_income]} ---"); sys.stdout.flush()
+            else:
+                print(f"--- WARNING: Year {year} - db is None, cannot query for income items that contribute to assets ---"); sys.stdout.flush()
             
             for income_item in contributing_income:
                 # Check if income is active for this year and calculate proration
@@ -1040,71 +1047,83 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 )
                 
                 if income_year_fraction <= 0.0:
+                    print(f"--- DEBUG: Year {year} - Income item '{income_item.description}' (ID: {income_item.id}) is not active for this year (fraction: {income_year_fraction:.4f}). Skipping. ---"); sys.stdout.flush()
                     continue  # Skip this income for this year
+                
+                print(f"--- DEBUG: Year {year} - Processing income item '{income_item.description}' (ID: {income_item.id}) contributing to asset_id: {income_item.contributes_to_asset_id}, linked_item_id: {income_item.linked_item_id}, linked_item_type: {income_item.linked_item_type}, percentage: {income_item.percentage} ---"); sys.stdout.flush()
                 
                 # Find the target asset
                 target_asset = db.query(models.Asset).filter(models.Asset.id == income_item.contributes_to_asset_id).first()
-                if target_asset and target_asset.name in account_current_balances:
-                    # Calculate the income amount for this year
-                    income_amount = 0.0
-                    
-                    # Check if this income is a dynamic item (linked to assets)
-                    if income_item.linked_item_id and income_item.linked_item_type and income_item.percentage is not None:
-                        # This is a dynamic income item - find it in annual_flow_values
-                        # The income name might have a |LINKED: marker
-                        # The value in annual_flow_values is already calculated based on beginning-of-year asset balance
-                        # which is correct for dividend calculations (dividends are based on beginning balance, then reinvested after growth)
-                        found_in_flow_values = False
-                        # Try multiple lookup strategies:
-                        # 1. Direct match with description
-                        if income_item.description in annual_flow_values:
-                            income_amount = abs(annual_flow_values[income_item.description])
-                            found_in_flow_values = True
-                            print(f"--- DEBUG: Year {year} - Found dynamic income '{income_item.description}' in annual_flow_values with direct key match, value {income_amount:.2f} for reinvestment ---"); sys.stdout.flush()
-                        else:
-                            # 2. Match by base name (split on |LINKED:)
-                            for flow_name, flow_value in annual_flow_values.items():
-                                base_name = flow_name.split("|LINKED:")[0].split("|LINKED_INCOME:")[0]  # Handle both LINKED formats
-                                if base_name == income_item.description:
-                                    income_amount = abs(flow_value)  # Use absolute value (flow_value is positive for income)
-                                    found_in_flow_values = True
-                                    print(f"--- DEBUG: Year {year} - Found dynamic income '{income_item.description}' in annual_flow_values as '{flow_name}' with value {flow_value:.2f}, using {income_amount:.2f} for reinvestment ---"); sys.stdout.flush()
-                                    break
-                        
-                        # If still not found, recalculate from beginning-of-year asset balance (before growth)
-                        # This is needed because the dividend should be based on the asset value BEFORE growth for this year
-                        if not found_in_flow_values and income_item.linked_item_type == "asset":
-                            # Get the beginning-of-year asset balance from account_current_balances
-                            # At this point in the code, account_current_balances has the end-of-year balance (after growth)
-                            # But we can get the beginning balance by calculating backwards, or use the stored value
-                            # Actually, we need to use the asset value from BEFORE growth was applied
-                            # The best approach is to look at account_values_for_year from the previous year
-                            # For year 1, use the initial asset value
-                            linked_asset_ids = []
-                            if hasattr(income_item, 'linked_asset_ids') and income_item.linked_asset_ids:
-                                linked_asset_ids = income_item.linked_asset_ids
-                            if income_item.linked_item_id:
-                                if income_item.linked_item_id not in linked_asset_ids:
-                                    linked_asset_ids = [income_item.linked_item_id] + linked_asset_ids
-                            
-                            if linked_asset_ids and target_asset.id in linked_asset_ids:
-                                # For year 1, use initial value; for subsequent years, calculate backwards from current balance
-                                # Calculate: beginning_balance = current_balance / (1 + growth_rate)^year_fraction
-                                current_balance = account_current_balances.get(target_asset.name, 0.0)
-                                if current_balance > 0:
-                                    effective_growth_rate = (target_asset.annual_increase_percent or 0) / 100.0
-                                    # Reverse the growth to get beginning-of-year balance
-                                    beginning_balance = current_balance / pow(1 + effective_growth_rate, 1.0)  # Assume full year growth
-                                    # Calculate dividend from beginning balance
-                                    income_amount = beginning_balance * (income_item.percentage / 100.0) * income_year_fraction
-                                    print(f"--- DEBUG: Year {year} - Recalculated dividend from beginning balance: {beginning_balance:.2f} * {income_item.percentage}% = {income_amount:.2f} for reinvestment ---"); sys.stdout.flush()
-                                else:
-                                    print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset '{target_asset.name}' not found in annual_flow_values and asset balance is 0. Available keys: {list(annual_flow_values.keys())}. Skipping reinvestment calculation. ---"); sys.stdout.flush()
-                            else:
-                                print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset not found in annual_flow_values and target asset not in linked assets. Available keys: {list(annual_flow_values.keys())}. Skipping reinvestment calculation. ---"); sys.stdout.flush()
-                        elif not found_in_flow_values:
-                            print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset not found in annual_flow_values. Available keys: {list(annual_flow_values.keys())}. Skipping reinvestment calculation. ---"); sys.stdout.flush()
+                if not target_asset:
+                    print(f"--- WARNING: Year {year} - Target asset with ID {income_item.contributes_to_asset_id} not found for income item '{income_item.description}'. Skipping reinvestment. ---"); sys.stdout.flush()
+                    continue
+                if target_asset.name not in account_current_balances:
+                    print(f"--- WARNING: Year {year} - Target asset '{target_asset.name}' not found in account_current_balances for income item '{income_item.description}'. Available balances: {list(account_current_balances.keys())[:10]}. Skipping reinvestment. ---"); sys.stdout.flush()
+                    continue
+                
+                print(f"--- DEBUG: Year {year} - Target asset found: '{target_asset.name}' with current balance: {account_current_balances.get(target_asset.name, 0.0):.2f} ---"); sys.stdout.flush()
+                
+                # Calculate the income amount for this year
+                income_amount = 0.0
+                
+                # Check if this income is a dynamic item (linked to assets)
+                if income_item.linked_item_id and income_item.linked_item_type and income_item.percentage is not None:
+                    # This is a dynamic income item - find it in annual_flow_values
+                    # The income name might have a |LINKED: marker
+                    # The value in annual_flow_values is already calculated based on beginning-of-year asset balance
+                    # which is correct for dividend calculations (dividends are based on beginning balance, then reinvested after growth)
+                    found_in_flow_values = False
+                    # Try multiple lookup strategies:
+                    # 1. Direct match with description
+                    if income_item.description in annual_flow_values:
+                        income_amount = abs(annual_flow_values[income_item.description])
+                        found_in_flow_values = True
+                        print(f"--- DEBUG: Year {year} - Found dynamic income '{income_item.description}' in annual_flow_values with direct key match, value {income_amount:.2f} for reinvestment ---"); sys.stdout.flush()
                     else:
+                        # 2. Match by base name (split on |LINKED:)
+                        for flow_name, flow_value in annual_flow_values.items():
+                            base_name = flow_name.split("|LINKED:")[0].split("|LINKED_INCOME:")[0]  # Handle both LINKED formats
+                            if base_name == income_item.description:
+                                income_amount = abs(flow_value)  # Use absolute value (flow_value is positive for income)
+                                found_in_flow_values = True
+                                print(f"--- DEBUG: Year {year} - Found dynamic income '{income_item.description}' in annual_flow_values as '{flow_name}' with value {flow_value:.2f}, using {income_amount:.2f} for reinvestment ---"); sys.stdout.flush()
+                                break
+                    
+                    # If still not found, recalculate from beginning-of-year asset balance (before growth)
+                    # This is needed because the dividend should be based on the asset value BEFORE growth for this year
+                    if not found_in_flow_values and income_item.linked_item_type == "asset":
+                        # Get the beginning-of-year asset balance from account_current_balances
+                        # At this point in the code, account_current_balances has the end-of-year balance (after growth)
+                        # But we can get the beginning balance by calculating backwards, or use the stored value
+                        # Actually, we need to use the asset value from BEFORE growth was applied
+                        # The best approach is to look at account_values_for_year from the previous year
+                        # For year 1, use the initial asset value
+                        linked_asset_ids = []
+                        if hasattr(income_item, 'linked_asset_ids') and income_item.linked_asset_ids:
+                            linked_asset_ids = income_item.linked_asset_ids
+                        if income_item.linked_item_id:
+                            if income_item.linked_item_id not in linked_asset_ids:
+                                linked_asset_ids = [income_item.linked_item_id] + linked_asset_ids
+                        
+                        if linked_asset_ids and target_asset.id in linked_asset_ids:
+                            # For year 1, use initial value; for subsequent years, calculate backwards from current balance
+                            # Calculate: beginning_balance = current_balance / (1 + growth_rate)^year_fraction
+                            current_balance = account_current_balances.get(target_asset.name, 0.0)
+                            if current_balance > 0:
+                                effective_growth_rate = (target_asset.annual_increase_percent or 0) / 100.0
+                                # Reverse the growth to get beginning-of-year balance
+                                beginning_balance = current_balance / pow(1 + effective_growth_rate, 1.0)  # Assume full year growth
+                                # Calculate dividend from beginning balance
+                                income_amount = beginning_balance * (income_item.percentage / 100.0) * income_year_fraction
+                                print(f"--- DEBUG: Year {year} - Recalculated dividend from beginning balance: {beginning_balance:.2f} * {income_item.percentage}% = {income_amount:.2f} for reinvestment ---"); sys.stdout.flush()
+                            else:
+                                print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset '{target_asset.name}' not found in annual_flow_values and asset balance is 0. Available keys: {list(annual_flow_values.keys())}. Skipping reinvestment calculation. ---"); sys.stdout.flush()
+                        else:
+                            print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset not found in annual_flow_values and target asset not in linked assets. Available keys: {list(annual_flow_values.keys())}. Skipping reinvestment calculation. ---"); sys.stdout.flush()
+                    elif not found_in_flow_values:
+                        # Dynamic income not linked to asset or lookup failed - should not happen for dividend reinvestment
+                        print(f"--- WARNING: Year {year} - Dynamic income '{income_item.description}' contributing to asset not found in annual_flow_values. Available keys: {list(annual_flow_values.keys())}. Skipping reinvestment calculation. ---"); sys.stdout.flush()
+                else:
                         # Fixed income item - calculate with growth
                         base_yearly_value = income_item.yearly_value
                         effective_growth_rate = (income_item.annual_increase_percent or 0) / 100.0
