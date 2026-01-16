@@ -56,7 +56,7 @@ ASSET_1_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 1.1",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -97,7 +97,7 @@ ASSET_1_2_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 1.2",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -135,7 +135,7 @@ ASSET_1_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 1.3",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -173,7 +173,7 @@ ASSET_1_4A_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 1.4A",
-    "category": "Investments",
+    "category": "Investment",
     "value": 50000,
     "annual_increase_percent": 3.0,
     "account_id": null,
@@ -187,7 +187,7 @@ ASSET_1_4B_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 1.4B",
-    "category": "Investments",
+    "category": "Investment",
     "value": 50000,
     "annual_increase_percent": 7.0,
     "account_id": null,
@@ -331,7 +331,7 @@ ASSET_2_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 2.3",
-    "category": "Investments",
+    "category": "Investment",
     "value": 1000000,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -345,7 +345,7 @@ INCOME_2_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investments\",
+    \"category\": \"Investment\",
     \"description\": \"Test Income 2.3\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -511,7 +511,7 @@ ASSET_3_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "401K Account",
-    "category": "Investments",
+    "category": "Investment",
     "value": 0,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -588,7 +588,7 @@ ASSET_3_4_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 3.4",
-    "category": "Investments",
+    "category": "Investment",
     "value": 0,
     "annual_increase_percent": 0.0,
     "account_id": null,
@@ -1005,7 +1005,7 @@ INCOME_5_3B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
-    "category": "Investments",
+    "category": "Investment",
     "description": "Test Income 5.3B (Non-Taxable)",
     "frequency": "yearly",
     "value": 20000,
@@ -1068,7 +1068,7 @@ ASSET_6_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 6.1",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -1082,7 +1082,7 @@ INCOME_6_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investments\",
+    \"category\": \"Investment\",
     \"description\": \"Dividend Income\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -1133,7 +1133,7 @@ ASSET_6_2A_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 6.2A (Source)",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -1147,7 +1147,7 @@ ASSET_6_2B_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 6.2B (Destination)",
-    "category": "Investments",
+    "category": "Investment",
     "value": 0,
     "annual_increase_percent": 3.0,
     "account_id": null,
@@ -1244,7 +1244,7 @@ ASSET_6_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Surplus Asset",
-    "category": "Investments",
+    "category": "Investment",
     "value": 0,
     "annual_increase_percent": 0.0,
     "account_id": null,
@@ -1290,7 +1290,7 @@ ASSET_6_4_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 6.4",
-    "category": "Investments",
+    "category": "Investment",
     "value": 1000000,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -1304,7 +1304,7 @@ INCOME_6_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investments\",
+    \"category\": \"Investment\",
     \"description\": \"Test Income 6.4\",
     \"frequency\": \"yearly\",
     \"value\": 0,
@@ -1324,7 +1324,7 @@ ASSET_6_4B_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 6.4B",
-    "category": "Investments",
+    "category": "Investment",
     "value": 0,
     "annual_increase_percent": 3.0,
     "account_id": null,
@@ -1400,7 +1400,7 @@ ASSET_7_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 7.1",
-    "category": "Investments",
+    "category": "Investment",
     "value": 0,
     "annual_increase_percent": 5.0,
     "account_id": null,
@@ -1483,7 +1483,7 @@ ASSET_7_2_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 7.2",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": -5.0,
     "account_id": null,
@@ -1522,7 +1522,7 @@ ASSET_7_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 7.3",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": 50.0,
     "account_id": null,
@@ -1695,7 +1695,7 @@ CHART_8_1A_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
     \"chart_type\": \"line\",
     \"display_type\": \"both\",
     \"data_sources\": \"expenses\",
-    \"series_configurations\": \"[{\\\"data_type\\\":\\\"expenses\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"All Investment Expenses\\\",\\\"color\\\":\\\"#ef4444\\\",\\\"category\\\":\\\"Investment\\\",\\\"selected_item_id\\\":null}]\",
+    \"series_configurations\": \"[{\\\"data_type\\\":\\\"expenses\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"All Investment Expenses\\\",\\\"color\\\":\\\"#ef4444\\\",\\\"category\\\":\\\"Investments\\\",\\\"selected_item_id\\\":null}]\",
     \"x_axis_label\": \"Year\",
     \"y_axis_label\": \"Value\"
   }" | jq -r '.id')
@@ -1962,7 +1962,7 @@ ASSET_1_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Asset 1.1",
-    "category": "Investments",
+    "category": "Investment",
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
