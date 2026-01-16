@@ -1098,7 +1098,7 @@ INCOME_6_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Content-Type: application/json" \
   -d "{
     \"is_income\": true,
-    \"category\": \"Investment\",
+    \"category\": \"Dividends (unqualified)\",
     \"description\": \"Dividend Income\",
     \"frequency\": \"yearly\",
     \"value\": 0,
