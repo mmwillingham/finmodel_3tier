@@ -1353,10 +1353,22 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 break
                     account_values[f"{display_name}_Value"] = value
                 else:
-                    account_values[f"{display_name}_Value"] = account_current_balances.get(acc.name, 0.0)
+                    # For assets/liabilities, use account_current_balances (which has the final balance after surplus)
+                    # Only use account_values_for_year if the account isn't in account_current_balances (shouldn't happen)
+                    if acc.name in account_current_balances:
+                        account_values[f"{display_name}_Value"] = account_current_balances[acc.name]
+                    else:
+                        # Fallback: try account_values_for_year if account_current_balances doesn't have it
+                        account_values[f"{display_name}_Value"] = account_values_for_year.get(f"{acc.name}_Value", 0.0)
             
-            # Add principal/interest breakdown values
-            account_values.update(account_values_for_year)
+            # Add principal/interest breakdown values (for loans) and any other breakdown values
+            # BUT: Don't overwrite asset/liability _Value keys that we just set from account_current_balances
+            # Only add keys that aren't already in account_values (like _Principal, _Interest, _Payment)
+            for key, value in account_values_for_year.items():
+                # Only add keys that are not _Value keys for assets/liabilities (to avoid overwriting correct balances)
+                # Keep _Principal, _Interest, _Payment, and other breakdown values
+                if not key.endswith("_Value") or key not in account_values:
+                    account_values[key] = value
             
             # Ensure Federal Income Tax is always stored with the exact key the frontend expects
             # This handles cases where the Federal Tax expense item might have a different display_name
