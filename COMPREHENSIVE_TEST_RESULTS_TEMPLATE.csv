@@ -1,76 +1,76 @@
 Category,Item,Year,Expected Value,Actual Value,Difference,Notes
-Assets,Comp Test Investment,2026,$218,000.00,,,
-Assets,Comp Test Investment,2027,$236,000.00,,,
-Assets,Comp Test Investment,2028,$256,000.00,,,
-Assets,Comp Test Savings,2026,$51,000.00,,,
-Assets,Comp Test Savings,2027,$52,020.00,,,
-Assets,Comp Test Savings,2028,$53,060.00,,,
-Assets,Comp Test 401K,2026,$169,000.00,,,
-Assets,Comp Test 401K,2027,$189,140.00,,,
-Assets,Comp Test 401K,2028,$210,488.00,,,
-Assets,Comp Test IRA,2026,$98,500.00,,,
-Assets,Comp Test IRA,2027,$97,425.00,,,
-Assets,Comp Test IRA,2028,$95,843.00,,,
-Assets,Comp Test Brokerage,2026,$7,020.00,,,
-Assets,Comp Test Brokerage,2027,$14,141.00,,,
-Assets,Comp Test Brokerage,2028,$21,672.00,,,
-Assets,Comp Test Checking,2026,$10,000.00,,,Starting balance (starts 7/1/2026 - surplus may be prorated)
+Assets,Comp Test Investment,2026,$218000.00,,,
+Assets,Comp Test Investment,2027,$236000.00,,,
+Assets,Comp Test Investment,2028,$256000.00,,,
+Assets,Comp Test Savings,2026,$51000.00,,,
+Assets,Comp Test Savings,2027,$52020.00,,,
+Assets,Comp Test Savings,2028,$53060.00,,,
+Assets,Comp Test 401K,2026,$169000.00,,,
+Assets,Comp Test 401K,2027,$189140.00,,,
+Assets,Comp Test 401K,2028,$210488.00,,,
+Assets,Comp Test IRA,2026,$98500.00,,,
+Assets,Comp Test IRA,2027,$97425.00,,,
+Assets,Comp Test IRA,2028,$95843.00,,,
+Assets,Comp Test Brokerage,2026,$7020.00,,,
+Assets,Comp Test Brokerage,2027,$14141.00,,,
+Assets,Comp Test Brokerage,2028,$21672.00,,,
+Assets,Comp Test Checking,2026,$10000.00,,,Starting balance (starts 7/1/2026 - surplus may be prorated)
 Assets,Comp Test Checking,2027,Accumulating,,,Surplus transfers continue
 Assets,Comp Test Checking,2028,Accumulating,,,Surplus transfers continue
 Liabilities,Comp Test Mortgage,2026,Amortized (~$248k),,,Amortized 30-year loan, 4% interest, started 1/1/2025
 Liabilities,Comp Test Mortgage,2027,Amortized (~$246k),,,Continues amortizing
 Liabilities,Comp Test Mortgage,2028,Amortized (~$244k),,,Continues amortizing
-Liabilities,Comp Test Car Loan,2026,$24,500.00,,,Amortized 60-month loan, 4.5% interest
-Liabilities,Comp Test Car Loan,2027,$20,500.00,,,
-Liabilities,Comp Test Car Loan,2028,$16,500.00,,,
-Income,Comp Test Salary,2026,$100,000.00,,,
-Income,Comp Test Salary,2027,$103,000.00,,,
-Income,Comp Test Salary,2028,$106,090.00,,,
-Income,Comp Test Investment Dividends,2026,$4,000.00,,,
-Income,Comp Test Investment Dividends,2027,$4,400.00,,,
-Income,Comp Test Investment Dividends,2028,$4,840.00,,,
-Income,Comp Test Rental Income,2026,$12,000.00,,,Partial year from 7/1/2026
-Income,Comp Test Rental Income,2027,$12,240.00,,,
-Income,Comp Test Rental Income,2028,$12,485.00,,,
-Income,Social Security - Person 1,2026,$20,000.00,,,~$4k/month * 5 months (starts 8/1/2026, partial year - actual depends on FRA)
-Income,Social Security - Person 1,2027,$48,000.00,,,~$4k/month * 12 months (full year)
-Income,Social Security - Person 1,2028,$48,000.00,,,~$4k/month * 12 months (full year, may have COLA adjustment)
-Income,Social Security - Person 2,2026,$6,000.00,,,~$2k/month * 3 months (starts 10/1/2026, partial year - actual depends on FRA)
-Income,Social Security - Person 2,2027,$24,000.00,,,~$2k/month * 12 months (full year)
-Income,Social Security - Person 2,2028,$24,000.00,,,~$2k/month * 12 months (full year, may have COLA adjustment)
-Income,Total Income,2026,$142,000.00,,,
-Income,Total Income,2027,$191,640.00,,,
-Income,Total Income,2028,$207,900.00,,,
-Expenses,Comp Test Housing,2026,$36,000.00,,,Base value (inflation starts in year 2)
-Expenses,Comp Test Housing,2027,$37,080.00,,,36k * 1.03 (3% inflation applied in year 2)
-Expenses,Comp Test Housing,2028,$38,192.40,,,36k * 1.03^2
-Expenses,Comp Test 401K Contribution,2026,$10,000.00,,,10% of $100k salary
-Expenses,Comp Test 401K Contribution,2027,$10,300.00,,,10% of $103k salary
-Expenses,Comp Test 401K Contribution,2028,$10,609.00,,,10% of $106.09k salary
-Expenses,Comp Test Utilities,2026,$6,000.00,,,Base value (inflation starts in year 2)
-Expenses,Comp Test Utilities,2027,$6,120.00,,,6k * 1.02 (2% inflation, ends 6/30/2027 - partial year)
+Liabilities,Comp Test Car Loan,2026,$24500.00,,,Amortized 60-month loan, 4.5% interest
+Liabilities,Comp Test Car Loan,2027,$20500.00,,,
+Liabilities,Comp Test Car Loan,2028,$16500.00,,,
+Income,Comp Test Salary,2026,$100000.00,,,
+Income,Comp Test Salary,2027,$103000.00,,,
+Income,Comp Test Salary,2028,$106090.00,,,
+Income,Comp Test Investment Dividends,2026,$4000.00,,,
+Income,Comp Test Investment Dividends,2027,$4400.00,,,
+Income,Comp Test Investment Dividends,2028,$4840.00,,,
+Income,Comp Test Rental Income,2026,$12000.00,,,Partial year from 7/1/2026
+Income,Comp Test Rental Income,2027,$12240.00,,,
+Income,Comp Test Rental Income,2028,$12485.00,,,
+Income,Social Security - Person 1,2026,$20000.00,,,~$4k/month * 5 months (starts 8/1/2026, partial year - actual depends on FRA)
+Income,Social Security - Person 1,2027,$48000.00,,,~$4k/month * 12 months (full year)
+Income,Social Security - Person 1,2028,$48000.00,,,~$4k/month * 12 months (full year, may have COLA adjustment)
+Income,Social Security - Person 2,2026,$6000.00,,,~$2k/month * 3 months (starts 10/1/2026, partial year - actual depends on FRA)
+Income,Social Security - Person 2,2027,$24000.00,,,~$2k/month * 12 months (full year)
+Income,Social Security - Person 2,2028,$24000.00,,,~$2k/month * 12 months (full year, may have COLA adjustment)
+Income,Total Income,2026,$142000.00,,,
+Income,Total Income,2027,$191640.00,,,
+Income,Total Income,2028,$207900.00,,,
+Expenses,Comp Test Housing,2026,$36000.00,,,Base value (inflation starts in year 2)
+Expenses,Comp Test Housing,2027,$37080.00,,,36k * 1.03 (3% inflation applied in year 2)
+Expenses,Comp Test Housing,2028,$38192.40,,,36k * 1.03^2
+Expenses,Comp Test 401K Contribution,2026,$10000.00,,,10% of $100k salary
+Expenses,Comp Test 401K Contribution,2027,$10300.00,,,10% of $103k salary
+Expenses,Comp Test 401K Contribution,2028,$10609.00,,,10% of $106.09k salary
+Expenses,Comp Test Utilities,2026,$6000.00,,,Base value (inflation starts in year 2)
+Expenses,Comp Test Utilities,2027,$6120.00,,,6k * 1.02 (2% inflation, ends 6/30/2027 - partial year)
 Expenses,Comp Test Utilities,2028,$0.00,,,Ended 6/30/2027
-Expenses,Federal Income Tax (Calculated),2026,$7,935.00,,,Married Filing Jointly (verify filing status in settings)
-Expenses,Federal Income Tax (Calculated),2027,$8,151.00,,,Based on year 2 taxable income
-Expenses,Federal Income Tax (Calculated),2028,$8,380.00,,,Based on year 3 taxable income
-Expenses,Total Expenses (excluding tax),2026,$52,000.00,,,36k + 10k + 6k
-Expenses,Total Expenses (excluding tax),2027,$53,500.00,,,37.08k + 10.3k + 6.12k (partial year utilities)
-Expenses,Total Expenses (excluding tax),2028,$48,801.40,,,38.192k + 10.609k + 0 (utilities ended)
-Cash Flow,Total Income,2026,$142,000.00,,,
-Cash Flow,Total Expenses (excluding tax),2026,-$52,000.00,,,
-Cash Flow,Federal Income Tax,2026,-$7,935.00,,,
-Cash Flow,Net Cash Flow (Surplus),2026,$82,065.00,,,~142k - 52k - 7.935k
-Cash Flow,Total Income,2027,$191,640.00,,,
-Cash Flow,Total Expenses (excluding tax),2027,-$53,500.00,,,
-Cash Flow,Federal Income Tax,2027,-$8,151.00,,,
-Cash Flow,Net Cash Flow (Surplus),2027,$130,989.00,,,~191.64k - 53.5k - 8.151k
-Cash Flow,Total Income,2028,$207,900.00,,,
-Cash Flow,Total Expenses (excluding tax),2028,-$48,801.40,,,
-Cash Flow,Federal Income Tax,2028,-$8,380.00,,,
-Cash Flow,Net Cash Flow (Surplus),2028,$150,718.60,,,~207.9k - 48.801k - 8.38k
-Auto-Disbursements,IRA to Brokerage Transfer,2026,$6,500.00,,,Applied at beginning of year
-Auto-Disbursements,IRA to Brokerage Transfer,2027,$6,500.00,,,
-Auto-Disbursements,IRA to Brokerage Transfer,2028,$6,500.00,,,
-Surplus Transfers,Surplus to Checking,2026,$82,065.00,,,Applied at end of year (partial year from 7/1/2026, includes Social Security income)
-Surplus Transfers,Surplus to Checking,2027,$130,989.00,,,Full year surplus (includes Social Security income)
-Surplus Transfers,Surplus to Checking,2028,$150,718.60,,,Full year surplus (includes Social Security income)
+Expenses,Federal Income Tax (Calculated),2026,$7935.00,,,Married Filing Jointly (verify filing status in settings)
+Expenses,Federal Income Tax (Calculated),2027,$8151.00,,,Based on year 2 taxable income
+Expenses,Federal Income Tax (Calculated),2028,$8380.00,,,Based on year 3 taxable income
+Expenses,Total Expenses (excluding tax),2026,$52000.00,,,36k + 10k + 6k
+Expenses,Total Expenses (excluding tax),2027,$53500.00,,,37.08k + 10.3k + 6.12k (partial year utilities)
+Expenses,Total Expenses (excluding tax),2028,$48801.40,,,38.192k + 10.609k + 0 (utilities ended)
+Cash Flow,Total Income,2026,$142000.00,,,
+Cash Flow,Total Expenses (excluding tax),2026,-$52000.00,,,
+Cash Flow,Federal Income Tax,2026,-$7935.00,,,
+Cash Flow,Net Cash Flow (Surplus),2026,$82065.00,,,~142k - 52k - 7.935k
+Cash Flow,Total Income,2027,$191640.00,,,
+Cash Flow,Total Expenses (excluding tax),2027,-$53500.00,,,
+Cash Flow,Federal Income Tax,2027,-$8151.00,,,
+Cash Flow,Net Cash Flow (Surplus),2027,$130989.00,,,~191.64k - 53.5k - 8.151k
+Cash Flow,Total Income,2028,$207900.00,,,
+Cash Flow,Total Expenses (excluding tax),2028,-$48801.40,,,
+Cash Flow,Federal Income Tax,2028,-$8380.00,,,
+Cash Flow,Net Cash Flow (Surplus),2028,$150718.60,,,~207.9k - 48.801k - 8.38k
+Auto-Disbursements,IRA to Brokerage Transfer,2026,$6500.00,,,Applied at beginning of year
+Auto-Disbursements,IRA to Brokerage Transfer,2027,$6500.00,,,
+Auto-Disbursements,IRA to Brokerage Transfer,2028,$6500.00,,,
+Surplus Transfers,Surplus to Checking,2026,$82065.00,,,Applied at end of year (partial year from 7/1/2026, includes Social Security income)
+Surplus Transfers,Surplus to Checking,2027,$130989.00,,,Full year surplus (includes Social Security income)
+Surplus Transfers,Surplus to Checking,2028,$150718.60,,,Full year surplus (includes Social Security income)

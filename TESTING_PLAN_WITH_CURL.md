@@ -1933,6 +1933,73 @@ echo "  - Income Items: ${#INCOME_IDS[@]}"
 echo "  - Expense Items: ${#EXPENSE_IDS[@]}"
 echo "  - Auto-Disbursements: ${#DISBURSEMENT_IDS[@]}"
 echo ""
+
+# --- CREATE ITEMIZED CHARTS ---
+echo "Creating itemized charts and tables..."
+
+# Chart 1: Assets (itemized)
+curl -s -X POST "${API_BASE}/custom_charts/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Assets_CompPlan",
+    "chart_type": "line",
+    "display_type": "both",
+    "data_sources": "assets",
+    "series_configurations": "[{\"data_type\": \"assets\", \"field\": \"value\", \"aggregation\": \"sum\", \"label\": \"Assets\", \"category\": \"\", \"selected_item_id\": null, \"itemize\": true, \"color\": \"#0b57d0\"}]",
+    "x_axis_label": "Year",
+    "y_axis_label": "Value"
+  }' > /dev/null
+echo "Created itemized chart: Assets_CompPlan (chart and table)"
+
+# Chart 2: Liabilities (itemized)
+curl -s -X POST "${API_BASE}/custom_charts/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Liabilities_CompPlan",
+    "chart_type": "line",
+    "display_type": "both",
+    "data_sources": "liabilities",
+    "series_configurations": "[{\"data_type\": \"liabilities\", \"field\": \"value\", \"aggregation\": \"sum\", \"label\": \"Liabilities\", \"category\": \"\", \"selected_item_id\": null, \"itemize\": true, \"color\": \"#ea4335\"}]",
+    "x_axis_label": "Year",
+    "y_axis_label": "Value"
+  }' > /dev/null
+echo "Created itemized chart: Liabilities_CompPlan (chart and table)"
+
+# Chart 3: Income (itemized)
+curl -s -X POST "${API_BASE}/custom_charts/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Income_CompPlan",
+    "chart_type": "line",
+    "display_type": "both",
+    "data_sources": "income",
+    "series_configurations": "[{\"data_type\": \"income\", \"field\": \"value\", \"aggregation\": \"sum\", \"label\": \"Income\", \"category\": \"\", \"selected_item_id\": null, \"itemize\": true, \"color\": \"#34a853\"}]",
+    "x_axis_label": "Year",
+    "y_axis_label": "Value"
+  }' > /dev/null
+echo "Created itemized chart: Income_CompPlan (chart and table)"
+
+# Chart 4: Expenses (itemized)
+curl -s -X POST "${API_BASE}/custom_charts/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Expenses_CompPlan",
+    "chart_type": "line",
+    "display_type": "both",
+    "data_sources": "expenses",
+    "series_configurations": "[{\"data_type\": \"expenses\", \"field\": \"value\", \"aggregation\": \"sum\", \"label\": \"Expenses\", \"category\": \"\", \"selected_item_id\": null, \"itemize\": true, \"color\": \"#fbbc04\"}]",
+    "x_axis_label": "Year",
+    "y_axis_label": "Value"
+  }' > /dev/null
+echo "Created itemized chart: Expenses_CompPlan (chart and table)"
+
+echo ""
+echo "Itemized charts created successfully!"
+echo ""
 ```
 
 **Expected Values (Year 2026 - First Full Year):**
