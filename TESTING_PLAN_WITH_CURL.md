@@ -1516,17 +1516,25 @@ Before running this test, ensure the following categories exist in your Settings
 
 **Profile Settings Required:**
 
+**⚠️ Important: Running this script multiple times will create duplicates!**
+
+The API creates new items each time this script runs. If you run it again, you'll have duplicate items with the same names but different IDs. To avoid duplicates, either:
+
+1. **Delete existing test items first** (manually via UI or API using their IDs)
+2. **Use unique names** each time you run the script
+3. **Note the IDs** from the first run and delete them before re-running
+
 Before running this test, configure the following Social Security settings in Settings → Profile:
 
 - **Person 1:**
-  - **Birthdate: REQUIRED** (YYYY-MM-DD format) - Used for FRA calculation
+  - **Birthdate: REQUIRED** - Used for FRA calculation (use the date picker in the UI; displays as MM/DD/YYYY but stores as YYYY-MM-DD)
   - Social Security PIA: $4,000
-  - Social Security Retirement Date: 8/1/2026 (2026-08-01)
+  - Social Security Retirement Date: 8/1/2026 (use date picker; displays as MM/DD/YYYY)
 
 - **Person 2:**
-  - **Birthdate: REQUIRED** (YYYY-MM-DD format) - Used for FRA calculation
+  - **Birthdate: REQUIRED** - Used for FRA calculation (use the date picker in the UI; displays as MM/DD/YYYY but stores as YYYY-MM-DD)
   - Social Security PIA: $2,000
-  - Social Security Retirement Date: 10/1/2026 (2026-10-01)
+  - Social Security Retirement Date: 10/1/2026 (use date picker; displays as MM/DD/YYYY)
 
 **⚠️ Important:** Birthdates are **required** for Social Security calculations. The system uses birthdates to:
 1. Calculate Full Retirement Age (FRA) based on birth year
@@ -1672,8 +1680,8 @@ LIABILITY_MORT=$(curl -s -X POST "${API_BASE}/liabilities/" \
   -d '{
     "name": "Comp Test Mortgage",
     "category": "Mortgage",
-    "value": null,
-    "annual_increase_percent": null,
+    "value": 250000,
+    "annual_increase_percent": 0,
     "loan_type": "amortized",
     "principal_amount": 250000,
     "interest_rate": 4.0,
@@ -1683,6 +1691,10 @@ LIABILITY_MORT=$(curl -s -X POST "${API_BASE}/liabilities/" \
     "start_date": null,
     "end_date": null
   }' | jq -r '.id')
+if [ -z "$LIABILITY_MORT" ] || [ "$LIABILITY_MORT" = "null" ]; then
+  echo "ERROR: Failed to create Mortgage Liability. Check API response above."
+  exit 1
+fi
 LIABILITY_IDS+=("$LIABILITY_MORT")
 echo "Created Mortgage Liability ID: $LIABILITY_MORT"
 
@@ -1693,8 +1705,8 @@ LIABILITY_CAR=$(curl -s -X POST "${API_BASE}/liabilities/" \
   -d '{
     "name": "Comp Test Car Loan",
     "category": "Car Loan",
-    "value": null,
-    "annual_increase_percent": null,
+    "value": 30000,
+    "annual_increase_percent": 0,
     "loan_type": "amortized",
     "principal_amount": 30000,
     "interest_rate": 4.5,
@@ -1881,7 +1893,8 @@ echo "Set surplus asset to Checking account"
 # --- SET SOCIAL SECURITY PROFILE ---
 echo "Setting Social Security profile settings..."
 # NOTE: Birthdates are REQUIRED for Social Security calculations (FRA determination)
-# Update the birthdates below based on your desired Full Retirement Age (FRA)
+# For cURL/API: Use YYYY-MM-DD format (e.g., "1959-08-01")
+# For UI: Use the date picker (displays as MM/DD/YYYY but stores as YYYY-MM-DD)
 # Example: If FRA is 67, birthdate for Person 1 retiring 8/1/2026 would be around 1959-08-01
 # Example: If FRA is 67, birthdate for Person 2 retiring 10/1/2026 would be around 1959-10-01
 curl -s -X PUT "${API_BASE}/settings/" \
@@ -2257,34 +2270,50 @@ curl -s -X PUT "${API_BASE}/settings/" \
     "calculate_federal_tax": false
   }' > /dev/null
 
+# Helper function to check if ID is valid (not null, empty, or "null")
+is_valid_id() {
+  local id="$1"
+  [[ -n "$id" && "$id" != "null" && "$id" =~ ^[0-9]+$ ]]
+}
+
 # Delete auto-disbursements
 for id in "${DISBURSEMENT_IDS[@]}"; do
-  curl -s -X DELETE "${API_BASE}/auto-disbursements/${id}" \
-    -H "Authorization: Bearer ${TOKEN}"
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/auto-disbursements/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
 done
 
 # Delete expenses
 for id in "${EXPENSE_IDS[@]}"; do
-  curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
-    -H "Authorization: Bearer ${TOKEN}"
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
 done
 
 # Delete income items
 for id in "${INCOME_IDS[@]}"; do
-  curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
-    -H "Authorization: Bearer ${TOKEN}"
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
 done
 
 # Delete liabilities
 for id in "${LIABILITY_IDS[@]}"; do
-  curl -s -X DELETE "${API_BASE}/liabilities/${id}" \
-    -H "Authorization: Bearer ${TOKEN}"
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/liabilities/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
 done
 
 # Delete assets
 for id in "${ASSET_IDS[@]}"; do
-  curl -s -X DELETE "${API_BASE}/assets/${id}" \
-    -H "Authorization: Bearer ${TOKEN}"
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/assets/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
 done
 
 echo "Cleanup complete!"
