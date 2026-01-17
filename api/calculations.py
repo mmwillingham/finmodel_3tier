@@ -941,6 +941,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     current_year_total_liabilities += new_balance # Will be negative
                 elif projected_account.account_type == "income":
                     current_year_total_income_flow += adjusted_annual_contribution
+                    # Debug logging for income flow accumulation
+                    if year == 1:  # Only log for first year to avoid spam
+                        print(f"--- DEBUG: Year {year} - Added income to flow: '{projected_account.name}' = {adjusted_annual_contribution:.2f}, running total = {current_year_total_income_flow:.2f} ---"); sys.stdout.flush()
                 elif projected_account.account_type == "expense":
                     current_year_total_expense_flow += adjusted_annual_contribution
 
