@@ -1288,6 +1288,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             net_cash_flow = current_year_total_income_flow + current_year_total_expense_flow
             surplus_deficit = current_year_total_income_flow - abs(current_year_total_expense_flow)
             
+            # Debug logging for surplus calculation
+            print(f"--- DEBUG: Year {year} - Surplus calculation: income_flow={current_year_total_income_flow:.2f}, expense_flow={current_year_total_expense_flow:.2f}, abs(expense_flow)={abs(current_year_total_expense_flow):.2f}, surplus_deficit={surplus_deficit:.2f} ---"); sys.stdout.flush()
+            
             # Apply surplus/deficit to designated asset AFTER growth
             # NOTE: This happens after growth, so the surplus asset has already grown on its beginning balance
             # The surplus/deficit is then added to the end-of-year balance
