@@ -149,16 +149,21 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
     <div className="custom-chart-list-container">
       <h3>Your Custom Charts and Tables</h3>
       {message && <div className="message">{message}</div>}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
         <button className="create-chart-btn" onClick={onCreateNewChart}>Create</button>
-        <button 
-          className="create-chart-btn" 
-          onClick={handleRecalculateAll}
-          disabled={recalculating || charts.length === 0}
-          style={{ backgroundColor: recalculating ? '#ccc' : '#28a745', opacity: charts.length === 0 ? 0.5 : 1 }}
-        >
-          {recalculating ? 'Recalculating...' : 'Recalculate All'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button 
+            className="create-chart-btn" 
+            onClick={handleRecalculateAll}
+            disabled={recalculating || charts.length === 0}
+            style={{ backgroundColor: recalculating ? '#ccc' : '#28a745', opacity: charts.length === 0 ? 0.5 : 1 }}
+          >
+            {recalculating ? 'Recalculating...' : 'Recalculate All'}
+          </button>
+          <span style={{ fontSize: '0.9em', color: '#666', maxWidth: '400px', lineHeight: '1.4' }}>
+            Recalculate after adding, editing, or deleting assets, liabilities, income, or expenses to update chart and table data with the latest projections.
+          </span>
+        </div>
       </div>
 
       {charts.length === 0 ? (

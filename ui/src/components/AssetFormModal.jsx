@@ -6,6 +6,21 @@ import CashFlowService from "../services/cashflow.service";
 import Modal from "./Modal"; // Import the generic Modal component
 import "./AssetFormModal.css"; // Specific styling for this form
 
+// Utility functions for number formatting with thousand separators
+const formatNumber = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+  if (isNaN(numValue)) return "";
+  return numValue.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};
+
+const parseNumber = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const cleaned = value.toString().replace(/,/g, '');
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? "" : parsed.toString();
+};
+
 export default function AssetFormModal({
   isOpen,
   onClose,
@@ -407,11 +422,26 @@ export default function AssetFormModal({
               <label htmlFor="asset-value">Value *</label>
               <input
                 id="asset-value"
-                type="number"
+                type="text"
                 placeholder="Value"
-                value={newItem.value}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => setNewItem({ ...newItem, value: e.target.value })}
+                value={newItem.value ? formatNumber(newItem.value) : ""}
+                onFocus={(e) => {
+                  e.target.select();
+                  // Remove commas when focused for easier editing
+                  const numericValue = parseNumber(e.target.value);
+                  setNewItem({ ...newItem, value: numericValue });
+                  e.target.value = numericValue;
+                }}
+                onChange={(e) => {
+                  const numericValue = parseNumber(e.target.value);
+                  setNewItem({ ...newItem, value: numericValue });
+                }}
+                onBlur={(e) => {
+                  // Format with commas when user leaves the field
+                  const numericValue = parseNumber(e.target.value);
+                  setNewItem({ ...newItem, value: numericValue });
+                  e.target.value = numericValue ? formatNumber(numericValue) : "";
+                }}
               />
             </div>
           </div>

@@ -11,6 +11,21 @@ import "./CashFlowFormModal.css"; // Specific styling for this form
 
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
 
+// Utility functions for number formatting with thousand separators
+const formatNumber = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+  if (isNaN(numValue)) return "";
+  return numValue.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};
+
+const parseNumber = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const cleaned = value.toString().replace(/,/g, '');
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? "" : parsed.toString();
+};
+
 export default function CashFlowFormModal({
   isOpen, // From Modal component
   onClose, // From Modal component
@@ -461,22 +476,40 @@ export default function CashFlowFormModal({
               })() || (
                 <input
                   id="value-input"
-                  type="number"
-                  step="1"
+                  type="text"
                   placeholder={isDynamic ? "Calculated Dynamically" : "Value"}
                   value={isDynamic ? "" : (() => {
+                    if (!newItem.value) return "";
                     const isSS = (itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - "));
-                    if (isSS && newItem.value) {
-                      const numVal = parseFloat(newItem.value);
-                      return isNaN(numVal) ? newItem.value : Math.round(numVal).toString();
+                    const numericValue = parseNumber(newItem.value);
+                    if (isSS && numericValue) {
+                      return formatNumber(Math.round(parseFloat(numericValue) || 0));
                     }
-                    return newItem.value;
+                    return formatNumber(numericValue);
                   })()}
-                  onFocus={(e) => e.target.select()}
+                  onFocus={(e) => {
+                    e.target.select();
+                    // Remove commas when focused for easier editing
+                    const numericValue = parseNumber(e.target.value);
+                    const isSS = (itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - "));
+                    const processedValue = isSS && numericValue ? Math.round(parseFloat(numericValue) || 0).toString() : numericValue;
+                    setNewItem({ ...newItem, value: processedValue });
+                    e.target.value = processedValue;
+                  }}
                   onChange={(e) => {
                     const val = e.target.value;
+                    const numericValue = parseNumber(val);
                     const isSS = (itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - "));
-                    setNewItem({ ...newItem, value: isSS && val ? Math.round(parseFloat(val) || 0).toString() : val });
+                    const processedValue = isSS && numericValue ? Math.round(parseFloat(numericValue) || 0).toString() : numericValue;
+                    setNewItem({ ...newItem, value: processedValue });
+                  }}
+                  onBlur={(e) => {
+                    // Format with commas when user leaves the field
+                    const numericValue = parseNumber(e.target.value);
+                    const isSS = (itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - "));
+                    const processedValue = isSS && numericValue ? Math.round(parseFloat(numericValue) || 0).toString() : numericValue;
+                    setNewItem({ ...newItem, value: processedValue });
+                    e.target.value = processedValue ? formatNumber(processedValue) : "";
                   }}
                   disabled={isDynamic || ((itemToEdit?.description?.startsWith("Social Security - ") || newItem.description?.startsWith("Social Security - ")) && !allowValueOverwrite)}
                 />

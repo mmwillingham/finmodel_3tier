@@ -1854,85 +1854,303 @@ echo ""
 
 **Expected Values (Year 2026 - First Full Year):**
 
-**Assets:**
-- **Comp Test Investment**: $218,000.00
-  - Beginning: $200,000.00
-  - Growth (7%): $14,000.00
-  - Dividend reinvested (2% of $200k beginning): $4,000.00
-  - End: $218,000.00 (200k + 14k growth + 4k dividend)
-- **Comp Test Savings**: $51,000.00 (50,000 * 1.02)
-- **Comp Test 401K**: $169,000.00
-  - Beginning: $150,000.00
-  - Growth (6%): $9,000.00
-  - 401K contribution (10% of $100k salary): $10,000.00
-  - End: $169,000.00 (150k + 9k + 10k)
-- **Comp Test IRA**: $98,500.00
-  - Beginning: $100,000.00
-  - Growth (5%): $105,000.00
-  - Auto-disbursement to Brokerage: -$6,500.00
-  - End: $98,500.00
-- **Comp Test Brokerage**: $7,020.00
-  - Beginning: $0.00
-  - Auto-disbursement from IRA: +$6,500.00
-  - Growth (8%): $520.00 (6,500 * 0.08)
-  - End: $7,020.00
-- **Comp Test Checking**: ~$72,860.00 (starts 7/1/2026)
-  - Beginning: $10,000.00 (only active for 6 months from 7/1/2026)
-  - Surplus: Income - Expenses = (100k salary + 12k rental + 4k dividend) - (36k housing + 10k 401k + 6k utils) = $62,860.00
-  - End: ~$72,860.00 (10k beginning + 62.86k surplus, no growth)
+**Summary Table:**
 
-**Liabilities:**
-- **Comp Test Mortgage**: $250,000.00 (no growth, fixed)
-- **Comp Test Car Loan**: ~$24,500.00 (amortized, starting 6/1/2025, ~12 months of payments)
+| Category | Item | Year 2026 | Notes |
+|----------|------|-----------|-------|
+| **Assets** | Comp Test Investment | $218,000.00 | Beginning: $200k, Growth: $14k, Dividends: $4k |
+| | Comp Test Savings | $51,000.00 | 50k * 1.02 growth |
+| | Comp Test 401K | $169,000.00 | Beginning: $150k, Growth: $9k, Contribution: $10k |
+| | Comp Test IRA | $98,500.00 | Beginning: $100k, Growth: $5k, Transfer: -$6.5k |
+| | Comp Test Brokerage | $7,020.00 | Beginning: $0, Transfer: +$6.5k, Growth: $520 |
+| | Comp Test Checking | ~$72,860.00 | Beginning: $10k, Surplus: +$62.86k (starts 7/1/2026) |
+| **Liabilities** | Comp Test Mortgage | $250,000.00 | Fixed, no growth |
+| | Comp Test Car Loan | ~$24,500.00 | Amortized (started 6/1/2025) |
+| **Income** | Comp Test Salary | $100,000.00 | Year 1 (no growth yet) |
+| | Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning, reinvested |
+| | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (partial year from 7/1/2026) |
+| | **Total Income** | **$116,000.00** | |
+| **Expenses** | Comp Test Housing | $37,080.00 | 36k * 1.03 (3% inflation) |
+| | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary |
+| | Comp Test Utilities | $6,060.00 | 6k * 1.02 (2% inflation) |
+| | Federal Income Tax (MFJ) | ~$7,935.00 | Married Filing Jointly (see 7.1 for details) |
+| | **Total Expenses** | **~$61,075.00** | Excluding tax |
+| **Cash Flow** | **Surplus/Deficit** | **~$54,925.00** | 116k income - 53.14k expenses - 7.935k tax |
 
-**Income:**
-- **Comp Test Salary**: $100,000.00 (Year 1, no growth yet)
-- **Comp Test Investment Dividends**: $4,000.00 (2% of $200k beginning balance, reinvested)
-- **Comp Test Rental Income**: ~$12,000.00 (24k * 0.5, partial year from 7/1/2026 - 6 months)
-- **Total Income**: $116,000.00
+**Detailed Asset Breakdown:**
 
-**Expenses:**
-- **Comp Test Housing**: $37,080.00 (36k * 1.03, 3% inflation)
-- **Comp Test 401K Contribution**: $10,000.00 (10% of $100k salary in year 1)
-- **Comp Test Utilities**: $6,060.00 (6k * 1.02, 2% inflation, full year)
-- **Federal Income Tax (Calculated)**: ~$7,935.00 (Married Filing Jointly, based on taxable income ~$70k after deductions)
-- **Total Expenses**: ~$61,075.00 (excluding tax, which is calculated separately)
+| Asset | Beginning Balance | Growth Amount | Other Contributions | Ending Balance |
+|-------|------------------|---------------|-------------------|----------------|
+| Comp Test Investment | $200,000.00 | $14,000.00 (7%) | +$4,000.00 (dividend reinvested) | $218,000.00 |
+| Comp Test Savings | $50,000.00 | $1,000.00 (2%) | - | $51,000.00 |
+| Comp Test 401K | $150,000.00 | $9,000.00 (6%) | +$10,000.00 (contribution) | $169,000.00 |
+| Comp Test IRA | $100,000.00 | $5,000.00 (5%) | -$6,500.00 (auto-disbursement) | $98,500.00 |
+| Comp Test Brokerage | $0.00 | $520.00 (8%) | +$6,500.00 (auto-disbursement) | $7,020.00 |
+| Comp Test Checking | $10,000.00 | $0.00 | +$62,860.00 (surplus, partial year) | ~$72,860.00 |
 
-**Cash Flow:**
-- **Surplus/Deficit**: ~$54,925.00 (116k income - 36k housing - 10k 401k - 6k utils - 7.935k tax = ~$54,925, before considering checking account date range)
+**Detailed Income Breakdown:**
+
+| Income Source | Amount | Notes |
+|--------------|--------|-------|
+| Comp Test Salary | $100,000.00 | Fixed yearly, Year 1 |
+| Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning balance, reinvested |
+| Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (6 months from 7/1/2026) |
+| **Total Income** | **$116,000.00** | |
+
+**Detailed Expense Breakdown:**
+
+| Expense | Amount | Notes |
+|---------|--------|-------|
+| Comp Test Housing | $37,080.00 | 36k * 1.03 (3% inflation) |
+| Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary, tax-deductible |
+| Comp Test Utilities | $6,060.00 | 6k * 1.02 (2% inflation), full year |
+| Federal Income Tax (Calculated) | ~$7,935.00 | Married Filing Jointly (see section 7.1 for Single comparison) |
+| **Total Expenses (including tax)** | **~$61,075.00** | |
+
+**Cash Flow Analysis:**
+
+| Item | Amount |
+|------|--------|
+| Total Income | $116,000.00 |
+| Total Expenses (excluding tax) | -$53,140.00 |
+| Federal Income Tax | -$7,935.00 |
+| **Net Cash Flow (Surplus)** | **~$54,925.00** |
 
 **Expected Values (Year 2027):**
 
-**Assets:**
-- **Comp Test Investment**: ~$236,000.00 (218k * 1.07 + ~4.4k dividend from beginning balance)
-- **Comp Test Savings**: $52,020.00 (51k * 1.02)
-- **Comp Test 401K**: ~$189,140.00 (169k * 1.06 + 401k contribution from year 2 salary ~$10.6k)
-- **Comp Test IRA**: ~$97,425.00 (98.5k * 1.05 - 6.5k transfer)
-- **Comp Test Brokerage**: ~$14,141.00 (7.02k * 1.08 + 6.5k transfer)
-- **Comp Test Checking**: Accumulates more surplus/deficit
+**Summary Table:**
 
-**Liabilities:**
-- **Comp Test Mortgage**: $250,000.00 (still fixed)
-- **Comp Test Car Loan**: ~$20,500.00 (continues amortizing)
+| Category | Item | Year 2027 | Notes |
+|----------|------|-----------|-------|
+| **Assets** | Comp Test Investment | ~$236,000.00 | 218k * 1.07 + ~$4.4k dividend |
+| | Comp Test Savings | $52,020.00 | 51k * 1.02 |
+| | Comp Test 401K | ~$189,140.00 | 169k * 1.06 + ~$10.6k contribution |
+| | Comp Test IRA | ~$97,425.00 | 98.5k * 1.05 - $6.5k transfer |
+| | Comp Test Brokerage | ~$14,141.00 | 7.02k * 1.08 + $6.5k transfer |
+| | Comp Test Checking | Accumulating | Surplus continues |
+| **Liabilities** | Comp Test Mortgage | $250,000.00 | Fixed |
+| | Comp Test Car Loan | ~$20,500.00 | Amortizing |
+| **Income** | Comp Test Salary | $103,000.00 | 100k * 1.03 (3% growth) |
+| | Comp Test Investment Dividends | ~$4,400.00 | 2% of beginning balance |
+| | Comp Test Rental Income | $12,240.00 | 24k * 1.02 * 0.5 (partial year) |
+| | **Total Income** | **~$119,640.00** | |
+| **Expenses** | Comp Test Housing | ~$38,192.00 | 37.08k * 1.03 |
+| | Comp Test 401K Contribution | ~$10,300.00 | 10% of $103k salary |
+| | Comp Test Utilities | $0.00 | Ended 6/30/2027 |
+| | Federal Income Tax (MFJ) | ~$8,151.00 | Based on year 2 taxable income |
+| **Cash Flow** | **Surplus/Deficit** | **~$62,997.00** | |
 
 **Expected Values (Year 2028):**
 
-**Assets:**
-- **Comp Test Investment**: ~$256,000.00+ (continues growing with dividends)
-- **Comp Test Checking**: Accumulated surplus from previous years
-- Other assets continue growing
+**Summary Table:**
 
-**Liabilities:**
-- **Comp Test Car Loan**: ~$16,500.00 (continues amortizing toward $0)
+| Category | Item | Year 2028 | Notes |
+|----------|------|-----------|-------|
+| **Assets** | Comp Test Investment | ~$256,000.00+ | Continues growing with dividends |
+| | Comp Test Checking | Accumulated | Surplus from previous years |
+| | Other Assets | Growing | All assets continue to grow |
+| **Liabilities** | Comp Test Car Loan | ~$16,500.00 | Continues amortizing toward $0 |
+| | Comp Test Mortgage | $250,000.00 | Fixed |
+
+**Year-by-Year Asset Growth Comparison:**
+
+| Asset | 2026 | 2027 | 2028 | Growth Rate |
+|-------|------|------|------|-------------|
+| Comp Test Investment | $218,000 | ~$236,000 | ~$256,000 | 7% + dividends |
+| Comp Test Savings | $51,000 | $52,020 | ~$53,060 | 2% |
+| Comp Test 401K | $169,000 | ~$189,140 | ~$210,488 | 6% + contributions |
+| Comp Test IRA | $98,500 | ~$97,425 | ~$95,843 | 5% - transfers |
+| Comp Test Brokerage | $7,020 | ~$14,141 | ~$21,672 | 8% + transfers |
+| Comp Test Checking | ~$72,860 | Accumulating | Accumulating | 0% + surplus |
+
+### 7.1 Tax Calculation Comparison (Test 5.1)
+
+**Description:** This test compares federal income tax calculations for Single vs. Married Filing Jointly filing statuses. It verifies that tax brackets, standard deductions, and tax calculations are correct for both filing statuses using the same income scenario.
+
+**Setup:**
+```bash
+# Create income for tax calculation test
+INCOME_TAX_TEST_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Salary, Wages, Tips",
+    "description": "Tax Test Income",
+    "frequency": "yearly",
+    "value": 100000,
+    "annual_increase_percent": 0.0,
+    "start_date": null,
+    "end_date": null,
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+
+echo "Created Tax Test Income ID: $INCOME_TAX_TEST_ID"
+
+# Test 1: Single Filing Status
+echo "Testing Single filing status..."
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "calculate_federal_tax": true,
+    "tax_filing_status": "Single"
+  }' > /dev/null
+echo "Enabled federal tax calculation (Single)"
+
+# Test 2: Married Filing Jointly Filing Status
+echo "Testing Married Filing Jointly filing status..."
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "calculate_federal_tax": true,
+    "tax_filing_status": "Married Filing Jointly"
+  }' > /dev/null
+echo "Enabled federal tax calculation (Married Filing Jointly)"
+```
+
+**Expected Values - Tabular Comparison:**
+
+For $100,000 total taxable income (2026 tax year):
+
+| Filing Status | Standard Deduction | Taxable Income | Tax Calculation | Federal Tax |
+|---------------|-------------------|----------------|-----------------|-------------|
+| **Single** | $14,950 | $85,050 | First $11,925 @ 10% = $1,192.50<br>Next $36,550 @ 12% = $4,386.00<br>Next $36,575 @ 22% = $8,046.50 | **$13,625.00** |
+| **Married Filing Jointly** | $29,900 | $70,100 | First $23,850 @ 10% = $2,385.00<br>Next $46,250 @ 12% = $5,550.00 | **$7,935.00** |
+
+**Tax Comparison Chart:**
+
+```
+Federal Income Tax Comparison
+$100,000 Total Income (2026)
+
+Single Filing Status:
+Total Income:    $100,000.00
+Deduction:       -$ 14,950.00
+Taxable Income:  $ 85,050.00
+─────────────────────────────
+Tax Breakdown:
+  10% bracket:   $  1,192.50  (on $11,925)
+  12% bracket:   $  4,386.00  (on $36,550)
+  22% bracket:   $  8,046.50  (on $36,575)
+─────────────────────────────
+Total Tax:       $ 13,625.00
+Effective Rate:  13.6%
+
+Married Filing Jointly:
+Total Income:    $100,000.00
+Deduction:       -$ 29,900.00
+Taxable Income:  $ 70,100.00
+─────────────────────────────
+Tax Breakdown:
+  10% bracket:   $  2,385.00  (on $23,850)
+  12% bracket:   $  5,550.00  (on $46,250)
+─────────────────────────────
+Total Tax:       $  7,935.00
+Effective Rate:   7.9%
+
+Tax Savings (MFJ vs Single): $5,690.00 (41.8% reduction)
+```
+
+**Year-by-Year Comparison Table:**
+
+| Year | Income | Single Status Tax | MFJ Status Tax | Difference | Savings % |
+|------|--------|------------------|----------------|------------|-----------|
+| 2026 | $100,000 | $13,625.00 | $7,935.00 | -$5,690.00 | 41.8% |
+| 2027 | $100,000 | $13,625.00 | $7,935.00 | -$5,690.00 | 41.8% |
+| 2028 | $100,000 | $13,625.00 | $7,935.00 | -$5,690.00 | 41.8% |
+
+**Visual Tax Bracket Comparison:**
+
+```
+Tax Brackets (2026) - Single vs Married Filing Jointly
+
+Single Filing Status Brackets:
+┌─────────────────┬──────────┬──────────────┐
+│ Taxable Income  │ Rate     │ Max Tax      │
+├─────────────────┼──────────┼──────────────┤
+│ $0 - $11,925    │ 10%      │ $1,192.50    │
+│ $11,925 - $47,150│ 12%     │ $5,578.50    │
+│ $47,150 - $100,525│ 22%    │ $15,532.50   │
+│ $100,525 - $191,950│ 24%   │ $37,300.50   │
+└─────────────────┴──────────┴──────────────┘
+
+Married Filing Jointly Brackets:
+┌─────────────────┬──────────┬──────────────┐
+│ Taxable Income  │ Rate     │ Max Tax      │
+├─────────────────┼──────────┼──────────────┤
+│ $0 - $23,850    │ 10%      │ $2,385.00    │
+│ $23,850 - $94,300│ 12%     │ $11,166.00   │
+│ $94,300 - $201,050│ 22%    │ $31,106.00   │
+│ $201,050 - $383,900│ 24%   │ $75,098.00   │
+└─────────────────┴──────────┴──────────────┘
+
+Key Differences:
+• MFJ standard deduction is 2x Single ($29,900 vs $14,950)
+• MFJ bracket thresholds are ~2x Single (but not exactly double)
+• MFJ provides tax savings, especially at lower income levels
+```
+
+**Tax Visualization:**
+
+```
+Tax Amount Comparison ($100k Income)
+═══════════════════════════════════════════════════════════════
+$14,000 │                                          ┌────────┐
+        │                                          │        │
+$12,000 │                                          │ Single │
+        │                                          │ $13,625│
+$10,000 │                                          │        │
+        │                          ┌───────────────┘        │
+ $8,000 │                          │                         │
+        │                          │ MFJ                    │
+ $6,000 │                          │ $7,935                 │
+        │                          │                         │
+ $4,000 │                          │                         │
+        │                          │                         │
+ $2,000 │                          │                         │
+        │                          │                         │
+     $0 └──────────────────────────┴─────────────────────────
+              Single                  Married Filing Jointly
+```
 
 **Verify in:**
+- Cash Flow Overview (expense category "Taxes")
+- Custom Charts (create chart comparing "Federal Income Tax (Calculated)" for both filing statuses)
+- BASE Model (verify tax impacts net cash flow)
+- Compare results by running projections with each filing status
+
+**Cleanup:**
+```bash
+# Disable federal tax calculation
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "calculate_federal_tax": false
+  }' > /dev/null
+
+# Delete tax test income
+curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_TAX_TEST_ID}" \
+  -H "Authorization: Bearer ${TOKEN}"
+
+echo "Deleted Tax Test Income ID: $INCOME_TAX_TEST_ID"
+echo "Disabled federal tax calculation"
+```
+
+**Verify in (Comprehensive Integration Test):**
 - Custom Charts (all asset, liability, income, and expense series)
 - Balance Sheet Projections (verify asset and liability totals)
 - Cash Flow Overview (verify income, expenses, and surplus/deficit)
 - BASE Model (verify surplus transfers to Checking)
 - Monte Carlo Projections (verify random variation)
 
-**Cleanup:**
+**Cleanup (Comprehensive Integration Test):**
 ```bash
 # Reset surplus asset and tax settings
 curl -s -X PUT "${API_BASE}/settings/" \
@@ -2473,124 +2691,6 @@ curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_8_3_ID}" \
 curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_8_3_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
 echo "Deleted Chart ID: $CHART_8_3_ID, Income ID: $INCOME_8_3_ID"
-```
-
----
-
-## 10. Complete Test Script Template
-
-Save this as `run_all_tests.sh`:
-
-```bash
-#!/bin/bash
-
-# Set your API base URL and credentials
-export API_BASE="http://localhost:8000"
-export EMAIL="test@example.com"
-export PASSWORD="testpassword"
-
-# Get token
-TOKEN=$(curl -s -X POST "${API_BASE}/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=${EMAIL}&password=${PASSWORD}" \
-  | jq -r '.access_token')
-
-if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-  echo "ERROR: Failed to get token"
-  exit 1
-fi
-
-echo "Token obtained: ${TOKEN:0:20}..."
-echo ""
-echo "========================================="
-echo "Running Test Suite"
-echo "========================================="
-echo ""
-
-# Track created IDs for cleanup
-ASSET_IDS=()
-INCOME_IDS=()
-EXPENSE_IDS=()
-LIABILITY_IDS=()
-CHART_IDS=()
-DISBURSEMENT_IDS=()
-
-# Function to cleanup all
-cleanup_all() {
-  echo ""
-  echo "========================================="
-  echo "Cleaning up all test data..."
-  echo "========================================="
-  
-  for id in "${CHART_IDS[@]}"; do
-    curl -s -X DELETE "${API_BASE}/custom_charts/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null
-  done
-  
-  for id in "${DISBURSEMENT_IDS[@]}"; do
-    curl -s -X DELETE "${API_BASE}/auto-disbursements/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null
-  done
-  
-  for id in "${EXPENSE_IDS[@]}"; do
-    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null
-  done
-  
-  for id in "${INCOME_IDS[@]}"; do
-    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null
-  done
-  
-  for id in "${LIABILITY_IDS[@]}"; do
-    curl -s -X DELETE "${API_BASE}/liabilities/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null
-  done
-  
-  for id in "${ASSET_IDS[@]}"; do
-    curl -s -X DELETE "${API_BASE}/assets/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null
-  done
-  
-  echo "Cleanup complete!"
-}
-
-# Trap to cleanup on exit
-trap cleanup_all EXIT
-
-# Run your tests here...
-# Example:
-echo "Running Test 1.1: Basic Asset Growth"
-ASSET_1_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Asset 1.1",
-    "category": "Investment",
-    "value": 100000,
-    "annual_increase_percent": 5.0,
-    "account_id": null,
-    "start_date": null,
-    "end_date": null
-  }' | jq -r '.id')
-
-ASSET_IDS+=("$ASSET_1_1_ID")
-echo "Created Asset ID: $ASSET_1_1_ID"
-echo "Test 1.1 complete!"
-echo ""
-
-# Add more tests...
-
-echo ""
-echo "========================================="
-echo "All tests complete!"
-echo "========================================="
-```
-
-Make it executable:
-```bash
-chmod +x run_all_tests.sh
-./run_all_tests.sh
 ```
 
 ---

@@ -4,6 +4,21 @@ import SettingsService from "../services/settings.service";
 import Modal from "./Modal"; // Import the generic Modal component
 import "./LiabilityFormModal.css"; // Specific styling for this form
 
+// Utility functions for number formatting with thousand separators
+const formatNumber = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+  if (isNaN(numValue)) return "";
+  return numValue.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};
+
+const parseNumber = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const cleaned = value.toString().replace(/,/g, '');
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? "" : parsed.toString();
+};
+
 // Helper function to calculate monthly payment for an amortized loan
 const calculateAmortizedMonthlyPayment = (principal, annualInterestRatePercent, loanTermMonths) => {
   if (principal <= 0 || annualInterestRatePercent < 0 || loanTermMonths <= 0) {
@@ -288,11 +303,24 @@ export default function LiabilityFormModal({
                 <label htmlFor="value">Value *</label>
                 <input
                   id="value"
-                  type="number"
+                  type="text"
                   placeholder="Value"
-                  value={newItem.value}
-                  onFocus={(e) => e.target.select()}
-                  onChange={handleInputChange}
+                  value={newItem.value ? formatNumber(newItem.value) : ""}
+                  onFocus={(e) => {
+                    e.target.select();
+                    const numericValue = parseNumber(e.target.value);
+                    handleInputChange({ target: { id: 'value', value: numericValue } });
+                    e.target.value = numericValue;
+                  }}
+                  onChange={(e) => {
+                    const numericValue = parseNumber(e.target.value);
+                    handleInputChange({ target: { id: 'value', value: numericValue } });
+                  }}
+                  onBlur={(e) => {
+                    const numericValue = parseNumber(e.target.value);
+                    handleInputChange({ target: { id: 'value', value: numericValue } });
+                    e.target.value = numericValue ? formatNumber(numericValue) : "";
+                  }}
                 />
               </div>
 
@@ -329,12 +357,24 @@ export default function LiabilityFormModal({
                   <label htmlFor="principal_amount">Principal Amount *</label>
                 <input
                     id="principal_amount"
-                  type="number"
-                  step="0.01"
+                  type="text"
                   placeholder="Principal Amount"
-                  value={newItem.principal_amount}
-                  onFocus={(e) => e.target.select()}
-                    onChange={handleInputChange}
+                  value={newItem.principal_amount ? formatNumber(newItem.principal_amount) : ""}
+                  onFocus={(e) => {
+                    e.target.select();
+                    const numericValue = parseNumber(e.target.value);
+                    handleInputChange({ target: { id: 'principal_amount', value: numericValue } });
+                    e.target.value = numericValue;
+                  }}
+                    onChange={(e) => {
+                      const numericValue = parseNumber(e.target.value);
+                      handleInputChange({ target: { id: 'principal_amount', value: numericValue } });
+                    }}
+                  onBlur={(e) => {
+                    const numericValue = parseNumber(e.target.value);
+                    handleInputChange({ target: { id: 'principal_amount', value: numericValue } });
+                    e.target.value = numericValue ? formatNumber(numericValue) : "";
+                  }}
                 />
               </div>
               <div className="form-field">
@@ -376,9 +416,8 @@ export default function LiabilityFormModal({
                   <label htmlFor="monthly_payment">Calculated Monthly Payment</label>
                 <input
                     id="monthly_payment"
-                  type="number"
-                  step="0.01"
-                    value={newItem.monthly_payment}
+                  type="text"
+                    value={newItem.monthly_payment ? formatNumber(newItem.monthly_payment) : ""}
                     readOnly // Make this field read-only
                     tabIndex="-1" // Make it not focusable via tab
                     style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }} // Style to indicate read-only
