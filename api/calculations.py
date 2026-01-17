@@ -1299,11 +1299,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 # Update the stored value in account_values_for_year to include the surplus/deficit
                 # This ensures charts show the correct end-of-year balance after surplus/deficit transfer
                 surplus_value_key = f"{surplus_asset_name}_Value"
-                if surplus_value_key in account_values_for_year:
-                    account_values_for_year[surplus_value_key] = account_current_balances[surplus_asset_name]
+                # Always set/update the surplus asset value in account_values_for_year, even if key doesn't exist
+                # This handles cases where the asset might not have been set during the growth loop (e.g., partial year assets)
+                account_values_for_year[surplus_value_key] = account_current_balances[surplus_asset_name]
                 
-                # Disabled verbose debug logging
-                # print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Applied surplus AFTER growth: {surplus_deficit:.2f}, balance before: {balance_before_surplus:.2f}, balance after: {balance_after_surplus:.2f} ---"); sys.stdout.flush()
+                # Debug logging to investigate checking balance discrepancy
+                print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Applied surplus AFTER growth: {surplus_deficit:.2f}, balance before: {balance_before_surplus:.2f}, balance after: {balance_after_surplus:.2f}, account_values_for_year[{surplus_value_key}]: {account_values_for_year[surplus_value_key]:.2f} ---"); sys.stdout.flush()
 
             # Note: The calculation sequence is:
             # 1. Beginning of year: Apply auto-disbursements (transfers between assets before growth)

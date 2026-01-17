@@ -328,7 +328,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
             
             if (ad.transfer_type === 'percentage') {
               transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
-            } else if (ad.transfer_type === 'fixed') {
+            } else if (ad.transfer_type === 'fixed' || ad.transfer_type === 'dollar_amount') {
               transferAmount = ad.transfer_value || 0;
             }
             
@@ -1161,7 +1161,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
               
               if (ad.transfer_type === 'percentage') {
                 transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
-              } else if (ad.transfer_type === 'fixed') {
+              } else if (ad.transfer_type === 'fixed' || ad.transfer_type === 'dollar_amount') {
                 transferAmount = ad.transfer_value || 0;
               }
               
@@ -1479,7 +1479,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
               
               if (ad.transfer_type === 'percentage') {
                 transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
-              } else if (ad.transfer_type === 'fixed') {
+              } else if (ad.transfer_type === 'fixed' || ad.transfer_type === 'dollar_amount') {
                 transferAmount = ad.transfer_value || 0;
               }
               cashIn += transferAmount;
@@ -1529,7 +1529,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
               
               if (ad.transfer_type === 'percentage') {
                 transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
-              } else if (ad.transfer_type === 'fixed') {
+              } else if (ad.transfer_type === 'fixed' || ad.transfer_type === 'dollar_amount') {
                 transferAmount = ad.transfer_value || 0;
               }
               cashOut += transferAmount;

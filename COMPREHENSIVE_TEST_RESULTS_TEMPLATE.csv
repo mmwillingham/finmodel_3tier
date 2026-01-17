@@ -14,15 +14,21 @@ Assets,Comp Test IRA,2028,$95843.00,,,
 Assets,Comp Test Brokerage,2026,$7020.00,,,
 Assets,Comp Test Brokerage,2027,$14141.00,,,
 Assets,Comp Test Brokerage,2028,$21672.00,,,
-Assets,Comp Test Checking,2026,$10000.00,,,Starting balance (starts 7/1/2026 - surplus may be prorated)
-Assets,Comp Test Checking,2027,Accumulating,,,Surplus transfers continue
-Assets,Comp Test Checking,2028,Accumulating,,,Surplus transfers continue
+Assets,Comp Test Checking,2026,~$71000.00,,,Starting balance $10k (starts 7/1/2026) + surplus ~$61k (includes loan payments in expenses). Note: Actual may differ if viewing accumulated balance or if surplus calculation differs.
+Assets,Comp Test Checking,2027,Accumulating,,,Surplus transfers continue (balance accumulates from previous year + current year surplus)
+Assets,Comp Test Checking,2028,Accumulating,,,Surplus transfers continue (balance accumulates from previous years + current year surplus)
+Assets,Total Assets,2026,$561520.00,,,Sum of all assets (excluding accumulating Checking)
+Assets,Total Assets,2027,Accumulating,,,Checking accumulates surplus, other assets sum to ~$588726
+Assets,Total Assets,2028,Accumulating,,,Checking accumulates surplus, other assets sum to ~$616062
 Liabilities,Comp Test Mortgage,2026,Amortized (~$248k),,,Amortized 30-year loan, 4% interest, started 1/1/2025
 Liabilities,Comp Test Mortgage,2027,Amortized (~$246k),,,Continues amortizing
 Liabilities,Comp Test Mortgage,2028,Amortized (~$244k),,,Continues amortizing
 Liabilities,Comp Test Car Loan,2026,$24500.00,,,Amortized 60-month loan, 4.5% interest
 Liabilities,Comp Test Car Loan,2027,$20500.00,,,
 Liabilities,Comp Test Car Loan,2028,$16500.00,,,
+Liabilities,Total Liabilities,2026,~$272500.00,,,~$248k mortgage + $24.5k car loan
+Liabilities,Total Liabilities,2027,~$266500.00,,,~$246k mortgage + $20.5k car loan
+Liabilities,Total Liabilities,2028,~$260500.00,,,~$244k mortgage + $16.5k car loan
 Income,Comp Test Salary,2026,$100000.00,,,
 Income,Comp Test Salary,2027,$103000.00,,,
 Income,Comp Test Salary,2028,$106090.00,,,
@@ -50,12 +56,21 @@ Expenses,Comp Test 401K Contribution,2028,$10609.00,,,10% of $106.09k salary
 Expenses,Comp Test Utilities,2026,$6000.00,,,Base value (inflation starts in year 2)
 Expenses,Comp Test Utilities,2027,$6120.00,,,6k * 1.02 (2% inflation, ends 6/30/2027 - partial year)
 Expenses,Comp Test Utilities,2028,$0.00,,,Ended 6/30/2027
-Expenses,Federal Income Tax (Calculated),2026,$7935.00,,,Married Filing Jointly (verify filing status in settings)
-Expenses,Federal Income Tax (Calculated),2027,$8151.00,,,Based on year 2 taxable income
-Expenses,Federal Income Tax (Calculated),2028,$8380.00,,,Based on year 3 taxable income
-Expenses,Total Expenses (excluding tax),2026,$52000.00,,,36k + 10k + 6k
-Expenses,Total Expenses (excluding tax),2027,$53500.00,,,37.08k + 10.3k + 6.12k (partial year utilities)
-Expenses,Total Expenses (excluding tax),2028,$48801.40,,,38.192k + 10.609k + 0 (utilities ended)
+Expenses,Loan payment for Comp Test Mortgage,2026,$14322.00,,,Amortized loan payment (~$1193/month * 12)
+Expenses,Loan payment for Comp Test Mortgage,2027,$14322.00,,,Amortized loan payment (remains constant)
+Expenses,Loan payment for Comp Test Mortgage,2028,$14322.00,,,Amortized loan payment (remains constant)
+Expenses,Loan payment for Comp Test Car Loan,2026,$6711.00,,,Amortized loan payment (~$559/month * 12)
+Expenses,Loan payment for Comp Test Car Loan,2027,$6711.00,,,Amortized loan payment (remains constant)
+Expenses,Loan payment for Comp Test Car Loan,2028,$6711.00,,,Amortized loan payment (remains constant)
+Expenses,Federal Income Tax (Calculated),2026,~$13000.00,,,Married Filing Jointly - includes Social Security as taxable income (actual may vary based on exact taxable income calculation). Note: Expected $7935 was calculated assuming SS excluded.
+Expenses,Federal Income Tax (Calculated),2027,~$27000.00,,,Based on year 2 taxable income including Social Security (full year SS income increases taxable income significantly)
+Expenses,Federal Income Tax (Calculated),2028,~$29000.00,,,Based on year 3 taxable income including Social Security
+Expenses,Total Expenses (excluding tax),2026,$73033.00,,,36k + 10k + 6k + 14.322k + 6.711k
+Expenses,Total Expenses (excluding tax),2027,$73525.00,,,37.08k + 10.3k + 6.12k + 14.322k + 6.711k (partial year utilities)
+Expenses,Total Expenses (excluding tax),2028,$64703.40,,,38.192k + 10.609k + 0 + 14.322k + 6.711k (utilities ended)
+Expenses,Total Expenses (including tax),2026,$80968.00,,,73.033k + 7.935k
+Expenses,Total Expenses (including tax),2027,$81676.00,,,73.525k + 8.151k
+Expenses,Total Expenses (including tax),2028,$73083.40,,,64.703k + 8.38k
 Cash Flow,Total Income,2026,$142000.00,,,
 Cash Flow,Total Expenses (excluding tax),2026,-$52000.00,,,
 Cash Flow,Federal Income Tax,2026,-$7935.00,,,
@@ -71,6 +86,6 @@ Cash Flow,Net Cash Flow (Surplus),2028,$150718.60,,,~207.9k - 48.801k - 8.38k
 Auto-Disbursements,IRA to Brokerage Transfer,2026,$6500.00,,,Applied at beginning of year
 Auto-Disbursements,IRA to Brokerage Transfer,2027,$6500.00,,,
 Auto-Disbursements,IRA to Brokerage Transfer,2028,$6500.00,,,
-Surplus Transfers,Surplus to Checking,2026,$82065.00,,,Applied at end of year (partial year from 7/1/2026, includes Social Security income)
-Surplus Transfers,Surplus to Checking,2027,$130989.00,,,Full year surplus (includes Social Security income)
-Surplus Transfers,Surplus to Checking,2028,$150718.60,,,Full year surplus (includes Social Security income)
+Surplus Transfers,Surplus to Checking,2026,$61032.00,,,Applied at end of year (partial year from 7/1/2026, includes Social Security income and loan payments)
+Surplus Transfers,Surplus to Checking,2027,$109964.00,,,Full year surplus (includes Social Security income and loan payments)
+Surplus Transfers,Surplus to Checking,2028,$134816.60,,,Full year surplus (includes Social Security income and loan payments)

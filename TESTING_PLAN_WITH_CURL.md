@@ -1547,6 +1547,8 @@ Without birthdates, Social Security calculations will fail. The PIA (Primary Ins
 
 **Note:** If any categories are missing, add them via Settings → Categories before creating the test items. If you add categories after creating items, you may need to refresh the browser for validation warnings to clear.
 
+**Note on Surplus Asset:** The cURL script automatically sets the surplus asset to the "Comp Test Checking" account (see `# --- SET SURPLUS ASSET ---` section). If you're setting up the test manually via the UI instead of using the cURL script, you must configure the surplus asset in Settings → Profile by selecting "Comp Test Checking" (or another designated surplus asset) as the surplus asset. **After running the cURL commands, verify in Settings → Profile that the surplus asset is correctly assigned to "Comp Test Checking"**. This ensures that net cash flow surplus/deficit is transferred to the designated asset at the end of each year after growth calculations.
+
 This test creates a realistic financial scenario that exercises all major features simultaneously:
 - Assets with growth and partial years
 - Liabilities (amortized loans)
@@ -1882,13 +1884,21 @@ echo "Created Auto-Disbursement ID: $DISBURSEMENT_IRA"
 
 # --- SET SURPLUS ASSET ---
 echo "Setting surplus asset..."
+if [ -z "$ASSET_CHK" ] || [ "$ASSET_CHK" = "null" ]; then
+  echo "ERROR: Failed to create Checking Asset. Cannot set surplus asset. Check API response above."
+  exit 1
+fi
 curl -s -X PUT "${API_BASE}/settings/" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
     \"surplus_asset_id\": ${ASSET_CHK}
   }" > /dev/null
-echo "Set surplus asset to Checking account"
+if [ $? -eq 0 ]; then
+  echo "Set surplus asset to Checking account (ID: ${ASSET_CHK})"
+else
+  echo "WARNING: Failed to set surplus asset. You may need to set it manually in Settings → Profile."
+fi
 
 # --- SET SOCIAL SECURITY PROFILE ---
 echo "Setting Social Security profile settings..."
@@ -1922,6 +1932,11 @@ curl -s -X PUT "${API_BASE}/settings/" \
 echo "Enabled federal tax calculation"
 
 echo ""
+echo "⚠️ IMPORTANT: Social Security income items are automatically created when profile settings are updated."
+echo "If you're using the UI, refresh the Profile page (Settings → Profile) after running the cURL commands"
+echo "to ensure Social Security income items are created before using Refresh Itemization in charts."
+echo ""
+
 echo "========================================="
 echo "Comprehensive Integration Test Setup Complete!"
 echo "========================================="
@@ -2013,9 +2028,9 @@ echo ""
 | | Comp Test 401K | $169,000.00 | Beginning: $150k, Growth: $9k, Contribution: $10k |
 | | Comp Test IRA | $98,500.00 | Beginning: $100k, Growth: $5k, Transfer: -$6.5k |
 | | Comp Test Brokerage | $7,020.00 | Beginning: $0, Transfer: +$6.5k, Growth: $520 |
-| | Comp Test Checking | $10,000.00 | Beginning: $10k, Surplus applied at end of year (starts 7/1/2026 - check surplus calculation) |
-| **Liabilities** | Comp Test Mortgage | Amortized (~$248k) | Amortized 30-year loan, 4% interest (not fixed) |
-| | Comp Test Car Loan | ~$24,500.00 | Amortized 60-month loan, 4.5% interest (started 6/1/2025) |
+| | Comp Test Checking | ~$71,000.00 | Beginning: $10k (starts 7/1/2026) + Surplus ~$61k (after including loan payments in expenses) |
+| **Liabilities** | Comp Test Mortgage | ~$241,400.00 | Amortized 30-year loan, 4% interest, started 1/1/2025 (24 months paid by Dec 31, 2026) |
+| | Comp Test Car Loan | ~$21,700.00 | Amortized 60-month loan, 4.5% interest, started 6/1/2025 (19 months paid by Dec 31, 2026) |
 | **Income** | Comp Test Salary | $100,000.00 | Year 1 (no growth yet) |
 | | Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning, reinvested |
 | | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (partial year from 7/1/2026) |
@@ -2025,23 +2040,35 @@ echo ""
 | **Expenses** | Comp Test Housing | $36,000.00 | Base value (inflation starts in year 2) |
 | | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary |
 | | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2) |
+| | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12) |
+| | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12) |
 | | Federal Income Tax (MFJ) | ~$7,935.00 | Married Filing Jointly (see 7.1 for details) |
-| | **Total Expenses (excluding tax)** | **~$52,000.00** | |
-| **Cash Flow** | **Surplus/Deficit** | **~$82,065.00** | ~142k income - 52k expenses - 7.935k tax = ~$82,065 |
+| | **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
+| **Cash Flow** | **Surplus/Deficit** | **~$61,032.00** | ~142k income - 73.033k expenses - 7.935k tax = ~$61,032 |
 
 **Important Notes:**
 
-1. **Inflation Timing:** Inflation/growth is applied starting in year 2. Year 1 uses the base value without inflation (growth_factor = pow(1 + rate, year - 1), so year 1 = base value, year 2 = base * (1 + rate), year 3 = base * (1 + rate)^2).
+1. **Federal Income Tax Calculation:** Social Security income is marked as taxable in the system (`taxable=True`), so it is included in taxable income for tax calculations. The expected tax value of ~$7,935 was calculated assuming Social Security was excluded. With Social Security included in taxable income, actual tax will be higher (approximately $12,000-$14,000 depending on the actual taxable income). The tax calculation uses 2025 federal tax brackets for Married Filing Jointly with standard deduction of $29,900.
 
-2. **Auto-Disbursements:** IRA to Brokerage transfer ($6,500/year) is applied at the **beginning of each year** before asset growth, so transferred amounts benefit from growth in the same year.
+2. **Checking Account Balance:** The checking account starts at $10,000 on 7/1/2026 and receives surplus transfers at the end of each year. If you see a balance significantly higher than expected (e.g., $123,471 instead of ~$71,000), verify:
+   - You are viewing the correct year (not accumulated from previous years)
+   - The starting balance was correctly initialized
+   - Surplus is being applied only once per year
+   - If viewing a projection with multiple years, the balance accumulates over time
 
-3. **Surplus Transfers:** Net cash flow surplus/deficit to Comp Test Checking is applied at the **end of each year** after asset growth. For assets with partial year start dates (like Comp Test Checking starting 7/1/2026), surplus is calculated for the entire year but the asset must be active to receive it.
+3. **Loan Balance Calculations:** Loan balances are calculated using standard amortization formulas based on the loan start date. The calculation date is Dec 31 of each projection year. Expected values in the test plan are approximations; actual balances may vary slightly due to rounding. See `COMPREHENSIVE_TEST_INVESTIGATION.md` for detailed calculations.
 
-4. **Utilities Category Warning:** If you add the "Utilities" category after creating the expense, you may need to refresh the browser for the warning to clear. This is expected behavior - category validation happens on page load, not dynamically.
+4. **Inflation Timing:** Inflation/growth is applied starting in year 2. Year 1 uses the base value without inflation (growth_factor = pow(1 + rate, year - 1), so year 1 = base value, year 2 = base * (1 + rate), year 3 = base * (1 + rate)^2).
 
-5. **Federal Income Tax in Refresh Itemization:** The Federal Income Tax (Calculated) expense is auto-generated by the system when `calculate_federal_tax` is enabled. It may not appear when using "Refresh Itemization" because it's not in the regular expense items list - this is expected. It will appear in charts and projections after recalculating.
+5. **Auto-Disbursements:** IRA to Brokerage transfer ($6,500/year) is applied at the **beginning of each year** before asset growth, so transferred amounts benefit from growth in the same year.
 
-6. **Tax Calculation:** Ensure `tax_filing_status` is set to "Married Filing Jointly" (not "Single") for the expected tax amounts.
+6. **Surplus Transfers:** Net cash flow surplus/deficit to Comp Test Checking is applied at the **end of each year** after asset growth. For assets with partial year start dates (like Comp Test Checking starting 7/1/2026), surplus is calculated for the entire year but the asset must be active to receive it.
+
+7. **Utilities Category Warning:** If you add the "Utilities" category after creating the expense, you may need to refresh the browser for the warning to clear. This is expected behavior - category validation happens on page load, not dynamically.
+
+8. **Federal Income Tax in Refresh Itemization:** The Federal Income Tax (Calculated) expense is auto-generated by the system when `calculate_federal_tax` is enabled. It may not appear when using "Refresh Itemization" because it's not in the regular expense items list - this is expected. It will appear in charts and projections after recalculating.
+
+9. **Tax Calculation:** Ensure `tax_filing_status` is set to "Married Filing Jointly" (not "Single") for the expected tax amounts. Note that Social Security income is treated as taxable income in the current implementation.
 
 **Note on Inflation:** Inflation is applied starting in year 2 (growth_factor = pow(1 + rate, year - 1), so year 1 uses base value, year 2 applies first inflation).
 
@@ -2078,17 +2105,19 @@ echo ""
 | Comp Test Housing | $36,000.00 | Base value (inflation starts in year 2: $36k * 1.03 = $37,080 in year 2) |
 | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary, tax-deductible |
 | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2: $6k * 1.02 = $6,120 in year 2) |
+| Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12, remains constant) |
+| Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12, remains constant) |
 | Federal Income Tax (Calculated) | ~$7,935.00 | Married Filing Jointly (see section 7.1 for Single comparison) |
-| **Total Expenses (excluding tax)** | **~$52,000.00** | |
+| **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
 
 **Cash Flow Analysis:**
 
 | Item | Amount |
 |------|--------|
 | Total Income | ~$142,000.00 |
-| Total Expenses (excluding tax) | -$52,000.00 |
+| Total Expenses (excluding tax) | -$73,033.00 |
 | Federal Income Tax | -$7,935.00 |
-| **Net Cash Flow (Surplus)** | **~$82,065.00** | ~142k - 52k - 7.935k |
+| **Net Cash Flow (Surplus)** | **~$61,032.00** | ~142k - 73.033k - 7.935k |
 
 **Expected Values (Year 2027):**
 
@@ -2113,8 +2142,11 @@ echo ""
 | **Expenses** | Comp Test Housing | ~$38,192.00 | 37.08k * 1.03 |
 | | Comp Test 401K Contribution | ~$10,300.00 | 10% of $103k salary |
 | | Comp Test Utilities | $0.00 | Ended 6/30/2027 |
+| | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12, remains constant) |
+| | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12, remains constant) |
 | | Federal Income Tax (MFJ) | ~$8,151.00 | Based on year 2 taxable income (includes Social Security) |
-| **Cash Flow** | **Surplus/Deficit** | **~$136,109.00** | ~191.64k income - 47.38k expenses - 8.151k tax |
+| | **Total Expenses (excluding tax)** | **~$69,525.00** | 38.192k + 10.3k + 0 + 14.322k + 6.711k = ~$69,525 |
+| **Cash Flow** | **Surplus/Deficit** | **~$113,964.00** | ~191.64k income - 69.525k expenses - 8.151k tax |
 
 **Expected Values (Year 2028):**
 
@@ -2125,8 +2157,8 @@ echo ""
 | **Assets** | Comp Test Investment | ~$256,000.00+ | Continues growing with dividends |
 | | Comp Test Checking | Accumulated | Surplus from previous years |
 | | Other Assets | Growing | All assets continue to grow |
-| **Liabilities** | Comp Test Car Loan | ~$16,500.00 | Continues amortizing toward $0 |
-| | Comp Test Mortgage | $250,000.00 | Fixed |
+| **Liabilities** | Comp Test Car Loan | ~$9,700.00 | Amortized 60-month loan, 4.5% interest (43 months paid by Dec 31, 2028) |
+| | Comp Test Mortgage | ~$231,700.00 | Amortized 30-year loan, 4% interest (48 months paid by Dec 31, 2028) |
 
 **Year-by-Year Asset Growth Comparison:**
 
