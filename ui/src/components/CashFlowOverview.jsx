@@ -269,6 +269,11 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   const transferSinks = {}; // For negative surplus (deficit) from cash assets
   
   // Surplus transfer to cash asset (positive surplus adds to cash)
+  // Debug logging for Sankey surplus transfer
+  console.log('Sankey Diagram - surplus_asset_id:', userSettings?.surplus_asset_id);
+  console.log('Sankey Diagram - cashAssetIds:', cashAssetIds);
+  console.log('Sankey Diagram - netCashFlow:', totalCashIn - totalCashOut, '(cashIn:', totalCashIn, ', cashOut:', totalCashOut, ')');
+  
   if (userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id)) {
     const netCashFlow = totalCashIn - totalCashOut;
     if (netCashFlow > 0) {
@@ -276,8 +281,14 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
       transferSources[`Transfer to ${surplusAssetName}`] = netCashFlow;
+      console.log('Sankey Diagram - Added surplus transfer:', `Transfer to ${surplusAssetName}`, netCashFlow);
       // Don't add to totalCashIn - this is already included in the net cash flow
-    } else if (netCashFlow < 0) {
+    } else {
+      console.log('Sankey Diagram - Net cash flow not positive, skipping surplus transfer');
+    }
+  } else {
+    console.log('Sankey Diagram - Surplus transfer conditions not met: surplus_asset_id exists?', !!userSettings?.surplus_asset_id, ', in cashAssetIds?', cashAssetIds.includes(userSettings?.surplus_asset_id || -1));
+  } else if (netCashFlow < 0) {
       // Negative surplus (deficit) - cash goes out
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
@@ -1197,11 +1208,18 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     // Filter assets to only cash assets
     const cashAssets = assets.filter(a => cashAssetIds.includes(a.id));
     
+    // Debug logging for BASE model cash assets
+    console.log('BASE Model - cashAssetIds:', cashAssetIds);
+    console.log('BASE Model - All assets:', assets.map(a => ({ id: a.id, name: a.name, value: a.value })));
+    console.log('BASE Model - Filtered cash assets:', cashAssets.map(a => ({ id: a.id, name: a.name, value: a.value })));
+    
     // Calculate initial cash balance (Beginning Balance for year 0)
     let beginningBalance = 0;
     cashAssets.forEach(asset => {
       beginningBalance += asset.value || 0;
     });
+    
+    console.log('BASE Model - Initial beginning balance:', beginningBalance);
     
     const years = [];
     const beginningBalances = [];
