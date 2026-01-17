@@ -33,3 +33,10 @@ api/.env
 # Explicitly ignore api/node_modules/ and finmodel.db
 api/node_modules/
 finmodel.db
+
+# Accidental version number files (empty artifacts)
+# Files starting with = followed by version numbers
+^=*
+
+# Binary executables (should not be in repo)
+cloud-sql-proxy
