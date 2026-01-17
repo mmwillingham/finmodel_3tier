@@ -7,6 +7,8 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   max-width: 700px;
   margin: 20px auto;
+  /* Ensure scroll events propagate to parent container */
+  position: relative;
 }
 
 .custom-chart-form-container h3 {
@@ -50,7 +52,21 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 1em;
+  /* Ensure text is visible in all browsers - Firefox was showing faint text */
+  color: #333 !important;
+  background-color: #fff;
+  /* Prevent form elements from interfering with parent scrolling */
+  overscroll-behavior: none;
+  /* Chrome-specific: prevent form elements from capturing wheel events */
+  /* This helps with the issue where scrolling stops when hovering over form elements */
 }
+
+/* Ensure option text is also visible in Firefox */
+.custom-chart-form-container select option {
+  color: #333;
+  background-color: #fff;
+}
+
 
 .custom-chart-form-container input[type="checkbox"] {
   margin-right: 8px;

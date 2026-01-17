@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useTheme } from '../context/ThemeContext.jsx';
 import './Header.css'; // NEW: Import Header-specific CSS
 import SettingsDropdownMenu from './SettingsDropdownMenu'; // New component for the dropdown menu
 import PointsModal from './PointsModal'; // Points modal component
@@ -10,7 +9,6 @@ import AccountSwitcher from './AccountSwitcher'; // Account switcher component
 
 const Header = () => { // Removed setIsSettingsModalOpen prop
     const { currentUser, logout, viewingUserId } = useAuth();
-    const { isDarkMode, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false); // State to manage dropdown visibility
     const [showPointsModal, setShowPointsModal] = useState(false); // State for points modal
@@ -66,13 +64,6 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                                     <AccountSwitcher compact={true} />
                                 </div>
                             )}
-                            <button
-                                onClick={toggleTheme}
-                                className="theme-toggle-button"
-                                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                            >
-                                {isDarkMode ? '☀️' : '🌙'}
-                            </button>
                             <button 
                                 onClick={() => setShowPointsModal(true)} 
                                 className="points-button"

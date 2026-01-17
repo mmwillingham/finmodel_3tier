@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CustomChartService from '../services/customChart.service';
 import AccountService from '../services/account.service';
 import MultiSelectCheckbox from './MultiSelectCheckbox'; // Import the multi-select checkbox component
@@ -75,6 +75,8 @@ export default function CustomChartForm({
   const [yAxisLabel, setYAxisLabel] = useState("Value");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [refreshingItemization, setRefreshingItemization] = useState(false);
+  const formRef = useRef(null);
 
   useEffect(() => {
     if (chartId) {
@@ -247,8 +249,244 @@ export default function CustomChartForm({
     }
   };
 
+  // Fix scrolling issue in Chrome: prevent form elements from capturing wheel events
+  // Chrome-specific issue: form elements capture wheel events even when they can't scroll
+  // The issue manifests as needing to move mouse slightly before scrolling works
+  // Solution: Use window-level wheel handler that only activates when hovering over form elements
+  useEffect(() => {
+    const formContainer = formRef.current;
+    if (!formContainer) return;
+
+    const mainContent = formContainer.closest('.main-content');
+    if (!mainContent) return;
+
+    let isHoveringForm = false;
+
+    // Track when mouse enters/leaves form container
+    const handleMouseEnter = () => {
+      isHoveringForm = true;
+    };
+    const handleMouseLeave = () => {
+      isHoveringForm = false;
+    };
+
+    formContainer.addEventListener('mouseenter', handleMouseEnter);
+    formContainer.addEventListener('mouseleave', handleMouseLeave);
+
+    // Window-level wheel handler that intercepts when hovering over form
+    const handleWindowWheel = (e) => {
+      if (!isHoveringForm) return;
+
+      const target = e.target;
+      const isFormElement = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA';
+      
+      if (isFormElement) {
+        const canElementScroll = target.scrollHeight > target.clientHeight;
+        
+        if (!canElementScroll) {
+          // Form element can't scroll - scroll parent instead
+          const scrollAmount = e.deltaY;
+          const currentScroll = mainContent.scrollTop;
+          const maxScroll = mainContent.scrollHeight - mainContent.clientHeight;
+          
+          // Check if we can scroll in that direction
+          const canScrollDown = scrollAmount > 0 && currentScroll < maxScroll;
+          const canScrollUp = scrollAmount < 0 && currentScroll > 0;
+          
+          if (canScrollDown || canScrollUp) {
+            // Scroll the parent and prevent form element from handling it
+            mainContent.scrollTop += scrollAmount;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            return false;
+          }
+        }
+      }
+    };
+
+    // Attach window-level handler in capture phase with high priority
+    window.addEventListener('wheel', handleWindowWheel, { 
+      passive: false, 
+      capture: true 
+    });
+
+    return () => {
+      formContainer.removeEventListener('mouseenter', handleMouseEnter);
+      formContainer.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('wheel', handleWindowWheel, { capture: true });
+    };
+  }, []);
+
+  // Handle Refresh Itemization - similar to CustomChartView
+  const handleRefreshItemization = async () => {
+    if (!chartId || seriesConfigurations.length === 0) return;
+    
+    setRefreshingItemization(true);
+    setMessage('');
+    
+    try {
+      let needsUpdate = false;
+      let matchedCount = 0;
+      let unmatchedCount = 0;
+      
+      const updatedSeries = seriesConfigurations.map(series => {
+        const selectedItemId = series.selected_item_id || series.item_id;
+        const isItemized = selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0;
+        
+        // Check if label looks like a stale item name
+        const labelMatchesDefault = series.label === series.category || 
+                                   series.label === (series.data_type ? series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1) : null) ||
+                                   series.label === 'All Categories' ||
+                                   series.label === 'All Items' ||
+                                   !series.label;
+        const hasStaleLabel = !labelMatchesDefault && series.label && series.data_type;
+        
+        if (!isItemized && !hasStaleLabel) {
+          return series; // Pass through for duplicate checking
+        }
+        
+        // Get the appropriate array of items based on data type
+        let items = [];
+        if (series.data_type === 'assets') {
+          items = assets;
+        } else if (series.data_type === 'liabilities') {
+          items = liabilities;
+        } else if (series.data_type === 'income') {
+          items = incomeItems;
+        } else if (series.data_type === 'expenses') {
+          items = expenseItems;
+        } else {
+          return series;
+        }
+        
+        // Try to find item by ID first
+        let foundItem = null;
+        if (isItemized) {
+          const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
+          foundItem = items.find(item => item.id === itemIdNum || item.id === selectedItemId);
+        }
+        
+        // If not found by ID, try to find by label/name
+        if (!foundItem && series.label) {
+          foundItem = items.find(item => {
+            const itemName = item.description || item.name;
+            return itemName === series.label;
+          });
+        }
+        
+        // If item was found, update the ID and label
+        if (foundItem) {
+          matchedCount++;
+          needsUpdate = true;
+          const currentItemName = foundItem.description || foundItem.name;
+          return {
+            ...series,
+            selected_item_id: foundItem.id,
+            item_id: foundItem.id,
+            label: currentItemName,
+          };
+        }
+        
+        // Item not found - remove itemization
+        unmatchedCount++;
+        needsUpdate = true;
+        
+        let newLabel;
+        if (series.category) {
+          newLabel = series.category;
+        } else if (series.data_type) {
+          newLabel = series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1);
+        } else {
+          newLabel = 'All Items';
+        }
+        
+        return {
+          ...series,
+          selected_item_id: null,
+          item_id: null,
+          label: newLabel,
+        };
+      });
+      
+      // Consolidate duplicate series
+      const seriesMap = new Map();
+      const consolidatedSeries = [];
+      
+      updatedSeries.forEach(series => {
+        const selectedItemId = series.selected_item_id || series.item_id;
+        const isStillItemized = selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0;
+        
+        let key;
+        if (isStillItemized) {
+          key = `${series.data_type}_${series.category || 'all'}_${selectedItemId}`;
+        } else {
+          key = `${series.data_type}_${series.category || 'all'}_unitemized`;
+        }
+        
+        if (!seriesMap.has(key)) {
+          seriesMap.set(key, series);
+          consolidatedSeries.push(series);
+        } else {
+          needsUpdate = true;
+        }
+      });
+      
+      const finalSeries = consolidatedSeries.length < updatedSeries.length ? consolidatedSeries : updatedSeries;
+      
+      if (needsUpdate || consolidatedSeries.length < updatedSeries.length) {
+        setSeriesConfigurations(finalSeries);
+        
+        // Build success message
+        const duplicatesRemoved = consolidatedSeries.length < updatedSeries.length;
+        const duplicateCount = updatedSeries.length - consolidatedSeries.length;
+        let messageText = 'Itemization refreshed. ';
+        if (matchedCount > 0 && unmatchedCount === 0 && !duplicatesRemoved) {
+          messageText += `All ${matchedCount} itemized series re-matched to current items.`;
+        } else if (matchedCount > 0 && unmatchedCount > 0) {
+          messageText += `${matchedCount} series re-matched. ${unmatchedCount} series un-itemized (items not found).`;
+          if (duplicatesRemoved) {
+            messageText += ` ${duplicateCount} duplicate series removed.`;
+          }
+        } else if (unmatchedCount > 0) {
+          messageText += `${unmatchedCount} series un-itemized (items not found).`;
+          if (duplicatesRemoved) {
+            messageText += ` ${duplicateCount} duplicate series removed.`;
+          }
+          messageText += ' You can re-itemize individual series if needed.';
+        } else if (duplicatesRemoved) {
+          messageText += `${duplicateCount} duplicate series removed.`;
+        } else {
+          messageText += 'Chart updated.';
+        }
+        
+        setMessage(messageText);
+        setTimeout(() => setMessage(''), 5000);
+      } else {
+        setMessage('Itemization is up to date. All linked items are valid.');
+        setTimeout(() => setMessage(''), 5000);
+      }
+    } catch (error) {
+      console.error("Error refreshing itemization:", error);
+      setMessage(`Failed to refresh itemization: ${error.response?.data?.detail || error.message}`);
+      setTimeout(() => setMessage(''), 5000);
+    } finally {
+      setRefreshingItemization(false);
+    }
+  };
+
+  // Check if chart has itemized series (for showing Refresh Itemization button)
+  const hasItemizedSeries = seriesConfigurations.some(s => {
+    const hasItemId = (s.selected_item_id || s.item_id) && (s.selected_item_id !== null && s.selected_item_id !== "" && s.selected_item_id !== 0);
+    const labelMatchesDefault = s.label === s.category || 
+                               s.label === (s.data_type ? s.data_type.charAt(0).toUpperCase() + s.data_type.slice(1) : null) ||
+                               s.label === 'All Categories' ||
+                               s.label === 'All Items';
+    return hasItemId || (!labelMatchesDefault && s.label && s.data_type);
+  });
+
   return (
-    <div className="custom-chart-form-container">
+    <div className="custom-chart-form-container" ref={formRef}>
       {message && <div className="message">{message}</div>}
 
       <form onSubmit={handleSubmit}>
@@ -306,7 +544,26 @@ export default function CustomChartForm({
           </div>
         </div>
 
-        <h4>Series Configuration</h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+          <h4 style={{ margin: 0 }}>Series Configuration</h4>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {chartId && hasItemizedSeries && (
+              <button 
+                type="button" 
+                className="btn-primary-modern" 
+                onClick={handleRefreshItemization}
+                disabled={refreshingItemization}
+                title="Refresh itemization - removes all itemization and re-matches series to current items by name. Items not found will be un-itemized."
+              >
+                {refreshingItemization ? 'Refreshing...' : 'Refresh Itemization'}
+              </button>
+            )}
+            <button type="submit" disabled={loading} className="btn-primary-modern">
+              {loading ? "Saving..." : (chartId ? "Update" : "Create Chart")}
+            </button>
+            <button type="button" onClick={onCancel} disabled={loading} className="btn-primary-modern" style={{ backgroundColor: '#6c757d' }}>Cancel</button>
+          </div>
+        </div>
         <button type="button" className="btn-primary-modern" onClick={handleAddSeries}>Add Series</button>
         <div className="series-list">
           {seriesConfigurations.map((series, index) => {
@@ -498,13 +755,6 @@ export default function CustomChartForm({
             value={yAxisLabel}
             onChange={(e) => setYAxisLabel(e.target.value)}
           />
-        </div>
-
-        <div className="modal-actions">
-          <button type="submit" disabled={loading}>
-            {loading ? "Saving..." : (chartId ? "Update" : "Create Chart")}
-          </button>
-          <button type="button" onClick={onCancel} disabled={loading}>Cancel</button>
         </div>
       </form>
     </div>

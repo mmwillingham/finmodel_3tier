@@ -51,6 +51,9 @@
   padding: 8px 16px;
   display: inline-block;
   width: auto;
+  min-width: 80px; /* Ensure consistent minimum width */
+  height: 36px; /* Ensure consistent height */
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
@@ -107,83 +110,6 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dark mode support */
-.dark body {
-  background-color: #1a1a1a;
-  color: #e0e0e0;
-}
-
-.dark .app-header {
-  background-color: #2d2d2d;
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .app-header .logo a,
-.dark .app-header .nav-links a {
-  color: #e0e0e0;
-}
-
-.dark .app-header .nav-links a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .card-modern,
-.dark .input-modern {
-  background-color: #2d2d2d;
-  color: #e0e0e0;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .sidebar {
-  background-color: #2d2d2d;
-  border-right-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .sidebar .nav-section h3 {
-  color: #a0a0a0;
-}
-
-.dark .sidebar .nav-btn {
-  color: #e0e0e0;
-}
-
-.dark .sidebar .nav-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .sidebar .nav-btn.active {
-  background-color: #2563eb;
-  color: white;
-}
-
-.dark .settings-page-container {
-  background-color: #2d2d2d;
-  color: #e0e0e0;
-}
-
-.dark .setting-group {
-  background-color: #333333;
-}
-
-.dark .form-field input,
-.dark .form-field select {
-  background-color: #2d2d2d;
-  color: #e0e0e0;
-}
-
-.dark .accounts-table {
-  background-color: #2d2d2d;
-  color: #e0e0e0;
-}
-
-.dark .accounts-table th {
-  background-color: #1e3a8a;
-  color: #e0e0e0;
-}
-
-.dark .accounts-table tr:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',

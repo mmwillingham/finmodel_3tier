@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
-import { ThemeProvider } from './context/ThemeContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import NavigationGuard from './components/NavigationGuard';
 import SettingsPageLayout from './components/SettingsLayout';
@@ -35,10 +34,8 @@ import AccountSwitcherPage from './pages/AccountSwitcherPage.jsx';
 function App() {
     return (
         <Router>
-            {/* Wrap the entire app in the Theme Provider */}
-            <ThemeProvider>
-                {/* Wrap the entire app in the Auth Provider */}
-                <AuthProvider>
+            {/* Wrap the entire app in the Auth Provider */}
+            <AuthProvider>
                     <NavigationGuard>
                     <Header /> {/* Removed setIsSettingsModalOpen prop */}
                     <SettingsPageLayout>
@@ -85,7 +82,6 @@ function App() {
                     </SettingsPageLayout>
                 </NavigationGuard>
             </AuthProvider>
-            </ThemeProvider>
         </Router>
     );
 }
