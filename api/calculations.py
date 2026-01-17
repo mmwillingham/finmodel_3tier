@@ -940,12 +940,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 elif projected_account.account_type == "liability":
                     current_year_total_liabilities += new_balance # Will be negative
                 elif projected_account.account_type == "income":
-                    current_year_total_income_flow += adjusted_annual_contribution
+                    # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
+                    # new_balance is already prorated at lines 791 and 807 based on year_fraction
+                    current_year_total_income_flow += abs(new_balance)  # new_balance is positive for income, but use abs() to be safe
                     # Debug logging for income flow accumulation
                     if year == 1:  # Only log for first year to avoid spam
-                        print(f"--- DEBUG: Year {year} - Added income to flow: '{projected_account.name}' = {adjusted_annual_contribution:.2f}, running total = {current_year_total_income_flow:.2f} ---"); sys.stdout.flush()
+                        print(f"--- DEBUG: Year {year} - Added income to flow: '{projected_account.name}' = {abs(new_balance):.2f} (prorated), running total = {current_year_total_income_flow:.2f} ---"); sys.stdout.flush()
                 elif projected_account.account_type == "expense":
-                    current_year_total_expense_flow += adjusted_annual_contribution
+                    # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
+                    # new_balance is negative for expenses, and we want to accumulate the absolute value for expense flow
+                    current_year_total_expense_flow += new_balance  # new_balance is already negative for expenses
 
                 current_year_contributions_sum += adjusted_annual_contribution
                 current_year_growth_sum += (growth_on_balance + growth_on_contributions)
