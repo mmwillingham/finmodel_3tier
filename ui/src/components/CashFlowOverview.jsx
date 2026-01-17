@@ -272,10 +272,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   // Debug logging for Sankey surplus transfer
   console.log('Sankey Diagram - surplus_asset_id:', userSettings?.surplus_asset_id);
   console.log('Sankey Diagram - cashAssetIds:', cashAssetIds);
-  console.log('Sankey Diagram - netCashFlow:', totalCashIn - totalCashOut, '(cashIn:', totalCashIn, ', cashOut:', totalCashOut, ')');
+  const netCashFlow = totalCashIn - totalCashOut;
+  console.log('Sankey Diagram - netCashFlow:', netCashFlow, '(cashIn:', totalCashIn, ', cashOut:', totalCashOut, ')');
   
   if (userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id)) {
-    const netCashFlow = totalCashIn - totalCashOut;
     if (netCashFlow > 0) {
       // Get surplus asset name
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
@@ -283,18 +283,16 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       transferSources[`Transfer to ${surplusAssetName}`] = netCashFlow;
       console.log('Sankey Diagram - Added surplus transfer:', `Transfer to ${surplusAssetName}`, netCashFlow);
       // Don't add to totalCashIn - this is already included in the net cash flow
-    } else {
-      console.log('Sankey Diagram - Net cash flow not positive, skipping surplus transfer');
-    }
-  } else {
-    console.log('Sankey Diagram - Surplus transfer conditions not met: surplus_asset_id exists?', !!userSettings?.surplus_asset_id, ', in cashAssetIds?', cashAssetIds.includes(userSettings?.surplus_asset_id || -1));
-  } else if (netCashFlow < 0) {
+    } else if (netCashFlow < 0) {
       // Negative surplus (deficit) - cash goes out
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
       transferSinks[`Deficit from ${surplusAssetName}`] = Math.abs(netCashFlow);
+      console.log('Sankey Diagram - Added deficit (negative surplus):', `Deficit from ${surplusAssetName}`, Math.abs(netCashFlow));
       // Don't add to totalCashOut - this is already included in the net cash flow
     }
+  } else {
+    console.log('Sankey Diagram - Surplus transfer conditions not met: surplus_asset_id exists?', !!userSettings?.surplus_asset_id, ', in cashAssetIds?', cashAssetIds.includes(userSettings?.surplus_asset_id || -1));
   }
   
   // Auto-disbursements that target cash assets
