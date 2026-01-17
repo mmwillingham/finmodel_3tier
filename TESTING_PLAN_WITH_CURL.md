@@ -1514,6 +1514,29 @@ Before running this test, ensure the following categories exist in your Settings
 - Investments
 - Utilities
 
+**Profile Settings Required:**
+
+Before running this test, configure the following Social Security settings in Settings → Profile:
+
+- **Person 1:**
+  - **Birthdate: REQUIRED** (YYYY-MM-DD format) - Used for FRA calculation
+  - Social Security PIA: $4,000
+  - Social Security Retirement Date: 8/1/2026 (2026-08-01)
+
+- **Person 2:**
+  - **Birthdate: REQUIRED** (YYYY-MM-DD format) - Used for FRA calculation
+  - Social Security PIA: $2,000
+  - Social Security Retirement Date: 10/1/2026 (2026-10-01)
+
+**⚠️ Important:** Birthdates are **required** for Social Security calculations. The system uses birthdates to:
+1. Calculate Full Retirement Age (FRA) based on birth year
+2. Determine the actual monthly benefit (which may be adjusted from PIA based on early/late retirement relative to FRA)
+3. Create/update Social Security income items automatically
+
+Without birthdates, Social Security calculations will fail. The PIA (Primary Insurance Amount) represents the full retirement benefit; the actual benefit will be calculated based on the retirement date relative to FRA.
+
+**Note:** Social Security income items will be automatically created when these profile settings are configured with valid birthdates, PIA, and retirement dates.
+
 **Note:** If any categories are missing, add them via Settings → Categories before creating the test items. If you add categories after creating items, you may need to refresh the browser for validation warnings to clear.
 
 This test creates a realistic financial scenario that exercises all major features simultaneously:
@@ -1855,6 +1878,25 @@ curl -s -X PUT "${API_BASE}/settings/" \
   }" > /dev/null
 echo "Set surplus asset to Checking account"
 
+# --- SET SOCIAL SECURITY PROFILE ---
+echo "Setting Social Security profile settings..."
+# NOTE: Birthdates are REQUIRED for Social Security calculations (FRA determination)
+# Update the birthdates below based on your desired Full Retirement Age (FRA)
+# Example: If FRA is 67, birthdate for Person 1 retiring 8/1/2026 would be around 1959-08-01
+# Example: If FRA is 67, birthdate for Person 2 retiring 10/1/2026 would be around 1959-10-01
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "person1_birthdate": "1959-08-01",
+    "person1_ss_pia": 4000,
+    "person1_ss_retirement_date": "2026-08-01",
+    "person2_birthdate": "1959-10-01",
+    "person2_ss_pia": 2000,
+    "person2_ss_retirement_date": "2026-10-01"
+  }' > /dev/null
+echo "Set Social Security profile (Person 1: Birthdate 1959-08-01, PIA $4,000, Retirement 8/1/2026; Person 2: Birthdate 1959-10-01, PIA $2,000, Retirement 10/1/2026)"
+
 # --- ENABLE TAX CALCULATION (if desired) ---
 echo "Enabling federal tax calculation..."
 curl -s -X PUT "${API_BASE}/settings/" \
@@ -1897,13 +1939,15 @@ echo ""
 | **Income** | Comp Test Salary | $100,000.00 | Year 1 (no growth yet) |
 | | Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning, reinvested |
 | | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (partial year from 7/1/2026) |
-| | **Total Income** | **$116,000.00** | |
+| | Social Security - Person 1 | ~$20,000.00 | ~$4k/month * 5 months (starts 8/1/2026, partial year) |
+| | Social Security - Person 2 | ~$6,000.00 | ~$2k/month * 3 months (starts 10/1/2026, partial year) |
+| | **Total Income** | **~$142,000.00** | |
 | **Expenses** | Comp Test Housing | $36,000.00 | Base value (inflation starts in year 2) |
 | | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary |
 | | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2) |
 | | Federal Income Tax (MFJ) | ~$7,935.00 | Married Filing Jointly (see 7.1 for details) |
 | | **Total Expenses (excluding tax)** | **~$52,000.00** | |
-| **Cash Flow** | **Surplus/Deficit** | **~$56,065.00** | 116k income - 52k expenses - 7.935k tax = ~$56,065 |
+| **Cash Flow** | **Surplus/Deficit** | **~$82,065.00** | ~142k income - 52k expenses - 7.935k tax = ~$82,065 |
 
 **Important Notes:**
 
@@ -1943,7 +1987,9 @@ echo ""
 | Comp Test Salary | $100,000.00 | Fixed yearly, Year 1 |
 | Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning balance, reinvested |
 | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (6 months from 7/1/2026) |
-| **Total Income** | **$116,000.00** | |
+| Social Security - Person 1 | ~$20,000.00 | ~$4k/month * 5 months (starts 8/1/2026, partial year - actual amount depends on FRA calculation) |
+| Social Security - Person 2 | ~$6,000.00 | ~$2k/month * 3 months (starts 10/1/2026, partial year - actual amount depends on FRA calculation) |
+| **Total Income** | **~$142,000.00** | |
 
 **Detailed Expense Breakdown:**
 
@@ -1959,10 +2005,10 @@ echo ""
 
 | Item | Amount |
 |------|--------|
-| Total Income | $116,000.00 |
+| Total Income | ~$142,000.00 |
 | Total Expenses (excluding tax) | -$52,000.00 |
 | Federal Income Tax | -$7,935.00 |
-| **Net Cash Flow (Surplus)** | **~$56,065.00** | 116k - 52k - 7.935k |
+| **Net Cash Flow (Surplus)** | **~$82,065.00** | ~142k - 52k - 7.935k |
 
 **Expected Values (Year 2027):**
 
@@ -1980,13 +2026,15 @@ echo ""
 | | Comp Test Car Loan | ~$20,500.00 | Amortizing |
 | **Income** | Comp Test Salary | $103,000.00 | 100k * 1.03 (3% growth) |
 | | Comp Test Investment Dividends | ~$4,400.00 | 2% of beginning balance |
-| | Comp Test Rental Income | $12,240.00 | 24k * 1.02 * 0.5 (partial year) |
-| | **Total Income** | **~$119,640.00** | |
+| | Comp Test Rental Income | $12,240.00 | 24k * 1.02 * 1.0 (full year) |
+| | Social Security - Person 1 | ~$48,000.00 | ~$4k/month * 12 months (full year starting from 8/1/2026) |
+| | Social Security - Person 2 | ~$24,000.00 | ~$2k/month * 12 months (full year starting from 10/1/2026) |
+| | **Total Income** | **~$191,640.00** | |
 | **Expenses** | Comp Test Housing | ~$38,192.00 | 37.08k * 1.03 |
 | | Comp Test 401K Contribution | ~$10,300.00 | 10% of $103k salary |
 | | Comp Test Utilities | $0.00 | Ended 6/30/2027 |
-| | Federal Income Tax (MFJ) | ~$8,151.00 | Based on year 2 taxable income |
-| **Cash Flow** | **Surplus/Deficit** | **~$62,997.00** | |
+| | Federal Income Tax (MFJ) | ~$8,151.00 | Based on year 2 taxable income (includes Social Security) |
+| **Cash Flow** | **Surplus/Deficit** | **~$136,109.00** | ~191.64k income - 47.38k expenses - 8.151k tax |
 
 **Expected Values (Year 2028):**
 

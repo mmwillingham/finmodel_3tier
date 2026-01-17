@@ -32,9 +32,15 @@ Income,Comp Test Investment Dividends,2028,$4,840.00,,,
 Income,Comp Test Rental Income,2026,$12,000.00,,,Partial year from 7/1/2026
 Income,Comp Test Rental Income,2027,$12,240.00,,,
 Income,Comp Test Rental Income,2028,$12,485.00,,,
-Income,Total Income,2026,$116,000.00,,,
-Income,Total Income,2027,$119,640.00,,,
-Income,Total Income,2028,$123,415.00,,,
+Income,Social Security - Person 1,2026,$20,000.00,,,~$4k/month * 5 months (starts 8/1/2026, partial year - actual depends on FRA)
+Income,Social Security - Person 1,2027,$48,000.00,,,~$4k/month * 12 months (full year)
+Income,Social Security - Person 1,2028,$48,000.00,,,~$4k/month * 12 months (full year, may have COLA adjustment)
+Income,Social Security - Person 2,2026,$6,000.00,,,~$2k/month * 3 months (starts 10/1/2026, partial year - actual depends on FRA)
+Income,Social Security - Person 2,2027,$24,000.00,,,~$2k/month * 12 months (full year)
+Income,Social Security - Person 2,2028,$24,000.00,,,~$2k/month * 12 months (full year, may have COLA adjustment)
+Income,Total Income,2026,$142,000.00,,,
+Income,Total Income,2027,$191,640.00,,,
+Income,Total Income,2028,$207,900.00,,,
 Expenses,Comp Test Housing,2026,$36,000.00,,,Base value (inflation starts in year 2)
 Expenses,Comp Test Housing,2027,$37,080.00,,,36k * 1.03 (3% inflation applied in year 2)
 Expenses,Comp Test Housing,2028,$38,192.40,,,36k * 1.03^2
@@ -50,21 +56,21 @@ Expenses,Federal Income Tax (Calculated),2028,$8,380.00,,,Based on year 3 taxabl
 Expenses,Total Expenses (excluding tax),2026,$52,000.00,,,36k + 10k + 6k
 Expenses,Total Expenses (excluding tax),2027,$53,500.00,,,37.08k + 10.3k + 6.12k (partial year utilities)
 Expenses,Total Expenses (excluding tax),2028,$48,801.40,,,38.192k + 10.609k + 0 (utilities ended)
-Cash Flow,Total Income,2026,$116,000.00,,,
+Cash Flow,Total Income,2026,$142,000.00,,,
 Cash Flow,Total Expenses (excluding tax),2026,-$52,000.00,,,
 Cash Flow,Federal Income Tax,2026,-$7,935.00,,,
-Cash Flow,Net Cash Flow (Surplus),2026,$56,065.00,,,116k - 52k - 7.935k
-Cash Flow,Total Income,2027,$119,640.00,,,
+Cash Flow,Net Cash Flow (Surplus),2026,$82,065.00,,,~142k - 52k - 7.935k
+Cash Flow,Total Income,2027,$191,640.00,,,
 Cash Flow,Total Expenses (excluding tax),2027,-$53,500.00,,,
 Cash Flow,Federal Income Tax,2027,-$8,151.00,,,
-Cash Flow,Net Cash Flow (Surplus),2027,$57,989.00,,,119.64k - 53.5k - 8.151k
-Cash Flow,Total Income,2028,$123,415.00,,,
+Cash Flow,Net Cash Flow (Surplus),2027,$130,989.00,,,~191.64k - 53.5k - 8.151k
+Cash Flow,Total Income,2028,$207,900.00,,,
 Cash Flow,Total Expenses (excluding tax),2028,-$48,801.40,,,
 Cash Flow,Federal Income Tax,2028,-$8,380.00,,,
-Cash Flow,Net Cash Flow (Surplus),2028,$66,233.60,,,123.415k - 48.801k - 8.38k
+Cash Flow,Net Cash Flow (Surplus),2028,$150,718.60,,,~207.9k - 48.801k - 8.38k
 Auto-Disbursements,IRA to Brokerage Transfer,2026,$6,500.00,,,Applied at beginning of year
 Auto-Disbursements,IRA to Brokerage Transfer,2027,$6,500.00,,,
 Auto-Disbursements,IRA to Brokerage Transfer,2028,$6,500.00,,,
-Surplus Transfers,Surplus to Checking,2026,$62,860.00,,,Applied at end of year (partial year from 7/1/2026)
-Surplus Transfers,Surplus to Checking,2027,Full year surplus,,,
-Surplus Transfers,Surplus to Checking,2028,Full year surplus,,,
+Surplus Transfers,Surplus to Checking,2026,$82,065.00,,,Applied at end of year (partial year from 7/1/2026, includes Social Security income)
+Surplus Transfers,Surplus to Checking,2027,$130,989.00,,,Full year surplus (includes Social Security income)
+Surplus Transfers,Surplus to Checking,2028,$150,718.60,,,Full year surplus (includes Social Security income)
