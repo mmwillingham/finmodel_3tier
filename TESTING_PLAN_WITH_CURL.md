@@ -1486,7 +1486,7 @@ echo "Deleted Expense ID: $EXPENSE_6_4_ID, Income ID: $INCOME_6_4_ID, Asset IDs:
 
 ---
 
-## 7. Comprehensive Integration Test (All Features)
+## 7.1 Comprehensive Integration Test (All Features)
 
 **CSV Results Template:** Use `COMPREHENSIVE_TEST_RESULTS_TEMPLATE.csv` to record expected vs actual values for easy comparison.
 
@@ -2017,6 +2017,66 @@ echo "Itemized charts created successfully!"
 echo ""
 ```
 
+**Cleanup (Comprehensive Integration Test):**
+```bash
+# Reset surplus asset and tax settings
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "surplus_asset_id": null,
+    "calculate_federal_tax": false
+  }' > /dev/null
+
+# Helper function to check if ID is valid (not null, empty, or "null")
+is_valid_id() {
+  local id="$1"
+  [[ -n "$id" && "$id" != "null" && "$id" =~ ^[0-9]+$ ]]
+}
+
+# Delete auto-disbursements
+for id in "${DISBURSEMENT_IDS[@]}"; do
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/auto-disbursements/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
+done
+
+# Delete expenses
+for id in "${EXPENSE_IDS[@]}"; do
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
+done
+
+# Delete income items
+for id in "${INCOME_IDS[@]}"; do
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
+done
+
+# Delete liabilities
+for id in "${LIABILITY_IDS[@]}"; do
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/liabilities/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
+done
+
+# Delete assets
+for id in "${ASSET_IDS[@]}"; do
+  if is_valid_id "$id"; then
+    curl -s -X DELETE "${API_BASE}/assets/${id}" \
+      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
+  fi
+done
+
+echo "Cleanup complete!"
+```
+
 **Expected Values (Year 2026 - First Full Year):**
 
 **Summary Table:**
@@ -2042,7 +2102,7 @@ echo ""
 | | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2) |
 | | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12) |
 | | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12) |
-| | Federal Income Tax (MFJ) | ~$7,935.00 | Married Filing Jointly (see 7.1 for details) |
+| | Federal Income Tax (MFJ) | ~$7,935.00 | Married Filing Jointly (see 7.2 for details) |
 | | **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
 | **Cash Flow** | **Surplus/Deficit** | **~$61,032.00** | ~142k income - 73.033k expenses - 7.935k tax = ~$61,032 |
 
@@ -2107,7 +2167,7 @@ echo ""
 | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2: $6k * 1.02 = $6,120 in year 2) |
 | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12, remains constant) |
 | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12, remains constant) |
-| Federal Income Tax (Calculated) | ~$7,935.00 | Married Filing Jointly (see section 7.1 for Single comparison) |
+| Federal Income Tax (Calculated) | ~$7,935.00 | Married Filing Jointly (see section 7.2 for Single comparison) |
 | **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
 
 **Cash Flow Analysis:**
@@ -2171,7 +2231,7 @@ echo ""
 | Comp Test Brokerage | $7,020 | ~$14,141 | ~$21,672 | 8% + transfers |
 | Comp Test Checking | ~$72,860 | Accumulating | Accumulating | 0% + surplus |
 
-### 7.1 Tax Calculation Comparison (Test 5.1)
+### 7.2 Tax Calculation Comparison (Test 5.1)
 
 **Description:** This test compares federal income tax calculations for Single vs. Married Filing Jointly filing statuses. It verifies that tax brackets, standard deductions, and tax calculations are correct for both filing statuses using the same income scenario.
 
@@ -2357,66 +2417,6 @@ echo "Disabled federal tax calculation"
 - Cash Flow Overview (verify income, expenses, and surplus/deficit)
 - BASE Model (verify surplus transfers to Checking)
 - Monte Carlo Projections (verify random variation)
-
-**Cleanup (Comprehensive Integration Test):**
-```bash
-# Reset surplus asset and tax settings
-curl -s -X PUT "${API_BASE}/settings/" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "surplus_asset_id": null,
-    "calculate_federal_tax": false
-  }' > /dev/null
-
-# Helper function to check if ID is valid (not null, empty, or "null")
-is_valid_id() {
-  local id="$1"
-  [[ -n "$id" && "$id" != "null" && "$id" =~ ^[0-9]+$ ]]
-}
-
-# Delete auto-disbursements
-for id in "${DISBURSEMENT_IDS[@]}"; do
-  if is_valid_id "$id"; then
-    curl -s -X DELETE "${API_BASE}/auto-disbursements/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
-  fi
-done
-
-# Delete expenses
-for id in "${EXPENSE_IDS[@]}"; do
-  if is_valid_id "$id"; then
-    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
-  fi
-done
-
-# Delete income items
-for id in "${INCOME_IDS[@]}"; do
-  if is_valid_id "$id"; then
-    curl -s -X DELETE "${API_BASE}/cashflow/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
-  fi
-done
-
-# Delete liabilities
-for id in "${LIABILITY_IDS[@]}"; do
-  if is_valid_id "$id"; then
-    curl -s -X DELETE "${API_BASE}/liabilities/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
-  fi
-done
-
-# Delete assets
-for id in "${ASSET_IDS[@]}"; do
-  if is_valid_id "$id"; then
-    curl -s -X DELETE "${API_BASE}/assets/${id}" \
-      -H "Authorization: Bearer ${TOKEN}" > /dev/null 2>&1
-  fi
-done
-
-echo "Cleanup complete!"
-```
 
 ---
 
