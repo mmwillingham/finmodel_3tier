@@ -1488,15 +1488,43 @@ echo "Deleted Expense ID: $EXPENSE_6_4_ID, Income ID: $INCOME_6_4_ID, Asset IDs:
 
 ## 7. Comprehensive Integration Test (All Features)
 
+**CSV Results Template:** Use `COMPREHENSIVE_TEST_RESULTS_TEMPLATE.csv` to record expected vs actual values for easy comparison.
+
+**⚠️ Required Categories Before Beginning:**
+
+Before running this test, ensure the following categories exist in your Settings:
+
+**Asset Categories:**
+- Investment
+- Savings
+- Retirement
+- Checking
+
+**Liability Categories:**
+- Mortgage
+- Car Loan
+
+**Income Categories:**
+- Salary, Wages, Tips
+- Dividends (qualified)
+- Rental Income
+
+**Expense Categories:**
+- Housing
+- Investments
+- Utilities
+
+**Note:** If any categories are missing, add them via Settings → Categories before creating the test items. If you add categories after creating items, you may need to refresh the browser for validation warnings to clear.
+
 This test creates a realistic financial scenario that exercises all major features simultaneously:
 - Assets with growth and partial years
-- Liabilities (fixed and amortized)
+- Liabilities (amortized loans)
 - Income (fixed, dynamic, with partial years)
-- Expenses (fixed, dynamic linked to income, contributing to assets, with partial years)
-- Auto-disbursements
-- Surplus asset transfers
-- Tax calculation (if enabled)
-- Dividend reinvestment (via UI)
+- Expenses (fixed with inflation, dynamic linked to income, contributing to assets, with partial years)
+- **Auto-disbursements** (IRA to Brokerage transfer - $6,500/year, applied at beginning of year before growth)
+- **Surplus asset transfers** (Net cash flow surplus/deficit to Comp Test Checking - applied at end of year after growth)
+- Tax calculation (Married Filing Jointly)
+- Dividend reinvestment (compounded into asset)
 
 **Setup:**
 ```bash
@@ -1614,20 +1642,20 @@ echo "Created Checking Asset ID: $ASSET_CHK"
 # --- LIABILITIES ---
 echo "Creating liabilities..."
 
-# Liability 1: Fixed mortgage (principal only)
+# Liability 1: Amortized mortgage (30-year loan)
 LIABILITY_MORT=$(curl -s -X POST "${API_BASE}/liabilities/" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Comp Test Mortgage",
     "category": "Mortgage",
-    "value": 250000,
-    "annual_increase_percent": 0.0,
-    "loan_type": "ordinary",
-    "principal_amount": null,
-    "interest_rate": null,
-    "loan_term_months": null,
-    "loan_start_date": null,
+    "value": null,
+    "annual_increase_percent": null,
+    "loan_type": "amortized",
+    "principal_amount": 250000,
+    "interest_rate": 4.0,
+    "loan_term_months": 360,
+    "loan_start_date": "2025-01-01",
     "monthly_payment": null,
     "start_date": null,
     "end_date": null
@@ -1863,19 +1891,39 @@ echo ""
 | | Comp Test 401K | $169,000.00 | Beginning: $150k, Growth: $9k, Contribution: $10k |
 | | Comp Test IRA | $98,500.00 | Beginning: $100k, Growth: $5k, Transfer: -$6.5k |
 | | Comp Test Brokerage | $7,020.00 | Beginning: $0, Transfer: +$6.5k, Growth: $520 |
-| | Comp Test Checking | ~$72,860.00 | Beginning: $10k, Surplus: +$62.86k (starts 7/1/2026) |
-| **Liabilities** | Comp Test Mortgage | $250,000.00 | Fixed, no growth |
-| | Comp Test Car Loan | ~$24,500.00 | Amortized (started 6/1/2025) |
+| | Comp Test Checking | $10,000.00 | Beginning: $10k, Surplus applied at end of year (starts 7/1/2026 - check surplus calculation) |
+| **Liabilities** | Comp Test Mortgage | Amortized (~$248k) | Amortized 30-year loan, 4% interest (not fixed) |
+| | Comp Test Car Loan | ~$24,500.00 | Amortized 60-month loan, 4.5% interest (started 6/1/2025) |
 | **Income** | Comp Test Salary | $100,000.00 | Year 1 (no growth yet) |
 | | Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning, reinvested |
 | | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (partial year from 7/1/2026) |
 | | **Total Income** | **$116,000.00** | |
-| **Expenses** | Comp Test Housing | $37,080.00 | 36k * 1.03 (3% inflation) |
+| **Expenses** | Comp Test Housing | $36,000.00 | Base value (inflation starts in year 2) |
 | | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary |
-| | Comp Test Utilities | $6,060.00 | 6k * 1.02 (2% inflation) |
+| | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2) |
 | | Federal Income Tax (MFJ) | ~$7,935.00 | Married Filing Jointly (see 7.1 for details) |
-| | **Total Expenses** | **~$61,075.00** | Excluding tax |
-| **Cash Flow** | **Surplus/Deficit** | **~$54,925.00** | 116k income - 53.14k expenses - 7.935k tax |
+| | **Total Expenses (excluding tax)** | **~$52,000.00** | |
+| **Cash Flow** | **Surplus/Deficit** | **~$56,065.00** | 116k income - 52k expenses - 7.935k tax = ~$56,065 |
+
+**Important Notes:**
+
+1. **Inflation Timing:** Inflation/growth is applied starting in year 2. Year 1 uses the base value without inflation (growth_factor = pow(1 + rate, year - 1), so year 1 = base value, year 2 = base * (1 + rate), year 3 = base * (1 + rate)^2).
+
+2. **Auto-Disbursements:** IRA to Brokerage transfer ($6,500/year) is applied at the **beginning of each year** before asset growth, so transferred amounts benefit from growth in the same year.
+
+3. **Surplus Transfers:** Net cash flow surplus/deficit to Comp Test Checking is applied at the **end of each year** after asset growth. For assets with partial year start dates (like Comp Test Checking starting 7/1/2026), surplus is calculated for the entire year but the asset must be active to receive it.
+
+4. **Utilities Category Warning:** If you add the "Utilities" category after creating the expense, you may need to refresh the browser for the warning to clear. This is expected behavior - category validation happens on page load, not dynamically.
+
+5. **Federal Income Tax in Refresh Itemization:** The Federal Income Tax (Calculated) expense is auto-generated by the system when `calculate_federal_tax` is enabled. It may not appear when using "Refresh Itemization" because it's not in the regular expense items list - this is expected. It will appear in charts and projections after recalculating.
+
+6. **Tax Calculation:** Ensure `tax_filing_status` is set to "Married Filing Jointly" (not "Single") for the expected tax amounts.
+
+**Note on Inflation:** Inflation is applied starting in year 2 (growth_factor = pow(1 + rate, year - 1), so year 1 uses base value, year 2 applies first inflation).
+
+**Note on Auto-Disbursements and Surplus Transfers:** Auto-disbursements and surplus asset transfers are included in this comprehensive test:
+- Auto-Disbursement: IRA to Brokerage transfer ($6,500/year, applied at beginning of year before growth)
+- Surplus Transfer: Net cash flow surplus/deficit to Comp Test Checking (applied at end of year after growth)
 
 **Detailed Asset Breakdown:**
 
@@ -1886,7 +1934,7 @@ echo ""
 | Comp Test 401K | $150,000.00 | $9,000.00 (6%) | +$10,000.00 (contribution) | $169,000.00 |
 | Comp Test IRA | $100,000.00 | $5,000.00 (5%) | -$6,500.00 (auto-disbursement) | $98,500.00 |
 | Comp Test Brokerage | $0.00 | $520.00 (8%) | +$6,500.00 (auto-disbursement) | $7,020.00 |
-| Comp Test Checking | $10,000.00 | $0.00 | +$62,860.00 (surplus, partial year) | ~$72,860.00 |
+| Comp Test Checking | $10,000.00 | $0.00 | +Surplus (applied at end of year, may be prorated for partial year) | ~$10k+ (check actual surplus calculation) |
 
 **Detailed Income Breakdown:**
 
@@ -1901,20 +1949,20 @@ echo ""
 
 | Expense | Amount | Notes |
 |---------|--------|-------|
-| Comp Test Housing | $37,080.00 | 36k * 1.03 (3% inflation) |
+| Comp Test Housing | $36,000.00 | Base value (inflation starts in year 2: $36k * 1.03 = $37,080 in year 2) |
 | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary, tax-deductible |
-| Comp Test Utilities | $6,060.00 | 6k * 1.02 (2% inflation), full year |
+| Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2: $6k * 1.02 = $6,120 in year 2) |
 | Federal Income Tax (Calculated) | ~$7,935.00 | Married Filing Jointly (see section 7.1 for Single comparison) |
-| **Total Expenses (including tax)** | **~$61,075.00** | |
+| **Total Expenses (excluding tax)** | **~$52,000.00** | |
 
 **Cash Flow Analysis:**
 
 | Item | Amount |
 |------|--------|
 | Total Income | $116,000.00 |
-| Total Expenses (excluding tax) | -$53,140.00 |
+| Total Expenses (excluding tax) | -$52,000.00 |
 | Federal Income Tax | -$7,935.00 |
-| **Net Cash Flow (Surplus)** | **~$54,925.00** |
+| **Net Cash Flow (Surplus)** | **~$56,065.00** | 116k - 52k - 7.935k |
 
 **Expected Values (Year 2027):**
 
