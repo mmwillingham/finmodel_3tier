@@ -1356,10 +1356,17 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # For assets/liabilities, use account_current_balances (which has the final balance after surplus)
                     # Only use account_values_for_year if the account isn't in account_current_balances (shouldn't happen)
                     if acc.name in account_current_balances:
-                        account_values[f"{display_name}_Value"] = account_current_balances[acc.name]
+                        balance_value = account_current_balances[acc.name]
+                        account_values[f"{display_name}_Value"] = balance_value
+                        # Debug logging for checking balance issue
+                        if acc.name == "Comp Test Checking" or "Checking" in acc.name:
+                            print(f"--- DEBUG: Year {year} - Set account_values['{display_name}_Value'] = {balance_value:.2f} from account_current_balances['{acc.name}'] ---"); sys.stdout.flush()
                     else:
                         # Fallback: try account_values_for_year if account_current_balances doesn't have it
-                        account_values[f"{display_name}_Value"] = account_values_for_year.get(f"{acc.name}_Value", 0.0)
+                        fallback_value = account_values_for_year.get(f"{acc.name}_Value", 0.0)
+                        account_values[f"{display_name}_Value"] = fallback_value
+                        if acc.name == "Comp Test Checking" or "Checking" in acc.name:
+                            print(f"--- DEBUG: Year {year} - Set account_values['{display_name}_Value'] = {fallback_value:.2f} from account_values_for_year (fallback) ---"); sys.stdout.flush()
             
             # Add principal/interest breakdown values (for loans) and any other breakdown values
             # BUT: Don't overwrite asset/liability _Value keys that we just set from account_current_balances
@@ -1369,6 +1376,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 # Keep _Principal, _Interest, _Payment, and other breakdown values
                 if not key.endswith("_Value") or key not in account_values:
                     account_values[key] = value
+                elif key.endswith("_Value") and key in account_values:
+                    # Debug logging for checking balance issue - this should NOT happen (we shouldn't overwrite)
+                    if "Checking" in key:
+                        print(f"--- DEBUG: Year {year} - SKIPPING overwrite of account_values['{key}'] (current={account_values.get(key, 0):.2f}, would_set={value:.2f}) - This is correct behavior ---"); sys.stdout.flush()
             
             # Ensure Federal Income Tax is always stored with the exact key the frontend expects
             # This handles cases where the Federal Tax expense item might have a different display_name
@@ -1388,6 +1399,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     account_values[federal_tax_key] = 0.0
                     print(f"--- WARNING: Year {year} - calculate_federal_tax is enabled but Federal Income Tax value not found in annual_flow_values. Setting to 0.0 ---"); sys.stdout.flush()
             
+            # Debug logging for checking balance - check final value being stored
+            checking_value_key = "Comp Test Checking_Value"
+            if checking_value_key in account_values:
+                checking_final_value = account_values[checking_value_key]
+                print(f"--- DEBUG: Year {year} - Final account_values['{checking_value_key}'] = {checking_final_value:.2f} (before storing in yearly_data_points) ---"); sys.stdout.flush()
+            
             yearly_data_points[year] = {
                 "Year": current_year + year -1, # Display actual calendar year
                 "Total Assets": current_year_total_assets,
@@ -1398,6 +1415,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 "Net Cash Flow": net_cash_flow,
                 **account_values # Individual account balances with _Value suffix
             }
+            
+            # Debug logging - check what was actually stored
+            if checking_value_key in yearly_data_points[year]:
+                stored_value = yearly_data_points[year][checking_value_key]
+                print(f"--- DEBUG: Year {year} - Stored in yearly_data_points[{year}]['{checking_value_key}'] = {stored_value:.2f} ---"); sys.stdout.flush()
 
 
         # Final value is the net worth at the end of the last projected year
