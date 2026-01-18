@@ -36,19 +36,44 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
 
   // Initialize mappings from accounts
   useEffect(() => {
-    if (accounts && accounts.length > 0) {
-      const initialMappings = accounts.map(account => ({
-        account_id: account.account_id,
-        category: account.suggested_category,
-        type: account.suggested_type, // 'asset' or 'liability'
-        account_name: account.account_name,
-        account_type: account.account_type,
-        balance: account.balance,
-        mask: account.mask
-      }));
+    if (accounts && accounts.length > 0 && (assetCategories.length > 0 || liabilityCategories.length > 0)) {
+      const initialMappings = accounts.map(account => {
+        const availableCats = account.suggested_type === 'asset' ? assetCategories : liabilityCategories;
+        let category = account.suggested_category;
+        
+        // If suggested category is not in user's category list, try to find a better match
+        if (!availableCats.includes(category)) {
+          // Try to match based on account subtype for better defaults
+          if (account.account_type === 'depository') {
+            const accountSubtype = (account.account_subtype || '').toLowerCase();
+            if (accountSubtype === 'checking' && availableCats.includes('Checking')) {
+              category = 'Checking';
+            } else if (accountSubtype === 'savings' && availableCats.includes('Savings')) {
+              category = 'Savings';
+            } else if (availableCats.length > 0) {
+              // Fall back to first available category
+              category = availableCats[0];
+            }
+          } else if (availableCats.length > 0) {
+            // For other types, use first available category
+            category = availableCats[0];
+          }
+        }
+        
+        return {
+          account_id: account.account_id,
+          category: category,
+          type: account.suggested_type, // 'asset' or 'liability'
+          account_name: account.account_name,
+          account_type: account.account_type,
+          account_subtype: account.account_subtype, // Store for debugging
+          balance: account.balance,
+          mask: account.mask
+        };
+      });
       setMappings(initialMappings);
     }
-  }, [accounts]);
+  }, [accounts, assetCategories, liabilityCategories]);
 
   const handleCategoryChange = (accountId, category) => {
     setMappings(mappings.map(m => 
@@ -281,7 +306,7 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
                       ) : (
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <select
-                            value={mapping.category}
+                            value={mapping.category || ''}
                             onChange={(e) => handleCategoryChange(mapping.account_id, e.target.value)}
                             style={{
                               padding: '6px 10px',
@@ -290,6 +315,10 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
                               flex: 1
                             }}
                           >
+                            {/* Always include the current category in options, even if not in user's list */}
+                            {!availableCategories.includes(mapping.category) && mapping.category && (
+                              <option key={mapping.category} value={mapping.category}>{mapping.category}</option>
+                            )}
                             {availableCategories.map(cat => (
                               <option key={cat} value={cat}>{cat}</option>
                             ))}
