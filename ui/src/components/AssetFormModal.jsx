@@ -127,6 +127,10 @@ export default function AssetFormModal({
           }
           setWarningMessage(""); // No warnings needed - they're separate
         } else {
+          // Prepopulate start_date with Jan 1 of current year when adding new asset
+          const currentYear = new Date().getFullYear();
+          const defaultStartDate = `${currentYear}-01-01`;
+          
           setNewItem(prev => ({
             ...prev,
             name: "",
@@ -135,7 +139,7 @@ export default function AssetFormModal({
             annual_increase_percent: 0,
             annual_change_type: "increase",
             account_id: null,
-            start_date: "",
+            start_date: defaultStartDate,
             end_date: "",
           }));
           setTrackInterestAsIncome(false);
@@ -346,7 +350,38 @@ export default function AssetFormModal({
       onClose();
     } catch (error) {
       console.error("Failed to save asset item:", error);
-      alert(`Failed to save asset: ${error.response?.data?.detail || error.message}`);
+      
+      // Extract helpful error message from response
+      let errorMessage = "Failed to save asset. Please try again.";
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.detail) {
+          // Handle different detail formats
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (Array.isArray(errorData.detail)) {
+            // Validation errors - format nicely
+            const validationErrors = errorData.detail.map(err => {
+              if (typeof err === 'object' && err.loc && err.msg) {
+                const field = err.loc[err.loc.length - 1];
+                return `${field}: ${err.msg}`;
+              }
+              return String(err);
+            }).join(', ');
+            errorMessage = `Validation error: ${validationErrors}`;
+          } else if (typeof errorData.detail === 'object') {
+            errorMessage = JSON.stringify(errorData.detail);
+          }
+        } else {
+          errorMessage = `Error: ${JSON.stringify(errorData)}`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     }
   };
 

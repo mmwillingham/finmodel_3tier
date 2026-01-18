@@ -493,7 +493,7 @@ class LiabilityCreate(BaseModel):
     loan_term_months: Optional[int] = None # NEW
     loan_start_date: Optional[str] = None # NEW: Changed from datetime to str
     monthly_payment: Optional[float] = None # NEW
-    start_date: str | None = None  # New field
+    start_date: str = Field(default_factory=lambda: f"{date.today().year}-01-01", description="Start date (YYYY-MM-DD). Defaults to January 1 of current year if not provided.")  # Required field with default
     end_date: str | None = None    # New field
     include_in_cash_flow: bool = True # New field to control if liability is included in cash flow
     decrease_by_principal_yearly: bool = False  # NEW: Option to decrease liability by principal amount each year

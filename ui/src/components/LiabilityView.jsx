@@ -186,34 +186,37 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
       <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th className="cashflow-table-cell sortable" style={{ width: '15%' }} onClick={() => handleSort('name')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '13%' }} onClick={() => handleSort('name')}>
               Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('loan_type')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('loan_type')}>
               Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('category')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('category')}>
               Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '11%' }} onClick={() => handleSort('principal_amount')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
               Curr Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('annual_increase_percent')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('annual_increase_percent')}>
               Ann Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '11%' }} onClick={() => handleSort('principal_amount')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
               Principal {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('interest_rate')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('interest_rate')}>
               Int Rate {sortConfig.key === 'interest_rate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('loan_term_months')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('loan_term_months')}>
               Term (Mo) {sortConfig.key === 'loan_term_months' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('monthly_payment')}>
+            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('monthly_payment')}>
               Monthly Pay {sortConfig.key === 'monthly_payment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell" style={{ width: '8%' }}>Actions</th>
+            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('start_date')}>
+              Start Date {sortConfig.key === 'start_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cashflow-table-cell" style={{ width: '7%' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -257,6 +260,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
               <td className="cashflow-table-cell">
                 {item.loan_type === 'amortized' ? formatCurrency(item.monthly_payment) : 'N/A'}
               </td>
+              <td className="cashflow-table-cell">{item.start_date || '-'}</td>
               <td className="action-buttons-cell">
                 <button onClick={() => handleEditLiability(item)} className="edit-icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
                 <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>

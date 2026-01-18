@@ -178,7 +178,7 @@ const AccountsSettingsPage = () => {
         setConfirmDialog({
           isOpen: true,
           title: 'Delete Brokerage with Linked Accounts?',
-          message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nDo you want to delete the brokerage and all linked accounts? Assets and liabilities linked to those accounts will have their account link removed.`,
+          message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nDo you want to delete the brokerage and all linked accounts? This will also delete all assets and liabilities linked to those accounts.\n\nPlease refresh your browser after deletion to see the updated data.`,
             onConfirm: async () => {
               try {
                 await BrokerageService.deleteBrokerage(brokerageId, true); // cascade=true

@@ -38,23 +38,28 @@ const calculateAmortizedMonthlyPayment = (principal, annualInterestRatePercent, 
   return monthlyPayment;
 };
 
-const initialNewItemState = {
-  name: "",
-  category: "Other", // Default category for liabilities
-  value: "",
-  annual_increase_percent: 0,
-  annual_change_type: "increase", // Default to increase for liabilities
-  loan_type: "ordinary", // NEW: Default loan type
-  principal_amount: "", // Changed from null to empty string for input fields
-  interest_rate: "", // Changed from null to empty string for input fields
-  loan_term_months: "", // Changed from null to empty string for input fields
-  loan_start_date: "",
-  monthly_payment: "", // Changed from null to empty string, will be calculated
-  start_date: "",
-  end_date: "",
-  decrease_by_principal_yearly: false, // NEW
-  create_payment_expense: false, // NEW
-  expense_category: "", // NEW: Category for the generated expense
+const getInitialNewItemState = () => {
+  const currentYear = new Date().getFullYear();
+  const defaultStartDate = `${currentYear}-01-01`;
+  
+  return {
+    name: "",
+    category: "Other", // Default category for liabilities
+    value: "",
+    annual_increase_percent: 0,
+    annual_change_type: "increase", // Default to increase for liabilities
+    loan_type: "ordinary", // NEW: Default loan type
+    principal_amount: "", // Changed from null to empty string for input fields
+    interest_rate: "", // Changed from null to empty string for input fields
+    loan_term_months: "", // Changed from null to empty string for input fields
+    loan_start_date: "",
+    monthly_payment: "", // Changed from null to empty string, will be calculated
+    start_date: defaultStartDate, // Pre-populate with Jan 1 of current year
+    end_date: "",
+    decrease_by_principal_yearly: false, // NEW
+    create_payment_expense: false, // NEW
+    expense_category: "", // NEW: Category for the generated expense
+  };
 };
 
 export default function LiabilityFormModal({
@@ -65,7 +70,7 @@ export default function LiabilityFormModal({
 }) {
   const [categories, setCategories] = useState([]);
   const [expenseCategories, setExpenseCategories] = useState([]);
-  const [newItem, setNewItem] = useState(initialNewItemState); // Initialize with initialState
+  const [newItem, setNewItem] = useState(getInitialNewItemState()); // Initialize with default start_date
 
   // Effect to load settings and populate item for editing or reset for new item
   useEffect(() => {
@@ -104,7 +109,7 @@ export default function LiabilityFormModal({
           // If adding a new item, reset to initial state and set default category
             console.log("Resetting form for new liability.");
           setNewItem(prev => ({
-            ...initialNewItemState,
+            ...getInitialNewItemState(),
             category: cats[0] || "Other",
           }));
           }
@@ -113,7 +118,7 @@ export default function LiabilityFormModal({
         console.error("Failed to load settings", e);
         setCategories(["Other"]);
         if (!itemToEdit) {
-          setNewItem(prev => ({ ...initialNewItemState, category: "Other" }));
+          setNewItem(prev => ({ ...getInitialNewItemState(), category: "Other" }));
         }
       }
     };
@@ -249,7 +254,38 @@ export default function LiabilityFormModal({
       onSaveSuccess();
     } catch (error) {
       console.error("Failed to save liability item. Full error object:", error);
-      alert(`Failed to save liability: ${error.response?.data?.detail || error.message}`);
+      
+      // Extract helpful error message from response
+      let errorMessage = "Failed to save liability. Please try again.";
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.detail) {
+          // Handle different detail formats
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (Array.isArray(errorData.detail)) {
+            // Validation errors - format nicely
+            const validationErrors = errorData.detail.map(err => {
+              if (typeof err === 'object' && err.loc && err.msg) {
+                const field = err.loc[err.loc.length - 1];
+                return `${field}: ${err.msg}`;
+              }
+              return String(err);
+            }).join(', ');
+            errorMessage = `Validation error: ${validationErrors}`;
+          } else if (typeof errorData.detail === 'object') {
+            errorMessage = JSON.stringify(errorData.detail);
+          }
+        } else {
+          errorMessage = `Error: ${JSON.stringify(errorData)}`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     }
   };
 

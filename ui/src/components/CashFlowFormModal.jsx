@@ -174,7 +174,7 @@ export default function CashFlowFormModal({
             annual_increase_percent: 0,
             inflation_percent: inflation, // Default to fetched inflation for new expenses
             person: "Family",
-            start_date: "",
+            start_date: `${new Date().getFullYear()}-01-01`, // Pre-populate with Jan 1 of current year
             end_date: "",
             taxable: true, // Default to true for new income items
             tax_deductible: false,
@@ -301,8 +301,38 @@ export default function CashFlowFormModal({
       onClose(); // Close the modal
     } catch (error) {
       console.error("Failed to save cash flow item:", error);
-      // Optionally, show an error message to the user
-      alert(`Failed to save item: ${error.response?.data?.detail || error.message}`);
+      
+      // Extract helpful error message from response
+      let errorMessage = "Failed to save item. Please try again.";
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.detail) {
+          // Handle different detail formats
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (Array.isArray(errorData.detail)) {
+            // Validation errors - format nicely
+            const validationErrors = errorData.detail.map(err => {
+              if (typeof err === 'object' && err.loc && err.msg) {
+                const field = err.loc[err.loc.length - 1];
+                return `${field}: ${err.msg}`;
+              }
+              return String(err);
+            }).join(', ');
+            errorMessage = `Validation error: ${validationErrors}`;
+          } else if (typeof errorData.detail === 'object') {
+            errorMessage = JSON.stringify(errorData.detail);
+          }
+        } else {
+          errorMessage = `Error: ${JSON.stringify(errorData)}`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     }
   };
 
