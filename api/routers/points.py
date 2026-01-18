@@ -28,6 +28,7 @@ class PointsBreakdown(BaseModel):
     documents: int = 0
     surplus_asset: int = 0  # 1 if surplus asset is set, 0 otherwise
     auto_disbursements: int = 0  # Count of auto-disbursements
+    plaid_connections: int = 0  # Count of connected bank accounts (Plaid items)
 
 class PointsResponse(BaseModel):
     total_points: int
@@ -50,6 +51,7 @@ def get_user_points(
     - Number of referrals that registered
     - Surplus asset configured (1 point if set)
     - Number of auto-disbursements configured
+    - Number of connected bank accounts (Plaid items) - 25 points each
     """
     try:
         # Get user ID from the current_user schema
@@ -107,6 +109,11 @@ def get_user_points(
             models.AutoDisbursement.owner_id == user_id
         ).scalar() or 0
 
+        # Count Plaid connections (connected bank accounts)
+        plaid_connections_count = db.query(func.count(models.PlaidItem.id)).filter(
+            models.PlaidItem.owner_id == user_id
+        ).scalar() or 0
+
         # Calculate total points (you can adjust the weighting here)
         total_points = (
             accounts_count * 10 +
@@ -118,7 +125,8 @@ def get_user_points(
             folders_count * 5 +  # Points for folders
             documents_count * 10 +  # Points for documents
             surplus_asset_set * 50 +  # Points for setting surplus asset
-            auto_disbursements_count * 30  # Points per auto-disbursement
+            auto_disbursements_count * 30 +  # Points per auto-disbursement
+            plaid_connections_count * 25  # Points per connected bank account
         )
 
         breakdown = PointsBreakdown(
@@ -131,7 +139,8 @@ def get_user_points(
             folders=folders_count,
             documents=documents_count,
             surplus_asset=surplus_asset_set,
-            auto_disbursements=auto_disbursements_count
+            auto_disbursements=auto_disbursements_count,
+            plaid_connections=plaid_connections_count
         )
 
         return PointsResponse(

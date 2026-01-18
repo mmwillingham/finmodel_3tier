@@ -48,21 +48,28 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
             const accountSubtype = (account.account_subtype || '').toLowerCase();
             if (accountSubtype === 'checking' && availableCats.includes('Checking')) {
               category = 'Checking';
+              console.log(`Mapped checking account ${account.account_id} to category 'Checking' (was suggested: '${account.suggested_category}')`);
             } else if (accountSubtype === 'savings' && availableCats.includes('Savings')) {
               category = 'Savings';
+              console.log(`Mapped savings account ${account.account_id} to category 'Savings' (was suggested: '${account.suggested_category}')`);
             } else if (availableCats.length > 0) {
               // Fall back to first available category
               category = availableCats[0];
+              console.log(`Mapped account ${account.account_id} to first available category '${category}' (was suggested: '${account.suggested_category}')`);
             }
           } else if (availableCats.length > 0) {
             // For other types, use first available category
             category = availableCats[0];
+            console.log(`Mapped account ${account.account_id} to first available category '${category}' (was suggested: '${account.suggested_category}')`);
           }
+        } else {
+          // Category is already in user's list, keep it
+          console.log(`Keeping suggested category '${category}' for account ${account.account_id}`);
         }
         
         return {
           account_id: account.account_id,
-          category: category,
+          category: category, // This is what will be sent to backend
           type: account.suggested_type, // 'asset' or 'liability'
           account_name: account.account_name,
           account_type: account.account_type,
@@ -71,6 +78,7 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
           mask: account.mask
         };
       });
+      console.log('Initialized mappings:', initialMappings.map(m => ({ account_id: m.account_id, category: m.category })));
       setMappings(initialMappings);
     }
   }, [accounts, assetCategories, liabilityCategories]);
@@ -150,12 +158,16 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
         }
       }
 
-      // Then apply the mappings
-      const mappingsToSend = mappings.map(m => ({
-        account_id: m.account_id,
-        category: m.category,
-        type: m.type
-      }));
+      // Then apply the mappings - ensure we send exactly what's in the mapping state
+      const mappingsToSend = mappings.map(m => {
+        // Log what we're sending for debugging
+        console.log(`Sending mapping for account ${m.account_id}: category='${m.category}', type='${m.type}'`);
+        return {
+          account_id: m.account_id,
+          category: m.category, // Send the actual category from the mapping state
+          type: m.type
+        };
+      });
 
       const response = await PlaidService.applyMappings(itemId, mappingsToSend);
       
