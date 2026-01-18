@@ -68,7 +68,7 @@ ASSET_1_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -191,7 +191,7 @@ ASSET_1_4A_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 50000,
     "annual_increase_percent": 3.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -205,7 +205,7 @@ ASSET_1_4B_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 50000,
     "annual_increase_percent": 7.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -261,7 +261,7 @@ INCOME_2_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 100000,
     "annual_increase_percent": 3.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -355,7 +355,7 @@ ASSET_2_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 1000000,
     "annual_increase_percent": 5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -370,7 +370,7 @@ INCOME_2_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     \"frequency\": \"yearly\",
     \"value\": 0,
     \"annual_increase_percent\": 0,
-    \"start_date\": null,
+    \"start_date\": \"2026-01-01\",
     \"end_date\": null,
     \"taxable\": true,
     \"linked_item_id\": ${ASSET_2_3_ID},
@@ -428,7 +428,7 @@ EXPENSE_3_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "frequency": "yearly",
     "value": 10000,
     "inflation_percent": 2.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "tax_deductible": false,
     "linked_item_id": null,
@@ -541,7 +541,7 @@ ASSET_3_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 0,
     "annual_increase_percent": 5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -620,7 +620,7 @@ ASSET_3_4_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 0,
     "annual_increase_percent": 0.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -635,7 +635,7 @@ EXPENSE_3_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     \"frequency\": \"yearly\",
     \"value\": 10000,
     \"inflation_percent\": 0.0,
-    \"start_date\": null,
+    \"start_date\": \"2026-01-01\",
     \"end_date\": null,
     \"tax_deductible\": false,
     \"linked_item_id\": null,
@@ -686,7 +686,7 @@ LIABILITY_4_1_ID=$(curl -s -X POST "${API_BASE}/liabilities/" \
     "value": 50000,
     "annual_increase_percent": 0,
     "loan_type": "ordinary",
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -728,7 +728,7 @@ LIABILITY_4_2_ID=$(curl -s -X POST "${API_BASE}/liabilities/" \
     "value": 50000,
     "annual_increase_percent": 3.0,
     "loan_type": "ordinary",
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -884,7 +884,7 @@ INCOME_5_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 100000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -965,7 +965,7 @@ INCOME_5_2A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 80000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -985,7 +985,7 @@ INCOME_5_2B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 20000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -1048,7 +1048,7 @@ INCOME_5_3A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 100000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -1068,7 +1068,7 @@ INCOME_5_3B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 20000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": false,
     "linked_item_id": null,
@@ -1134,7 +1134,7 @@ ASSET_6_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -1205,7 +1205,7 @@ ASSET_6_2A_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 100000,
     "annual_increase_percent": 5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -1219,7 +1219,7 @@ ASSET_6_2B_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 0,
     "annual_increase_percent": 3.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -1290,7 +1290,7 @@ INCOME_6_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 100000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -1310,7 +1310,7 @@ EXPENSE_6_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "frequency": "yearly",
     "value": 80000,
     "inflation_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "tax_deductible": false,
     "linked_item_id": null,
@@ -1329,7 +1329,7 @@ ASSET_6_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 0,
     "annual_increase_percent": 0.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -1394,7 +1394,7 @@ ASSET_6_4_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 1000000,
     "annual_increase_percent": 5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -1409,7 +1409,7 @@ INCOME_6_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     \"frequency\": \"yearly\",
     \"value\": 0,
     \"annual_increase_percent\": 0,
-    \"start_date\": null,
+    \"start_date\": \"2026-01-01\",
     \"end_date\": null,
     \"taxable\": true,
     \"linked_item_id\": ${ASSET_6_4_ID},
@@ -1428,7 +1428,7 @@ ASSET_6_4B_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 0,
     "annual_increase_percent": 3.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -1443,7 +1443,7 @@ EXPENSE_6_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     \"frequency\": \"yearly\",
     \"value\": 0,
     \"inflation_percent\": 0,
-    \"start_date\": null,
+    \"start_date\": \"2026-01-01\",
     \"end_date\": null,
     \"tax_deductible\": false,
     \"linked_item_id\": ${INCOME_6_4_ID},
@@ -1548,7 +1548,7 @@ ASSET_6_5_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 10000,
     "annual_increase_percent": 0.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -1702,7 +1702,7 @@ create_asset() {
   local category="$2"
   local value="$3"
   local annual_increase="$4"
-  local start_date="${5:-null}"
+  local start_date="${5:-2026-01-01}"
   local end_date="${6:-null}"
   
   # Handle date strings - quote them if they're not null
@@ -1754,7 +1754,7 @@ create_cashflow() {
   local description="$3"
   local value="$4"
   local annual_increase="$5"
-  local start_date="${6:-null}"
+  local start_date="${6:-2026-01-01}"
   local end_date="${7:-null}"
   local taxable="${8:-false}"
   local linked_item_id="${9:-null}"
@@ -1838,7 +1838,7 @@ create_liability() {
   local interest_rate="${7:-null}"
   local loan_term_months="${8:-null}"
   local loan_start_date="${9:-null}"
-  local start_date="${10:-null}"
+  local start_date="${10:-2026-01-01}"
   local end_date="${11:-null}"
   
   # Handle date strings - quote them if they're not null
@@ -1988,7 +1988,7 @@ echo "Created Car Loan Liability ID: $LIABILITY_CAR"
 echo "Creating income items..."
 
 # Income 1: Fixed salary with growth
-INCOME_SAL=$(create_cashflow true "Salary, Wages, Tips" "Comp Test Salary" 100000 3.0)
+INCOME_SAL=$(create_cashflow true "Salary, Wages, Tips" "Comp Test Salary" 100000 3.0 "2026-01-01")
 if [ $? -ne 0 ] || [ -z "$INCOME_SAL" ] || [ "$INCOME_SAL" = "null" ]; then
   echo "ERROR: Failed to create Salary Income"
   exit 1
@@ -1999,7 +1999,7 @@ echo "Created Salary Income ID: $INCOME_SAL"
 # Income 2: Dynamic income linked to investment (dividends, reinvested via UI)
 # NOTE: For this test, we'll create it manually. In practice, enable "Track Dividends as Taxable Income"
 # on Comp Test Investment asset in the UI to auto-generate this.
-INCOME_DIV=$(create_cashflow true "Dividends (qualified)" "Comp Test Investment Dividends" 0 0 null null true "$ASSET_INV" "asset" 2.0 "Family")
+INCOME_DIV=$(create_cashflow true "Dividends (qualified)" "Comp Test Investment Dividends" 0 0 "2026-01-01" null true "$ASSET_INV" "asset" 2.0 "Family")
 if [ $? -ne 0 ] || [ -z "$INCOME_DIV" ] || [ "$INCOME_DIV" = "null" ]; then
   echo "ERROR: Failed to create Dividend Income"
   exit 1
@@ -2020,7 +2020,7 @@ echo "Created Rental Income ID: $INCOME_RENT"
 echo "Creating expense items..."
 
 # Expense 1: Fixed housing expense with inflation
-EXPENSE_HOUSING=$(create_cashflow false "Housing" "Comp Test Housing" 36000 3.0)
+EXPENSE_HOUSING=$(create_cashflow false "Housing" "Comp Test Housing" 36000 3.0 "2026-01-01")
 if [ $? -ne 0 ] || [ -z "$EXPENSE_HOUSING" ] || [ "$EXPENSE_HOUSING" = "null" ]; then
   echo "ERROR: Failed to create Housing Expense"
   exit 1
@@ -2029,7 +2029,7 @@ EXPENSE_IDS+=("$EXPENSE_HOUSING")
 echo "Created Housing Expense ID: $EXPENSE_HOUSING"
 
 # Expense 2: Dynamic expense linked to income (401K contribution - 10% of salary)
-EXPENSE_401K=$(create_cashflow false "Investments" "Comp Test 401K Contribution" 0 0 null null true "$INCOME_SAL" "income" 10.0 "Family" "$ASSET_401K")
+EXPENSE_401K=$(create_cashflow false "Investments" "Comp Test 401K Contribution" 0 0 "2026-01-01" null true "$INCOME_SAL" "income" 10.0 "Family" "$ASSET_401K")
 if [ $? -ne 0 ] || [ -z "$EXPENSE_401K" ] || [ "$EXPENSE_401K" = "null" ]; then
   echo "ERROR: Failed to create 401K Contribution Expense"
   exit 1
@@ -2038,7 +2038,7 @@ EXPENSE_IDS+=("$EXPENSE_401K")
 echo "Created 401K Contribution Expense ID: $EXPENSE_401K"
 
 # Expense 3: Fixed expense with partial year (ends mid-year)
-EXPENSE_UTIL=$(create_cashflow false "Utilities" "Comp Test Utilities" 6000 2.0 null "2027-06-30")
+EXPENSE_UTIL=$(create_cashflow false "Utilities" "Comp Test Utilities" 6000 2.0 "2026-01-01" "2027-06-30")
 if [ $? -ne 0 ] || [ -z "$EXPENSE_UTIL" ] || [ "$EXPENSE_UTIL" = "null" ]; then
   echo "ERROR: Failed to create Utilities Expense"
   exit 1
@@ -2429,7 +2429,7 @@ INCOME_TAX_TEST_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 100000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -2619,7 +2619,7 @@ ASSET_7_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 0,
     "annual_increase_percent": 5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -2634,7 +2634,7 @@ INCOME_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 0,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
@@ -2654,7 +2654,7 @@ EXPENSE_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "frequency": "yearly",
     "value": 0,
     "inflation_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "tax_deductible": false,
     "linked_item_id": null,
@@ -2704,7 +2704,7 @@ ASSET_7_2_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 100000,
     "annual_increase_percent": -5.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -2745,7 +2745,7 @@ ASSET_7_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "value": 100000,
     "annual_increase_percent": 50.0,
     "account_id": null,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null
   }' | jq -r '.id')
 
@@ -2862,7 +2862,7 @@ EXPENSE_8_1A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "frequency": "yearly",
     "value": 5000,
     "inflation_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "tax_deductible": false,
     "linked_item_id": null,
@@ -2881,7 +2881,7 @@ EXPENSE_8_1B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "frequency": "yearly",
     "value": 3000,
     "inflation_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "tax_deductible": false,
     "linked_item_id": null,
@@ -2900,7 +2900,7 @@ EXPENSE_8_1C_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "frequency": "yearly",
     "value": 2000,
     "inflation_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "tax_deductible": false,
     "linked_item_id": null,
@@ -2984,7 +2984,7 @@ EXPENSE_8_2_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "frequency": "yearly",
     "value": 20000,
     "inflation_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "tax_deductible": true,
     "linked_item_id": null,
@@ -3052,7 +3052,7 @@ INCOME_8_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "frequency": "yearly",
     "value": 100000,
     "annual_increase_percent": 0.0,
-    "start_date": null,
+    "start_date": "2026-01-01",
     "end_date": null,
     "taxable": true,
     "linked_item_id": null,
