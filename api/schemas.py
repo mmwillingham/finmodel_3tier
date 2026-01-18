@@ -394,6 +394,27 @@ class PlaidItemOut(BaseModel):
     last_successful_update: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
+class PlaidAccountPreview(BaseModel):
+    """Preview of an account from Plaid before mapping"""
+    account_id: str
+    account_name: str
+    account_type: str  # 'investment', 'depository', 'credit', etc.
+    account_subtype: Optional[str] = None
+    balance: float
+    mask: Optional[str] = None
+    suggested_category: str  # Suggested category based on account type
+    suggested_type: str  # 'asset' or 'liability'
+
+class PlaidAccountMapping(BaseModel):
+    """User-defined mapping for a Plaid account"""
+    account_id: str
+    category: str
+    type: str  # 'asset' or 'liability'
+
+class PlaidApplyMappingsRequest(BaseModel):
+    """Request to apply mappings and create assets/liabilities"""
+    mappings: List[PlaidAccountMapping]
+
 # --- ACCOUNT SCHEMAS ---
 
 class AccountCreate(BaseModel):

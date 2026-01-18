@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import PlaidService from "../services/plaid.service";
 import AssetService from "../services/asset.service";
+import PlaidAccountMappingModal from "./PlaidAccountMappingModal";
 import "./PlaidLinkButton.css";
 
 /**
@@ -14,6 +15,9 @@ function PlaidLinkButton({ onSuccess, onError }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showMappingModal, setShowMappingModal] = useState(false);
+  const [currentItemId, setCurrentItemId] = useState(null);
+  const [accountPreviews, setAccountPreviews] = useState([]);
 
   // Fetch link token on mount
   useEffect(() => {
@@ -50,18 +54,21 @@ function PlaidLinkButton({ onSuccess, onError }) {
       const exchangeResponse = await PlaidService.exchangePublicToken(publicToken);
       const itemId = exchangeResponse.data.item_id;
 
-      // Sync accounts to create assets
-      const syncResponse = await PlaidService.syncAccounts(itemId);
+      // Preview accounts for mapping
+      const previewResponse = await PlaidService.previewAccounts(itemId);
+      const accounts = previewResponse.data;
       
-      console.log("Plaid accounts synced:", syncResponse.data);
-
-      // Call success callback if provided
-      if (onSuccess) {
-        onSuccess(syncResponse.data);
+      if (accounts && accounts.length > 0) {
+        // Show mapping modal
+        setCurrentItemId(itemId);
+        setAccountPreviews(accounts);
+        setShowMappingModal(true);
+      } else {
+        // No accounts to map, just call success
+        if (onSuccess) {
+          onSuccess({ status: 'success', items: [] });
+        }
       }
-
-      // Optionally refresh assets list
-      // This will be handled by parent component if needed
     } catch (err) {
       console.error("Error connecting Plaid account:", err);
       const errorMessage = err.response?.data?.detail || "Failed to connect account. Please try again.";
@@ -72,6 +79,23 @@ function PlaidLinkButton({ onSuccess, onError }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMappingSuccess = (result) => {
+    setShowMappingModal(false);
+    setCurrentItemId(null);
+    setAccountPreviews([]);
+    
+    // Call success callback if provided
+    if (onSuccess) {
+      onSuccess(result);
+    }
+  };
+
+  const handleMappingClose = () => {
+    setShowMappingModal(false);
+    setCurrentItemId(null);
+    setAccountPreviews([]);
   };
 
   // Initialize Plaid Link
@@ -129,27 +153,38 @@ function PlaidLinkButton({ onSuccess, onError }) {
   }
 
   return (
-    <button
-      className="btn-primary-modern plaid-connect-btn"
-      onClick={handleClick}
-      disabled={!ready || loading || !linkToken}
-      style={{
-        opacity: (!ready || loading || !linkToken) ? 0.6 : 1,
-        cursor: (!ready || loading || !linkToken) ? "not-allowed" : "pointer",
-      }}
-    >
-      {loading ? (
-        <>
-          <span className="spinner" style={{ marginRight: "8px" }}>⏳</span>
-          Connecting...
-        </>
-      ) : (
-        <>
-          <span style={{ marginRight: "8px" }}>🏦</span>
-          Connect Bank Account
-        </>
+    <>
+      <button
+        className="btn-primary-modern plaid-connect-btn"
+        onClick={handleClick}
+        disabled={!ready || loading || !linkToken}
+        style={{
+          opacity: (!ready || loading || !linkToken) ? 0.6 : 1,
+          cursor: (!ready || loading || !linkToken) ? "not-allowed" : "pointer",
+        }}
+      >
+        {loading ? (
+          <>
+            <span className="spinner" style={{ marginRight: "8px" }}>⏳</span>
+            Connecting...
+          </>
+        ) : (
+          <>
+            <span style={{ marginRight: "8px" }}>🏦</span>
+            Connect Bank Account
+          </>
+        )}
+      </button>
+      
+      {showMappingModal && currentItemId && (
+        <PlaidAccountMappingModal
+          itemId={currentItemId}
+          accounts={accountPreviews}
+          onClose={handleMappingClose}
+          onSuccess={handleMappingSuccess}
+        />
       )}
-    </button>
+    </>
   );
 }
 

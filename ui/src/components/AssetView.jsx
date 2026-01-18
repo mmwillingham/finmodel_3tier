@@ -8,7 +8,7 @@ import PlaidLinkButton from "./PlaidLinkButton";
 import PlaidConnections from "./PlaidConnections";
 import "./AssetView.css";
 
-export default function AssetView({ assets, refreshAssets, refreshCashflow, accounts = [] }) {
+export default function AssetView({ assets, refreshAssets, refreshCashflow, accounts = [], validCategories = [] }) {
   const [showAssetModal, setShowAssetModal] = useState(false); // State to control modal visibility
   const [selectedAsset, setSelectedAsset] = useState(null); // State to hold asset being edited
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
@@ -237,14 +237,38 @@ export default function AssetView({ assets, refreshAssets, refreshCashflow, acco
           {sortedAssets.map((item) => {
             // Check for missing required fields (name, category, value)
             // Note: value of 0 is allowed (TESTING_PLAN.md test 2.4 assumes 0 is valid)
-            const hasMissingFields = !item.name || !item.category || (item.value === null || item.value === undefined);
-            const rowStyle = hasMissingFields ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {};
-            const missingFields = [!item.name && 'Name', !item.category && 'Category', (item.value === null || item.value === undefined) && 'Value'].filter(Boolean);
+            const categoryValue = item.category && typeof item.category === 'string' ? item.category.trim() : (item.category || '');
+            const categoryMissing = !categoryValue || (validCategories.length > 0 && !validCategories.includes(categoryValue));
+            const nameMissing = !item.name;
+            const valueMissing = (item.value === null || item.value === undefined);
+            const hasMissingFields = nameMissing || categoryMissing || valueMissing;
+            
+            // Different colors for different states - blue for invalid category (similar to income items)
+            let rowStyle = {};
+            if (categoryMissing && categoryValue) {
+              // Category exists but is invalid (blue highlight - similar to income items)
+              rowStyle = { backgroundColor: '#e7f3ff', borderLeft: '4px solid #0066cc' };
+            } else if (hasMissingFields) {
+              // Missing required fields (yellow/warning)
+              rowStyle = { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' };
+            }
+            
+            const missingFields = [nameMissing && 'Name', !categoryValue && 'Category', categoryMissing && categoryValue && 'Invalid Category', valueMissing && 'Value'].filter(Boolean);
             
             return (
             <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
               <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Name</span>}</td>
-              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Category</span>}</td>
+              <td className="cashflow-table-cell">
+                {categoryValue ? (
+                  categoryMissing ? (
+                    <span style={{ color: '#0066cc', fontStyle: 'italic', fontWeight: 'bold' }}>{item.category} (Invalid)</span>
+                  ) : (
+                    item.category
+                  )
+                ) : (
+                  <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Category</span>
+                )}
+              </td>
               <td className="cashflow-table-cell">{item.account_id ? (accountMap.get(item.account_id) || '-') : '-'}</td>
               <td className="cashflow-table-cell">{formatCurrency(item.value)}</td>
               <td className="cashflow-table-cell">{item.annual_change_type}</td>

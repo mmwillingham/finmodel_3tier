@@ -637,6 +637,7 @@ export default function SidebarLayout() {
               refreshAssets={refreshAssets}
               refreshCashflow={refreshCashflow}
               accounts={accounts}
+              validCategories={userSettings?.asset_categories || []}
             />
           </div>
         )}

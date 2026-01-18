@@ -27,6 +27,18 @@ const PlaidService = {
   deleteItem: (itemId) => {
     return ApiService.delete(`/plaid/items/${itemId}`);
   },
+
+  // Preview accounts from a Plaid item (for mapping)
+  previewAccounts: (itemId) => {
+    return ApiService.get(`/plaid/preview-accounts/${itemId}`);
+  },
+
+  // Apply mappings to create assets/liabilities
+  applyMappings: (itemId, mappings) => {
+    return ApiService.post(`/plaid/apply-mappings/${itemId}`, {
+      mappings: mappings
+    });
+  },
 };
 
 export default PlaidService;

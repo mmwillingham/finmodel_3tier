@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PlaidService from "../services/plaid.service";
 import AssetService from "../services/asset.service";
+import PlaidAccountMappingModal from "./PlaidAccountMappingModal";
 import "./PlaidLinkButton.css";
 
 /**
@@ -14,6 +15,9 @@ function PlaidConnections({ onSyncSuccess }) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState({});
   const [error, setError] = useState(null);
+  const [showMappingModal, setShowMappingModal] = useState(false);
+  const [currentItemId, setCurrentItemId] = useState(null);
+  const [accountPreviews, setAccountPreviews] = useState([]);
 
   // Fetch connected items
   useEffect(() => {
@@ -44,17 +48,18 @@ function PlaidConnections({ onSyncSuccess }) {
       setSyncing((prev) => ({ ...prev, [itemId]: true }));
       setError(null);
 
-      const response = await PlaidService.syncAccounts(itemId);
+      // Preview accounts for mapping
+      const previewResponse = await PlaidService.previewAccounts(itemId);
+      const accounts = previewResponse.data;
       
-      console.log("Accounts synced:", response.data);
-
-      // Call success callback to refresh assets
-      if (onSyncSuccess) {
-        onSyncSuccess(response.data);
+      if (accounts && accounts.length > 0) {
+        // Show mapping modal
+        setCurrentItemId(itemId);
+        setAccountPreviews(accounts);
+        setShowMappingModal(true);
+      } else {
+        alert("No accounts found to sync.");
       }
-
-      // Show success message
-      alert(`Successfully synced ${response.data.accounts_synced} account(s). ${response.data.assets_created_or_updated} asset(s) created or updated.`);
     } catch (err) {
       console.error("Error syncing accounts:", err);
       const errorMessage = err.response?.data?.detail || "Failed to sync accounts. Please try again.";
@@ -63,6 +68,27 @@ function PlaidConnections({ onSyncSuccess }) {
     } finally {
       setSyncing((prev) => ({ ...prev, [itemId]: false }));
     }
+  };
+
+  const handleMappingSuccess = (result) => {
+    setShowMappingModal(false);
+    setCurrentItemId(null);
+    setAccountPreviews([]);
+    
+    // Call success callback to refresh assets
+    if (onSyncSuccess) {
+      onSyncSuccess(result);
+    }
+
+    // Show success message
+    const itemCount = result.items ? result.items.length : 0;
+    alert(`Successfully synced ${itemCount} account(s).`);
+  };
+
+  const handleMappingClose = () => {
+    setShowMappingModal(false);
+    setCurrentItemId(null);
+    setAccountPreviews([]);
   };
 
   const handleDisconnect = async (itemId) => {
@@ -90,52 +116,63 @@ function PlaidConnections({ onSyncSuccess }) {
   }
 
   return (
-    <div className="plaid-connections">
-      <h3 style={{ marginBottom: "15px", fontSize: "1.2rem" }}>Connected Bank Accounts</h3>
-      
-      {error && (
-        <div className="plaid-error">
-          <p style={{ color: "#dc3545", margin: 0 }}>{error}</p>
-        </div>
-      )}
+    <>
+      <div className="plaid-connections">
+        <h3 style={{ marginBottom: "15px", fontSize: "1.2rem" }}>Connected Bank Accounts</h3>
+        
+        {error && (
+          <div className="plaid-error">
+            <p style={{ color: "#dc3545", margin: 0 }}>{error}</p>
+          </div>
+        )}
 
-      {items.map((item) => (
-        <div key={item.item_id} className="plaid-connection-item">
-          <div className="plaid-connection-info">
-            <div className="plaid-connection-name">
-              {item.institution_name || "Connected Institution"}
+        {items.map((item) => (
+          <div key={item.item_id} className="plaid-connection-item">
+            <div className="plaid-connection-info">
+              <div className="plaid-connection-name">
+                {item.institution_name || "Connected Institution"}
+              </div>
+              <div className="plaid-connection-meta">
+                Connected: {new Date(item.created_at).toLocaleDateString()}
+                {item.last_successful_update && (
+                  <> • Last synced: {new Date(item.last_successful_update).toLocaleDateString()}</>
+                )}
+              </div>
             </div>
-            <div className="plaid-connection-meta">
-              Connected: {new Date(item.created_at).toLocaleDateString()}
-              {item.last_successful_update && (
-                <> • Last synced: {new Date(item.last_successful_update).toLocaleDateString()}</>
-              )}
+            <div className="plaid-connection-actions">
+              <button
+                className="btn-primary-modern"
+                onClick={() => handleSync(item.item_id)}
+                disabled={syncing[item.item_id]}
+                style={{ fontSize: "0.9em", padding: "6px 12px" }}
+              >
+                {syncing[item.item_id] ? "Syncing..." : "Sync Now"}
+              </button>
+              <button
+                className="btn-primary-modern"
+                onClick={() => handleDisconnect(item.item_id)}
+                style={{
+                  fontSize: "0.9em",
+                  padding: "6px 12px",
+                  backgroundColor: "#dc3545",
+                }}
+              >
+                Disconnect
+              </button>
             </div>
           </div>
-          <div className="plaid-connection-actions">
-            <button
-              className="btn-primary-modern"
-              onClick={() => handleSync(item.item_id)}
-              disabled={syncing[item.item_id]}
-              style={{ fontSize: "0.9em", padding: "6px 12px" }}
-            >
-              {syncing[item.item_id] ? "Syncing..." : "Sync Now"}
-            </button>
-            <button
-              className="btn-primary-modern"
-              onClick={() => handleDisconnect(item.item_id)}
-              style={{
-                fontSize: "0.9em",
-                padding: "6px 12px",
-                backgroundColor: "#dc3545",
-              }}
-            >
-              Disconnect
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+      
+      {showMappingModal && currentItemId && (
+        <PlaidAccountMappingModal
+          itemId={currentItemId}
+          accounts={accountPreviews}
+          onClose={handleMappingClose}
+          onSuccess={handleMappingSuccess}
+        />
+      )}
+    </>
   );
 }
 

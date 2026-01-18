@@ -14,6 +14,7 @@ from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
 from plaid.model.accounts_get_request import AccountsGetRequest
 from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
+from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
 import config
 import logging
 
@@ -336,6 +337,40 @@ class PlaidService:
             
         except Exception as e:
             logger.error(f"Error getting item info: {str(e)}")
+            return None
+    
+    def get_institution_name(self, institution_id: str) -> Optional[str]:
+        """
+        Get institution name by institution ID.
+        
+        Args:
+            institution_id: Plaid institution ID
+            
+        Returns:
+            Institution name string or None if error
+        """
+        if not self.is_configured() or not institution_id:
+            return None
+            
+        try:
+            request = InstitutionsGetByIdRequest(
+                institution_id=institution_id,
+                country_codes=[CountryCode('US')]  # Default to US, can be made configurable
+            )
+            response = self.client.institutions_get_by_id(request)
+            
+            # Handle both dict and object responses
+            if isinstance(response, dict):
+                institution = response.get('institution', {})
+                return institution.get('name')
+            else:
+                institution = getattr(response, 'institution', None)
+                if institution:
+                    return getattr(institution, 'name', None)
+                return None
+            
+        except Exception as e:
+            logger.error(f"Error getting institution name: {str(e)}")
             return None
 
 
