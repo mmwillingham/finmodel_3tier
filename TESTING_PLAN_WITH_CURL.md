@@ -1486,6 +1486,130 @@ echo "Deleted Expense ID: $EXPENSE_6_4_ID, Income ID: $INCOME_6_4_ID, Asset IDs:
 
 ---
 
+### 6.5 Partial-Year Proration in Cash Flow Totals and Surplus
+
+**Description:** Tests that partial-year income and expense items are correctly prorated in cash flow totals (income_flow, expense_flow) and surplus calculations. This verifies that items active for only part of the year (e.g., starting mid-year or ending mid-year) are counted proportionally rather than as full-year amounts when calculating surplus/deficit transfers to the surplus asset.
+
+**Setup:**
+```bash
+# Create partial-year income (starts 8/1/2026 = 5 months in year 1, full year thereafter)
+INCOME_6_5_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Salary, Wages, Tips",
+    "description": "Test Income 6.5",
+    "frequency": "yearly",
+    "value": 48000,
+    "annual_increase_percent": 0.0,
+    "start_date": "2026-08-01",
+    "end_date": null,
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+
+# Create partial-year expense (starts 7/1/2026 = 6 months in year 1, full year thereafter)
+EXPENSE_6_5_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": false,
+    "category": "Housing",
+    "description": "Test Expense 6.5",
+    "frequency": "yearly",
+    "value": 36000,
+    "inflation_percent": 0.0,
+    "start_date": "2026-07-01",
+    "end_date": null,
+    "tax_deductible": false,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+
+# Create surplus asset
+ASSET_6_5_ID=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Surplus Asset 6.5",
+    "category": "Checking",
+    "value": 10000,
+    "annual_increase_percent": 0.0,
+    "account_id": null,
+    "start_date": null,
+    "end_date": null
+  }' | jq -r '.id')
+
+# Set surplus asset in user settings
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"surplus_asset_id\": ${ASSET_6_5_ID}
+  }" > /dev/null
+
+echo "Created Income ID: $INCOME_6_5_ID, Expense ID: $EXPENSE_6_5_ID, Asset ID: $ASSET_6_5_ID"
+echo "Set surplus asset to Asset ID: $ASSET_6_5_ID"
+```
+
+**Expected Values:**
+
+**Year 2026 (Partial Year):**
+- Income: ~$20,000.00 ($48,000 * 5/12 months, August-December)
+- Expense: ~$18,000.00 ($36,000 * 6/12 months, July-December)
+- Surplus: ~$2,000.00 ($20,000 - $18,000)
+- Surplus Asset Balance: ~$12,000.00 ($10,000 initial + $2,000 surplus)
+
+**Year 2027 (Full Year):**
+- Income: $48,000.00 (full year)
+- Expense: $36,000.00 (full year)
+- Surplus: $12,000.00 ($48,000 - $36,000)
+- Surplus Asset Balance: ~$24,000.00 ($12,000 previous + $12,000 surplus)
+
+**Year 2028 (Full Year):**
+- Income: $48,000.00 (full year)
+- Expense: $36,000.00 (full year)
+- Surplus: $12,000.00 ($48,000 - $36,000)
+- Surplus Asset Balance: ~$36,000.00 ($24,000 previous + $12,000 surplus)
+
+**Key Verification Points:**
+1. **Income Flow:** Total income for 2026 should be ~$20,000 (prorated), not $48,000 (full year)
+2. **Expense Flow:** Total expenses for 2026 should be ~$18,000 (prorated), not $36,000 (full year)
+3. **Surplus Calculation:** Surplus for 2026 should be ~$2,000 based on prorated values, not $12,000 (which would be full-year - full-year)
+4. **Surplus Asset:** The surplus asset balance should reflect prorated surplus amounts, not full-year amounts
+
+**Verify in:**
+- Cash Flow Overview (check income, expense, and surplus totals)
+- Balance Sheet Projections (check surplus asset balance)
+- Custom Charts (verify income and expense flows match expected prorated values)
+
+**Cleanup:**
+```bash
+# Reset surplus asset setting
+curl -s -X PUT "${API_BASE}/settings/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "surplus_asset_id": null
+  }' > /dev/null
+
+curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_6_5_ID}" \
+  -H "Authorization: Bearer ${TOKEN}"
+curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_6_5_ID}" \
+  -H "Authorization: Bearer ${TOKEN}"
+curl -s -X DELETE "${API_BASE}/assets/${ASSET_6_5_ID}" \
+  -H "Authorization: Bearer ${TOKEN}"
+echo "Reset surplus asset and deleted Income ID: $INCOME_6_5_ID, Expense ID: $EXPENSE_6_5_ID, Asset ID: $ASSET_6_5_ID"
+```
+
+---
+
 ## 7.1 Comprehensive Integration Test (All Features)
 
 **CSV Results Template:** Use `COMPREHENSIVE_TEST_RESULTS_TEMPLATE.csv` to record expected vs actual values for easy comparison.
