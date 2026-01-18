@@ -90,16 +90,22 @@ class PlaidService:
             # Convert country code strings to CountryCode enum
             country_codes = [CountryCode(code) for code in config.settings.PLAID_COUNTRY_CODES]
             
-            request = LinkTokenCreateRequest(
-                products=products,
-                client_name="Financial Model",
-                country_codes=country_codes,
-                language='en',
-                user=LinkTokenCreateRequestUser(
+            # Build request parameters - only include redirect_uri if it's set (it's optional)
+            request_params = {
+                'products': products,
+                'client_name': "Financial Model",
+                'country_codes': country_codes,
+                'language': 'en',
+                'user': LinkTokenCreateRequestUser(
                     client_user_id=str(user_id)
-                ),
-                redirect_uri=config.settings.PLAID_REDIRECT_URI if config.settings.PLAID_REDIRECT_URI else None
-            )
+                )
+            }
+            
+            # Only include redirect_uri if it's configured (required for OAuth flows)
+            if config.settings.PLAID_REDIRECT_URI:
+                request_params['redirect_uri'] = config.settings.PLAID_REDIRECT_URI
+            
+            request = LinkTokenCreateRequest(**request_params)
             
             response = self.client.link_token_create(request)
             # Handle both dict and object responses
