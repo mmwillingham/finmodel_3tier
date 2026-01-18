@@ -746,8 +746,22 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         if not is_active_for_year and projected_account.account_type in ["income", "expense"]:
                             adjusted_annual_contribution = 0.0
                         else:
-                            # Monthly contribution
-                            adjusted_annual_contribution = projected_account.contribution * 12
+                            # Check if this is a one-time expense/income (start_date == end_date)
+                            is_one_time = (projected_account.start_date and 
+                                         projected_account.end_date and 
+                                         projected_account.start_date == projected_account.end_date and
+                                         projected_account.account_type in ["income", "expense"])
+                            
+                            if is_one_time:
+                                # For one-time items, contribution is already set to yearly_value/12 by frontend,
+                                # but we should treat it as the full amount for that year
+                                # Multiply by 12 to get the full amount (since frontend divides by 12)
+                                # This will then be multiplied by year_fraction (1.0 for one-time) to get the full value
+                                adjusted_annual_contribution = projected_account.contribution * 12
+                            else:
+                                # For recurring items (monthly/yearly), contribution is monthly, multiply by 12 to get annual
+                                adjusted_annual_contribution = projected_account.contribution * 12
+                            
                             # Contributions to liabilities/expenses are negative cash flow
                             if projected_account.account_type in ["liability", "expense"]:
                                 adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution

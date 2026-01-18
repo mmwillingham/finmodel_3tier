@@ -409,6 +409,55 @@ echo "Deleted Income ID: $INCOME_2_3_ID, Asset ID: $ASSET_2_3_ID"
 
 ---
 
+### 2.4 One-Time Income
+
+**Description:** Tests one-time income that occurs on a specific date. Verifies that the income amount is applied once in the year the date falls in, and not in other years.
+
+**Setup:**
+```bash
+# Create one-time income
+INCOME_2_4_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Salary, Wages, Tips",
+    "description": "Test Income 2.4 - One-Time Bonus",
+    "frequency": "one-time",
+    "value": 50000,
+    "annual_increase_percent": 0.0,
+    "start_date": "2027-06-15",
+    "end_date": "2027-06-15",
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+
+echo "Created One-Time Income ID: $INCOME_2_4_ID"
+```
+
+**Expected Values:**
+- Year 2026: $0.00 (one-time income not yet occurred)
+- Year 2027: $50,000.00 (full amount applied in the year the date falls in)
+- Year 2028: $0.00 (one-time income already occurred)
+
+**Verify in:**
+- Custom Charts (income should appear only in 2027)
+- Cash Flow Overview (all views)
+- Balance Sheet Projections (should affect net worth only in 2027)
+- Tax calculations (should be included in taxable income for 2027)
+
+**Cleanup:**
+```bash
+curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_2_4_ID}" \
+  -H "Authorization: Bearer ${TOKEN}"
+echo "Deleted One-Time Income ID: $INCOME_2_4_ID"
+```
+
+---
+
 ## 3. Expense Calculations
 
 ### 3.1 Fixed Expense with Inflation
@@ -664,6 +713,55 @@ curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_3_4_ID}" \
 curl -s -X DELETE "${API_BASE}/assets/${ASSET_3_4_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
 echo "Deleted Expense ID: $EXPENSE_3_4_ID, Asset ID: $ASSET_3_4_ID"
+```
+
+---
+
+### 3.5 One-Time Expense
+
+**Description:** Tests one-time expense that occurs on a specific date. Verifies that the expense amount is applied once in the year the date falls in, and not in other years.
+
+**Setup:**
+```bash
+# Create one-time expense
+EXPENSE_3_5_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": false,
+    "category": "Housing",
+    "description": "Test Expense 3.5 - One-Time Home Repair",
+    "frequency": "one-time",
+    "value": 25000,
+    "inflation_percent": 0.0,
+    "start_date": "2027-09-01",
+    "end_date": "2027-09-01",
+    "tax_deductible": false,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+
+echo "Created One-Time Expense ID: $EXPENSE_3_5_ID"
+```
+
+**Expected Values:**
+- Year 2026: $0.00 (one-time expense not yet occurred)
+- Year 2027: $25,000.00 (full amount applied in the year the date falls in)
+- Year 2028: $0.00 (one-time expense already occurred)
+
+**Verify in:**
+- Custom Charts (expense should appear only in 2027)
+- Cash Flow Overview (all views)
+- Balance Sheet Projections (should affect net worth only in 2027)
+- Tax calculations (if tax_deductible=true, should reduce taxable income for 2027)
+
+**Cleanup:**
+```bash
+curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_3_5_ID}" \
+  -H "Authorization: Bearer ${TOKEN}"
+echo "Deleted One-Time Expense ID: $EXPENSE_3_5_ID"
 ```
 
 ---
@@ -1932,6 +2030,28 @@ INCOME_RENT=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
 INCOME_IDS+=("$INCOME_RENT")
 echo "Created Rental Income ID: $INCOME_RENT"
 
+# Income 4: One-time bonus (TAXABLE)
+INCOME_BONUS=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Salary, Wages, Tips",
+    "description": "Comp Test One-Time Bonus",
+    "frequency": "one-time",
+    "value": 15000,
+    "annual_increase_percent": 0.0,
+    "start_date": "2027-03-15",
+    "end_date": "2027-03-15",
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+INCOME_IDS+=("$INCOME_BONUS")
+echo "Created One-Time Bonus Income ID: $INCOME_BONUS"
+
 # --- EXPENSES ---
 echo "Creating expense items..."
 
@@ -2001,6 +2121,28 @@ EXPENSE_UTIL=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   }' | jq -r '.id')
 EXPENSE_IDS+=("$EXPENSE_UTIL")
 echo "Created Utilities Expense ID: $EXPENSE_UTIL"
+
+# Expense 4: One-time expense (home improvement)
+EXPENSE_REPAIR=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": false,
+    "category": "Housing",
+    "description": "Comp Test One-Time Home Repair",
+    "frequency": "one-time",
+    "value": 12000,
+    "inflation_percent": 0.0,
+    "start_date": "2027-08-01",
+    "end_date": "2027-08-01",
+    "tax_deductible": false,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
+EXPENSE_IDS+=("$EXPENSE_REPAIR")
+echo "Created One-Time Home Repair Expense ID: $EXPENSE_REPAIR"
 
 # --- AUTO-DISBURSEMENTS ---
 echo "Creating auto-disbursements..."

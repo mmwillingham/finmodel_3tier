@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Line } from "react-chartjs-2";
+import { Line, Pie } from "react-chartjs-2";
 import ProjectionService from '../services/projection.service';
 
 export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals }) {
@@ -14,10 +14,13 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   const individualAssetTableRef = useRef(null);
   const individualLiabilityChartRef = useRef(null);
   const individualLiabilityTableRef = useRef(null);
+  const individualAssetPieChartRef = useRef(null);
+  const individualLiabilityPieChartRef = useRef(null);
   
   const [loading, setLoading] = useState(true);
   const [projectionData, setProjectionData] = useState(null);
   const [error, setError] = useState(null);
+  const [showTotalsInChart, setShowTotalsInChart] = useState(true); // Local state for "Show Totals" checkbox
 
   // Convert assets and liabilities to ProjectedAccountCreate format and call backend
   const fetchProjectionData = useCallback(async () => {
@@ -94,6 +97,18 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
           contribution = income.yearly_value / 12; // Convert yearly to monthly
         }
         
+        // Ensure start_date == end_date for one-time income so backend correctly detects them
+        let incomeStartDate = income.start_date || null;
+        let incomeEndDate = income.end_date || null;
+        if (income.frequency === 'one-time') {
+          // For one-time income, ensure dates are equal
+          const oneTimeDate = incomeStartDate || incomeEndDate;
+          if (oneTimeDate) {
+            incomeStartDate = oneTimeDate;
+            incomeEndDate = oneTimeDate;
+          }
+        }
+        
         return {
           name: accountName,
           account_type: 'income',
@@ -106,8 +121,8 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
           loan_term_months: null,
           loan_start_date: null,
           monthly_payment: null,
-          start_date: income.start_date || null,
-          end_date: income.end_date || null,
+          start_date: incomeStartDate,
+          end_date: incomeEndDate,
           cash_flow_item_id: income.id  // NEW: Store cash_flow_item_id for reliable ID-based lookups
         };
       });
@@ -135,7 +150,25 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             }
           } else {
             // Fixed expense item
-            contribution = -(expense.yearly_value / 12); // Negative for expenses, convert yearly to monthly
+            // For one-time expenses (frequency === 'one-time' or start_date === end_date),
+            // yearly_value is the total amount to apply once in that year.
+            // For monthly/yearly expenses, yearly_value is the annual amount.
+            // In both cases, convert to monthly contribution (divide by 12).
+            // The backend will multiply by 12 to get annual, then apply year_fraction.
+            // For one-time items, year_fraction = 1.0, so the full amount is applied.
+            contribution = -(expense.yearly_value / 12); // Negative for expenses, convert to monthly
+          }
+          
+          // Ensure start_date == end_date for one-time expenses so backend correctly detects them
+          let expenseStartDate = expense.start_date || null;
+          let expenseEndDate = expense.end_date || null;
+          if (expense.frequency === 'one-time') {
+            // For one-time expenses, ensure dates are equal
+            const oneTimeDate = expenseStartDate || expenseEndDate;
+            if (oneTimeDate) {
+              expenseStartDate = oneTimeDate;
+              expenseEndDate = oneTimeDate;
+            }
           }
           
           return {
@@ -146,8 +179,8 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             growth_rate: expense.inflation_percent || 0,
             loan_type: null,
             principal_amount: null,
-            start_date: expense.start_date || null,
-            end_date: expense.end_date || null,
+            start_date: expenseStartDate,
+            end_date: expenseEndDate,
             interest_rate: null,
             loan_term_months: null,
             loan_start_date: null,
@@ -426,6 +459,52 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
     return <div>No projection data available</div>;
   }
 
+  // Prepare pie chart data for assets (using last year's data)
+  const prepareAssetPieData = () => {
+    if (!individualAssetProjections || individualAssetProjections.length === 0) return null;
+    const lastIndex = individualAssetProjections[0].projectedValues.length - 1;
+    const labels = individualAssetProjections.map(asset => asset.name);
+    const data = individualAssetProjections.map(asset => asset.projectedValues[lastIndex]);
+    const backgroundColors = individualAssetProjections.map((asset, index) => 
+      `hsl(${index * 60}, 70%, 50%)`
+    );
+    
+    return {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: backgroundColors,
+        borderColor: '#fff',
+        borderWidth: 1
+      }]
+    };
+  };
+
+  // Prepare pie chart data for liabilities (using last year's data)
+  const prepareLiabilityPieData = () => {
+    if (!individualLiabilityProjections || individualLiabilityProjections.length === 0) return null;
+    const lastIndex = individualLiabilityProjections[0].projectedValues.length - 1;
+    const labels = individualLiabilityProjections.map(liability => liability.name);
+    const data = individualLiabilityProjections.map(liability => liability.projectedValues[lastIndex]);
+    const backgroundColors = individualLiabilityProjections.map((liability, index) => 
+      `hsl(${index * 60 + 30}, 70%, 50%)`
+    );
+    
+    return {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: backgroundColors,
+        borderColor: '#fff',
+        borderWidth: 1
+      }]
+    };
+  };
+
+  const assetPieData = prepareAssetPieData();
+  const liabilityPieData = prepareLiabilityPieData();
+  const lastYear = years.length > 0 ? years[years.length - 1] : currentYear;
+
   return (
     <div className="balance-sheet-projection">
       <h2>Balance Sheet Projections</h2>
@@ -493,6 +572,17 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
 
       {/* Individual Asset Projections Chart */}
       <h3 style={{ marginTop: "50px" }}>Individual Asset Projections</h3>
+      <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showTotalsInChart}
+            onChange={(e) => setShowTotalsInChart(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          <span>Show Totals</span>
+        </label>
+      </div>
       <div style={{ marginBottom: "30px" }}>
         <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
           <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</button>
@@ -510,7 +600,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
                 backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.2)`,
                 fill: false,
               })),
-              ...(showChartTotals ? [{
+              ...(showTotalsInChart ? [{
                 label: "Total Assets",
                 data: totalAssetValues,
                 borderColor: "rgb(0, 0, 0)", // Black color for total
@@ -534,6 +624,42 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         />
       </div>
 
+      {/* Asset Pie Chart */}
+      {assetPieData && individualAssetProjections.length > 0 && (
+        <div style={{ marginBottom: "30px" }}>
+          <h4>Asset Distribution - {lastYear}</h4>
+          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+            <Pie
+              ref={individualAssetPieChartRef}
+              data={assetPieData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: "right",
+                  },
+                  title: {
+                    display: true,
+                    text: `Asset Distribution - ${lastYear}`,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        const label = context.label || '';
+                        const value = formatCurrency(context.parsed);
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return `${label}: ${value} (${percentage}%)`;
+                      }
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
         <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(individualAssetTableRef, "Individual_Asset_Projections_Table")}>Download PDF</button>
         <button className="btn-primary-modern" onClick={() => handleDownloadIndividualProjectionsCsv(individualAssetProjections, "Individual_Asset_Projections_Table")}>Download CSV</button>
@@ -556,14 +682,12 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
               ))}
             </tr>
           ))}
-          {showChartTotals && (
-            <tr>
-              <td><b>Total Assets</b></td>
-              {displayYearsIndices.map(index => (
-                <td key={`total-asset-${years[index]}`}><b>{formatCurrency(totalAssetValues[index])}</b></td>
-              ))}
-            </tr>
-          )}
+          <tr>
+            <td><b>Total Assets</b></td>
+            {displayYearsIndices.map(index => (
+              <td key={`total-asset-${years[index]}`}><b>{formatCurrency(totalAssetValues[index])}</b></td>
+            ))}
+          </tr>
         </tbody>
       </table>
 
@@ -581,13 +705,24 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             ref={individualLiabilityChartRef}
             data={{
               labels: years,
-              datasets: individualLiabilityProjections.map((liability, index) => ({
-                label: liability.name,
-                data: liability.projectedValues,
-                borderColor: `hsl(${index * 60 + 30}, 70%, 50%)`, // Dynamic color, offset from assets
-                backgroundColor: `hsla(${index * 60 + 30}, 70%, 50%, 0.2)`,
-                fill: false,
-              })),
+              datasets: [
+                ...individualLiabilityProjections.map((liability, index) => ({
+                  label: liability.name,
+                  data: liability.projectedValues,
+                  borderColor: `hsl(${index * 60 + 30}, 70%, 50%)`, // Dynamic color, offset from assets
+                  backgroundColor: `hsla(${index * 60 + 30}, 70%, 50%, 0.2)`,
+                  fill: false,
+                })),
+                ...(showTotalsInChart ? [{
+                  label: "Total Liabilities",
+                  data: totalLiabilityValues,
+                  borderColor: "rgb(0, 0, 0)", // Black color for total
+                  backgroundColor: "rgba(0, 0, 0, 0.2)",
+                  fill: false,
+                  borderWidth: 3,
+                  pointRadius: 0,
+                }] : []),
+              ],
             }}
             options={{
               ...chartOptions,
@@ -600,6 +735,42 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
               },
             }}
           />
+        </div>
+      )}
+
+      {/* Liability Pie Chart */}
+      {liabilityPieData && individualLiabilityProjections.length > 0 && (
+        <div style={{ marginBottom: "30px" }}>
+          <h4>Liability Distribution - {lastYear}</h4>
+          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+            <Pie
+              ref={individualLiabilityPieChartRef}
+              data={liabilityPieData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: "right",
+                  },
+                  title: {
+                    display: true,
+                    text: `Liability Distribution - ${lastYear}`,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        const label = context.label || '';
+                        const value = formatCurrency(context.parsed);
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return `${label}: ${value} (${percentage}%)`;
+                      }
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
         </div>
       )}
 
@@ -628,6 +799,12 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
                 ))}
               </tr>
             ))}
+            <tr>
+              <td><b>Total Liabilities</b></td>
+              {displayYearsIndices.map(index => (
+                <td key={`total-liability-${years[index]}`}><b>{formatCurrency(totalLiabilityValues[index])}</b></td>
+              ))}
+            </tr>
           </tbody>
         </table>
       )}
