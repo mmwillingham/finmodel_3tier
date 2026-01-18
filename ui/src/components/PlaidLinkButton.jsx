@@ -26,8 +26,9 @@ function PlaidLinkButton({ onSuccess, onError }) {
         console.error("Error fetching Plaid link token:", err);
         // Check if Plaid is not configured (503 error)
         if (err.response?.status === 503) {
-          setError(null); // Don't show error, just hide the button
-          setLinkToken(null); // Ensure button is disabled
+          // Plaid not configured - component will show a message instead of button
+          setError(null);
+          setLinkToken(null);
         } else {
           setError("Failed to initialize Plaid. Please try again.");
         }
@@ -92,9 +93,21 @@ function PlaidLinkButton({ onSuccess, onError }) {
     }
   };
 
-  // If Plaid is not configured (no link token and no error), don't show anything
+  // If Plaid is not configured (no link token and no error after loading), show a message
   if (!linkToken && !error && !loading) {
-    return null; // Plaid not configured, hide the button
+    return (
+      <div style={{ 
+        padding: '12px', 
+        backgroundColor: '#fff3cd', 
+        border: '1px solid #ffc107', 
+        borderRadius: '4px',
+        color: '#856404'
+      }}>
+        <p style={{ margin: 0, fontSize: '0.9em' }}>
+          ⚠️ Plaid integration is not configured. Please contact your administrator to enable bank account connections.
+        </p>
+      </div>
+    );
   }
 
   // Show error message if any (only for actual errors, not "not configured")

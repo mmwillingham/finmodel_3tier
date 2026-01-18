@@ -82,11 +82,11 @@ function PlaidConnections({ onSyncSuccess }) {
   };
 
   if (loading) {
-    return <div>Loading connected accounts...</div>;
+    return <div style={{ fontSize: '0.9em', color: '#666' }}>Loading connected accounts...</div>;
   }
 
   if (items.length === 0) {
-    return null; // Don't show anything if no connections
+    return null; // Don't show anything if no connections (cleaner UI)
   }
 
   return (

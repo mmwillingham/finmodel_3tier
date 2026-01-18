@@ -25,7 +25,7 @@ class PlaidService:
     def __init__(self):
         """Initialize Plaid client"""
         if not config.settings.PLAID_CLIENT_ID or not config.settings.PLAID_SECRET:
-            logger.warning("Plaid credentials not configured. Plaid features will be disabled.")
+            logger.warning(f"Plaid credentials not configured. PLAID_CLIENT_ID present: {bool(config.settings.PLAID_CLIENT_ID)}, PLAID_SECRET present: {bool(config.settings.PLAID_SECRET)}, PLAID_ENV: {config.settings.PLAID_ENV}")
             self.client = None
             return
             

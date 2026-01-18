@@ -16,6 +16,7 @@ import logging
 from cryptography.fernet import Fernet
 import os
 import base64
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,8 @@ def create_link_token(
 ):
     """Create a Plaid Link token for initiating the Link flow."""
     if not plaid_service.is_configured():
+        # Debug: Log what we're seeing
+        logger.warning(f"Plaid not configured - PLAID_CLIENT_ID present: {bool(config.settings.PLAID_CLIENT_ID)}, PLAID_SECRET present: {bool(config.settings.PLAID_SECRET)}")
         raise HTTPException(
             status_code=503,
             detail="Plaid integration is not configured"
