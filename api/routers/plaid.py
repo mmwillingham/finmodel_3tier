@@ -256,6 +256,7 @@ def sync_plaid_accounts(
             account = models.Account(
                 owner_id=current_user.id,
                 brokerage_id=brokerage.id,
+                brokerage=institution_name,  # Also set legacy brokerage field (required by DB constraint)
                 account_name=account_name,
                 account_number=mask,
                 is_retirement=is_retirement
