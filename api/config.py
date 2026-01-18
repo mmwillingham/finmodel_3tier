@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # These must be set via environment variables - no default values for security
     DB_USER: str = os.getenv("DB_USER", "")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "") or os.getenv("_DB_PASSWORD", "")  # Support Cloud Run secret format
+    # Plaid secrets support Cloud Run secret format (prefixed with _)
+    PLAID_SECRET: str | None = os.getenv("PLAID_SECRET", "") or os.getenv("_PLAID_SECRET", "")
+    PLAID_ENCRYPTION_KEY: str | None = os.getenv("PLAID_ENCRYPTION_KEY", "") or os.getenv("_PLAID_ENCRYPTION_KEY", "")
     DB_NAME: str = os.getenv("DB_NAME", "")
     DB_HOST: str = os.getenv("DB_HOST", "localhost") # Used for local docker-compose setup
     DB_PORT: str = os.getenv("DB_PORT", "5432")
@@ -53,8 +56,8 @@ class Settings(BaseSettings):
     APP_NAME: str = os.getenv("APP_NAME", "Financial Projector")
     
     # Plaid API Settings
-    PLAID_CLIENT_ID: str | None = os.getenv("PLAID_CLIENT_ID", "")
-    PLAID_SECRET: str | None = os.getenv("PLAID_SECRET", "")
+    # Support both direct env vars and Cloud Run secret format (prefixed with _)
+    PLAID_CLIENT_ID: str | None = os.getenv("PLAID_CLIENT_ID", "") or os.getenv("_PLAID_CLIENT_ID", "")
     PLAID_ENV: str = os.getenv("PLAID_ENV", "sandbox")  # sandbox, development, or production
     PLAID_PRODUCTS: list[str] = ["transactions", "investments", "assets"]  # Products to request
     PLAID_COUNTRY_CODES: list[str] = ["US"]  # Country codes

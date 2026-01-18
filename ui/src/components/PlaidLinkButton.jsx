@@ -24,7 +24,13 @@ function PlaidLinkButton({ onSuccess, onError }) {
         setLinkToken(response.data.link_token);
       } catch (err) {
         console.error("Error fetching Plaid link token:", err);
-        setError("Failed to initialize Plaid. Please try again.");
+        // Check if Plaid is not configured (503 error)
+        if (err.response?.status === 503) {
+          setError(null); // Don't show error, just hide the button
+          setLinkToken(null); // Ensure button is disabled
+        } else {
+          setError("Failed to initialize Plaid. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -86,7 +92,12 @@ function PlaidLinkButton({ onSuccess, onError }) {
     }
   };
 
-  // Show error message if any
+  // If Plaid is not configured (no link token and no error), don't show anything
+  if (!linkToken && !error && !loading) {
+    return null; // Plaid not configured, hide the button
+  }
+
+  // Show error message if any (only for actual errors, not "not configured")
   if (error && !loading) {
     return (
       <div className="plaid-error">

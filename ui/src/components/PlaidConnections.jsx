@@ -27,7 +27,13 @@ function PlaidConnections({ onSyncSuccess }) {
       setItems(response.data || []);
     } catch (err) {
       console.error("Error loading Plaid items:", err);
-      setError("Failed to load connected accounts.");
+      // If Plaid is not configured (503), just return empty list
+      if (err.response?.status === 503) {
+        setItems([]);
+        setError(null);
+      } else {
+        setError("Failed to load connected accounts.");
+      }
     } finally {
       setLoading(false);
     }

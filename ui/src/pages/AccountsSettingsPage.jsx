@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AccountService from '../services/account.service';
 import BrokerageService from '../services/brokerage.service';
+import PlaidService from '../services/plaid.service';
+import PlaidLinkButton from '../components/PlaidLinkButton';
+import PlaidConnections from '../components/PlaidConnections';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -240,6 +243,34 @@ const AccountsSettingsPage = () => {
           {message}
         </div>
       )}
+
+      {/* Plaid Bank Connection Section */}
+      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+        <h3 style={{ margin: 0, marginBottom: '12px' }}>Connect Bank Accounts (Plaid)</h3>
+        <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '12px' }}>
+          Securely connect your bank accounts to automatically sync account balances as assets.
+        </p>
+        <PlaidLinkButton
+          onSuccess={(syncData) => {
+            setMessage(`Successfully connected ${syncData.accounts_synced} account(s). ${syncData.assets_created_or_updated} asset(s) created or updated.`);
+            setTimeout(() => setMessage(''), 5000);
+            // Optionally refresh accounts if needed
+            loadData();
+          }}
+          onError={(err) => {
+            const errorMsg = err.response?.data?.detail || 'Failed to connect account.';
+            setMessage(`Error: ${errorMsg}`);
+            setTimeout(() => setMessage(''), 5000);
+          }}
+        />
+        <PlaidConnections
+          onSyncSuccess={(syncData) => {
+            setMessage(`Successfully synced ${syncData.accounts_synced} account(s). ${syncData.assets_created_or_updated} asset(s) updated.`);
+            setTimeout(() => setMessage(''), 5000);
+            loadData();
+          }}
+        />
+      </div>
 
       {/* Brokerage Management Section */}
       <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
