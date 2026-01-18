@@ -951,7 +951,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # new_balance is negative for expenses, and we want to accumulate the absolute value for expense flow
                     current_year_total_expense_flow += new_balance  # new_balance is already negative for expenses
 
-                current_year_contributions_sum += adjusted_annual_contribution
+                # For contributions sum: use prorated values for income/expense items, full values for assets/liabilities
+                # For income/expense: new_balance is the prorated flow value (already calculated with year_fraction)
+                # For assets/liabilities: adjusted_annual_contribution represents actual contributions (deposits, withdrawals)
+                if projected_account.account_type in ["income", "expense"]:
+                    # Use new_balance (prorated) for income/expense items
+                    current_year_contributions_sum += abs(new_balance)  # Use absolute value to track positive contributions
+                else:
+                    # For assets/liabilities, use adjusted_annual_contribution (actual contributions/deposits)
+                    current_year_contributions_sum += adjusted_annual_contribution
                 current_year_growth_sum += (growth_on_balance + growth_on_contributions)
 
 
@@ -1048,11 +1056,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 
                                 # Calculate expense as percentage of income (already prorated by income_year_fraction)
                                 expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
+                                # Apply expense_year_fraction to further restrict the expense if it has its own start/end dates
+                                # This ensures the expense is prorated by its own active period, which may be more restrictive than the income's period
+                                expense_amount = expense_amount * expense_year_fraction
                                 # Disabled verbose debug logging
                                 # print(f"--- DEBUG: Dynamic expense '{exp_item.description}' ({exp_item.percentage}% of '{linked_income_item.description}' = {expense_amount:.2f}) contributing to asset '{target_asset.name}' ---"); sys.stdout.flush()
                                 
                                 # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
-                                # Use expense_year_fraction to prorate the expense amount for this year
                                 annual_flow_values[exp_item.description] = -expense_amount
                     else:
                         # Fixed expense - calculate with growth
