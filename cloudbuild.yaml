@@ -126,9 +126,6 @@ availableSecrets:
   secretManager:
     - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/2'
       env: '_DB_PASSWORD'
-    - versionName: 'projects/financial-model-cloud/secrets/_PLAID_SECRET/versions/1'
-      env: '_PLAID_SECRET'
-    - versionName: 'projects/financial-model-cloud/secrets/_PLAID_ENCRYPTION_KEY/versions/1'
-      env: '_PLAID_ENCRYPTION_KEY'
-    - versionName: 'projects/financial-model-cloud/secrets/_PLAID_CLIENT_ID/versions/1'
-      env: '_PLAID_CLIENT_ID'
+    # Note: Plaid secrets (_PLAID_SECRET, _PLAID_ENCRYPTION_KEY, _PLAID_CLIENT_ID) are not listed here
+    # because they are only used in Cloud Run deployment via --update-secrets, not in build steps.
+    # Cloud Run will access them directly from Secrets Manager at runtime.
