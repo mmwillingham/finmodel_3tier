@@ -1616,7 +1616,9 @@ echo "Reset surplus asset and deleted Income ID: $INCOME_6_5_ID, Expense ID: $EX
 
 ---
 
-## 7.1 Comprehensive Integration Test (All Features)
+## 7. Comprehensive Integration Tests
+
+### 7.1 Comprehensive Integration Test (All Features)
 
 **CSV Results Template:** Use `COMPREHENSIVE_TEST_RESULTS_TEMPLATE.csv` to record expected vs actual values for easy comparison.
 
@@ -2557,14 +2559,14 @@ echo "Disabled federal tax calculation"
 
 ## 8. Edge Cases
 
-### 7.1 Zero Values
+### 8.1 Zero Values
 
 **Description:** Tests edge case where assets, income, and expenses have zero values. Verifies that the system handles zero values gracefully without division by zero errors, and that charts and calculations render correctly with zero values.
 
 **Setup:**
 ```bash
 # Create asset with zero value
-ASSET_7_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
+ASSET_8_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2578,7 +2580,7 @@ ASSET_7_1_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   }' | jq -r '.id')
 
 # Create income with zero value
-INCOME_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+INCOME_8_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2598,7 +2600,7 @@ INCOME_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   }' | jq -r '.id')
 
 # Create expense with zero value
-EXPENSE_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+EXPENSE_8_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2617,7 +2619,7 @@ EXPENSE_7_1_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "person": "Family"
   }' | jq -r '.id')
 
-echo "Created Asset ID: $ASSET_7_1_ID, Income ID: $INCOME_7_1_ID, Expense ID: $EXPENSE_7_1_ID"
+echo "Created Asset ID: $ASSET_8_1_ID, Income ID: $INCOME_8_1_ID, Expense ID: $EXPENSE_8_1_ID"
 ```
 
 **Expected Values:**
@@ -2631,25 +2633,25 @@ echo "Created Asset ID: $ASSET_7_1_ID, Income ID: $INCOME_7_1_ID, Expense ID: $E
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_7_1_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_8_1_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_7_1_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_8_1_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/assets/${ASSET_7_1_ID}" \
+curl -s -X DELETE "${API_BASE}/assets/${ASSET_8_1_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Asset ID: $ASSET_7_1_ID, Income ID: $INCOME_7_1_ID, Expense ID: $EXPENSE_7_1_ID"
+echo "Deleted Asset ID: $ASSET_8_1_ID, Income ID: $INCOME_8_1_ID, Expense ID: $EXPENSE_8_1_ID"
 ```
 
 ---
 
-### 7.2 Negative Growth Rates
+### 8.2 Negative Growth Rates
 
 **Description:** Tests assets with negative growth rates (e.g., -5% per year). Verifies that assets decrease correctly over time when growth rates are negative, representing depreciating assets or investments with losses.
 
 **Setup:**
 ```bash
 # Create asset with negative growth
-ASSET_7_2_ID=$(curl -s -X POST "${API_BASE}/assets/" \
+ASSET_8_2_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2662,7 +2664,7 @@ ASSET_7_2_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "end_date": null
   }' | jq -r '.id')
 
-echo "Created Asset ID: $ASSET_7_2_ID"
+echo "Created Asset ID: $ASSET_8_2_ID"
 ```
 
 **Expected Values:**
@@ -2676,21 +2678,21 @@ echo "Created Asset ID: $ASSET_7_2_ID"
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/assets/${ASSET_7_2_ID}" \
+curl -s -X DELETE "${API_BASE}/assets/${ASSET_8_2_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Asset ID: $ASSET_7_2_ID"
+echo "Deleted Asset ID: $ASSET_8_2_ID"
 ```
 
 ---
 
-### 7.3 Very High Growth Rates
+### 8.3 Very High Growth Rates
 
 **Description:** Tests assets with very high growth rates (e.g., 100% per year) to verify that the system handles extreme growth values correctly and that calculations remain accurate even with high growth percentages.
 
 **Setup:**
 ```bash
 # Create asset with high growth
-ASSET_7_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
+ASSET_8_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2703,7 +2705,7 @@ ASSET_7_3_ID=$(curl -s -X POST "${API_BASE}/assets/" \
     "end_date": null
   }' | jq -r '.id')
 
-echo "Created Asset ID: $ASSET_7_3_ID"
+echo "Created Asset ID: $ASSET_8_3_ID"
 ```
 
 **Expected Values:**
@@ -2718,21 +2720,21 @@ echo "Created Asset ID: $ASSET_7_3_ID"
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/assets/${ASSET_7_3_ID}" \
+curl -s -X DELETE "${API_BASE}/assets/${ASSET_8_3_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Asset ID: $ASSET_7_3_ID"
+echo "Deleted Asset ID: $ASSET_8_3_ID"
 ```
 
 ---
 
-### 7.4 Overlapping Date Ranges
+### 8.4 Overlapping Date Ranges
 
 **Description:** Tests income items with overlapping date ranges to verify that the system correctly handles items that are active simultaneously and that calculations account for all active items correctly.
 
 **Setup:**
 ```bash
 # Create Income 1
-INCOME_7_4A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+INCOME_8_4A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2752,7 +2754,7 @@ INCOME_7_4A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   }' | jq -r '.id')
 
 # Create Income 2 (overlaps with Income 1)
-INCOME_7_4B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+INCOME_8_4B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2771,7 +2773,7 @@ INCOME_7_4B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
     "person": "Family"
   }' | jq -r '.id')
 
-echo "Created Income IDs: $INCOME_7_4A_ID, $INCOME_7_4B_ID"
+echo "Created Income IDs: $INCOME_8_4A_ID, $INCOME_8_4B_ID"
 ```
 
 **Expected Values:**
@@ -2788,31 +2790,31 @@ echo "Created Income IDs: $INCOME_7_4A_ID, $INCOME_7_4B_ID"
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_7_4A_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_8_4A_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_7_4B_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_8_4B_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Income IDs: $INCOME_7_4A_ID, $INCOME_7_4B_ID"
+echo "Deleted Income IDs: $INCOME_8_4A_ID, $INCOME_8_4B_ID"
 ```
 
 ---
 
 ## 9. Chart-Specific Tests
 
-### 8.1 Custom Chart - All Items vs Specific Item
+### 9.1 Custom Chart - All Items vs Specific Item
 
 **Description:** Tests custom chart creation with "All Items" aggregation versus a specific item selection. Verifies that charts correctly display aggregated data for a category versus individual item data, and that both chart types render correctly.
 
 **Setup:**
 ```bash
 # Create 3 expenses in "Investments" category
-EXPENSE_8_1A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+EXPENSE_9_1A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": false,
     "category": "Investments",
-    "description": "Test Expense 8.1A",
+    "description": "Test Expense 9.1A",
     "frequency": "yearly",
     "value": 5000,
     "inflation_percent": 0.0,
@@ -2825,13 +2827,13 @@ EXPENSE_8_1A_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "person": "Family"
   }' | jq -r '.id')
 
-EXPENSE_8_1B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+EXPENSE_9_1B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": false,
     "category": "Investments",
-    "description": "Test Expense 8.1B",
+    "description": "Test Expense 9.1B",
     "frequency": "yearly",
     "value": 3000,
     "inflation_percent": 0.0,
@@ -2844,13 +2846,13 @@ EXPENSE_8_1B_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
     "person": "Family"
   }' | jq -r '.id')
 
-EXPENSE_8_1C_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+EXPENSE_9_1C_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": false,
     "category": "Investments",
-    "description": "Test Expense 8.1C",
+    "description": "Test Expense 9.1C",
     "frequency": "yearly",
     "value": 2000,
     "inflation_percent": 0.0,
@@ -2864,11 +2866,11 @@ EXPENSE_8_1C_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   }' | jq -r '.id')
 
 # Create chart with "All Items" for Investment category
-CHART_8_1A_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
+CHART_9_1A_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Test Chart 8.1A (All Investment Expenses)\",
+    \"name\": \"Test Chart 9.1A (All Investment Expenses)\",
     \"chart_type\": \"line\",
     \"display_type\": \"both\",
     \"data_sources\": \"expenses\",
@@ -2878,21 +2880,21 @@ CHART_8_1A_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
   }" | jq -r '.id')
 
 # Create chart with specific expense
-CHART_8_1B_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
+CHART_9_1B_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Test Chart 8.1B (Specific Expense)\",
+    \"name\": \"Test Chart 9.1B (Specific Expense)\",
     \"chart_type\": \"line\",
     \"display_type\": \"both\",
     \"data_sources\": \"expenses\",
-    \"series_configurations\": \"[{\\\"data_type\\\":\\\"expenses\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"Test Expense 8.1A\\\",\\\"color\\\":\\\"#ef4444\\\",\\\"category\\\":\\\"\\\",\\\"selected_item_id\\\":${EXPENSE_8_1A_ID}}]\",
+    \"series_configurations\": \"[{\\\"data_type\\\":\\\"expenses\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"Test Expense 9.1A\\\",\\\"color\\\":\\\"#ef4444\\\",\\\"category\\\":\\\"\\\",\\\"selected_item_id\\\":${EXPENSE_9_1A_ID}}]\",
     \"x_axis_label\": \"Year\",
     \"y_axis_label\": \"Value\"
   }" | jq -r '.id')
 
-echo "Created Expense IDs: $EXPENSE_8_1A_ID, $EXPENSE_8_1B_ID, $EXPENSE_8_1C_ID"
-echo "Created Chart IDs: $CHART_8_1A_ID, $CHART_8_1B_ID"
+echo "Created Expense IDs: $EXPENSE_9_1A_ID, $EXPENSE_9_1B_ID, $EXPENSE_9_1C_ID"
+echo "Created Chart IDs: $CHART_9_1A_ID, $CHART_9_1B_ID"
 ```
 
 **Expected Values:**
@@ -2905,30 +2907,30 @@ echo "Created Chart IDs: $CHART_8_1A_ID, $CHART_8_1B_ID"
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_8_1A_ID}" \
+curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_9_1A_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_8_1B_ID}" \
+curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_9_1B_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_8_1A_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_9_1A_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_8_1B_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_9_1B_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_8_1C_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_9_1C_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Chart IDs: $CHART_8_1A_ID, $CHART_8_1B_ID"
-echo "Deleted Expense IDs: $EXPENSE_8_1A_ID, $EXPENSE_8_1B_ID, $EXPENSE_8_1C_ID"
+echo "Deleted Chart IDs: $CHART_9_1A_ID, $CHART_9_1B_ID"
+echo "Deleted Expense IDs: $EXPENSE_9_1A_ID, $EXPENSE_9_1B_ID, $EXPENSE_9_1C_ID"
 ```
 
 ---
 
-### 8.2 Custom Chart - Label Changes
+### 9.2 Custom Chart - Label Changes
 
 **Description:** Tests that custom charts correctly update when the labels or descriptions of underlying items change. Verifies that chart data remains correctly linked to items even after item descriptions are modified.
 
 **Setup:**
 ```bash
 # Create expense
-EXPENSE_8_2_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+EXPENSE_9_2_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -2948,20 +2950,20 @@ EXPENSE_8_2_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
   }' | jq -r '.id')
 
 # Create chart
-CHART_8_2_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
+CHART_9_2_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Test Chart 8.2\",
+    \"name\": \"Test Chart 9.2\",
     \"chart_type\": \"line\",
     \"display_type\": \"both\",
     \"data_sources\": \"expenses\",
-    \"series_configurations\": \"[{\\\"data_type\\\":\\\"expenses\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"401K\\\",\\\"color\\\":\\\"#ef4444\\\",\\\"category\\\":\\\"\\\",\\\"selected_item_id\\\":${EXPENSE_8_2_ID}}]\",
+    \"series_configurations\": \"[{\\\"data_type\\\":\\\"expenses\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"401K\\\",\\\"color\\\":\\\"#ef4444\\\",\\\"category\\\":\\\"\\\",\\\"selected_item_id\\\":${EXPENSE_9_2_ID}}]\",
     \"x_axis_label\": \"Year\",
     \"y_axis_label\": \"Value\"
   }" | jq -r '.id')
 
-echo "Created Expense ID: $EXPENSE_8_2_ID, Chart ID: $CHART_8_2_ID"
+echo "Created Expense ID: $EXPENSE_9_2_ID, Chart ID: $CHART_9_2_ID"
 ```
 
 **Test Steps:**
@@ -2980,29 +2982,29 @@ echo "Created Expense ID: $EXPENSE_8_2_ID, Chart ID: $CHART_8_2_ID"
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_8_2_ID}" \
+curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_9_2_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_8_2_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${EXPENSE_9_2_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Chart ID: $CHART_8_2_ID, Expense ID: $EXPENSE_8_2_ID"
+echo "Deleted Chart ID: $CHART_9_2_ID, Expense ID: $EXPENSE_9_2_ID"
 ```
 
 ---
 
-### 8.3 Chart Recalculation
+### 9.3 Chart Recalculation
 
 **Description:** Tests that custom charts recalculate correctly when underlying data changes (e.g., income values are updated). Verifies that charts reflect the latest data after recalculations and that chart data stays synchronized with item values.
 
 **Setup:**
 ```bash
 # Create income
-INCOME_8_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+INCOME_9_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "is_income": true,
     "category": "Salary, Wages, Tips",
-    "description": "Test Income 8.3",
+    "description": "Test Income 9.3",
     "frequency": "yearly",
     "value": 100000,
     "annual_increase_percent": 0.0,
@@ -3016,20 +3018,20 @@ INCOME_8_3_ID=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
   }' | jq -r '.id')
 
 # Create chart
-CHART_8_3_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
+CHART_9_3_ID=$(curl -s -X POST "${API_BASE}/custom_charts" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Test Chart 8.3\",
+    \"name\": \"Test Chart 9.3\",
     \"chart_type\": \"line\",
     \"display_type\": \"both\",
     \"data_sources\": \"income\",
-    \"series_configurations\": \"[{\\\"data_type\\\":\\\"income\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"Income\\\",\\\"color\\\":\\\"#3b82f6\\\",\\\"category\\\":\\\"\\\",\\\"selected_item_id\\\":${INCOME_8_3_ID}}]\",
+    \"series_configurations\": \"[{\\\"data_type\\\":\\\"income\\\",\\\"field\\\":\\\"value\\\",\\\"aggregation\\\":\\\"sum\\\",\\\"label\\\":\\\"Income\\\",\\\"color\\\":\\\"#3b82f6\\\",\\\"category\\\":\\\"\\\",\\\"selected_item_id\\\":${INCOME_9_3_ID}}]\",
     \"x_axis_label\": \"Year\",
     \"y_axis_label\": \"Value\"
   }" | jq -r '.id')
 
-echo "Created Income ID: $INCOME_8_3_ID, Chart ID: $CHART_8_3_ID"
+echo "Created Income ID: $INCOME_9_3_ID, Chart ID: $CHART_9_3_ID"
 ```
 
 **Test Steps:**
@@ -3045,11 +3047,11 @@ echo "Created Income ID: $INCOME_8_3_ID, Chart ID: $CHART_8_3_ID"
 
 **Cleanup:**
 ```bash
-curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_8_3_ID}" \
+curl -s -X DELETE "${API_BASE}/custom_charts/${CHART_9_3_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_8_3_ID}" \
+curl -s -X DELETE "${API_BASE}/cashflow/${INCOME_9_3_ID}" \
   -H "Authorization: Bearer ${TOKEN}"
-echo "Deleted Chart ID: $CHART_8_3_ID, Income ID: $INCOME_8_3_ID"
+echo "Deleted Chart ID: $CHART_9_3_ID, Income ID: $INCOME_9_3_ID"
 ```
 
 ---
