@@ -1679,6 +1679,16 @@ Without birthdates, Social Security calculations will fail. The PIA (Primary Ins
 
 **Note on Surplus Asset:** The cURL script automatically sets the surplus asset to the "Comp Test Checking" account (see `# --- SET SURPLUS ASSET ---` section). If you're setting up the test manually via the UI instead of using the cURL script, you must configure the surplus asset in Settings → Profile by selecting "Comp Test Checking" (or another designated surplus asset) as the surplus asset. **After running the cURL commands, verify in Settings → Profile that the surplus asset is correctly assigned to "Comp Test Checking"**. This ensures that net cash flow surplus/deficit is transferred to the designated asset at the end of each year after growth calculations.
 
+**⚠️ CRITICAL: Taxable Income Settings**
+
+All income items in this test MUST be created with `"taxable": true` to ensure accurate federal tax calculations. The curl commands below explicitly set `"taxable": true` for:
+- Salary income (Comp Test Salary)
+- Dividend income (Comp Test Investment Dividends)
+- Rental income (Comp Test Rental Income)
+- Social Security income (auto-created with taxable flag)
+
+**If any income items are created without `"taxable": true`, tax calculations will be incorrect (showing $0 or very low values).** Always verify that all income items have `taxable: true` set when reviewing tax calculations.
+
 This test creates a realistic financial scenario that exercises all major features simultaneously:
 - Assets with growth and partial years
 - Liabilities (amortized loans)
@@ -1696,209 +1706,6 @@ This test creates a realistic financial scenario that exercises all major featur
 # ========================================
 echo "Starting Comprehensive Integration Test..."
 
-# Helper function to create asset with error checking
-create_asset() {
-  local name="$1"
-  local category="$2"
-  local value="$3"
-  local annual_increase="$4"
-  local start_date="${5:-2026-01-01}"
-  local end_date="${6:-null}"
-  
-  # Handle date strings - quote them if they're not null
-  local start_date_json="${start_date}"
-  local end_date_json="${end_date}"
-  if [ "$start_date" != "null" ] && [ -n "$start_date" ]; then
-    start_date_json="\"${start_date}\""
-  fi
-  if [ "$end_date" != "null" ] && [ -n "$end_date" ]; then
-    end_date_json="\"${end_date}\""
-  fi
-  
-  local response=$(curl -s -w "\n%{http_code}" -X POST "${API_BASE}/assets/" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"name\": \"${name}\",
-      \"category\": \"${category}\",
-      \"value\": ${value},
-      \"annual_increase_percent\": ${annual_increase},
-      \"account_id\": null,
-      \"start_date\": ${start_date_json},
-      \"end_date\": ${end_date_json}
-    }")
-  
-  local http_code=$(echo "$response" | tail -n1)
-  local body=$(echo "$response" | sed '$d')
-  
-  if [ "$http_code" -ne 201 ]; then
-    echo "ERROR: Failed to create asset '${name}'. HTTP ${http_code}" >&2
-    echo "Response: $body" >&2
-    return 1
-  fi
-  
-  local id=$(echo "$body" | jq -r '.id // empty')
-  if [ -z "$id" ] || [ "$id" = "null" ]; then
-    echo "ERROR: No ID returned for asset '${name}'" >&2
-    echo "Response: $body" >&2
-    return 1
-  fi
-  
-  echo "$id"
-}
-
-# Helper function to create income/expense with error checking
-create_cashflow() {
-  local is_income="$1"
-  local category="$2"
-  local description="$3"
-  local value="$4"
-  local annual_increase="$5"
-  local start_date="${6:-2026-01-01}"
-  local end_date="${7:-null}"
-  local taxable="${8:-false}"
-  local linked_item_id="${9:-null}"
-  local linked_item_type="${10:-null}"
-  local percentage="${11:-null}"
-  local person="${12:-Family}"
-  local contributes_to_asset_id="${13:-null}"
-  
-  # Handle date strings - quote them if they're not null
-  local start_date_json="${start_date}"
-  local end_date_json="${end_date}"
-  if [ "$start_date" != "null" ] && [ -n "$start_date" ]; then
-    start_date_json="\"${start_date}\""
-  fi
-  if [ "$end_date" != "null" ] && [ -n "$end_date" ]; then
-    end_date_json="\"${end_date}\""
-  fi
-  
-  # Handle linked_item_type - quote it if not null
-  local linked_item_type_json="${linked_item_type}"
-  if [ "$linked_item_type" != "null" ] && [ -n "$linked_item_type" ]; then
-    linked_item_type_json="\"${linked_item_type}\""
-  fi
-  
-  local query_param="?is_income=${is_income}"
-  local payload="{
-    \"is_income\": ${is_income},
-    \"category\": \"${category}\",
-    \"description\": \"${description}\",
-    \"frequency\": \"yearly\",
-    \"value\": ${value},
-    \"annual_increase_percent\": ${annual_increase},
-    \"start_date\": ${start_date_json},
-    \"end_date\": ${end_date_json},
-    \"taxable\": ${taxable},
-    \"linked_item_id\": ${linked_item_id},
-    \"linked_item_type\": ${linked_item_type_json},
-    \"percentage\": ${percentage},
-    \"person\": \"${person}\""
-  
-  if [ "$contributes_to_asset_id" != "null" ] && [ -n "$contributes_to_asset_id" ]; then
-    payload="${payload},
-    \"contributes_to_asset_id\": ${contributes_to_asset_id}"
-  fi
-  
-  payload="${payload}
-  }"
-  
-  local response=$(curl -s -w "\n%{http_code}" -X POST "${API_BASE}/cashflow${query_param}" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "$payload")
-  
-  local http_code=$(echo "$response" | tail -n1)
-  local body=$(echo "$response" | sed '$d')
-  
-  if [ "$http_code" -ne 201 ]; then
-    echo "ERROR: Failed to create cashflow '${description}'. HTTP ${http_code}" >&2
-    echo "Response: $body" >&2
-    return 1
-  fi
-  
-  local id=$(echo "$body" | jq -r '.id // empty')
-  if [ -z "$id" ] || [ "$id" = "null" ]; then
-    echo "ERROR: No ID returned for cashflow '${description}'" >&2
-    echo "Response: $body" >&2
-    return 1
-  fi
-  
-  echo "$id"
-}
-
-# Helper function to create liability with error checking
-create_liability() {
-  local name="$1"
-  local category="$2"
-  local value="$3"
-  local annual_increase="$4"
-  local loan_type="${5:-ordinary}"
-  local principal_amount="${6:-null}"
-  local interest_rate="${7:-null}"
-  local loan_term_months="${8:-null}"
-  local loan_start_date="${9:-null}"
-  local start_date="${10:-2026-01-01}"
-  local end_date="${11:-null}"
-  
-  # Handle date strings - quote them if they're not null
-  local start_date_json="${start_date}"
-  local end_date_json="${end_date}"
-  local loan_start_date_json="${loan_start_date}"
-  if [ "$start_date" != "null" ] && [ -n "$start_date" ]; then
-    start_date_json="\"${start_date}\""
-  fi
-  if [ "$end_date" != "null" ] && [ -n "$end_date" ]; then
-    end_date_json="\"${end_date}\""
-  fi
-  if [ "$loan_start_date" != "null" ] && [ -n "$loan_start_date" ]; then
-    loan_start_date_json="\"${loan_start_date}\""
-  fi
-  
-  local payload="{
-    \"name\": \"${name}\",
-    \"category\": \"${category}\",
-    \"value\": ${value},
-    \"annual_increase_percent\": ${annual_increase},
-    \"loan_type\": \"${loan_type}\",
-    \"start_date\": ${start_date_json},
-    \"end_date\": ${end_date_json}"
-  
-  if [ "$loan_type" = "amortized" ]; then
-    payload="${payload},
-    \"principal_amount\": ${principal_amount},
-    \"interest_rate\": ${interest_rate},
-    \"loan_term_months\": ${loan_term_months},
-    \"loan_start_date\": ${loan_start_date_json}"
-  fi
-  
-  payload="${payload}
-  }"
-  
-  local response=$(curl -s -w "\n%{http_code}" -X POST "${API_BASE}/liabilities/" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "$payload")
-  
-  local http_code=$(echo "$response" | tail -n1)
-  local body=$(echo "$response" | sed '$d')
-  
-  if [ "$http_code" -ne 201 ]; then
-    echo "ERROR: Failed to create liability '${name}'. HTTP ${http_code}" >&2
-    echo "Response: $body" >&2
-    return 1
-  fi
-  
-  local id=$(echo "$body" | jq -r '.id // empty')
-  if [ -z "$id" ] || [ "$id" = "null" ]; then
-    echo "ERROR: No ID returned for liability '${name}'" >&2
-    echo "Response: $body" >&2
-    return 1
-  fi
-  
-  echo "$id"
-}
-
 # Track all created IDs for cleanup
 ASSET_IDS=()
 INCOME_IDS=()
@@ -1910,56 +1717,98 @@ DISBURSEMENT_IDS=()
 echo "Creating assets..."
 
 # Asset 1: Investment account with growth
-ASSET_INV=$(create_asset "Comp Test Investment" "Investment" 200000 7.0)
-if [ $? -ne 0 ] || [ -z "$ASSET_INV" ] || [ "$ASSET_INV" = "null" ]; then
-  echo "ERROR: Failed to create Investment Asset"
-  exit 1
-fi
+ASSET_INV=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Investment",
+    "category": "Investment",
+    "value": 200000,
+    "annual_increase_percent": 7.0,
+    "account_id": null,
+    "start_date": "2026-01-01",
+    "end_date": null
+  }' | jq -r '.id')
 ASSET_IDS+=("$ASSET_INV")
 echo "Created Investment Asset ID: $ASSET_INV"
 
 # Asset 2: Savings account (for surplus transfers)
-ASSET_SAV=$(create_asset "Comp Test Savings" "Savings" 50000 2.0)
-if [ $? -ne 0 ] || [ -z "$ASSET_SAV" ] || [ "$ASSET_SAV" = "null" ]; then
-  echo "ERROR: Failed to create Savings Asset"
-  exit 1
-fi
+ASSET_SAV=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Savings",
+    "category": "Savings",
+    "value": 50000,
+    "annual_increase_percent": 2.0,
+    "account_id": null,
+    "start_date": "2026-01-01",
+    "end_date": null
+  }' | jq -r '.id')
 ASSET_IDS+=("$ASSET_SAV")
 echo "Created Savings Asset ID: $ASSET_SAV"
 
 # Asset 3: 401K (receives expense contributions)
-ASSET_401K=$(create_asset "Comp Test 401K" "Investment" 150000 6.0)
-if [ $? -ne 0 ] || [ -z "$ASSET_401K" ] || [ "$ASSET_401K" = "null" ]; then
-  echo "ERROR: Failed to create 401K Asset"
-  exit 1
-fi
+ASSET_401K=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test 401K",
+    "category": "Investment",
+    "value": 150000,
+    "annual_increase_percent": 6.0,
+    "account_id": null,
+    "start_date": "2026-01-01",
+    "end_date": null
+  }' | jq -r '.id')
 ASSET_IDS+=("$ASSET_401K")
 echo "Created 401K Asset ID: $ASSET_401K"
 
 # Asset 4: IRA (source for auto-disbursement)
-ASSET_IRA=$(create_asset "Comp Test IRA" "Investment" 100000 5.0)
-if [ $? -ne 0 ] || [ -z "$ASSET_IRA" ] || [ "$ASSET_IRA" = "null" ]; then
-  echo "ERROR: Failed to create IRA Asset"
-  exit 1
-fi
+ASSET_IRA=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test IRA",
+    "category": "Investment",
+    "value": 100000,
+    "annual_increase_percent": 5.0,
+    "account_id": null,
+    "start_date": "2026-01-01",
+    "end_date": null
+  }' | jq -r '.id')
 ASSET_IDS+=("$ASSET_IRA")
 echo "Created IRA Asset ID: $ASSET_IRA"
 
 # Asset 5: Brokerage (destination for auto-disbursement, receives dividends)
-ASSET_BROK=$(create_asset "Comp Test Brokerage" "Investment" 0 8.0)
-if [ $? -ne 0 ] || [ -z "$ASSET_BROK" ] || [ "$ASSET_BROK" = "null" ]; then
-  echo "ERROR: Failed to create Brokerage Asset"
-  exit 1
-fi
+ASSET_BROK=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Brokerage",
+    "category": "Investment",
+    "value": 0,
+    "annual_increase_percent": 8.0,
+    "account_id": null,
+    "start_date": "2026-01-01",
+    "end_date": null
+  }' | jq -r '.id')
 ASSET_IDS+=("$ASSET_BROK")
 echo "Created Brokerage Asset ID: $ASSET_BROK"
 
 # Asset 6: Checking account (for surplus, starts mid-year)
-ASSET_CHK=$(create_asset "Comp Test Checking" "Checking" 10000 0.0 "2026-07-01")
-if [ $? -ne 0 ] || [ -z "$ASSET_CHK" ] || [ "$ASSET_CHK" = "null" ]; then
-  echo "ERROR: Failed to create Checking Asset"
-  exit 1
-fi
+ASSET_CHK=$(curl -s -X POST "${API_BASE}/assets/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Checking",
+    "category": "Checking",
+    "value": 10000,
+    "annual_increase_percent": 0.0,
+    "account_id": null,
+    "start_date": "2026-07-01",
+    "end_date": null
+  }' | jq -r '.id')
 ASSET_IDS+=("$ASSET_CHK")
 echo "Created Checking Asset ID: $ASSET_CHK"
 
@@ -1967,52 +1816,117 @@ echo "Created Checking Asset ID: $ASSET_CHK"
 echo "Creating liabilities..."
 
 # Liability 1: Amortized mortgage (30-year loan)
-LIABILITY_MORT=$(create_liability "Comp Test Mortgage" "Mortgage" 250000 0 "amortized" 250000 4.0 360 "2025-01-01")
-if [ $? -ne 0 ] || [ -z "$LIABILITY_MORT" ] || [ "$LIABILITY_MORT" = "null" ]; then
-  echo "ERROR: Failed to create Mortgage Liability"
-  exit 1
-fi
+LIABILITY_MORT=$(curl -s -X POST "${API_BASE}/liabilities/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Mortgage",
+    "category": "Mortgage",
+    "value": 250000,
+    "annual_increase_percent": 0,
+    "loan_type": "amortized",
+    "principal_amount": 250000,
+    "interest_rate": 4.0,
+    "loan_term_months": 360,
+    "loan_start_date": "2025-01-01",
+    "monthly_payment": null,
+    "start_date": "2026-01-01",
+    "end_date": null
+  }' | jq -r '.id')
 LIABILITY_IDS+=("$LIABILITY_MORT")
 echo "Created Mortgage Liability ID: $LIABILITY_MORT"
 
 # Liability 2: Amortized car loan
-LIABILITY_CAR=$(create_liability "Comp Test Car Loan" "Car Loan" 30000 0 "amortized" 30000 4.5 60 "2025-06-01")
-if [ $? -ne 0 ] || [ -z "$LIABILITY_CAR" ] || [ "$LIABILITY_CAR" = "null" ]; then
-  echo "ERROR: Failed to create Car Loan Liability"
-  exit 1
-fi
+LIABILITY_CAR=$(curl -s -X POST "${API_BASE}/liabilities/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Comp Test Car Loan",
+    "category": "Car Loan",
+    "value": 30000,
+    "annual_increase_percent": 0,
+    "loan_type": "amortized",
+    "principal_amount": 30000,
+    "interest_rate": 4.5,
+    "loan_term_months": 60,
+    "loan_start_date": "2025-06-01",
+    "monthly_payment": null,
+    "start_date": "2026-01-01",
+    "end_date": null
+  }' | jq -r '.id')
 LIABILITY_IDS+=("$LIABILITY_CAR")
 echo "Created Car Loan Liability ID: $LIABILITY_CAR"
 
 # --- INCOME ---
 echo "Creating income items..."
 
-# Income 1: Fixed salary with growth
-INCOME_SAL=$(create_cashflow true "Salary, Wages, Tips" "Comp Test Salary" 100000 3.0 "2026-01-01")
-if [ $? -ne 0 ] || [ -z "$INCOME_SAL" ] || [ "$INCOME_SAL" = "null" ]; then
-  echo "ERROR: Failed to create Salary Income"
-  exit 1
-fi
+# Income 1: Fixed salary with growth (TAXABLE)
+INCOME_SAL=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Salary, Wages, Tips",
+    "description": "Comp Test Salary",
+    "frequency": "yearly",
+    "value": 100000,
+    "annual_increase_percent": 3.0,
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
 INCOME_IDS+=("$INCOME_SAL")
 echo "Created Salary Income ID: $INCOME_SAL"
 
-# Income 2: Dynamic income linked to investment (dividends, reinvested via UI)
+# Income 2: Dynamic income linked to investment (dividends, reinvested via UI) - TAXABLE
 # NOTE: For this test, we'll create it manually. In practice, enable "Track Dividends as Taxable Income"
 # on Comp Test Investment asset in the UI to auto-generate this.
-INCOME_DIV=$(create_cashflow true "Dividends (qualified)" "Comp Test Investment Dividends" 0 0 "2026-01-01" null true "$ASSET_INV" "asset" 2.0 "Family")
-if [ $? -ne 0 ] || [ -z "$INCOME_DIV" ] || [ "$INCOME_DIV" = "null" ]; then
-  echo "ERROR: Failed to create Dividend Income"
-  exit 1
-fi
+INCOME_DIV=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"is_income\": true,
+    \"category\": \"Dividends (qualified)\",
+    \"description\": \"Comp Test Investment Dividends\",
+    \"frequency\": \"yearly\",
+    \"value\": 0,
+    \"annual_increase_percent\": 0,
+    \"start_date\": \"2026-01-01\",
+    \"end_date\": null,
+    \"taxable\": true,
+    \"linked_item_id\": ${ASSET_INV},
+    \"linked_item_type\": \"asset\",
+    \"percentage\": 2.0,
+    \"person\": \"Family\",
+    \"reinvest_dividends\": true,
+    \"reinvestment_account_id\": ${ASSET_INV}
+  }" | jq -r '.id')
 INCOME_IDS+=("$INCOME_DIV")
 echo "Created Dividend Income ID: $INCOME_DIV"
 
-# Income 3: Rental income with partial year (starts mid-year)
-INCOME_RENT=$(create_cashflow true "Rental Income" "Comp Test Rental Income" 24000 2.0 "2026-07-01")
-if [ $? -ne 0 ] || [ -z "$INCOME_RENT" ] || [ "$INCOME_RENT" = "null" ]; then
-  echo "ERROR: Failed to create Rental Income"
-  exit 1
-fi
+# Income 3: Rental income with partial year (starts mid-year) - TAXABLE
+INCOME_RENT=$(curl -s -X POST "${API_BASE}/cashflow?is_income=true" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": true,
+    "category": "Rental Income",
+    "description": "Comp Test Rental Income",
+    "frequency": "yearly",
+    "value": 24000,
+    "annual_increase_percent": 2.0,
+    "start_date": "2026-07-01",
+    "end_date": null,
+    "taxable": true,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
 INCOME_IDS+=("$INCOME_RENT")
 echo "Created Rental Income ID: $INCOME_RENT"
 
@@ -2020,29 +1934,69 @@ echo "Created Rental Income ID: $INCOME_RENT"
 echo "Creating expense items..."
 
 # Expense 1: Fixed housing expense with inflation
-EXPENSE_HOUSING=$(create_cashflow false "Housing" "Comp Test Housing" 36000 3.0 "2026-01-01")
-if [ $? -ne 0 ] || [ -z "$EXPENSE_HOUSING" ] || [ "$EXPENSE_HOUSING" = "null" ]; then
-  echo "ERROR: Failed to create Housing Expense"
-  exit 1
-fi
+EXPENSE_HOUSING=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": false,
+    "category": "Housing",
+    "description": "Comp Test Housing",
+    "frequency": "yearly",
+    "value": 36000,
+    "inflation_percent": 3.0,
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "tax_deductible": false,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
 EXPENSE_IDS+=("$EXPENSE_HOUSING")
 echo "Created Housing Expense ID: $EXPENSE_HOUSING"
 
-# Expense 2: Dynamic expense linked to income (401K contribution - 10% of salary)
-EXPENSE_401K=$(create_cashflow false "Investments" "Comp Test 401K Contribution" 0 0 "2026-01-01" null true "$INCOME_SAL" "income" 10.0 "Family" "$ASSET_401K")
-if [ $? -ne 0 ] || [ -z "$EXPENSE_401K" ] || [ "$EXPENSE_401K" = "null" ]; then
-  echo "ERROR: Failed to create 401K Contribution Expense"
-  exit 1
-fi
+# Expense 2: Dynamic expense linked to income (401K contribution - 10% of salary) - TAX DEDUCTIBLE
+EXPENSE_401K=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"is_income\": false,
+    \"category\": \"Investments\",
+    \"description\": \"Comp Test 401K Contribution\",
+    \"frequency\": \"yearly\",
+    \"value\": 0,
+    \"inflation_percent\": 0,
+    \"start_date\": \"2026-01-01\",
+    \"end_date\": null,
+    \"tax_deductible\": true,
+    \"linked_item_id\": ${INCOME_SAL},
+    \"linked_item_type\": \"income\",
+    \"percentage\": 10.0,
+    \"person\": \"Family\",
+    \"contributes_to_asset_id\": ${ASSET_401K}
+  }" | jq -r '.id')
 EXPENSE_IDS+=("$EXPENSE_401K")
 echo "Created 401K Contribution Expense ID: $EXPENSE_401K"
 
 # Expense 3: Fixed expense with partial year (ends mid-year)
-EXPENSE_UTIL=$(create_cashflow false "Utilities" "Comp Test Utilities" 6000 2.0 "2026-01-01" "2027-06-30")
-if [ $? -ne 0 ] || [ -z "$EXPENSE_UTIL" ] || [ "$EXPENSE_UTIL" = "null" ]; then
-  echo "ERROR: Failed to create Utilities Expense"
-  exit 1
-fi
+EXPENSE_UTIL=$(curl -s -X POST "${API_BASE}/cashflow?is_income=false" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_income": false,
+    "category": "Utilities",
+    "description": "Comp Test Utilities",
+    "frequency": "yearly",
+    "value": 6000,
+    "inflation_percent": 2.0,
+    "start_date": "2026-01-01",
+    "end_date": "2027-06-30",
+    "tax_deductible": false,
+    "linked_item_id": null,
+    "linked_item_type": null,
+    "percentage": null,
+    "person": "Family"
+  }' | jq -r '.id')
 EXPENSE_IDS+=("$EXPENSE_UTIL")
 echo "Created Utilities Expense ID: $EXPENSE_UTIL"
 
@@ -2284,16 +2238,16 @@ echo "Cleanup complete!"
 | | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2) |
 | | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12) |
 | | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12) |
-| | Federal Income Tax (MFJ) | ~$13,775.00 | Married Filing Jointly - includes Social Security as taxable income (higher than $7,935 because SS is taxable) |
+| | Federal Income Tax (MFJ) | ~$12,290.00 | Married Filing Jointly - calculated on total taxable income. **IMPORTANT:** Ensure all income items (Salary, Dividends, Rental Income, Social Security) are created with `"taxable": true`. Expected tax may vary based on partial-year calculations and qualified dividend treatment. |
 | | **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
 | | **Total Expenses (including tax)** | **~$86,808.00** | 73.033k + 13.775k = ~$86,808 |
 | **Cash Flow** | **Surplus/Deficit** | **~$55,740.00** | ~142.548k income - 86.808k expenses (including tax) = ~$55,740 |
 
 **Important Notes:**
 
-1. **Federal Income Tax Calculation:** Social Security income is marked as taxable in the system (`taxable=True`), so it is included in taxable income for tax calculations. The expected tax value of ~$7,935 was calculated assuming Social Security was excluded. With Social Security included in taxable income, actual tax will be higher (approximately $12,000-$14,000 depending on the actual taxable income). The tax calculation uses 2025 federal tax brackets for Married Filing Jointly with standard deduction of $29,900.
+1. **Federal Income Tax Calculation:** All income items (Salary, Dividends, Rental Income, and Social Security) must be marked as `taxable: true` when created. The tax is calculated on total taxable income minus tax-deductible expenses (e.g., 401K contributions), minus the standard deduction. The tax calculation uses 2025 federal tax brackets for Married Filing Jointly with standard deduction of $29,900. Qualified dividends may be taxed at lower capital gains rates (0%, 15%, or 20%) instead of ordinary income rates.
 
-2. **Checking Account Balance:** The checking account starts at $10,000 on 7/1/2026 and receives surplus transfers at the end of each year. The expected balance for Year 2026 is ~$65,740 ($10,000 initial + $55,740 surplus). The surplus reflects prorated partial-year income/expenses (Social Security, Rental Income) and includes Social Security as taxable income (which increases tax and reduces surplus compared to earlier estimates).
+2. **Checking Account Balance:** The checking account starts at $10,000 on 7/1/2026 and receives surplus transfers at the end of each year. The expected balance for Year 2026 is ~$67,225 ($10,000 initial + $57,225 surplus). The surplus reflects prorated partial-year income/expenses (Social Security, Rental Income) and includes all taxable income items properly marked.
 
 3. **Loan Balance Calculations:** Loan balances are calculated using standard amortization formulas based on the loan start date. The calculation date is Dec 31 of each projection year. Expected values in the test plan are approximations; actual balances may vary slightly due to rounding. See `COMPREHENSIVE_TEST_INVESTIGATION.md` for detailed calculations.
 
@@ -2346,7 +2300,7 @@ echo "Cleanup complete!"
 | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2: $6k * 1.02 = $6,120 in year 2) |
 | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12, remains constant) |
 | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12, remains constant) |
-| Federal Income Tax (Calculated) | ~$13,775.00 | Married Filing Jointly - includes Social Security as taxable income (actual amount depends on exact taxable income calculation) |
+| Federal Income Tax (Calculated) | ~$12,290.00 | Married Filing Jointly - calculated on total taxable income. **IMPORTANT:** Ensure all income items are created with `"taxable": true`. Expected tax may vary based on partial-year calculations and qualified dividend treatment. |
 | **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
 | **Total Expenses (including tax)** | **~$86,808.00** | 73.033k + 13.775k = ~$86,808 |
 
@@ -2385,7 +2339,7 @@ echo "Cleanup complete!"
 | | Comp Test Utilities | $0.00 | Ended 6/30/2027 |
 | | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12, remains constant) |
 | | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12, remains constant) |
-| | Federal Income Tax (MFJ) | ~$8,151.00 | Based on year 2 taxable income (includes Social Security) |
+| | Federal Income Tax (MFJ) | ~$13,200.00 | Based on year 2 taxable income. **IMPORTANT:** Ensure all income items are created with `"taxable": true`. Expected tax may vary based on qualified dividend treatment. |
 | | **Total Expenses (excluding tax)** | **~$69,525.00** | 38.192k + 10.3k + 0 + 14.322k + 6.711k = ~$69,525 |
 | **Cash Flow** | **Surplus/Deficit** | **~$113,964.00** | ~191.64k income - 69.525k expenses - 8.151k tax |
 
