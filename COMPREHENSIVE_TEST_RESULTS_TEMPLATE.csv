@@ -14,7 +14,7 @@ Assets,Comp Test IRA,2028,$95843.00,,,
 Assets,Comp Test Brokerage,2026,$7020.00,,,
 Assets,Comp Test Brokerage,2027,$14141.00,,,
 Assets,Comp Test Brokerage,2028,$21672.00,,,
-Assets,Comp Test Checking,2026,~$71000.00,,,Starting balance $10k (starts 7/1/2026) + surplus ~$61k (includes loan payments in expenses). Note: Actual may differ if viewing accumulated balance or if surplus calculation differs.
+Assets,Comp Test Checking,2026,~$65740.00,,,Starting balance $10k (starts 7/1/2026) + surplus ~$55,740 (prorated partial-year income/expenses, includes Social Security as taxable). Note: Surplus is lower than earlier estimates because Social Security is included in taxable income, increasing tax.
 Assets,Comp Test Checking,2027,Accumulating,,,Surplus transfers continue (balance accumulates from previous year + current year surplus)
 Assets,Comp Test Checking,2028,Accumulating,,,Surplus transfers continue (balance accumulates from previous years + current year surplus)
 Assets,Total Assets,2026,$561520.00,,,Sum of all assets (excluding accumulating Checking)
@@ -44,7 +44,7 @@ Income,Social Security - Person 1,2028,$48000.00,,,~$4k/month * 12 months (full 
 Income,Social Security - Person 2,2026,$6000.00,,,~$2k/month * 3 months (starts 10/1/2026, partial year - actual depends on FRA)
 Income,Social Security - Person 2,2027,$24000.00,,,~$2k/month * 12 months (full year)
 Income,Social Security - Person 2,2028,$24000.00,,,~$2k/month * 12 months (full year, may have COLA adjustment)
-Income,Total Income,2026,$142000.00,,,
+Income,Total Income,2026,$142548.00,,,Prorated partial-year values: SS $26,170 + Salary $100k + Dividends $4,280 + Rental $12,099
 Income,Total Income,2027,$191640.00,,,
 Income,Total Income,2028,$207900.00,,,
 Expenses,Comp Test Housing,2026,$36000.00,,,Base value (inflation starts in year 2)
@@ -68,7 +68,7 @@ Expenses,Federal Income Tax (Calculated),2028,~$29000.00,,,Based on year 3 taxab
 Expenses,Total Expenses (excluding tax),2026,$73033.00,,,36k + 10k + 6k + 14.322k + 6.711k
 Expenses,Total Expenses (excluding tax),2027,$73525.00,,,37.08k + 10.3k + 6.12k + 14.322k + 6.711k (partial year utilities)
 Expenses,Total Expenses (excluding tax),2028,$64703.40,,,38.192k + 10.609k + 0 + 14.322k + 6.711k (utilities ended)
-Expenses,Total Expenses (including tax),2026,$80968.00,,,73.033k + 7.935k
+Expenses,Total Expenses (including tax),2026,$86808.00,,,73.033k + 13.775k (tax includes Social Security)
 Expenses,Total Expenses (including tax),2027,$81676.00,,,73.525k + 8.151k
 Expenses,Total Expenses (including tax),2028,$73083.40,,,64.703k + 8.38k
 Cash Flow,Total Income,2026,$142000.00,,,
@@ -86,6 +86,6 @@ Cash Flow,Net Cash Flow (Surplus),2028,$150718.60,,,~207.9k - 48.801k - 8.38k
 Auto-Disbursements,IRA to Brokerage Transfer,2026,$6500.00,,,Applied at beginning of year
 Auto-Disbursements,IRA to Brokerage Transfer,2027,$6500.00,,,
 Auto-Disbursements,IRA to Brokerage Transfer,2028,$6500.00,,,
-Surplus Transfers,Surplus to Checking,2026,$61032.00,,,Applied at end of year (partial year from 7/1/2026, includes Social Security income and loan payments)
+Surplus Transfers,Surplus to Checking,2026,$55740.00,,,Applied at end of year (prorated partial-year income/expenses, includes Social Security as taxable which increases tax and reduces surplus)
 Surplus Transfers,Surplus to Checking,2027,$109964.00,,,Full year surplus (includes Social Security income and loan payments)
 Surplus Transfers,Surplus to Checking,2028,$134816.60,,,Full year surplus (includes Social Security income and loan payments)

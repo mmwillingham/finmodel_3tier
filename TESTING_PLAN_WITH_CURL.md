@@ -2212,7 +2212,7 @@ echo "Cleanup complete!"
 | | Comp Test 401K | $169,000.00 | Beginning: $150k, Growth: $9k, Contribution: $10k |
 | | Comp Test IRA | $98,500.00 | Beginning: $100k, Growth: $5k, Transfer: -$6.5k |
 | | Comp Test Brokerage | $7,020.00 | Beginning: $0, Transfer: +$6.5k, Growth: $520 |
-| | Comp Test Checking | ~$71,000.00 | Beginning: $10k (starts 7/1/2026) + Surplus ~$61k (after including loan payments in expenses) |
+| | Comp Test Checking | ~$65,740.00 | Beginning: $10k (starts 7/1/2026) + Surplus ~$55,740 (after prorating partial-year income/expenses and including Social Security as taxable) |
 | **Liabilities** | Comp Test Mortgage | ~$241,400.00 | Amortized 30-year loan, 4% interest, started 1/1/2025 (24 months paid by Dec 31, 2026) |
 | | Comp Test Car Loan | ~$21,700.00 | Amortized 60-month loan, 4.5% interest, started 6/1/2025 (19 months paid by Dec 31, 2026) |
 | **Income** | Comp Test Salary | $100,000.00 | Year 1 (no growth yet) |
@@ -2220,25 +2220,22 @@ echo "Cleanup complete!"
 | | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (partial year from 7/1/2026) |
 | | Social Security - Person 1 | ~$20,000.00 | ~$4k/month * 5 months (starts 8/1/2026, partial year) |
 | | Social Security - Person 2 | ~$6,000.00 | ~$2k/month * 3 months (starts 10/1/2026, partial year) |
-| | **Total Income** | **~$142,000.00** | |
+| | **Total Income** | **~$142,548.00** | Prorated: SS $26,170 + Salary $100k + Dividends $4,280 + Rental $12,099 |
 | **Expenses** | Comp Test Housing | $36,000.00 | Base value (inflation starts in year 2) |
 | | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary |
 | | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2) |
 | | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12) |
 | | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12) |
-| | Federal Income Tax (MFJ) | ~$7,935.00 | Married Filing Jointly (see 7.2 for details) |
+| | Federal Income Tax (MFJ) | ~$13,775.00 | Married Filing Jointly - includes Social Security as taxable income (higher than $7,935 because SS is taxable) |
 | | **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
-| **Cash Flow** | **Surplus/Deficit** | **~$61,032.00** | ~142k income - 73.033k expenses - 7.935k tax = ~$61,032 |
+| | **Total Expenses (including tax)** | **~$86,808.00** | 73.033k + 13.775k = ~$86,808 |
+| **Cash Flow** | **Surplus/Deficit** | **~$55,740.00** | ~142.548k income - 86.808k expenses (including tax) = ~$55,740 |
 
 **Important Notes:**
 
 1. **Federal Income Tax Calculation:** Social Security income is marked as taxable in the system (`taxable=True`), so it is included in taxable income for tax calculations. The expected tax value of ~$7,935 was calculated assuming Social Security was excluded. With Social Security included in taxable income, actual tax will be higher (approximately $12,000-$14,000 depending on the actual taxable income). The tax calculation uses 2025 federal tax brackets for Married Filing Jointly with standard deduction of $29,900.
 
-2. **Checking Account Balance:** The checking account starts at $10,000 on 7/1/2026 and receives surplus transfers at the end of each year. If you see a balance significantly higher than expected (e.g., $123,471 instead of ~$71,000), verify:
-   - You are viewing the correct year (not accumulated from previous years)
-   - The starting balance was correctly initialized
-   - Surplus is being applied only once per year
-   - If viewing a projection with multiple years, the balance accumulates over time
+2. **Checking Account Balance:** The checking account starts at $10,000 on 7/1/2026 and receives surplus transfers at the end of each year. The expected balance for Year 2026 is ~$65,740 ($10,000 initial + $55,740 surplus). The surplus reflects prorated partial-year income/expenses (Social Security, Rental Income) and includes Social Security as taxable income (which increases tax and reduces surplus compared to earlier estimates).
 
 3. **Loan Balance Calculations:** Loan balances are calculated using standard amortization formulas based on the loan start date. The calculation date is Dec 31 of each projection year. Expected values in the test plan are approximations; actual balances may vary slightly due to rounding. See `COMPREHENSIVE_TEST_INVESTIGATION.md` for detailed calculations.
 
@@ -2291,17 +2288,19 @@ echo "Cleanup complete!"
 | Comp Test Utilities | $6,000.00 | Base value (inflation starts in year 2: $6k * 1.02 = $6,120 in year 2) |
 | Loan payment for Comp Test Mortgage | ~$14,322.00 | Amortized loan payment (~$1,193/month * 12, remains constant) |
 | Loan payment for Comp Test Car Loan | ~$6,711.00 | Amortized loan payment (~$559/month * 12, remains constant) |
-| Federal Income Tax (Calculated) | ~$7,935.00 | Married Filing Jointly (see section 7.2 for Single comparison) |
+| Federal Income Tax (Calculated) | ~$13,775.00 | Married Filing Jointly - includes Social Security as taxable income (actual amount depends on exact taxable income calculation) |
 | **Total Expenses (excluding tax)** | **~$73,033.00** | 36k + 10k + 6k + 14.322k + 6.711k = ~$73,033 |
+| **Total Expenses (including tax)** | **~$86,808.00** | 73.033k + 13.775k = ~$86,808 |
 
 **Cash Flow Analysis:**
 
 | Item | Amount |
 |------|--------|
-| Total Income | ~$142,000.00 |
+| Total Income | ~$142,548.00 |
 | Total Expenses (excluding tax) | -$73,033.00 |
-| Federal Income Tax | -$7,935.00 |
-| **Net Cash Flow (Surplus)** | **~$61,032.00** | ~142k - 73.033k - 7.935k |
+| Federal Income Tax | -$13,775.00 |
+| **Total Expenses (including tax)** | **-$86,808.00** |
+| **Net Cash Flow (Surplus)** | **~$55,740.00** | ~142.548k - 86.808k |
 
 **Expected Values (Year 2027):**
 
