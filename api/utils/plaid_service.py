@@ -5,7 +5,8 @@ Handles all interactions with the Plaid API for connecting bank accounts.
 import os
 from typing import Optional, Dict, Any, List
 from datetime import date
-from plaid import Client
+from plaid.api import plaid_api
+from plaid.configuration import Configuration
 from plaid.model.country_code import CountryCode
 from plaid.model.products import Products
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
@@ -29,12 +30,22 @@ class PlaidService:
             return
             
         try:
-            self.client = Client(
-                client_id=config.settings.PLAID_CLIENT_ID,
-                secret=config.settings.PLAID_SECRET,
-                environment=config.settings.PLAID_ENV.lower(),
-                api_version='2020-09-14'
+            # Map environment string to Plaid Environment enum
+            env_map = {
+                'sandbox': plaid_api.Environment.sandbox,
+                'development': plaid_api.Environment.development,
+                'production': plaid_api.Environment.production
+            }
+            plaid_env = env_map.get(config.settings.PLAID_ENV.lower(), plaid_api.Environment.sandbox)
+            
+            configuration = Configuration(
+                host=plaid_env,
+                api_key={
+                    'clientId': config.settings.PLAID_CLIENT_ID,
+                    'secret': config.settings.PLAID_SECRET
+                }
             )
+            self.client = plaid_api.PlaidApi(configuration)
         except Exception as e:
             logger.error(f"Failed to initialize Plaid client: {str(e)}")
             self.client = None
@@ -106,10 +117,17 @@ class PlaidService:
             request = ItemPublicTokenExchangeRequest(public_token=public_token)
             response = self.client.item_public_token_exchange(request)
             
-            return {
-                'access_token': response.get('access_token'),
-                'item_id': response.get('item_id')
-            }
+            # Handle both dict and object responses
+            if isinstance(response, dict):
+                return {
+                    'access_token': response.get('access_token'),
+                    'item_id': response.get('item_id')
+                }
+            else:
+                return {
+                    'access_token': response.access_token,
+                    'item_id': response.item_id
+                }
         except Exception as e:
             logger.error(f"Error exchanging public token: {str(e)}")
             return None
@@ -132,23 +150,45 @@ class PlaidService:
             request = AccountsGetRequest(access_token=access_token)
             response = self.client.accounts_get(request)
             
+            # Handle both dict and object responses
+            accounts_data = response['accounts'] if isinstance(response, dict) else response.accounts
+            item_data = response.get('item', {}) if isinstance(response, dict) else getattr(response, 'item', None)
+            
             accounts = []
-            for account in response.get('accounts', []):
-                balances = account.get('balances', {})
-                accounts.append({
-                    'account_id': account.get('account_id'),
-                    'name': account.get('name'),
-                    'official_name': account.get('official_name'),
-                    'type': account.get('type'),
-                    'subtype': account.get('subtype'),
-                    'mask': account.get('mask'),
-                    'balances': {
-                        'available': balances.get('available'),
-                        'current': balances.get('current'),
-                        'limit': balances.get('limit'),
-                        'iso_currency_code': balances.get('iso_currency_code')
-                    }
-                })
+            for account in accounts_data:
+                # Handle both dict and object account
+                if isinstance(account, dict):
+                    balances = account.get('balances', {})
+                    accounts.append({
+                        'account_id': account.get('account_id'),
+                        'name': account.get('name'),
+                        'official_name': account.get('official_name'),
+                        'type': account.get('type'),
+                        'subtype': account.get('subtype'),
+                        'mask': account.get('mask'),
+                        'balances': {
+                            'available': balances.get('available'),
+                            'current': balances.get('current'),
+                            'limit': balances.get('limit'),
+                            'iso_currency_code': balances.get('iso_currency_code')
+                        }
+                    })
+                else:
+                    balances = account.balances
+                    accounts.append({
+                        'account_id': account.account_id,
+                        'name': account.name,
+                        'official_name': getattr(account, 'official_name', None),
+                        'type': account.type,
+                        'subtype': getattr(account, 'subtype', None),
+                        'mask': getattr(account, 'mask', None),
+                        'balances': {
+                            'available': getattr(balances, 'available', None),
+                            'current': getattr(balances, 'current', None),
+                            'limit': getattr(balances, 'limit', None),
+                            'iso_currency_code': getattr(balances, 'iso_currency_code', None)
+                        }
+                    })
             
             return accounts
             
@@ -174,17 +214,31 @@ class PlaidService:
             request = InvestmentsHoldingsGetRequest(access_token=access_token)
             response = self.client.investments_holdings_get(request)
             
+            # Handle both dict and object responses
+            holdings_data = response.get('holdings', []) if isinstance(response, dict) else getattr(response, 'holdings', [])
+            
             holdings = []
-            for holding in response.get('holdings', []):
-                holdings.append({
-                    'account_id': holding.get('account_id'),
-                    'security_id': holding.get('security_id'),
-                    'quantity': holding.get('quantity'),
-                    'institution_price': holding.get('institution_price'),
-                    'institution_value': holding.get('institution_value'),
-                    'cost_basis': holding.get('cost_basis'),
-                    'iso_currency_code': holding.get('iso_currency_code')
-                })
+            for holding in holdings_data:
+                if isinstance(holding, dict):
+                    holdings.append({
+                        'account_id': holding.get('account_id'),
+                        'security_id': holding.get('security_id'),
+                        'quantity': holding.get('quantity'),
+                        'institution_price': holding.get('institution_price'),
+                        'institution_value': holding.get('institution_value'),
+                        'cost_basis': holding.get('cost_basis'),
+                        'iso_currency_code': holding.get('iso_currency_code')
+                    })
+                else:
+                    holdings.append({
+                        'account_id': holding.account_id,
+                        'security_id': getattr(holding, 'security_id', None),
+                        'quantity': getattr(holding, 'quantity', None),
+                        'institution_price': getattr(holding, 'institution_price', None),
+                        'institution_value': getattr(holding, 'institution_value', None),
+                        'cost_basis': getattr(holding, 'cost_basis', None),
+                        'iso_currency_code': getattr(holding, 'iso_currency_code', None)
+                    })
             
             return holdings
             
@@ -211,17 +265,31 @@ class PlaidService:
             request = AccountsGetRequest(access_token=access_token)
             response = self.client.accounts_get(request)
             
-            item = response.get('item', {})
-            
-            return {
-                'item_id': item.get('item_id'),
-                'institution_id': item.get('institution_id'),
-                'webhook': item.get('webhook'),
-                'error': item.get('error'),
-                'available_products': item.get('available_products'),
-                'billed_products': item.get('billed_products'),
-                'consent_expiration_time': item.get('consent_expiration_time')
-            }
+            # Handle both dict and object responses
+            if isinstance(response, dict):
+                item = response.get('item', {})
+                return {
+                    'item_id': item.get('item_id'),
+                    'institution_id': item.get('institution_id'),
+                    'webhook': item.get('webhook'),
+                    'error': item.get('error'),
+                    'available_products': item.get('available_products'),
+                    'billed_products': item.get('billed_products'),
+                    'consent_expiration_time': item.get('consent_expiration_time')
+                }
+            else:
+                item = getattr(response, 'item', None)
+                if item:
+                    return {
+                        'item_id': item.item_id,
+                        'institution_id': getattr(item, 'institution_id', None),
+                        'webhook': getattr(item, 'webhook', None),
+                        'error': getattr(item, 'error', None),
+                        'available_products': getattr(item, 'available_products', None),
+                        'billed_products': getattr(item, 'billed_products', None),
+                        'consent_expiration_time': getattr(item, 'consent_expiration_time', None)
+                    }
+                return None
             
         except Exception as e:
             logger.error(f"Error getting item info: {str(e)}")
