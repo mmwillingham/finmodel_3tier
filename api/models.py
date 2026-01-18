@@ -271,6 +271,7 @@ class Liability(Base):
     value = Column(Float, nullable=False)
     annual_increase_percent = Column(Float, default=0.0)
     annual_change_type = Column(String, default="increase") # New field
+    account_id = Column(Integer, ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)  # Link to master account
     loan_type = Column(String, nullable=True, default="ordinary") # NEW
     principal_amount = Column(Float, nullable=True) # NEW
     interest_rate = Column(Float, nullable=True) # NEW

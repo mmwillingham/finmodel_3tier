@@ -42,9 +42,10 @@ const AccountService = {
     }
   },
 
-  async deleteAccount(accountId) {
+  async deleteAccount(accountId, cascade = false) {
     try {
-      await api.delete(`/accounts/${accountId}`);
+      const params = cascade ? { cascade: 'true' } : {};
+      await api.delete(`/accounts/${accountId}`, { params });
     } catch (error) {
       console.error('Error deleting account:', error);
       throw error;

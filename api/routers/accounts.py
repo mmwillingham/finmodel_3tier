@@ -302,10 +302,13 @@ def update_account(
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_account(
     account_id: int,
+    cascade: bool = False,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Delete an account (requires edit permission). Will set account_id to NULL on linked assets."""
+    """Delete an account (requires edit permission). 
+    If cascade=True, will also delete all linked assets and liabilities.
+    If cascade=False (default), will set account_id to NULL on linked assets/liabilities."""
     db_account = db.query(models.Account).filter(models.Account.id == account_id).first()
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -322,12 +325,22 @@ def delete_account(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to delete this account")
     
-    # Check if any assets are linked to this account
+    # Handle linked assets and liabilities
     linked_assets = db.query(models.Asset).filter(models.Asset.account_id == account_id).all()
-    if linked_assets:
-        # Set account_id to NULL for linked assets
+    linked_liabilities = db.query(models.Liability).filter(models.Liability.account_id == account_id).all()
+    
+    if cascade:
+        # Cascade delete: delete all linked assets and liabilities
+        for asset in linked_assets:
+            db.delete(asset)
+        for liability in linked_liabilities:
+            db.delete(liability)
+    else:
+        # Set account_id to NULL for linked assets/liabilities
         for asset in linked_assets:
             asset.account_id = None
+        for liability in linked_liabilities:
+            liability.account_id = None
     
     db.delete(db_account)
     db.commit()

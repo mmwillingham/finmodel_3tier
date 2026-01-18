@@ -42,9 +42,10 @@ const BrokerageService = {
     }
   },
 
-  async deleteBrokerage(brokerageId) {
+  async deleteBrokerage(brokerageId, cascade = false) {
     try {
-      await ApiService.delete(`/brokerages/${brokerageId}`);
+      const params = cascade ? { cascade: 'true' } : {};
+      await ApiService.delete(`/brokerages/${brokerageId}`, { params });
     } catch (error) {
       console.error('Error deleting brokerage:', error);
       throw error;

@@ -226,7 +226,7 @@ def preview_plaid_accounts(
                 suggested_category = 'Depository'
             suggested_type = 'asset'
         elif account_type == 'credit':
-            suggested_category = 'Credit'
+            suggested_category = 'Credit Card'  # Preselect Credit Card category for credit accounts
             suggested_type = 'liability'  # Credit cards should be liabilities
         else:
             suggested_category = 'Other'
@@ -628,6 +628,7 @@ def apply_plaid_mappings(
             
             if existing_liability:
                 existing_liability.principal_amount = balance
+                existing_liability.value = balance  # Update value field as well (required field)
                 existing_liability.category = mapping.category
                 existing_liability.updated_at = datetime.utcnow()
                 created_items.append({
@@ -641,6 +642,7 @@ def apply_plaid_mappings(
                     owner_id=current_user.id,
                     name=item_name,
                     category=mapping.category,
+                    value=balance,  # Required field
                     principal_amount=balance,
                     account_id=account.id,
                     start_date=current_date

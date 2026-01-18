@@ -138,24 +138,31 @@ const AccountsSettingsPage = () => {
     }
   };
 
-  const handleDeleteAccount = async (accountId) => {
+  const handleDeleteAccount = async (accountId, accountName) => {
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Account',
-      message: 'Are you sure you want to delete this account? Assets linked to this account will have their account link removed.',
-      onConfirm: async () => {
+      message: `Are you sure you want to delete the account "${accountName}"?\n\nThis will:\n• Remove the account link from all assets and liabilities\n• OR delete all assets and liabilities linked to this account (if you choose cascade delete)`,
+      onConfirm: async (cascadeDelete) => {
         try {
-          await AccountService.deleteAccount(accountId);
-          setMessage('Account deleted successfully!');
+          await AccountService.deleteAccount(accountId, cascadeDelete || false);
+          setMessage(cascadeDelete 
+            ? 'Account and linked items deleted successfully!' 
+            : 'Account deleted successfully! Linked assets/liabilities had their account link removed.');
           loadData();
-          setTimeout(() => setMessage(''), 2000);
+          setTimeout(() => setMessage(''), 3000);
+          setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
         } catch (e) {
           console.error('Failed to delete account', e);
           const errorMessage = e.response?.data?.detail || 'Error deleting account';
           setMessage(errorMessage);
           setTimeout(() => setMessage(''), 3000);
         }
-      }
+      },
+      showCascadeOption: true,
+      cascadeMessage: 'Also delete all assets and liabilities linked to this account',
+      showCancel: true,
+      cancelText: 'Cancel'
     });
   };
 
@@ -170,11 +177,25 @@ const AccountsSettingsPage = () => {
           : '';
         setConfirmDialog({
           isOpen: true,
-          title: 'Cannot Delete Brokerage',
-          message: `Cannot delete brokerage "${brokerageName}" because it is linked to ${usage.account_count} account(s).${accountList}\n\nPlease remove or reassign all accounts linked to this brokerage before deleting it.`,
-          onConfirm: () => {
-            setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
-          }
+          title: 'Delete Brokerage with Linked Accounts?',
+          message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nDo you want to delete the brokerage and all linked accounts? Assets and liabilities linked to those accounts will have their account link removed.`,
+            onConfirm: async () => {
+              try {
+                await BrokerageService.deleteBrokerage(brokerageId, true); // cascade=true
+                setMessage('Brokerage and linked accounts deleted successfully!');
+                loadData();
+                setTimeout(() => setMessage(''), 3000);
+                setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
+              } catch (e) {
+                console.error('Failed to delete brokerage', e);
+                const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+                setMessage(errorMessage);
+                setTimeout(() => setMessage(''), 3000);
+              }
+            },
+            showCancel: true,
+            cancelText: 'Cancel',
+            showCascadeOption: false
         });
         return;
       }
@@ -186,17 +207,21 @@ const AccountsSettingsPage = () => {
         message: `Are you sure you want to delete the brokerage "${brokerageName}"?`,
         onConfirm: async () => {
           try {
-            await BrokerageService.deleteBrokerage(brokerageId);
+            await BrokerageService.deleteBrokerage(brokerageId, false); // cascade=false
             setMessage('Brokerage deleted successfully!');
             loadData();
             setTimeout(() => setMessage(''), 2000);
+            setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
           } catch (e) {
             console.error('Failed to delete brokerage', e);
             const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
             setMessage(errorMessage);
             setTimeout(() => setMessage(''), 3000);
           }
-        }
+        },
+        showCancel: true,
+        cancelText: 'Cancel',
+        showCascadeOption: false
       });
     } catch (e) {
       console.error('Failed to check brokerage usage', e);
@@ -227,7 +252,7 @@ const AccountsSettingsPage = () => {
   }
 
   return (
-    <div className="settings-page-container" style={{ maxWidth: '1100px' }}>
+    <div className="settings-page-container" style={{ maxWidth: '1600px' }}>
       <h2>Accounts</h2>
       {message && (
         <div 
@@ -483,16 +508,16 @@ const AccountsSettingsPage = () => {
                     </div>
                   )}
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div style={{ overflowX: 'visible', width: '100%' }}>
+                  <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                     <thead>
                       <tr>
-                        <th style={{ minWidth: '80px' }}>Owner</th>
-                        <th style={{ minWidth: '120px' }}>Brokerage</th>
-                        <th style={{ minWidth: '120px' }}>Account Name</th>
-                        <th style={{ minWidth: '120px' }}>Account Number</th>
-                        <th style={{ minWidth: '100px' }}>Retirement</th>
-                        <th style={{ minWidth: '100px' }}>Actions</th>
+                        <th style={{ width: '8%' }}>Owner</th>
+                        <th style={{ width: '15%' }}>Brokerage</th>
+                        <th style={{ width: '25%' }}>Account Name</th>
+                        <th style={{ width: '15%' }}>Account Number</th>
+                        <th style={{ width: '10%' }}>Retirement</th>
+                        <th style={{ width: '12%' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -600,7 +625,7 @@ const AccountsSettingsPage = () => {
                                         ✏️
                                       </button>
                                       <button 
-                                        onClick={() => handleDeleteAccount(account.id)} 
+                                        onClick={() => handleDeleteAccount(account.id, account.account_name)} 
                                         className="delete-icon-btn" 
                                         title="Delete"
                                         style={{ padding: '4px 6px', fontSize: '1em' }}
@@ -636,6 +661,10 @@ const AccountsSettingsPage = () => {
         onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        showCancel={confirmDialog.showCancel}
+        showCascadeOption={confirmDialog.showCascadeOption}
+        cascadeMessage={confirmDialog.cascadeMessage}
+        cancelText={confirmDialog.cancelText}
       />
     </div>
   );

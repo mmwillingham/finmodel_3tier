@@ -151,10 +151,13 @@ def check_brokerage_usage(
 @router.delete("/{brokerage_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_brokerage(
     brokerage_id: int,
+    cascade: bool = False,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """Delete a brokerage (requires ownership). Will only delete if not in use."""
+    """Delete a brokerage (requires ownership). 
+    If cascade=True, will also delete all linked accounts (and optionally their assets/liabilities).
+    If cascade=False (default), will only delete if not in use."""
     db_brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == brokerage_id).first()
     if not db_brokerage:
         raise HTTPException(status_code=404, detail="Brokerage not found")
@@ -165,12 +168,28 @@ def delete_brokerage(
     
     # Check if brokerage is linked to any accounts
     linked_accounts = db.query(models.Account).filter(models.Account.brokerage_id == brokerage_id).all()
+    
     if linked_accounts:
-        account_names = [acc.account_name for acc in linked_accounts]
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot delete brokerage '{db_brokerage.name}' because it is linked to {len(linked_accounts)} account(s): {', '.join(account_names)}"
-        )
+        if not cascade:
+            account_names = [acc.account_name for acc in linked_accounts]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot delete brokerage '{db_brokerage.name}' because it is linked to {len(linked_accounts)} account(s): {', '.join(account_names)}"
+            )
+        else:
+            # Cascade delete: delete all linked accounts
+            for account in linked_accounts:
+                # Check if account has linked assets/liabilities - we'll set account_id to NULL
+                # (User can optionally delete them separately)
+                linked_assets = db.query(models.Asset).filter(models.Asset.account_id == account.id).all()
+                for asset in linked_assets:
+                    asset.account_id = None
+                
+                linked_liabilities = db.query(models.Liability).filter(models.Liability.account_id == account.id).all()
+                for liability in linked_liabilities:
+                    liability.account_id = None
+                
+                db.delete(account)
     
     db.delete(db_brokerage)
     db.commit()
