@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text, func
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from typing import List, Optional
 from starlette.responses import RedirectResponse
 from utils import google_oauth
@@ -1084,6 +1084,12 @@ def create_cashflow(
 ):
     yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
     
+    # Default start_date to January 1 of current year if not provided
+    start_date = payload.start_date
+    if not start_date:
+        current_year = date.today().year
+        start_date = f"{current_year}-01-01"
+    
     item = models.CashFlowItem(
         owner_id=current_user.id,
         is_income=payload.is_income,
@@ -1094,7 +1100,7 @@ def create_cashflow(
         annual_increase_percent=payload.annual_increase_percent,
         inflation_percent=payload.inflation_percent,
         person=payload.person,
-        start_date=payload.start_date,
+        start_date=start_date,
         end_date=payload.end_date,
         taxable=payload.taxable,
         tax_deductible=payload.taxable,
@@ -1194,6 +1200,10 @@ def update_cashflow(
     
     # Get the update dictionary
     update_dict = payload.model_dump(exclude_unset=True)
+    # Default start_date to January 1 of current year if being updated and not provided
+    if "start_date" in update_dict and not update_dict["start_date"]:
+        current_year = date.today().year
+        update_dict["start_date"] = f"{current_year}-01-01"
     
     # For income items with reinvest_dividends=True, map reinvestment_account_id to contributes_to_asset_id
     if item.is_income:

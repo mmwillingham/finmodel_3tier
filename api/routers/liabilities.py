@@ -31,7 +31,13 @@ async def create_liability(
     if liability.loan_type == "amortized" and not liability.loan_start_date:
         raise HTTPException(status_code=400, detail="loan_start_date is required for amortized loans")
 
-    db_liability = models.Liability(**liability.model_dump(exclude_unset=True), owner_id=current_user.id)
+    # Default start_date to January 1 of current year if not provided
+    liability_data = liability.model_dump(exclude_unset=True)
+    if not liability_data.get("start_date"):
+        current_year = date.today().year
+        liability_data["start_date"] = f"{current_year}-01-01"
+
+    db_liability = models.Liability(**liability_data, owner_id=current_user.id)
     db.add(db_liability)
     db.commit()
     db.refresh(db_liability)
@@ -161,6 +167,10 @@ async def update_liability(
         raise HTTPException(status_code=403, detail="You do not have permission to edit this liability")
 
     update_data = liability_update.model_dump(exclude_unset=True)
+    # Default start_date to January 1 of current year if being updated and not provided
+    if "start_date" in update_data and not update_data["start_date"]:
+        current_year = date.today().year
+        update_data["start_date"] = f"{current_year}-01-01"
     for key, value in update_data.items():
         setattr(db_liability, key, value)
     

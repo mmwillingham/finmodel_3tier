@@ -275,7 +275,11 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   const netCashFlow = totalCashIn - totalCashOut;
   console.log('Sankey Diagram - netCashFlow:', netCashFlow, '(cashIn:', totalCashIn, ', cashOut:', totalCashOut, ')');
   
-  if (userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id)) {
+  // Check if surplus asset is configured and is a cash asset
+  const hasSurplusAsset = userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id);
+  console.log('Sankey Diagram - hasSurplusAsset:', hasSurplusAsset, '(surplus_asset_id:', userSettings?.surplus_asset_id, ', in cashAssetIds:', hasSurplusAsset, ')');
+  
+  if (hasSurplusAsset) {
     if (netCashFlow > 0) {
       // Get surplus asset name
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
@@ -290,10 +294,16 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       transferSinks[`Deficit from ${surplusAssetName}`] = Math.abs(netCashFlow);
       console.log('Sankey Diagram - Added deficit (negative surplus):', `Deficit from ${surplusAssetName}`, Math.abs(netCashFlow));
       // Don't add to totalCashOut - this is already included in the net cash flow
+    } else {
+      console.log('Sankey Diagram - netCashFlow is 0, no surplus transfer');
     }
   } else {
     console.log('Sankey Diagram - Surplus transfer conditions not met: surplus_asset_id exists?', !!userSettings?.surplus_asset_id, ', in cashAssetIds?', cashAssetIds.includes(userSettings?.surplus_asset_id || -1));
   }
+  
+  // Debug: Log transferSources to verify surplus transfer is being added
+  console.log('Sankey Diagram - transferSources keys:', Object.keys(transferSources));
+  console.log('Sankey Diagram - transferSources values:', transferSources);
   
   // Auto-disbursements that target cash assets
   // Calculate the same way as BASE model for consistency
@@ -347,6 +357,34 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               const targetName = targetAsset ? targetAsset.name : 'Target';
               transferSources[`Auto-Disbursement: ${sourceName} → ${targetName}`] = transferAmount;
               totalCashIn += transferAmount; // Add to total cash in
+            }
+          }
+        }
+      });
+      
+      // Also handle auto-disbursements that SOURCE cash assets (cash going out)
+      autoDisbursements.forEach(ad => {
+        if (!ad || !ad.source_asset_id || !cashAssetIds.includes(ad.source_asset_id) || cashAssetIds.includes(ad.target_asset_id)) {
+          return; // Skip if source is not cash asset, or if target is also cash asset (handled above)
+        }
+        const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
+        const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
+        
+        if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
+          // Calculate transfer amount the same way as BASE model
+          const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+          if (sourceAsset && assetProjectionsForYear[sourceAsset.id] !== undefined) {
+            const sourceValue = assetProjectionsForYear[sourceAsset.id];
+            let transferAmount = 0;
+            
+            if (ad.transfer_type === 'percentage') {
+              transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
+            } else if (ad.transfer_type === 'fixed' || ad.transfer_type === 'dollar_amount') {
+              transferAmount = ad.transfer_value || 0;
+            }
+            
+            if (transferAmount > 0) {
+              totalCashOut += transferAmount; // Add to total cash out (cash leaving)
             }
           }
         }
@@ -1611,14 +1649,14 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   // Add transfer lines BEFORE surplus so they render on top
   const datasets = [
     {
-      label: "Income",
+      label: "Cash In",
       data: cashFlowProjection?.incomeValues || [],
       borderColor: "rgb(75, 192, 75)",
       backgroundColor: "rgba(75, 192, 75, 0.2)",
       order: 3, // Render first (lower order = rendered first, behind others)
     },
     {
-      label: "Expenses",
+      label: "Cash Out",
       data: cashFlowProjection?.expenseValues || [],
       borderColor: "rgb(255, 99, 99)",
       backgroundColor: "rgba(255, 99, 99, 0.2)",
@@ -1772,8 +1810,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       const formattedData = (cashFlowProjection?.years || []).map((year, yearIndex) => {
         const row = {
           Year: currentYear + year,
-          Income: cashFlowProjection?.incomeValues?.[yearIndex] || 0,
-          Expenses: cashFlowProjection?.expenseValues?.[yearIndex] || 0,
+          'Cash In': cashFlowProjection?.incomeValues?.[yearIndex] || 0,
+          'Cash Out': cashFlowProjection?.expenseValues?.[yearIndex] || 0,
           Surplus: cashFlowProjection?.surplus?.[yearIndex] || 0,
         };
         
@@ -1979,8 +2017,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         <thead>
           <tr>
             <th>Year</th>
-            <th>Income</th>
-            <th>Expenses</th>
+            <th>Cash In</th>
+            <th>Cash Out</th>
             <th>Surplus</th>
             {autoDisbursements.map(ad => {
               if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
@@ -2027,8 +2065,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             <>
               <div style={{ marginBottom: "30px" }}>
                 <div className="chart-actions">
-                  <button onClick={() => handleDownloadChartPng(baseChartRef, "BASE_Model")}>Download PNG</button>
-                  <button onClick={() => handleDownloadChartPdf(baseChartRef, "BASE_Model")}>Download PDF</button>
+                  <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(baseChartRef, "BASE_Model")}>Download PNG</button>
+                  <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(baseChartRef, "BASE_Model")}>Download PDF</button>
                 </div>
                 <Chart ref={baseChartRef} type="bar" data={baseChartData} options={baseChartOptions} />
               </div>

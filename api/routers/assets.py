@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import date
 
 import models
 import schemas
@@ -25,7 +26,13 @@ def create_asset(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    db_asset = models.Asset(**asset.model_dump(), owner_id=current_user.id)
+    # Default start_date to January 1 of current year if not provided
+    asset_data = asset.model_dump()
+    if not asset_data.get("start_date"):
+        current_year = date.today().year
+        asset_data["start_date"] = f"{current_year}-01-01"
+    
+    db_asset = models.Asset(**asset_data, owner_id=current_user.id)
     db.add(db_asset)
     db.commit()
     db.refresh(db_asset)
@@ -106,6 +113,10 @@ def update_asset(
         raise HTTPException(status_code=403, detail="You do not have permission to edit this asset")
     
     update_data = asset.model_dump(exclude_unset=True)
+    # Default start_date to January 1 of current year if being updated and not provided
+    if "start_date" in update_data and not update_data["start_date"]:
+        current_year = date.today().year
+        update_data["start_date"] = f"{current_year}-01-01"
     for key, value in update_data.items():
         setattr(db_asset, key, value)
     

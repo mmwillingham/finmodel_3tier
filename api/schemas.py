@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 import re
 from typing import List, Optional, Any
-from datetime import datetime
+from datetime import datetime, date
 
 # --- USER SCHEMAS ---
 
@@ -171,7 +171,7 @@ class CashFlowCreate(BaseModel):
     annual_increase_percent: float = 0.0
     inflation_percent: float = 0.0
     person: str | None = None
-    start_date: str | None = None
+    start_date: str = Field(default_factory=lambda: f"{date.today().year}-01-01", description="Start date (YYYY-MM-DD). Defaults to January 1 of current year if not provided.")  # Required field with default
     end_date: str | None = None
     taxable: bool = False
     tax_deductible: bool = False
@@ -420,7 +420,7 @@ class AssetCreate(BaseModel):
     annual_increase_percent: float = 0.0
     annual_change_type: str = "increase" # New field
     account_id: int | None = None  # Link to master account
-    start_date: str | None = None  # New field
+    start_date: str = Field(default_factory=lambda: f"{date.today().year}-01-01", description="Start date (YYYY-MM-DD). Defaults to January 1 of current year if not provided.")  # Required field with default
     end_date: str | None = None    # New field
 
 class AssetUpdate(AssetCreate):

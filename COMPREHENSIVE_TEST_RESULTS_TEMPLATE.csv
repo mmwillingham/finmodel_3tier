@@ -23,9 +23,9 @@ Assets,Total Assets,2028,Accumulating,,,Checking accumulates surplus, other asse
 Liabilities,Comp Test Mortgage,2026,Amortized (~$248k),,,Amortized 30-year loan, 4% interest, started 1/1/2025
 Liabilities,Comp Test Mortgage,2027,Amortized (~$246k),,,Continues amortizing
 Liabilities,Comp Test Mortgage,2028,Amortized (~$244k),,,Continues amortizing
-Liabilities,Comp Test Car Loan,2026,$24500.00,,,Amortized 60-month loan, 4.5% interest
-Liabilities,Comp Test Car Loan,2027,$20500.00,,,
-Liabilities,Comp Test Car Loan,2028,$16500.00,,,
+Liabilities,Comp Test Car Loan,2026,~$21200.00,,,Amortized 60-month loan, 4.5% interest, started 6/1/2025 (19 months paid by Dec 31, 2026). Actual may vary slightly due to rounding.
+Liabilities,Comp Test Car Loan,2027,~$15340.00,,,31 months paid by Dec 31, 2027. Actual may vary slightly due to rounding.
+Liabilities,Comp Test Car Loan,2028,~$9195.00,,,43 months paid by Dec 31, 2028. Actual may vary slightly due to rounding.
 Liabilities,Total Liabilities,2026,~$272500.00,,,~$248k mortgage + $24.5k car loan
 Liabilities,Total Liabilities,2027,~$266500.00,,,~$246k mortgage + $20.5k car loan
 Liabilities,Total Liabilities,2028,~$260500.00,,,~$244k mortgage + $16.5k car loan
@@ -35,15 +35,15 @@ Income,Comp Test Salary,2028,$106090.00,,,
 Income,Comp Test Investment Dividends,2026,$4000.00,,,
 Income,Comp Test Investment Dividends,2027,$4400.00,,,
 Income,Comp Test Investment Dividends,2028,$4840.00,,,
-Income,Comp Test Rental Income,2026,$12000.00,,,Partial year from 7/1/2026
-Income,Comp Test Rental Income,2027,$12240.00,,,
-Income,Comp Test Rental Income,2028,$12485.00,,,
-Income,Social Security - Person 1,2026,$20000.00,,,~$4k/month * 5 months (starts 8/1/2026, partial year - actual depends on FRA)
-Income,Social Security - Person 1,2027,$48000.00,,,~$4k/month * 12 months (full year)
-Income,Social Security - Person 1,2028,$48000.00,,,~$4k/month * 12 months (full year, may have COLA adjustment)
-Income,Social Security - Person 2,2026,$6000.00,,,~$2k/month * 3 months (starts 10/1/2026, partial year - actual depends on FRA)
-Income,Social Security - Person 2,2027,$24000.00,,,~$2k/month * 12 months (full year)
-Income,Social Security - Person 2,2028,$24000.00,,,~$2k/month * 12 months (full year, may have COLA adjustment)
+Income,Comp Test Rental Income,2026,$12000.00,,,Partial year from 7/1/2026 (6 months = 24k * 0.5)
+Income,Comp Test Rental Income,2027,$24480.00,,,Full year (24k * 1.02 = 24,480 with 2% growth)
+Income,Comp Test Rental Income,2028,$24970.00,,,Full year (24k * 1.02^2 = 24,970 with 2% growth compounded)
+Income,Social Security - Person 1,2026,$20000.00,,,~$4k/month * 5 months (starts 8/1/2026, partial year - actual depends on FRA). Note: If COLA is set in Settings → Profile, income increases annually by COLA%.
+Income,Social Security - Person 1,2027,$48000.00,,,~$4k/month * 12 months (full year). If COLA > 0%, multiply by (1 + COLA%)^1
+Income,Social Security - Person 1,2028,$48000.00,,,~$4k/month * 12 months (full year). If COLA > 0%, multiply by (1 + COLA%)^2
+Income,Social Security - Person 2,2026,$6000.00,,,~$2k/month * 3 months (starts 10/1/2026, partial year - actual depends on FRA). Note: If COLA is set, income increases annually by COLA%.
+Income,Social Security - Person 2,2027,$24000.00,,,~$2k/month * 12 months (full year). If COLA > 0%, multiply by (1 + COLA%)^1
+Income,Social Security - Person 2,2028,$24000.00,,,~$2k/month * 12 months (full year). If COLA > 0%, multiply by (1 + COLA%)^2
 Income,Total Income,2026,$142548.00,,,Prorated partial-year values: SS $26,170 + Salary $100k + Dividends $4,280 + Rental $12,099
 Income,Total Income,2027,$191640.00,,,
 Income,Total Income,2028,$207900.00,,,

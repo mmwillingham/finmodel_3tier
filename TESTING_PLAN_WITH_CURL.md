@@ -28,7 +28,13 @@ fi
 echo "Token obtained: ${TOKEN:0:20}..."
 ```
 
-### 3. Helper Functions (Optional - add to your shell script)
+### 3. Important Note on Start Dates
+
+**⚠️ Start Date Default Behavior:** If `start_date` is not provided (left blank) when creating assets, liabilities, or income/expense items, the system will automatically default it to **January 1 of the current year** (e.g., `2026-01-01` for 2026). This ensures consistent behavior and prevents confusion about when items become active. If you need an item to start on a different date, you must explicitly provide the `start_date` field.
+
+**Note:** While `start_date` is technically optional in the API schema (for backward compatibility), it is effectively required - if not provided, it will be set to January 1 of the current year. The UI should treat this as a required field and default it appropriately.
+
+### 4. Helper Functions (Optional - add to your shell script)
 ```bash
 # Function to extract ID from response
 extract_id() {
@@ -2214,12 +2220,12 @@ echo "Cleanup complete!"
 | | Comp Test Brokerage | $7,020.00 | Beginning: $0, Transfer: +$6.5k, Growth: $520 |
 | | Comp Test Checking | ~$65,740.00 | Beginning: $10k (starts 7/1/2026) + Surplus ~$55,740 (after prorating partial-year income/expenses and including Social Security as taxable) |
 | **Liabilities** | Comp Test Mortgage | ~$241,400.00 | Amortized 30-year loan, 4% interest, started 1/1/2025 (24 months paid by Dec 31, 2026) |
-| | Comp Test Car Loan | ~$21,700.00 | Amortized 60-month loan, 4.5% interest, started 6/1/2025 (19 months paid by Dec 31, 2026) |
+| | Comp Test Car Loan | ~$21,200.00 | Amortized 60-month loan, 4.5% interest, started 6/1/2025 (19 months paid by Dec 31, 2026) |
 | **Income** | Comp Test Salary | $100,000.00 | Year 1 (no growth yet) |
 | | Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning, reinvested |
 | | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (partial year from 7/1/2026) |
-| | Social Security - Person 1 | ~$20,000.00 | ~$4k/month * 5 months (starts 8/1/2026, partial year) |
-| | Social Security - Person 2 | ~$6,000.00 | ~$2k/month * 3 months (starts 10/1/2026, partial year) |
+| | Social Security - Person 1 | ~$20,000.00 | ~$4k/month * 5 months (starts 8/1/2026, partial year). **Note:** If COLA (Cost of Living Adjustment) is set in Settings → Profile, Social Security income will increase annually by the COLA percentage. Expected values assume COLA = 0% (no increase). |
+| | Social Security - Person 2 | ~$6,000.00 | ~$2k/month * 3 months (starts 10/1/2026, partial year). **Note:** If COLA is set, income will increase annually. Expected values assume COLA = 0%. |
 | | **Total Income** | **~$142,548.00** | Prorated: SS $26,170 + Salary $100k + Dividends $4,280 + Rental $12,099 |
 | **Expenses** | Comp Test Housing | $36,000.00 | Base value (inflation starts in year 2) |
 | | Comp Test 401K Contribution | $10,000.00 | 10% of $100k salary |
@@ -2275,9 +2281,9 @@ echo "Cleanup complete!"
 | Comp Test Salary | $100,000.00 | Fixed yearly, Year 1 |
 | Comp Test Investment Dividends | $4,000.00 | 2% of $200k beginning balance, reinvested |
 | Comp Test Rental Income | ~$12,000.00 | 24k * 0.5 (6 months from 7/1/2026) |
-| Social Security - Person 1 | ~$20,000.00 | ~$4k/month * 5 months (starts 8/1/2026, partial year - actual amount depends on FRA calculation) |
-| Social Security - Person 2 | ~$6,000.00 | ~$2k/month * 3 months (starts 10/1/2026, partial year - actual amount depends on FRA calculation) |
-| **Total Income** | **~$142,000.00** | |
+| Social Security - Person 1 | ~$20,000.00 | ~$4k/month * 5 months (starts 8/1/2026, partial year - actual amount depends on FRA calculation). **Note:** If COLA is set in Settings → Profile, income will increase annually by COLA%. Expected values assume COLA = 0%. |
+| Social Security - Person 2 | ~$6,000.00 | ~$2k/month * 3 months (starts 10/1/2026, partial year - actual amount depends on FRA calculation). **Note:** If COLA is set, income will increase annually. Expected values assume COLA = 0%. |
+| **Total Income** | **~$142,548.00** | Prorated partial-year values |
 
 **Detailed Expense Breakdown:**
 
@@ -2315,12 +2321,12 @@ echo "Cleanup complete!"
 | | Comp Test Brokerage | ~$14,141.00 | 7.02k * 1.08 + $6.5k transfer |
 | | Comp Test Checking | Accumulating | Surplus continues |
 | **Liabilities** | Comp Test Mortgage | $250,000.00 | Fixed |
-| | Comp Test Car Loan | ~$20,500.00 | Amortizing |
+| | Comp Test Car Loan | ~$15,340.00 | Amortized 60-month loan, 4.5% interest, started 6/1/2025 (31 months paid by Dec 31, 2027) |
 | **Income** | Comp Test Salary | $103,000.00 | 100k * 1.03 (3% growth) |
 | | Comp Test Investment Dividends | ~$4,400.00 | 2% of beginning balance |
-| | Comp Test Rental Income | $12,240.00 | 24k * 1.02 * 1.0 (full year) |
-| | Social Security - Person 1 | ~$48,000.00 | ~$4k/month * 12 months (full year starting from 8/1/2026) |
-| | Social Security - Person 2 | ~$24,000.00 | ~$2k/month * 12 months (full year starting from 10/1/2026) |
+| | Comp Test Rental Income | $24,480.00 | 24k * 1.02 (full year, 2% growth applied in year 2) |
+| | Social Security - Person 1 | ~$48,000.00 | ~$4k/month * 12 months (full year starting from 8/1/2026). **Note:** If COLA (Cost of Living Adjustment) is set in Settings → Profile, Social Security income will increase annually by the COLA percentage. Expected values assume COLA = 0% (no increase). |
+| | Social Security - Person 2 | ~$24,000.00 | ~$2k/month * 12 months (full year starting from 10/1/2026). **Note:** If COLA is set, income will increase annually. Expected values assume COLA = 0%. |
 | | **Total Income** | **~$191,640.00** | |
 | **Expenses** | Comp Test Housing | ~$38,192.00 | 37.08k * 1.03 |
 | | Comp Test 401K Contribution | ~$10,300.00 | 10% of $103k salary |
@@ -2340,7 +2346,7 @@ echo "Cleanup complete!"
 | **Assets** | Comp Test Investment | ~$256,000.00+ | Continues growing with dividends |
 | | Comp Test Checking | Accumulated | Surplus from previous years |
 | | Other Assets | Growing | All assets continue to grow |
-| **Liabilities** | Comp Test Car Loan | ~$9,700.00 | Amortized 60-month loan, 4.5% interest (43 months paid by Dec 31, 2028) |
+| **Liabilities** | Comp Test Car Loan | ~$9,195.00 | Amortized 60-month loan, 4.5% interest, started 6/1/2025 (43 months paid by Dec 31, 2028) |
 | | Comp Test Mortgage | ~$231,700.00 | Amortized 30-year loan, 4% interest (48 months paid by Dec 31, 2028) |
 
 **Year-by-Year Asset Growth Comparison:**
