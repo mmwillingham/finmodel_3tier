@@ -177,18 +177,19 @@ def delete_brokerage(
                 detail=f"Cannot delete brokerage '{db_brokerage.name}' because it is linked to {len(linked_accounts)} account(s): {', '.join(account_names)}"
             )
         else:
-            # Cascade delete: delete all linked accounts
+            # Cascade delete: delete all linked accounts and their assets/liabilities
             for account in linked_accounts:
-                # Check if account has linked assets/liabilities - we'll set account_id to NULL
-                # (User can optionally delete them separately)
+                # Delete all assets linked to this account
                 linked_assets = db.query(models.Asset).filter(models.Asset.account_id == account.id).all()
                 for asset in linked_assets:
-                    asset.account_id = None
+                    db.delete(asset)
                 
+                # Delete all liabilities linked to this account
                 linked_liabilities = db.query(models.Liability).filter(models.Liability.account_id == account.id).all()
                 for liability in linked_liabilities:
-                    liability.account_id = None
+                    db.delete(liability)
                 
+                # Delete the account
                 db.delete(account)
     
     db.delete(db_brokerage)

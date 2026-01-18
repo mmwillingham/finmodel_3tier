@@ -4,8 +4,6 @@ import html2canvas from 'html2canvas';
 import AssetService from "../services/asset.service";
 import AssetFormModal from "./AssetFormModal"; // Import the new AssetFormModal
 import ConfirmDialog from "./ConfirmDialog";
-import PlaidLinkButton from "./PlaidLinkButton";
-import PlaidConnections from "./PlaidConnections";
 import "./AssetView.css";
 
 export default function AssetView({ assets, refreshAssets, refreshCashflow, accounts = [], validCategories = [] }) {
@@ -173,31 +171,10 @@ export default function AssetView({ assets, refreshAssets, refreshCashflow, acco
     <div className="cashflow-container">
       <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Assets</h2>
 
-      {/* Plaid Connect Button */}
-      <PlaidLinkButton
-        onSuccess={(syncData) => {
-          console.log("Plaid sync successful:", syncData);
-          // Refresh assets list
-          refreshAssets();
-        }}
-        onError={(err) => {
-          console.error("Plaid connection error:", err);
-        }}
-      />
-
       {/* "Add New Asset" button to open the modal */}
       <button onClick={handleAddAsset} className="add-new-item-btn">
         Add New Asset
       </button>
-
-      {/* Plaid Connections Management */}
-      <PlaidConnections
-        onSyncSuccess={(syncData) => {
-          console.log("Plaid sync successful:", syncData);
-          // Refresh assets list
-          refreshAssets();
-        }}
-      />
 
       <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
         <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(tableRef, "Assets_Table")}>Download PDF</button>

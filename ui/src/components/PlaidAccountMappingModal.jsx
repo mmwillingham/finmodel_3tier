@@ -18,6 +18,7 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
   const [showNewCategoryInput, setShowNewCategoryInput] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [newCategoriesAdded, setNewCategoriesAdded] = useState({ assets: [], liabilities: [] }); // Track new categories added
 
   // Load categories from settings
   useEffect(() => {
@@ -74,13 +75,20 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
     if (!mapping) return;
 
     const trimmedName = categoryName.trim();
-    const categoryList = mapping.type === 'asset' ? assetCategories : liabilityCategories;
     
-    // Add to appropriate category list
+    // Add to appropriate category list and track new categories
     if (mapping.type === 'asset' && !assetCategories.includes(trimmedName)) {
       setAssetCategories([...assetCategories, trimmedName]);
+      setNewCategoriesAdded(prev => ({
+        ...prev,
+        assets: [...prev.assets, trimmedName]
+      }));
     } else if (mapping.type === 'liability' && !liabilityCategories.includes(trimmedName)) {
       setLiabilityCategories([...liabilityCategories, trimmedName]);
+      setNewCategoriesAdded(prev => ({
+        ...prev,
+        liabilities: [...prev.liabilities, trimmedName]
+      }));
     }
 
     // Update mapping with new category
@@ -93,6 +101,31 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
     setError(null);
 
     try {
+      // First, save any new categories to user settings
+      if (newCategoriesAdded.assets.length > 0 || newCategoriesAdded.liabilities.length > 0) {
+        try {
+          const settingsResponse = await SettingsService.getSettings();
+          const currentSettings = settingsResponse.data;
+          
+          const updatedSettings = {
+            asset_categories: [
+              ...(currentSettings.asset_categories || []),
+              ...newCategoriesAdded.assets.filter(cat => !currentSettings.asset_categories?.includes(cat))
+            ],
+            liability_categories: [
+              ...(currentSettings.liability_categories || []),
+              ...newCategoriesAdded.liabilities.filter(cat => !currentSettings.liability_categories?.includes(cat))
+            ]
+          };
+          
+          await SettingsService.updateSettings(updatedSettings);
+        } catch (settingsErr) {
+          console.error("Error saving new categories to settings:", settingsErr);
+          // Don't fail the whole operation if settings save fails, but log it
+        }
+      }
+
+      // Then apply the mappings
       const mappingsToSend = mappings.map(m => ({
         account_id: m.account_id,
         category: m.category,
