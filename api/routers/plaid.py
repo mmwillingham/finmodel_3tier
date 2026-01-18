@@ -514,8 +514,10 @@ def apply_plaid_mappings(
             detail="Failed to fetch accounts from Plaid"
         )
     
-    # Create mapping lookup
+    # Create mapping lookup - key is the Plaid account_id
     mapping_by_account_id = {m.account_id: m for m in mappings_request.mappings}
+    logger.info(f"Received {len(mappings_request.mappings)} mappings for item {item_id}")
+    logger.debug(f"Mapping keys: {list(mapping_by_account_id.keys())}")
     
     # Get institution name
     institution_name = plaid_item.institution_name or "Connected Institution"
@@ -538,14 +540,17 @@ def apply_plaid_mappings(
     created_items = []
     
     # Process each mapped account
+    logger.info(f"Processing {len(accounts)} Plaid accounts")
     for plaid_account in accounts:
         account_id = plaid_account['account_id']
         
         # Skip if not mapped
         if account_id not in mapping_by_account_id:
+            logger.warning(f"Account {account_id} ({plaid_account.get('name', 'unknown')}) not found in mappings, skipping")
             continue
         
         mapping = mapping_by_account_id[account_id]
+        logger.debug(f"Processing account {account_id} with mapping: category='{mapping.category}', type='{mapping.type}'")
         account_name = plaid_account.get('official_name') or plaid_account['name']
         account_type = plaid_account['type']
         account_subtype = plaid_account.get('subtype', '')
@@ -584,6 +589,10 @@ def apply_plaid_mappings(
         
         if mapping.type == 'asset':
             # Create or update asset
+            # Use the category from the user's mapping, not the suggested category
+            user_selected_category = mapping.category
+            logger.info(f"Applying mapping for account {account_id}: category='{user_selected_category}', type='{mapping.type}'")
+            
             existing_asset = db.query(models.Asset).filter(
                 models.Asset.owner_id == current_user.id,
                 models.Asset.account_id == account.id,
@@ -592,8 +601,9 @@ def apply_plaid_mappings(
             
             if existing_asset:
                 existing_asset.value = balance
-                existing_asset.category = mapping.category
+                existing_asset.category = user_selected_category  # Use user-selected category
                 existing_asset.updated_at = datetime.utcnow()
+                logger.info(f"Updated asset {existing_asset.id} with category '{user_selected_category}'")
                 created_items.append({
                     'id': existing_asset.id,
                     'name': existing_asset.name,
@@ -604,7 +614,7 @@ def apply_plaid_mappings(
                 new_asset = models.Asset(
                     owner_id=current_user.id,
                     name=item_name,
-                    category=mapping.category,
+                    category=user_selected_category,  # Use user-selected category
                     value=balance,
                     account_id=account.id,
                     start_date=current_date,
@@ -612,6 +622,7 @@ def apply_plaid_mappings(
                 )
                 db.add(new_asset)
                 db.flush()
+                logger.info(f"Created asset {new_asset.id} with category '{user_selected_category}'")
                 created_items.append({
                     'id': new_asset.id,
                     'name': new_asset.name,

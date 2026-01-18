@@ -220,13 +220,10 @@ export default function AssetView({ assets, refreshAssets, refreshCashflow, acco
             const valueMissing = (item.value === null || item.value === undefined);
             const hasMissingFields = nameMissing || categoryMissing || valueMissing;
             
-            // Different colors for different states - blue for invalid category (similar to income items)
+            // All missing or invalid fields should be yellow (like other data types)
             let rowStyle = {};
-            if (categoryMissing && categoryValue) {
-              // Category exists but is invalid (blue highlight - similar to income items)
-              rowStyle = { backgroundColor: '#e7f3ff', borderLeft: '4px solid #0066cc' };
-            } else if (hasMissingFields) {
-              // Missing required fields (yellow/warning)
+            if (hasMissingFields) {
+              // Missing required fields or invalid category (yellow/warning)
               rowStyle = { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' };
             }
             
