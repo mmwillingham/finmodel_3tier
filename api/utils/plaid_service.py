@@ -278,6 +278,18 @@ class PlaidService:
         if not self.is_configured():
             logger.error("Plaid not configured")
             return None
+        
+        def convert_products_to_strings(products):
+            """Convert Plaid Products enum objects to strings for JSON serialization"""
+            if products is None:
+                return None
+            if isinstance(products, list):
+                # Convert each product to string, handling enum objects
+                return [str(p) for p in products]
+            # Single product object - convert to string
+            if isinstance(products, (str, int, float, bool, type(None))):
+                return products
+            return str(products)
             
         try:
             # Use accounts_get to get item info
@@ -287,25 +299,29 @@ class PlaidService:
             # Handle both dict and object responses
             if isinstance(response, dict):
                 item = response.get('item', {})
+                available_products = item.get('available_products')
+                billed_products = item.get('billed_products')
                 return {
                     'item_id': item.get('item_id'),
                     'institution_id': item.get('institution_id'),
                     'webhook': item.get('webhook'),
                     'error': item.get('error'),
-                    'available_products': item.get('available_products'),
-                    'billed_products': item.get('billed_products'),
+                    'available_products': convert_products_to_strings(available_products),
+                    'billed_products': convert_products_to_strings(billed_products),
                     'consent_expiration_time': item.get('consent_expiration_time')
                 }
             else:
                 item = getattr(response, 'item', None)
                 if item:
+                    available_products = getattr(item, 'available_products', None)
+                    billed_products = getattr(item, 'billed_products', None)
                     return {
                         'item_id': item.item_id,
                         'institution_id': getattr(item, 'institution_id', None),
                         'webhook': getattr(item, 'webhook', None),
                         'error': getattr(item, 'error', None),
-                        'available_products': getattr(item, 'available_products', None),
-                        'billed_products': getattr(item, 'billed_products', None),
+                        'available_products': convert_products_to_strings(available_products),
+                        'billed_products': convert_products_to_strings(billed_products),
                         'consent_expiration_time': getattr(item, 'consent_expiration_time', None)
                     }
                 return None
