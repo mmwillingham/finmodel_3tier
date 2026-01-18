@@ -419,3 +419,28 @@ class AuthorizedUser(Base):
     __table_args__ = (
         UniqueConstraint('primary_user_id', 'authorized_user_id', name='uq_primary_authorized_user'),
     )
+
+
+class PlaidItem(Base):
+    """
+    SQLAlchemy Model for Plaid Items (connected bank accounts).
+    Stores Plaid access tokens and metadata for syncing account data.
+    """
+    __tablename__ = "plaid_items"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    item_id = Column(String, unique=True, nullable=False, index=True)  # Plaid item_id
+    access_token = Column(String, nullable=False)  # Encrypted Plaid access token
+    institution_id = Column(String, nullable=True)  # Plaid institution ID
+    institution_name = Column(String, nullable=True)  # Institution name for display
+    webhook = Column(String, nullable=True)  # Webhook URL (if configured)
+    error = Column(JSON, nullable=True)  # Store any Plaid errors
+    available_products = Column(JSON, nullable=True)  # Available Plaid products
+    billed_products = Column(JSON, nullable=True)  # Billed Plaid products
+    consent_expiration_time = Column(DateTime(timezone=True), nullable=True)  # When consent expires
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    last_successful_update = Column(DateTime(timezone=True), nullable=True)  # Last successful sync
+    
+    # Relationship to user
+    owner = relationship("User", backref="plaid_items")

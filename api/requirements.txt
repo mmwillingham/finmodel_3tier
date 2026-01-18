@@ -55,3 +55,4 @@ watchfiles
 websockets
 wrapt
 locust
+plaid-python>=11.0.0

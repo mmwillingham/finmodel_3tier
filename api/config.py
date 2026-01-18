@@ -52,6 +52,14 @@ class Settings(BaseSettings):
     # Application name for emails
     APP_NAME: str = os.getenv("APP_NAME", "Financial Projector")
     
+    # Plaid API Settings
+    PLAID_CLIENT_ID: str | None = os.getenv("PLAID_CLIENT_ID", "")
+    PLAID_SECRET: str | None = os.getenv("PLAID_SECRET", "")
+    PLAID_ENV: str = os.getenv("PLAID_ENV", "sandbox")  # sandbox, development, or production
+    PLAID_PRODUCTS: list[str] = ["transactions", "investments", "assets"]  # Products to request
+    PLAID_COUNTRY_CODES: list[str] = ["US"]  # Country codes
+    PLAID_REDIRECT_URI: str | None = os.getenv("PLAID_REDIRECT_URI", None)  # For OAuth flows
+    
 
     # Method to generate DATABASE_URL after validation
     def model_post_init(self, __context: Any) -> None:

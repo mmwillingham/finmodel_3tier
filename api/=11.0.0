@@ -1,0 +1,24 @@
+Collecting plaid-python
+  Downloading plaid_python-38.0.0.tar.gz (1.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 13.7 MB/s  0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: urllib3>=1.25.3 in /home/mwilling/git/finmodel_3tier/venv/lib64/python3.14/site-packages (from plaid-python) (2.6.0)
+Requirement already satisfied: python-dateutil in /home/mwilling/git/finmodel_3tier/venv/lib64/python3.14/site-packages (from plaid-python) (2.9.0.post0)
+Collecting nulltype (from plaid-python)
+  Downloading nulltype-2.3.1-py2.py3-none-any.whl.metadata (10 kB)
+Requirement already satisfied: six>=1.5 in /home/mwilling/git/finmodel_3tier/venv/lib64/python3.14/site-packages (from python-dateutil->plaid-python) (1.17.0)
+Downloading nulltype-2.3.1-py2.py3-none-any.whl (11 kB)
+Building wheels for collected packages: plaid-python
+  Building wheel for plaid-python (pyproject.toml): started
+  Building wheel for plaid-python (pyproject.toml): finished with status 'done'
+  Created wheel for plaid-python: filename=plaid_python-38.0.0-py3-none-any.whl size=5764762 sha256=7f1cd66bb5f8dc2f78d38b7bafe46ba8409511039b450d7fdd212563bd54f958
+  Stored in directory: /home/mwilling/.cache/pip/wheels/4e/a0/8c/cfa6885fb4a927b06cf420abaa9018f4ddc009cdf935eb6b85
+Successfully built plaid-python
+Installing collected packages: nulltype, plaid-python
+
+Successfully installed nulltype-2.3.1 plaid-python-38.0.0

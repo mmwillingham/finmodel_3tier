@@ -375,6 +375,25 @@ class BrokerageOut(BrokerageBase):
     updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
+# --- PLAID SCHEMAS ---
+
+class PlaidExchangeTokenRequest(BaseModel):
+    public_token: str
+
+class PlaidItemOut(BaseModel):
+    id: int
+    item_id: str
+    institution_id: Optional[str] = None
+    institution_name: Optional[str] = None
+    error: Optional[Any] = None
+    available_products: Optional[List[str]] = None
+    billed_products: Optional[List[str]] = None
+    consent_expiration_time: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    last_successful_update: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
 # --- ACCOUNT SCHEMAS ---
 
 class AccountCreate(BaseModel):

@@ -1,0 +1,132 @@
+import React, { useState, useEffect } from "react";
+import { usePlaidLink } from "react-plaid-link";
+import PlaidService from "../services/plaid.service";
+import AssetService from "../services/asset.service";
+import "./PlaidLinkButton.css";
+
+/**
+ * PlaidLinkButton Component
+ * 
+ * A button that opens Plaid Link to connect bank accounts.
+ * After successful connection, it automatically syncs accounts to create assets.
+ */
+function PlaidLinkButton({ onSuccess, onError }) {
+  const [linkToken, setLinkToken] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Fetch link token on mount
+  useEffect(() => {
+    const fetchLinkToken = async () => {
+      try {
+        setLoading(true);
+        const response = await PlaidService.getLinkToken();
+        setLinkToken(response.data.link_token);
+      } catch (err) {
+        console.error("Error fetching Plaid link token:", err);
+        setError("Failed to initialize Plaid. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLinkToken();
+  }, []);
+
+  // Handle successful Plaid Link connection
+  const handleSuccess = async (publicToken, metadata) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Exchange public token for access token
+      const exchangeResponse = await PlaidService.exchangePublicToken(publicToken);
+      const itemId = exchangeResponse.data.item_id;
+
+      // Sync accounts to create assets
+      const syncResponse = await PlaidService.syncAccounts(itemId);
+      
+      console.log("Plaid accounts synced:", syncResponse.data);
+
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess(syncResponse.data);
+      }
+
+      // Optionally refresh assets list
+      // This will be handled by parent component if needed
+    } catch (err) {
+      console.error("Error connecting Plaid account:", err);
+      const errorMessage = err.response?.data?.detail || "Failed to connect account. Please try again.";
+      setError(errorMessage);
+      if (onError) {
+        onError(err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize Plaid Link
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: handleSuccess,
+    onExit: (err, metadata) => {
+      if (err) {
+        console.error("Plaid Link exited with error:", err);
+        setError(err.error_message || "Connection cancelled.");
+      }
+      setLoading(false);
+    },
+  });
+
+  const handleClick = () => {
+    if (ready && linkToken) {
+      open();
+    }
+  };
+
+  // Show error message if any
+  if (error && !loading) {
+    return (
+      <div className="plaid-error">
+        <p style={{ color: "#dc3545", marginBottom: "10px" }}>{error}</p>
+        <button
+          className="btn-primary-modern"
+          onClick={() => {
+            setError(null);
+            window.location.reload();
+          }}
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      className="btn-primary-modern plaid-connect-btn"
+      onClick={handleClick}
+      disabled={!ready || loading || !linkToken}
+      style={{
+        opacity: (!ready || loading || !linkToken) ? 0.6 : 1,
+        cursor: (!ready || loading || !linkToken) ? "not-allowed" : "pointer",
+      }}
+    >
+      {loading ? (
+        <>
+          <span className="spinner" style={{ marginRight: "8px" }}>⏳</span>
+          Connecting...
+        </>
+      ) : (
+        <>
+          <span style={{ marginRight: "8px" }}>🏦</span>
+          Connect Bank Account
+        </>
+      )}
+    </button>
+  );
+}
+
+export default PlaidLinkButton;
