@@ -5,8 +5,8 @@ Handles all interactions with the Plaid API for connecting bank accounts.
 import os
 from typing import Optional, Dict, Any, List
 from datetime import date
+import plaid
 from plaid.api import plaid_api
-from plaid.configuration import Configuration
 from plaid.model.country_code import CountryCode
 from plaid.model.products import Products
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
@@ -31,21 +31,30 @@ class PlaidService:
             
         try:
             # Map environment string to Plaid Environment enum
-            env_map = {
-                'sandbox': plaid_api.Environment.sandbox,
-                'development': plaid_api.Environment.development,
-                'production': plaid_api.Environment.production
-            }
-            plaid_env = env_map.get(config.settings.PLAID_ENV.lower(), plaid_api.Environment.sandbox)
+            # Note: Development environment was decommissioned in June 2024
+            env_lower = config.settings.PLAID_ENV.lower()
             
-            configuration = Configuration(
+            # Try to get the environment enum value (try lowercase first, then capitalized)
+            if env_lower == 'sandbox':
+                plaid_env = getattr(plaid.Environment, 'sandbox', getattr(plaid.Environment, 'Sandbox', None))
+            elif env_lower == 'production':
+                plaid_env = getattr(plaid.Environment, 'production', getattr(plaid.Environment, 'Production', None))
+            else:
+                logger.warning(f"Unknown Plaid environment '{config.settings.PLAID_ENV}', defaulting to sandbox")
+                plaid_env = getattr(plaid.Environment, 'sandbox', getattr(plaid.Environment, 'Sandbox', None))
+            
+            if plaid_env is None:
+                raise AttributeError("Could not find Plaid Environment enum value")
+            
+            configuration = plaid.Configuration(
                 host=plaid_env,
                 api_key={
                     'clientId': config.settings.PLAID_CLIENT_ID,
                     'secret': config.settings.PLAID_SECRET
                 }
             )
-            self.client = plaid_api.PlaidApi(configuration)
+            api_client = plaid.ApiClient(configuration)
+            self.client = plaid_api.PlaidApi(api_client)
         except Exception as e:
             logger.error(f"Failed to initialize Plaid client: {str(e)}")
             self.client = None
@@ -93,7 +102,11 @@ class PlaidService:
             )
             
             response = self.client.link_token_create(request)
-            return response.get('link_token')
+            # Handle both dict and object responses
+            if isinstance(response, dict):
+                return response.get('link_token')
+            else:
+                return response.link_token
             
         except Exception as e:
             logger.error(f"Error creating Plaid link token: {str(e)}")
