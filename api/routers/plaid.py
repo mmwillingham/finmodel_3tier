@@ -239,8 +239,11 @@ def sync_plaid_accounts(
         balance = plaid_account['balances'].get('current') or plaid_account['balances'].get('available') or 0.0
         mask = plaid_account.get('mask')
         
+        # Convert subtype to string if it's not already (handles enum objects)
+        account_subtype_str = str(account_subtype) if account_subtype else ''
+        
         # Determine if it's a retirement account
-        is_retirement = account_subtype.lower() in ['ira', '401k', '403b', '401a', '457b', 'roth', 'roth 401k']
+        is_retirement = account_subtype_str.lower() in ['ira', '401k', '403b', '401a', '457b', 'roth', 'roth 401k']
         
         # Create or get Account record
         account = db.query(models.Account).filter(
@@ -261,14 +264,17 @@ def sync_plaid_accounts(
             db.flush()
         
         # Determine asset category based on account type
-        if account_type == 'investment':
+        # Convert account_type to string if needed (handles enum objects)
+        account_type_str = str(account_type) if account_type else ''
+        
+        if account_type_str == 'investment':
             category = 'Investment'
-        elif account_type == 'depository':
-            if account_subtype in ['checking', 'savings']:
+        elif account_type_str == 'depository':
+            if account_subtype_str in ['checking', 'savings']:
                 category = 'Cash'
             else:
                 category = 'Depository'
-        elif account_type == 'credit':
+        elif account_type_str == 'credit':
             category = 'Credit'
         else:
             category = 'Other'

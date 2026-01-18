@@ -178,12 +178,16 @@ class PlaidService:
                 # Handle both dict and object account
                 if isinstance(account, dict):
                     balances = account.get('balances', {})
+                    # Convert enum objects to strings for type and subtype if present
+                    account_type = account.get('type')
+                    account_subtype = account.get('subtype')
+                    
                     accounts.append({
                         'account_id': account.get('account_id'),
                         'name': account.get('name'),
                         'official_name': account.get('official_name'),
-                        'type': account.get('type'),
-                        'subtype': account.get('subtype'),
+                        'type': str(account_type) if account_type is not None and not isinstance(account_type, str) else account_type,
+                        'subtype': str(account_subtype) if account_subtype is not None and not isinstance(account_subtype, str) else account_subtype,
                         'mask': account.get('mask'),
                         'balances': {
                             'available': balances.get('available'),
@@ -194,12 +198,16 @@ class PlaidService:
                     })
                 else:
                     balances = account.balances
+                    # Convert enum objects to strings for type and subtype
+                    account_type = account.type
+                    account_subtype = getattr(account, 'subtype', None)
+                    
                     accounts.append({
                         'account_id': account.account_id,
                         'name': account.name,
                         'official_name': getattr(account, 'official_name', None),
-                        'type': account.type,
-                        'subtype': getattr(account, 'subtype', None),
+                        'type': str(account_type) if account_type is not None else None,
+                        'subtype': str(account_subtype) if account_subtype is not None else None,
                         'mask': getattr(account, 'mask', None),
                         'balances': {
                             'available': getattr(balances, 'available', None),
