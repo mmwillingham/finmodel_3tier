@@ -1,4 +1,0 @@
-ALTER TABLE liabilities
-ADD COLUMN start_date VARCHAR(255) NULL;
-ALTER TABLE liabilities
-ADD COLUMN end_date VARCHAR(255) NULL;

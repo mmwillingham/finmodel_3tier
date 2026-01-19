@@ -1,8 +1,0 @@
-ALTER TABLE cashflow_items
-ADD COLUMN start_date VARCHAR(255) NULL;
-ALTER TABLE cashflow_items
-ADD COLUMN end_date VARCHAR(255) NULL;
-ALTER TABLE cashflow_items
-ADD COLUMN taxable BOOLEAN DEFAULT FALSE;
-ALTER TABLE cashflow_items
-ADD COLUMN tax_deductible BOOLEAN DEFAULT FALSE;

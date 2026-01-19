@@ -1,2 +1,0 @@
-ALTER TABLE cashflow_items
-ADD COLUMN person VARCHAR(255) NULL;
