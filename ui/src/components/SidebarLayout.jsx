@@ -27,10 +27,14 @@ import LiabilitiesSetupWizard from "./wizards/LiabilitiesSetupWizard";
 import IncomeSetupWizard from "./wizards/IncomeSetupWizard";
 import ExpensesSetupWizard from "./wizards/ExpensesSetupWizard";
 import AutoDisbursementService from "../services/auto_disbursement.service";
+import AccountsSettingsPage from "../pages/AccountsSettingsPage";
+import AutoDisbursementSettingsPage from "../pages/AutoDisbursementSettingsPage";
+import DocumentsPage from "../pages/DocumentsPage";
+import CashHandlingPage from "../pages/CashHandlingPage";
 
 export default function SidebarLayout() {
   const { viewingUserId, userSettings } = useAuth();
-  const [view, setView] = useState("new-home");
+  const [view, setView] = useState("new-home"); // Default to home view
   const [cashFlowView, setCashFlowView] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedProjectionId] = useState(null);
@@ -284,37 +288,19 @@ export default function SidebarLayout() {
         />
         <nav className="sidebar-nav">
           <section className="nav-section">
-            <h3>Dashboard</h3>
+            <h3>MY DATA</h3>
             <button 
-              className={`nav-btn ${view === 'new-home' ? 'active' : ''}`} 
-              onClick={() => { setView('new-home'); setCashFlowView(null); }}
+              className={`nav-btn ${view === 'documents' ? 'active' : ''}`} 
+              onClick={() => { setView('documents'); }}
             >
-              Home
-            </button>
-            
-            <button
-              className={`nav-btn ${view === 'balance-sheet-projection' ? 'active' : ''}`}
-              onClick={() => { setView('balance-sheet-projection'); setCashFlowView(null); }}
-            >
-              Balance Sheet Projections
-            </button>
-            
-            <button
-              className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); }}
-            >
-              Cash Flow Projections
+              Document Vault
             </button>
             <button
-              className={`nav-btn ${view === 'monte-carlo' ? 'active' : ''}`}
-              onClick={() => { setView('monte-carlo'); setCashFlowView(null); }}
+              className={`nav-btn ${view === 'accounts' ? 'active' : ''}`}
+              onClick={() => { setView('accounts'); }}
             >
-              Monte Carlo Projections
+              Accounts
             </button>
-          </section>
-
-          <section className="nav-section">
-            <h3>Net Worth</h3>
             <button
               className={`nav-btn ${view === 'assets' ? 'active' : ''}`}
               onClick={() => { setView('assets'); setCashFlowView(null); }}
@@ -325,44 +311,60 @@ export default function SidebarLayout() {
               className={`nav-btn ${view === 'liabilities' ? 'active' : ''}`}
               onClick={() => { setView('liabilities'); setCashFlowView(null); }}
             >
-              Liabilities
+              Liabilities / Debts
             </button>
-          </section>
-
-          <section className="nav-section">
-            <h3>Cash Flow</h3>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
             >
-              Income
+              Income (Cash In)
             </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
               onClick={() => { setView('cashflow'); setCashFlowView('expense'); }}
             >
-              Expenses
+              Expenses (Cash Out)
+            </button>
+            <button
+              className={`nav-btn ${view === 'automatic-transfers' ? 'active' : ''}`}
+              onClick={() => { setView('automatic-transfers'); }}
+            >
+              Automatic Transfers
+            </button>
+            <button
+              className={`nav-btn ${view === 'cash-handling' ? 'active' : ''}`}
+              onClick={() => { setView('cash-handling'); }}
+            >
+              Cash Handling
             </button>
           </section>
 
-
           <section className="nav-section">
-            <h3>Custom Charts and Tables</h3>
+            <h3>DASHBOARD</h3>
+            <button
+              className={`nav-btn ${view === 'balance-sheet-projection' ? 'active' : ''}`}
+              onClick={() => { setView('balance-sheet-projection'); setCashFlowView(null); }}
+            >
+              Net Worth
+            </button>
+            
+            <button
+              className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
+              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); }}
+            >
+              Cash Flow
+            </button>
+            <button
+              className={`nav-btn ${view === 'monte-carlo' ? 'active' : ''}`}
+              onClick={() => { setView('monte-carlo'); setCashFlowView(null); }}
+            >
+              Monte Carlo
+            </button>
             <button 
               className={`nav-btn ${view === 'custom-charts' && customChartView === 'list' ? 'active' : ''}`} 
               onClick={() => { setView('custom-charts'); setCustomChartView('list'); }}
             >
-              List
-            </button>
-          </section>
-
-          <section className="nav-section">
-            <h3>Document Vault</h3>
-            <button 
-              className="nav-btn" 
-              onClick={() => { window.location.href = '/documents'; }}
-            >
-              📁 My Documents
+              Custom
             </button>
           </section>
         </nav>
@@ -375,7 +377,23 @@ export default function SidebarLayout() {
           </div>
         )}
         
-        {!loading && view === "new-home" && (
+        {!loading && view === "documents" && (
+          <DocumentsPage hideSidebar={true} />
+        )}
+
+        {!loading && view === "accounts" && (
+          <AccountsSettingsPage />
+        )}
+
+        {!loading && view === "automatic-transfers" && (
+          <AutoDisbursementSettingsPage />
+        )}
+
+        {!loading && view === "cash-handling" && (
+          <CashHandlingPage />
+        )}
+
+        {!loading && (view === "new-home" || view === null || view === undefined) && (
           <motion.div 
             className="dashboard-welcome"
             initial={{ opacity: 0, y: 20 }}

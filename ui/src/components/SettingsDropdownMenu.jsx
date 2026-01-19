@@ -20,9 +20,7 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
                 <>
                     <button onClick={(e) => handleItemClick(e, '/settings/profile')}>Profile</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/categories')}>Categories</button>
-                    <button onClick={(e) => handleItemClick(e, '/settings/accounts')}>Accounts</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/application')}>Application</button>
-                    <button onClick={(e) => handleItemClick(e, '/settings/auto-disbursements')}>Automatic Transfers</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/export-import')}>Export/Import</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/refer-a-friend')}>Refer a Friend</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/authorized-users')}>Authorized Users</button>

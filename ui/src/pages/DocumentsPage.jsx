@@ -7,7 +7,7 @@ import AccountSwitcher from '../components/AccountSwitcher';
 import './DocumentsPage.css';
 import '../components/SidebarLayout.css';
 
-const DocumentsPage = () => {
+const DocumentsPage = ({ hideSidebar = false }) => {
   const { currentUser, viewingUserId } = useAuth();
   const [folders, setFolders] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -194,32 +194,8 @@ const DocumentsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  return (
-    <div className="sidebar-layout" style={{ display: 'flex', height: 'calc(100vh - 60px)', marginTop: '60px' }}>
-      <aside className="sidebar">
-        <nav className="sidebar-nav">
-          <section className="nav-section">
-            <h3>Dashboard</h3>
-            <button 
-              className="nav-btn" 
-              onClick={() => navigate('/')}
-            >
-              Home
-            </button>
-          </section>
-
-          <section className="nav-section">
-            <h3>Document Vault</h3>
-            <button 
-              className="nav-btn active" 
-            >
-              📁 My Documents
-            </button>
-          </section>
-        </nav>
-      </aside>
-      <main className="main-content">
-        <div className="documents-page">
+  const content = (
+    <div className="documents-page">
           <div className="documents-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1rem' }}>
               <h1 style={{ margin: 0 }}>📁 Documents</h1>
@@ -262,31 +238,54 @@ const DocumentsPage = () => {
           {folders.length > 0 && (
             <div className="folders-section">
               <h3>Folders</h3>
-              <div className="folders-grid">
-                {folders.map((folder) => (
-                  <div key={folder.id} className="folder-card">
-                    <div className="folder-icon" onClick={() => handleFolderClick(folder)}>
-                      📁
-                    </div>
-                    <div className="folder-name" onClick={() => handleFolderClick(folder)}>
-                      <div>{folder.name}</div>
-                      {folder.owner_email && folder.owner_id !== currentUser?.id && (
-                        <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
-                          {folder.owner_email}
-                        </div>
-                      )}
-                    </div>
-                    <div className="folder-actions">
-                      <button onClick={() => handleEditItem(folder, true)} className="btn-icon" title="Edit">
-                        ✏️
-                      </button>
-                      <button onClick={() => handleDeleteFolder(folder)} className="btn-icon" title="Delete">
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <table className="documents-table" style={{ marginBottom: '20px' }}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Owner</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {folders.map((folder) => (
+                    <tr key={folder.id}>
+                      <td>
+                        <button 
+                          onClick={() => handleFolderClick(folder)}
+                          style={{ 
+                            background: 'none', 
+                            border: 'none', 
+                            color: '#007bff', 
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          📁 {folder.name}
+                        </button>
+                      </td>
+                      <td>
+                        {folder.owner_email && folder.owner_id !== currentUser?.id ? (
+                          folder.owner_email
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td className="actions-cell">
+                        <button onClick={() => handleEditItem(folder, true)} className="btn-icon" title="Edit">
+                          ✏️
+                        </button>
+                        <button onClick={() => handleDeleteFolder(folder)} className="btn-icon" title="Delete">
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -515,7 +514,39 @@ const DocumentsPage = () => {
           </div>
         </div>
       )}
-        </div>
+    </div>
+  );
+
+  if (hideSidebar) {
+    return content;
+  }
+
+  return (
+    <div className="sidebar-layout" style={{ display: 'flex', height: 'calc(100vh - 60px)', marginTop: '60px' }}>
+      <aside className="sidebar">
+        <nav className="sidebar-nav">
+          <section className="nav-section">
+            <h3>Dashboard</h3>
+            <button 
+              className="nav-btn" 
+              onClick={() => navigate('/')}
+            >
+              Home
+            </button>
+          </section>
+
+          <section className="nav-section">
+            <h3>Document Vault</h3>
+            <button 
+              className="nav-btn active" 
+            >
+              📁 My Documents
+            </button>
+          </section>
+        </nav>
+      </aside>
+      <main className="main-content">
+        {content}
       </main>
     </div>
   );
