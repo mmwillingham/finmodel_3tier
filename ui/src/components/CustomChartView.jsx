@@ -38,7 +38,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
   // Helper function to find value in dataPoint for an item
   // Handles both simple keys and dynamic items with LINKED markers
-  const findValueInDataPoint = useCallback((itemName, dataPoint) => {
+  const findValueInDataPoint = useCallback((itemName, dataPoint, item = null) => {
     const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
     
     // Try simple key first: "ItemName_Value"
@@ -71,6 +71,29 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       return value;
     }
     
+    // For items linked to assets (dividends/interest), try to construct the LINKED format key
+    // This handles cases where item.description doesn't match the stored key format
+    if (item && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
+      // Try to find linked asset names
+      const linkedAssetNames = [];
+      if (item.linked_asset_ids && Array.isArray(item.linked_asset_ids) && item.linked_asset_ids.length > 0) {
+        // Multi-select: get asset names from assets array (need to find assets from parent context)
+        // For now, try single asset lookup first
+      } else if (item.linked_item_id) {
+        // Single linked asset - we need to find the asset name
+        // Try searching all keys that contain the item description and LINKED
+        for (const key in dataPoint) {
+          if (key.endsWith('_Value') && key.includes(itemName) && key.includes('|LINKED:') && key.includes('|PERCENTAGE:')) {
+            const value = dataPoint[key];
+            if (Object.is(value, -0)) {
+              return 0;
+            }
+            return value;
+          }
+        }
+      }
+    }
+    
     // Try to find key that starts with itemName (for dynamic items with LINKED markers)
     // e.g., "ItemName|LINKED:AssetName|PERCENTAGE:10.0_Value"
     for (const key in dataPoint) {
@@ -78,6 +101,18 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const value = dataPoint[key];
         // Handle -0 (negative zero) - convert to 0 for consistency
         // But keep negative values (expenses are stored as negative in backend)
+        if (Object.is(value, -0)) {
+          return 0;
+        }
+        return value;
+      }
+    }
+    
+    // Try to find key that contains itemName anywhere (for dynamic items where itemName might be in the middle)
+    // This handles cases where the stored key is "ItemName|LINKED:Asset|PERCENTAGE:X_Value"
+    for (const key in dataPoint) {
+      if (key.endsWith('_Value') && key.includes(itemName) && (key.includes('|LINKED:') || key === `${itemName}_Value`)) {
+        const value = dataPoint[key];
         if (Object.is(value, -0)) {
           return 0;
         }
@@ -182,7 +217,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     // Iterate through filtered items and sum their values from dataPoint
     filteredItems.forEach(item => {
       const itemName = item.description || item.name;
-      const value = findValueInDataPoint(itemName, dataPoint);
+      const value = findValueInDataPoint(itemName, dataPoint, item);
       
       if (DEBUG_MODE && targetDataType === 'expenses' && itemName === "Federal Income Tax (Calculated)") {
         const exactKey = `${itemName}_Value`;
@@ -209,8 +244,14 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     });
     
     // If no items found but we have a selectedItemId and label, try direct lookup
+    // Find the item first to pass it to findValueInDataPoint for linked items
+    let itemForLookup = null;
+    if (selectedItemId) {
+      const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
+      itemForLookup = items.find(item => item.id === itemIdNum || item.id === selectedItemId);
+    }
     if (filteredItems.length === 0 && selectedItemId && targetLabel) {
-      const directValue = findValueInDataPoint(targetLabel, dataPoint);
+      const directValue = findValueInDataPoint(targetLabel, dataPoint, itemForLookup);
       if (DEBUG_MODE && targetDataType === 'expenses' && targetLabel === "Federal Income Tax (Calculated)") {
         const exactKey = `${targetLabel}_Value`;
         console.log(`DEBUG getAggregatedValue: Federal Tax direct lookup - targetLabel: "${targetLabel}", exactKey: "${exactKey}", directValue: ${directValue}, raw dataPoint[exactKey]:`, dataPoint[exactKey]);
