@@ -280,6 +280,45 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
             }
           });
           
+          // Add net cash flow (surplus/deficit) to a cash asset if specified, otherwise to first cash-like asset
+          // This ensures net worth includes accumulated cash flow
+          if (netCashFlow !== 0 && assets.length > 0) {
+            let targetAsset = null;
+            
+            // Try to use surplus asset from user settings
+            if (userSettings && userSettings.surplus_asset_id) {
+              targetAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
+            }
+            
+            // If no surplus asset specified, try to find a cash/checking asset
+            if (!targetAsset) {
+              targetAsset = assets.find(a => 
+                a.category && (a.category.toLowerCase().includes('cash') || 
+                               a.category.toLowerCase().includes('checking') ||
+                               a.category.toLowerCase().includes('savings'))
+              );
+            }
+            
+            // Fallback to first asset if no cash asset found
+            if (!targetAsset && assets.length > 0) {
+              targetAsset = assets[0];
+            }
+            
+            if (targetAsset && baseAssetProjections[targetAsset.name]) {
+              // Add net cash flow to this asset for current and future years
+              baseAssetProjections[targetAsset.name][year] += netCashFlow;
+              
+              // Apply growth to surplus for future years
+              const growthRate = (targetAsset.annual_increase_percent || 0) / 100;
+              for (let futureYear = year + 1; futureYear <= projectionYears; futureYear++) {
+                if (baseAssetProjections[targetAsset.name][futureYear] !== undefined) {
+                  const yearsOfGrowth = futureYear - year;
+                  baseAssetProjections[targetAsset.name][futureYear] += netCashFlow * Math.pow(1 + growthRate, yearsOfGrowth);
+                }
+              }
+            }
+          }
+          
           // Calculate net worth (simplified - sum of assets minus liabilities)
           let totalAssets = 0;
           assets.forEach(asset => {
