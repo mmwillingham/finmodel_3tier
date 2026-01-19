@@ -42,8 +42,8 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
         else:
             end_date_str = end_date_str.strip() if end_date_str.strip() else None
     
-    # Log input values for debugging
-    print(f"--- DEBUG calculate_year_fraction: start_date={start_date_str}, end_date={end_date_str}, year={projection_year} ---"); sys.stdout.flush()
+    # Log input values for debugging (using info level to ensure visibility)
+    logger.info(f"calculate_year_fraction CALLED: start_date={start_date_str}, end_date={end_date_str}, year={projection_year}")
     
     year_start = date(projection_year, 1, 1)  # January 1 of the year
     year_end = date(projection_year, 12, 31)  # December 31 of the year
@@ -56,14 +56,14 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
         try:
             start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
         except (ValueError, TypeError) as e:
-            print(f"--- DEBUG: Failed to parse start_date '{start_date_str}': {e} ---"); sys.stdout.flush()
+            logger.debug(f"Failed to parse start_date '{start_date_str}': {e}")
             pass
     
     if end_date_str:
         try:
             end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
         except (ValueError, TypeError) as e:
-            print(f"--- DEBUG: Failed to parse end_date '{end_date_str}': {e} ---"); sys.stdout.flush()
+            logger.debug(f"Failed to parse end_date '{end_date_str}': {e}")
             pass
     
     item_start = year_start  # Default to start of year if no start_date
@@ -82,10 +82,10 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     if start_date_obj is not None and end_date_obj is not None and start_date_obj == end_date_obj:
         # This is a one-time item - return 1.0 for the year it falls in
         if year_start <= start_date_obj <= year_end:
-            print(f"--- DEBUG: One-time item detected (date object match): start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
+            logger.debug(f"One-time item detected (date object match): start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 1.0")
             return 1.0
         else:
-            print(f"--- DEBUG: One-time item outside year: start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 0.0 ---"); sys.stdout.flush()
+            logger.debug(f"One-time item outside year: start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 0.0")
             return 0.0
     
     # Also check string comparison as fallback
@@ -93,12 +93,12 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
         try:
             one_time_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
             if year_start <= one_time_date <= year_end:
-                print(f"--- DEBUG: One-time item detected (string match): start_date={start_date_str}, end_date={end_date_str}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
+                logger.debug(f"One-time item detected (string match): start_date={start_date_str}, end_date={end_date_str}, year={projection_year}, returning 1.0")
                 return 1.0
             else:
                 return 0.0
         except (ValueError, TypeError) as e:
-            print(f"--- DEBUG: One-time string check failed: start_date={start_date_str}, end_date={end_date_str}, error={e} ---"); sys.stdout.flush()
+            logger.debug(f"One-time string check failed: start_date={start_date_str}, end_date={end_date_str}, error={e}")
             pass
     
     # If item ends before year starts or starts after year ends, return 0
@@ -114,7 +114,7 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     # Final check: if overlap_start == overlap_end and both are within the year,
     # this is a one-time item - return 1.0 for the full year
     if overlap_start == overlap_end and year_start <= overlap_start <= year_end:
-        print(f"--- DEBUG: One-time item detected (overlap check): start_date={start_date_str}, end_date={end_date_str}, overlap_start={overlap_start}, overlap_end={overlap_end}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
+        logger.debug(f"One-time item detected (overlap check): start_date={start_date_str}, end_date={end_date_str}, overlap_start={overlap_start}, overlap_end={overlap_end}, year={projection_year}, returning 1.0")
         return 1.0
     
     # Calculate days in overlap (add 1 to include both start and end days)
@@ -122,7 +122,7 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     
     # Debug logging for one-time items that fall through to day calculation
     if start_date_str and end_date_str and start_date_str == end_date_str:
-        print(f"--- DEBUG: WARNING - One-time item falling through to day calculation: start_date={start_date_str}, end_date={end_date_str}, overlap_days={overlap_days}, year={projection_year}, item_start={item_start}, item_end={item_end}, overlap_start={overlap_start}, overlap_end={overlap_end} ---"); sys.stdout.flush()
+        logger.warning(f"WARNING - One-time item falling through to day calculation: start_date={start_date_str}, end_date={end_date_str}, overlap_days={overlap_days}, year={projection_year}, item_start={item_start}, item_end={item_end}, overlap_start={overlap_start}, overlap_end={overlap_end}")
     
     # Calculate fraction (days / days in year)
     days_in_year = (year_end - year_start).days + 1
@@ -292,10 +292,8 @@ def calculate_annual_principal_interest(
 
 def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCreate], db: Session, owner_id: int) -> dict:
     try:
-        # Disabled verbose debug logging
-        # print(f"--- DEBUG: TOP OF calculate_projection function. Owner ID: {owner_id} ---"); sys.stdout.flush()
-        # print(f"--- DEBUG: ENTERED CALCULATIONS.PY: calculate_projection function for owner {owner_id} ---"); sys.stdout.flush()
-        # print(f"--- DEBUG: Accounts received by calculate_projection: {accounts} ---"); sys.stdout.flush()
+        logger.info(f"calculate_projection called for owner {owner_id}, years={years}, accounts_count={len(accounts)}")
+        logger.debug(f"Accounts received: {[a.name for a in accounts if hasattr(a, 'name')]}")
 
         # Load user settings for surplus asset and other settings
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == owner_id).first()
