@@ -1007,7 +1007,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           loan_start_date: null,
           monthly_payment: null,
           start_date: incomeStartDate,
-          end_date: incomeEndDate
+          end_date: incomeEndDate,
+          cash_flow_item_id: income.id || null  // Pass the income item ID for reinvest_dividends lookup
         };
       });
 
@@ -1058,7 +1059,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           loan_start_date: null,
           monthly_payment: null,
           start_date: expenseStartDate,
-          end_date: expenseEndDate
+          end_date: expenseEndDate,
+          cash_flow_item_id: expense.id || null  // Pass the expense item ID for tax_deductible lookup
         };
       });
 

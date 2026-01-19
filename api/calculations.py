@@ -1001,12 +1001,33 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 elif projected_account.account_type == "liability":
                     current_year_total_liabilities += new_balance # Will be negative
                 elif projected_account.account_type == "income":
-                    # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
-                    # new_balance is already prorated at lines 791 and 807 based on year_fraction
-                    current_year_total_income_flow += abs(new_balance)  # new_balance is positive for income, but use abs() to be safe
-                    # Debug logging for income flow accumulation
-                    if year == 1:  # Only log for first year to avoid spam
-                        print(f"--- DEBUG: Year {year} - Added income to flow: '{projected_account.name}' = {abs(new_balance):.2f} (prorated), running total = {current_year_total_income_flow:.2f} ---"); sys.stdout.flush()
+                    # Check if this income item is reinvested (should not be counted in cash flow)
+                    should_exclude_from_income_flow = False
+                    if projected_account.cash_flow_item_id:
+                        cash_flow_item_for_reinvest_check = cash_flow_items_by_id.get(projected_account.cash_flow_item_id)
+                        if cash_flow_item_for_reinvest_check and cash_flow_item_for_reinvest_check.reinvest_dividends:
+                            should_exclude_from_income_flow = True
+                    else:
+                        # Fallback: check by description for backward compatibility
+                        # Extract base name from account name (remove LINKED markers)
+                        base_item_name_for_check = projected_account.name.split("|LINKED:")[0].split("|LINKED_INCOME:")[0]
+                        for item in cash_flow_items_by_id.values():
+                            if item.description == base_item_name_for_check and item.reinvest_dividends:
+                                should_exclude_from_income_flow = True
+                                break
+                    
+                    # Only add to income flow if NOT reinvested (reinvested dividends go directly to assets, not cash flow)
+                    if not should_exclude_from_income_flow:
+                        # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
+                        # new_balance is already prorated at lines 791 and 807 based on year_fraction
+                        current_year_total_income_flow += abs(new_balance)  # new_balance is positive for income, but use abs() to be safe
+                        # Debug logging for income flow accumulation
+                        if year == 1:  # Only log for first year to avoid spam
+                            print(f"--- DEBUG: Year {year} - Added income to flow: '{projected_account.name}' = {abs(new_balance):.2f} (prorated), running total = {current_year_total_income_flow:.2f} ---"); sys.stdout.flush()
+                    else:
+                        # Debug logging for excluded reinvested dividends
+                        if year == 1:  # Only log for first year to avoid spam
+                            print(f"--- DEBUG: Year {year} - EXCLUDED reinvested dividend from income flow: '{projected_account.name}' = {abs(new_balance):.2f} (reinvested, not received as cash) ---"); sys.stdout.flush()
                 elif projected_account.account_type == "expense":
                     # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
                     # new_balance is negative for expenses, and we want to accumulate the absolute value for expense flow
