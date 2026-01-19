@@ -60,6 +60,8 @@ async def startup_event():
     logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
     logging.getLogger("api.routers.custom_charts").setLevel(logging.DEBUG)
     logging.getLogger("api.calculations").setLevel(logging.DEBUG)
+    logging.getLogger("calculations").setLevel(logging.DEBUG)  # Also set for 'calculations' module name
+    logging.getLogger("main").setLevel(logging.DEBUG)  # Set for main module logger
     logging.getLogger("auth").setLevel(logging.DEBUG)
 
 
