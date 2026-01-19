@@ -68,9 +68,30 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     if item_end < year_start or item_start > year_end:
         return 0.0
     
+    # Additional check: if start_date and end_date are the same (one-time item),
+    # but the string comparison above failed, check using date objects
+    # This handles cases where dates might be parsed differently
+    if start_date_str and end_date_str:
+        try:
+            start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            if start_date_obj == end_date_obj:
+                # This is a one-time item - return 1.0 for the year it falls in
+                if year_start <= start_date_obj <= year_end:
+                    return 1.0
+                else:
+                    return 0.0
+        except (ValueError, TypeError):
+            pass
+    
     # Calculate the overlap period
     overlap_start = item_start if item_start > year_start else year_start
     overlap_end = item_end if item_end < year_end else year_end
+    
+    # Final check: if overlap_start == overlap_end and both are within the year,
+    # this is a one-time item - return 1.0 for the full year
+    if overlap_start == overlap_end and year_start <= overlap_start <= year_end:
+        return 1.0
     
     # Calculate days in overlap (add 1 to include both start and end days)
     overlap_days = (overlap_end - overlap_start).days + 1
