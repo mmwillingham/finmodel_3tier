@@ -665,59 +665,88 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       // Parse series configurations
       const seriesConfigurations = JSON.parse(chartConfig.series_configurations);
       
-      // Track which data_type + category combinations need to be itemized
-      const itemizedKeys = new Map(); // key -> series config
-      const nonItemizedSeries = [];
-      
-      seriesConfigurations.forEach(series => {
+      // Refresh itemization: re-match itemized series to current items by ID or name
+      // This preserves the itemization (which items are shown) but updates IDs/labels if items changed
+      const updatedSeries = seriesConfigurations.map(series => {
         const selectedItemId = series.selected_item_id || series.item_id;
         const isItemized = selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0;
         const isItemizedFlag = series.itemize === true;
         
-        // If this series was itemized (either by flag or by having an item ID), mark it for re-itemization
-        if (isItemized || isItemizedFlag) {
-          // Create a key based on data_type + category to consolidate duplicates
-          const key = `${series.data_type || ''}_${series.category || ''}`;
-          
-          // Only keep one series per data_type + category combination
-          if (!itemizedKeys.has(key)) {
-            // Un-itemize: Clear item IDs, set itemize: true, reset label
-            let newLabel;
-            if (series.category) {
-              newLabel = series.category;
-            } else if (series.data_type) {
-              newLabel = series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1);
-            } else {
-              newLabel = 'All Items';
-            }
-            
-            itemizedKeys.set(key, {
-              ...series,
-              itemize: true,  // Re-itemize: set flag to true
-              selected_item_id: null,  // Clear item ID so backend will expand with all items
-              item_id: null,  // Clear item_id for backward compatibility
-              label: newLabel,  // Reset label to default (backend will set individual labels when expanding)
-            });
-          }
-          // Otherwise, skip this duplicate itemized series
-        } else {
-          // Not itemized - keep it
-          nonItemizedSeries.push(series);
+        // Only process itemized series (those with item IDs or itemize flag)
+        // Non-itemized series (showing all items) should remain unchanged
+        if (!isItemized && !isItemizedFlag) {
+          return series; // Keep non-itemized series as-is
         }
+        
+        // Get the appropriate array of items based on data type
+        let items = [];
+        if (series.data_type === 'assets') {
+          items = assets;
+        } else if (series.data_type === 'liabilities') {
+          items = liabilities;
+        } else if (series.data_type === 'income') {
+          items = incomeItems;
+        } else if (series.data_type === 'expenses') {
+          items = expenseItems;
+        } else {
+          return series; // Unknown data type, keep as-is
+        }
+        
+        // Try to find item by ID first
+        let foundItem = null;
+        if (isItemized) {
+          const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
+          foundItem = items.find(item => item.id === itemIdNum || item.id === selectedItemId);
+        }
+        
+        // If not found by ID, try to find by label/name
+        if (!foundItem && series.label) {
+          foundItem = items.find(item => {
+            const itemName = item.description || item.name;
+            return itemName === series.label;
+          });
+        }
+        
+        // If item was found, update the ID and label (preserve itemization)
+        if (foundItem) {
+          const currentItemName = foundItem.description || foundItem.name;
+          return {
+            ...series,
+            selected_item_id: foundItem.id,
+            item_id: foundItem.id,
+            label: currentItemName,
+            itemize: true, // Ensure itemize flag is set
+          };
+        }
+        
+        // Item not found - keep the series but update label to indicate item is missing
+        // Don't un-itemize it, as the user may want to keep it configured for when the item is recreated
+        let newLabel = series.label || 'Item Not Found';
+        if (series.category) {
+          newLabel = `${series.category} (Item Not Found)`;
+        } else if (series.data_type) {
+          newLabel = `${series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1)} (Item Not Found)`;
+        }
+        
+        return {
+          ...series,
+          label: newLabel,
+          // Keep selected_item_id and itemize flag - don't clear them
+        };
       });
       
-      // Combine: one itemized series per data_type + category, plus all non-itemized series
-      const consolidatedSeries = [...Array.from(itemizedKeys.values()), ...nonItemizedSeries];
+      // Use updated series (preserving itemization)
+      const finalSeries = updatedSeries;
       
       // Update the chart configuration
       const updatedConfig = {
         ...chartConfig,
-        series_configurations: JSON.stringify(consolidatedSeries),
+        series_configurations: JSON.stringify(finalSeries),
       };
       
       await CustomChartService.update(chartId, updatedConfig);
       
-      // Explicitly recalculate the chart - this will cause backend to re-expand itemized series with all current items
+      // Recalculate the chart to reflect any ID/label updates
       try {
         await CustomChartService.recalculate(chartId);
       } catch (recalcError) {
@@ -725,15 +754,19 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         // Continue anyway - the update should have already triggered recalculation
       }
       
-      setMessage('Itemization refreshed. All itemized series will be re-expanded with current items.');
+      setMessage('Itemization refreshed. Itemized series have been re-matched to current items.');
       
-      // Reload the chart to reflect the changes (with recalculated data including new items)
+      // Reload the chart to reflect the changes
       const response = await CustomChartService.get(chartId);
       const fetchedConfig = response.data;
       setChartConfig(fetchedConfig);
       
-      // Update hasItemizedSeries state - itemized series will be re-expanded by backend
-      setHasItemizedSeries(true);  // We just set itemize: true, so there are itemized series
+      // Update hasItemizedSeries state based on whether any series are itemized
+      const hasItemized = finalSeries.some(s => {
+        const itemId = s.selected_item_id || s.item_id;
+        return (itemId && itemId !== "" && itemId !== null && itemId !== 0) || s.itemize === true;
+      });
+      setHasItemizedSeries(hasItemized);
       
       prepareChartData(fetchedConfig);
       

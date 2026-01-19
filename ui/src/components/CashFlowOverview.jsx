@@ -1201,9 +1201,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       cashAssetNames.forEach(assetName => {
         const balanceKey = `${assetName}_Value`;
         const assetBalance = dp[balanceKey] || 0;
-        if (assetBalance > 0) { // Only sum positive balances (cash assets)
-          endingBalance += assetBalance;
-        }
+        // Sum all balances, including negative ones (deficits are valid)
+        endingBalance += assetBalance;
       });
       
       // Beginning balance is the previous year's ending balance

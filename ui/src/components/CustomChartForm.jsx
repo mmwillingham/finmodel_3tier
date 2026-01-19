@@ -342,10 +342,13 @@ export default function CustomChartForm({
                                    !series.label;
         const hasStaleLabel = !labelMatchesDefault && series.label && series.data_type;
         
+        // If series is NOT itemized and doesn't have a stale label, pass through unchanged
+        // This preserves non-itemized series (which show all items) and prevents them from being modified
         if (!isItemized && !hasStaleLabel) {
           return series; // Pass through for duplicate checking
         }
         
+        // Only process itemized series or series with stale labels
         // Get the appropriate array of items based on data type
         let items = [];
         if (series.data_type === 'assets') {
@@ -360,22 +363,22 @@ export default function CustomChartForm({
           return series;
         }
         
-        // Try to find item by ID first
+        // Try to find item by ID first (only for itemized series)
         let foundItem = null;
         if (isItemized) {
           const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
           foundItem = items.find(item => item.id === itemIdNum || item.id === selectedItemId);
         }
         
-        // If not found by ID, try to find by label/name
-        if (!foundItem && series.label) {
+        // If not found by ID, try to find by label/name (only for itemized series or stale labels)
+        if (!foundItem && (isItemized || hasStaleLabel) && series.label) {
           foundItem = items.find(item => {
             const itemName = item.description || item.name;
             return itemName === series.label;
           });
         }
         
-        // If item was found, update the ID and label
+        // If item was found, update the ID and label (keep it itemized)
         if (foundItem) {
           matchedCount++;
           needsUpdate = true;
@@ -385,10 +388,29 @@ export default function CustomChartForm({
             selected_item_id: foundItem.id,
             item_id: foundItem.id,
             label: currentItemName,
+            itemize: true, // Ensure itemize flag is set
           };
         }
         
-        // Item not found - remove itemization
+        // Item not found - only un-itemize if it was previously itemized
+        // If it was never itemized (hasStaleLabel but not isItemized), don't change it
+        if (!isItemized && hasStaleLabel) {
+          // Stale label but not itemized - just update the label to a default
+          let newLabel;
+          if (series.category) {
+            newLabel = series.category;
+          } else if (series.data_type) {
+            newLabel = series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1);
+          } else {
+            newLabel = 'All Items';
+          }
+          return {
+            ...series,
+            label: newLabel,
+          };
+        }
+        
+        // Item was itemized but not found - remove itemization (show all items in category)
         unmatchedCount++;
         needsUpdate = true;
         
@@ -405,6 +427,7 @@ export default function CustomChartForm({
           ...series,
           selected_item_id: null,
           item_id: null,
+          itemize: false, // Ensure itemize flag is cleared
           label: newLabel,
         };
       });
