@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -6,6 +6,7 @@ import { Line, Bar, Chart } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
+import ProjectionService from '../services/projection.service';
 
 // Register Chart.js components for combo charts
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
@@ -903,20 +904,286 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   );
 }
 
-export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [] }) {
+export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [], liabilities = [] }) {
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
   const baseChartRef = useRef(null);
   const tableRef = useRef(null);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'base', 'sankey'
   const [sankeyYear, setSankeyYear] = useState(0); // Year offset for Sankey diagram (0 = current year)
+  const [projectionData, setProjectionData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
   );
 
-  const calculateCashFlowProjection = () => {
+  // Fetch projection data from backend
+  const fetchProjectionData = useCallback(async () => {
+    if (!assets || !liabilities) {
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Convert assets to ProjectedAccountCreate format
+      const assetAccounts = (assets || []).map(asset => ({
+        name: asset.name,
+        account_type: 'asset',
+        initial_value: asset.value || 0,
+        contribution: 0.0,
+        growth_rate: asset.annual_increase_percent || 0,
+        loan_type: null,
+        principal_amount: null,
+        interest_rate: null,
+        loan_term_months: null,
+        loan_start_date: null,
+        monthly_payment: null,
+        start_date: asset.start_date || null,
+        end_date: asset.end_date || null
+      }));
+
+      // Convert liabilities to ProjectedAccountCreate format
+      const liabilityAccounts = (liabilities || []).map(liability => ({
+        name: liability.name,
+        account_type: 'liability',
+        initial_value: -(Math.abs(liability.value || 0)), // Negative for liabilities
+        contribution: 0.0,
+        growth_rate: liability.annual_increase_percent || 0,
+        loan_type: liability.loan_type || null,
+        principal_amount: liability.principal_amount || null,
+        interest_rate: liability.interest_rate || null,
+        loan_term_months: liability.loan_term_months || null,
+        loan_start_date: liability.loan_start_date || null,
+        monthly_payment: liability.monthly_payment || null,
+        start_date: liability.start_date || null,
+        end_date: liability.end_date || null
+      }));
+
+      // Convert income items to ProjectedAccountCreate format
+      const incomeAccounts = (incomeItems || []).map(income => {
+        let accountName = income.description;
+        
+        if (income.linked_item_type === "asset" && income.percentage !== null && income.percentage !== undefined) {
+          if (income.linked_asset_ids && income.linked_asset_ids.length > 0) {
+            const linkedAssets = assets.filter(a => income.linked_asset_ids.includes(a.id));
+            if (linkedAssets.length > 0) {
+              const assetNames = linkedAssets.map(a => a.name).join(',');
+              accountName = `${income.description}|LINKED:${assetNames}|PERCENTAGE:${income.percentage}`;
+            }
+          } else if (income.linked_item_id) {
+            const linkedAsset = assets.find(a => a.id === income.linked_item_id);
+            if (linkedAsset) {
+              accountName = `${income.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${income.percentage}`;
+            }
+          }
+        }
+        
+        let incomeStartDate = income.start_date || null;
+        let incomeEndDate = income.end_date || null;
+        if (income.frequency === 'one-time') {
+          const oneTimeDate = incomeStartDate || incomeEndDate;
+          if (oneTimeDate) {
+            incomeStartDate = oneTimeDate;
+            incomeEndDate = oneTimeDate;
+          }
+        }
+        
+        return {
+          name: accountName,
+          account_type: 'income',
+          initial_value: 0.0,
+          contribution: income.linked_item_type !== "asset" ? (income.yearly_value || 0) / 12 : 0.0,
+          growth_rate: income.annual_increase_percent || 0,
+          loan_type: null,
+          principal_amount: null,
+          interest_rate: null,
+          loan_term_months: null,
+          loan_start_date: null,
+          monthly_payment: null,
+          start_date: incomeStartDate,
+          end_date: incomeEndDate
+        };
+      });
+
+      // Convert expense items to ProjectedAccountCreate format
+      const expenseAccounts = (expenseItems || []).map(expense => {
+        let accountName = expense.description;
+        
+        if (expense.linked_item_type === "income" && expense.percentage !== null && expense.percentage !== undefined) {
+          const linkedIncomeItem = incomeItems.find(i => i.id === expense.linked_item_id);
+          if (linkedIncomeItem) {
+            accountName = `${expense.description}|LINKED_INCOME:${linkedIncomeItem.description}|PERCENTAGE:${expense.percentage}`;
+          }
+        } else if (expense.linked_item_type === "asset" && expense.percentage !== null && expense.percentage !== undefined) {
+          if (expense.linked_asset_ids && expense.linked_asset_ids.length > 0) {
+            const linkedAssets = assets.filter(a => expense.linked_asset_ids.includes(a.id));
+            if (linkedAssets.length > 0) {
+              const assetNames = linkedAssets.map(a => a.name).join(',');
+              accountName = `${expense.description}|LINKED:${assetNames}|PERCENTAGE:${expense.percentage}`;
+            }
+          } else if (expense.linked_item_id) {
+            const linkedAsset = assets.find(a => a.id === expense.linked_item_id);
+            if (linkedAsset) {
+              accountName = `${expense.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${expense.percentage}`;
+            }
+          }
+        }
+        
+        let expenseStartDate = expense.start_date || null;
+        let expenseEndDate = expense.end_date || null;
+        if (expense.frequency === 'one-time') {
+          const oneTimeDate = expenseStartDate || expenseEndDate;
+          if (oneTimeDate) {
+            expenseStartDate = oneTimeDate;
+            expenseEndDate = oneTimeDate;
+          }
+        }
+        
+        return {
+          name: accountName,
+          account_type: 'expense',
+          initial_value: 0.0,
+          contribution: -(expense.yearly_value || 0) / 12, // Negative for expenses
+          growth_rate: expense.inflation_percent || 0,
+          loan_type: null,
+          principal_amount: null,
+          interest_rate: null,
+          loan_term_months: null,
+          loan_start_date: null,
+          monthly_payment: null,
+          start_date: expenseStartDate,
+          end_date: expenseEndDate
+        };
+      });
+
+      const allAccounts = [...assetAccounts, ...liabilityAccounts, ...incomeAccounts, ...expenseAccounts];
+      
+      const projectionRequest = {
+        plan_name: "Cash Flow Projection",
+        years: projectionYears,
+        accounts: allAccounts
+      };
+
+      // Check if a "Cash Flow Projection" already exists and update it, otherwise create new
+      let projectionId = null;
+      try {
+        const existingProjections = await ProjectionService.getProjections();
+        const existing = existingProjections.find(p => p.name === "Cash Flow Projection");
+        if (existing) {
+          projectionId = existing.id;
+        }
+      } catch (e) {
+        console.log("Could not check for existing projection, will create new one");
+      }
+
+      let projection;
+      if (projectionId) {
+        try {
+          projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
+        } catch (err) {
+          if (err.response?.status === 403) {
+            projection = await ProjectionService.createProjection(projectionRequest);
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        projection = await ProjectionService.createProjection(projectionRequest);
+      }
+
+      // Parse the data_json
+      if (projection.data_json) {
+        const parsedData = JSON.parse(projection.data_json);
+        setProjectionData(parsedData);
+      } else {
+        const fullProjection = await ProjectionService.getProjectionDetails(projection.id || projectionId);
+        if (fullProjection.data_json) {
+          const parsedData = JSON.parse(fullProjection.data_json);
+          setProjectionData(parsedData);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching projection data:", err);
+      setError(err.message || "Failed to calculate projections");
+    } finally {
+      setLoading(false);
+    }
+  }, [assets, liabilities, incomeItems, expenseItems, projectionYears]);
+
+  useEffect(() => {
+    fetchProjectionData();
+  }, [fetchProjectionData]);
+
+  // Parse projection data into the format needed for charts/tables
+  const parseProjectionData = () => {
+    if (!projectionData || !Array.isArray(projectionData) || projectionData.length === 0) {
+      return {
+        years: [],
+        incomeValues: [],
+        expenseValues: [],
+        surplus: [],
+        baseModel: {
+          years: [],
+          beginningBalances: [],
+          cashInValues: [],
+          cashOutValues: [],
+          endingBalances: []
+        }
+      };
+    }
+
+    const years = projectionData.map((dp, index) => dp.Year || (currentYear + index));
+    const incomeValues = projectionData.map(dp => dp["Total Income Flow"] || 0);
+    const expenseValues = projectionData.map(dp => Math.abs(dp["Total Expense Flow"] || 0)); // Convert to positive for display
+    const surplus = projectionData.map(dp => dp["Net Cash Flow"] || 0);
+
+    // Calculate BASE model from cash assets
+    const cashAssetIds = userSettings?.cash_asset_ids || [];
+    const cashAssets = (assets || []).filter(a => cashAssetIds.includes(a.id));
+    
+    // Initial balance is sum of all cash assets
+    let currentBalance = 0;
+    cashAssets.forEach(asset => {
+      currentBalance += asset.value || 0;
+    });
+
+    const beginningBalances = [];
+    const cashInValues = [];
+    const cashOutValues = [];
+    const endingBalances = [];
+
+    projectionData.forEach((dp, index) => {
+      beginningBalances.push(index === 0 ? currentBalance : endingBalances[index - 1]);
+      cashInValues.push(dp["Total Income Flow"] || 0);
+      cashOutValues.push(Math.abs(dp["Total Expense Flow"] || 0));
+      
+      // Calculate ending balance: beginning + cash in - cash out
+      const endingBalance = beginningBalances[index] + cashInValues[index] - cashOutValues[index];
+      endingBalances.push(endingBalance);
+    });
+
+    return {
+      years,
+      incomeValues,
+      expenseValues,
+      surplus,
+      baseModel: {
+        years: years.map((y, i) => i), // Use year indices
+        beginningBalances,
+        cashInValues,
+        cashOutValues,
+        endingBalances
+      }
+    };
+  };
+
+  // OLD calculateCashFlowProjection function - DEPRECATED, now using backend
+  const calculateCashFlowProjection_OLD = () => {
     const years = [];
     const incomeValues = [];
     const expenseValues = [];
@@ -1615,17 +1882,27 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     return { years, beginningBalances, cashInValues, cashOutValues, endingBalances };
   };
 
-  let cashFlowProjection;
-  let baseModel;
+  // Parse projection data from backend
+  const parsedData = parseProjectionData();
   
-  try {
-    cashFlowProjection = calculateCashFlowProjection();
-    baseModel = calculateBaseModel();
-  } catch (error) {
-    console.error('Error calculating cash flow projections:', error);
-    // Return empty projection data on error
-    cashFlowProjection = { years: [], incomeValues: [], expenseValues: [], surplus: [], surplusAssetTransfers: [], autoDisbursementTransfers: {} };
-    baseModel = { years: [], beginningBalances: [], cashInValues: [], cashOutValues: [], endingBalances: [] };
+  // Use parsed data or fallback to empty
+  const cashFlowProjection = {
+    years: parsedData.years,
+    incomeValues: parsedData.incomeValues,
+    expenseValues: parsedData.expenseValues,
+    surplus: parsedData.surplus,
+    surplusAssetTransfers: parsedData.surplus.map(s => s > 0 ? s : 0), // Surplus when positive
+    autoDisbursementTransfers: {} // TODO: Add auto-disbursement transfers from backend if needed
+  };
+  
+  const baseModel = parsedData.baseModel;
+  
+  if (loading) {
+    return <div>Loading cash flow projections...</div>;
+  }
+  
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   // Build datasets array dynamically
@@ -1681,7 +1958,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   }
 
   const cashFlowChartData = {
-    labels: (cashFlowProjection?.years || []).map(year => currentYear + year), // Adjust labels to current year
+    labels: (cashFlowProjection?.years || []), // Years are already absolute years from backend
     datasets: datasets || [],
   };
 
@@ -1792,7 +2069,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       
       const formattedData = (cashFlowProjection?.years || []).map((year, yearIndex) => {
         const row = {
-          Year: currentYear + year,
+          Year: year, // Year is already absolute from backend
           'Cash In': cashFlowProjection?.incomeValues?.[yearIndex] || 0,
           'Cash Out': cashFlowProjection?.expenseValues?.[yearIndex] || 0,
           Surplus: cashFlowProjection?.surplus?.[yearIndex] || 0,
@@ -1829,7 +2106,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
   // BASE Model Chart Data (Combo: Bar + Line)
   const baseChartData = {
-    labels: (baseModel?.years || []).map(year => currentYear + year),
+    labels: (cashFlowProjection?.years || []), // Use same years as cash flow projection
     datasets: [
       {
         type: 'bar',
@@ -2014,17 +2291,17 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           </tr>
         </thead>
         <tbody>
-          {displayYears.map((year) => (
+          {displayYears.map((year, yearIndex) => (
             <tr key={year}>
-              <td>{currentYear + year}</td>
-              <td>{safeFormatCurrency(cashFlowProjection?.incomeValues?.[year] || 0)}</td>
-              <td>{safeFormatCurrency(cashFlowProjection?.expenseValues?.[year] || 0)}</td>
-              <td>{safeFormatCurrency(cashFlowProjection?.surplus?.[year] || 0)}</td>
+              <td>{year}</td>
+              <td>{safeFormatCurrency(cashFlowProjection?.incomeValues?.[yearIndex] || 0)}</td>
+              <td>{safeFormatCurrency(cashFlowProjection?.expenseValues?.[yearIndex] || 0)}</td>
+              <td>{safeFormatCurrency(cashFlowProjection?.surplus?.[yearIndex] || 0)}</td>
               {autoDisbursements.map(ad => {
                 if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
                 return (
                   <td key={ad.id}>
-                    {safeFormatCurrency(cashFlowProjection?.autoDisbursementTransfers?.[ad.id]?.[year] || 0)}
+                    {safeFormatCurrency(cashFlowProjection?.autoDisbursementTransfers?.[ad.id]?.[yearIndex] || 0)}
                   </td>
                 );
               })}
@@ -2069,13 +2346,13 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                   </tr>
                 </thead>
                 <tbody>
-                  {displayYears.map((year) => (
+                  {displayYears.map((year, yearIndex) => (
                     <tr key={year}>
-                      <td>{currentYear + year}</td>
-                      <td>{safeFormatCurrency(baseModel?.beginningBalances?.[year] || 0)}</td>
-                      <td>{safeFormatCurrency(baseModel?.cashInValues?.[year] || 0)}</td>
-                      <td>{safeFormatCurrency(baseModel?.cashOutValues?.[year] || 0)}</td>
-                      <td>{safeFormatCurrency(baseModel?.endingBalances?.[year] || 0)}</td>
+                      <td>{year}</td>
+                      <td>{safeFormatCurrency(baseModel?.beginningBalances?.[yearIndex] || 0)}</td>
+                      <td>{safeFormatCurrency(baseModel?.cashInValues?.[yearIndex] || 0)}</td>
+                      <td>{safeFormatCurrency(baseModel?.cashOutValues?.[yearIndex] || 0)}</td>
+                      <td>{safeFormatCurrency(baseModel?.endingBalances?.[yearIndex] || 0)}</td>
                     </tr>
                   ))}
                 </tbody>

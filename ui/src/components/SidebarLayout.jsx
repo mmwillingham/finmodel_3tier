@@ -613,6 +613,7 @@ export default function SidebarLayout() {
               assets={assets}
               userSettings={userSettings}
               autoDisbursements={autoDisbursements}
+              liabilities={liabilities}
             />
           </div>
         )}
