@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -1116,9 +1116,46 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     }
   }, [assets, liabilities, incomeItems, expenseItems, projectionYears]);
 
+  // Track critical field changes that affect projections
+  // This ensures projections recalculate when key fields change, even if array references stay the same
+  const projectionDependencyHash = useMemo(() => {
+    // Create a hash of all critical fields that affect projections
+    const hashes = [];
+    
+    // Income items: track values, dates, rates, linking, and dividend reinvestment
+    if (incomeItems && incomeItems.length > 0) {
+      hashes.push('income:' + incomeItems.map(item => 
+        `${item.id}:${item.yearly_value || 0}:${item.annual_increase_percent || 0}:${item.start_date || ''}:${item.end_date || ''}:${item.frequency || ''}:${item.taxable || false}:${item.linked_item_id || ''}:${item.linked_item_type || ''}:${item.percentage || ''}:${JSON.stringify(item.linked_asset_ids || [])}:${item.reinvest_dividends || false}:${item.reinvestment_account_id || ''}:${item.contributes_to_asset_id || ''}`
+      ).join('|'));
+    }
+    
+    // Expense items: track values, dates, rates, linking, and asset contributions
+    if (expenseItems && expenseItems.length > 0) {
+      hashes.push('expense:' + expenseItems.map(item => 
+        `${item.id}:${item.yearly_value || 0}:${item.inflation_percent || 0}:${item.start_date || ''}:${item.end_date || ''}:${item.frequency || ''}:${item.tax_deductible || false}:${item.linked_item_id || ''}:${item.linked_item_type || ''}:${item.percentage || ''}:${JSON.stringify(item.linked_asset_ids || [])}:${item.contributes_to_asset_id || ''}`
+      ).join('|'));
+    }
+    
+    // Assets: track values, growth rates, dates, and account relationships (for retirement account detection)
+    if (assets && assets.length > 0) {
+      hashes.push('asset:' + assets.map(item => 
+        `${item.id}:${item.value || 0}:${item.annual_increase_percent || 0}:${item.start_date || ''}:${item.end_date || ''}:${item.account_id || ''}`
+      ).join('|'));
+    }
+    
+    // Liabilities: track values, rates, dates, and loan-specific fields
+    if (liabilities && liabilities.length > 0) {
+      hashes.push('liability:' + liabilities.map(item => 
+        `${item.id}:${item.value || item.principal_amount || 0}:${item.annual_increase_percent || 0}:${item.interest_rate || 0}:${item.loan_type || ''}:${item.loan_term_months || ''}:${item.monthly_payment || ''}:${item.loan_start_date || ''}:${item.start_date || ''}:${item.end_date || ''}`
+      ).join('|'));
+    }
+    
+    return hashes.join('||');
+  }, [incomeItems, expenseItems, assets, liabilities]);
+
   useEffect(() => {
     fetchProjectionData();
-  }, [fetchProjectionData]);
+  }, [fetchProjectionData, projectionDependencyHash]);
 
   // Parse projection data into the format needed for charts/tables
   const parseProjectionData = () => {
