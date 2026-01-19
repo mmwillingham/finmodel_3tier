@@ -5,11 +5,14 @@ const ConfirmDialog = ({
   isOpen, 
   onClose, 
   onConfirm, 
+  onRetain,
   title, 
   message, 
-  confirmText = "OK", 
+  confirmText = "Delete", 
+  retainText = "Retain",
   cancelText = "Cancel",
   showCancel = false,
+  showRetain = false,
   showCascadeOption = false,
   cascadeMessage = "Also delete linked items"
 }) => {
@@ -19,6 +22,15 @@ const ConfirmDialog = ({
 
   const handleConfirm = () => {
     onConfirm(showCascadeOption ? cascadeDelete : undefined);
+    onClose();
+    // Reset cascade option when dialog closes
+    setCascadeDelete(false);
+  };
+
+  const handleRetain = () => {
+    if (onRetain) {
+      onRetain(showCascadeOption ? cascadeDelete : undefined);
+    }
     onClose();
     // Reset cascade option when dialog closes
     setCascadeDelete(false);
@@ -58,6 +70,11 @@ const ConfirmDialog = ({
           {showCancel && (
             <button className="confirm-dialog-button confirm-dialog-cancel" onClick={handleCancel}>
               {cancelText}
+            </button>
+          )}
+          {showRetain && onRetain && (
+            <button className="confirm-dialog-button confirm-dialog-retain" onClick={handleRetain}>
+              {retainText}
             </button>
           )}
           <button className="confirm-dialog-button confirm-dialog-confirm" onClick={handleConfirm}>

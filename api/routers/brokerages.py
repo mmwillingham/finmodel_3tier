@@ -152,12 +152,14 @@ def check_brokerage_usage(
 def delete_brokerage(
     brokerage_id: int,
     cascade: bool = False,
+    retain: bool = False,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
     """Delete a brokerage (requires ownership). 
-    If cascade=True, will also delete all linked accounts (and optionally their assets/liabilities).
-    If cascade=False (default), will only delete if not in use."""
+    If cascade=True, will also delete all linked accounts (and their assets/liabilities).
+    If retain=True, will delete the brokerage but keep accounts/assets/liabilities by removing their links.
+    If cascade=False and retain=False (default), will only delete if not in use."""
     db_brokerage = db.query(models.Brokerage).filter(models.Brokerage.id == brokerage_id).first()
     if not db_brokerage:
         raise HTTPException(status_code=404, detail="Brokerage not found")
@@ -170,7 +172,29 @@ def delete_brokerage(
     linked_accounts = db.query(models.Account).filter(models.Account.brokerage_id == brokerage_id).all()
     
     if linked_accounts:
-        if not cascade:
+        if retain:
+            # Retain mode: delete brokerage but keep accounts/assets/liabilities by removing links
+            for account in linked_accounts:
+                # Remove account_id from all assets linked to this account
+                db.query(models.Asset).filter(models.Asset.account_id == account.id).update(
+                    {models.Asset.account_id: None},
+                    synchronize_session=False
+                )
+                
+                # Remove account_id from all liabilities linked to this account
+                db.query(models.Liability).filter(models.Liability.account_id == account.id).update(
+                    {models.Liability.account_id: None},
+                    synchronize_session=False
+                )
+                
+                # Remove brokerage_id from the account (this will orphan the account)
+                account.brokerage_id = None
+            
+            # Now delete the brokerage
+            db.delete(db_brokerage)
+            db.commit()
+            return None
+        elif not cascade:
             account_names = [acc.account_name for acc in linked_accounts]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

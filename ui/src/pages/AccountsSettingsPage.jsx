@@ -27,7 +27,7 @@ const AccountsSettingsPage = () => {
     broker_phone: '',
     broker_email: '',
   });
-  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
   const [newAccount, setNewAccount] = useState({
     brokerage_id: null,
     brokerage: '', // Legacy field - used when creating new brokerage
@@ -151,7 +151,7 @@ const AccountsSettingsPage = () => {
             : 'Account deleted successfully! Linked assets/liabilities had their account link removed.');
           loadData();
           setTimeout(() => setMessage(''), 3000);
-          setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
+          setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
         } catch (e) {
           console.error('Failed to delete account', e);
           const errorMessage = e.response?.data?.detail || 'Error deleting account';
@@ -178,24 +178,41 @@ const AccountsSettingsPage = () => {
         setConfirmDialog({
           isOpen: true,
           title: 'Delete Brokerage with Linked Accounts?',
-          message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nDo you want to delete the brokerage and all linked accounts? This will also delete all assets and liabilities linked to those accounts.\n\nPlease refresh your browser after deletion to see the updated data.`,
-            onConfirm: async () => {
-              try {
-                await BrokerageService.deleteBrokerage(brokerageId, true); // cascade=true
-                setMessage('Brokerage and linked accounts deleted successfully!');
-                loadData();
-                setTimeout(() => setMessage(''), 3000);
-                setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
-              } catch (e) {
-                console.error('Failed to delete brokerage', e);
-                const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
-                setMessage(errorMessage);
-                setTimeout(() => setMessage(''), 3000);
-              }
-            },
-            showCancel: true,
-            cancelText: 'Cancel',
-            showCascadeOption: false
+          message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nChoose an option:\n• Delete: Delete the brokerage, all linked accounts, and all assets/liabilities linked to those accounts\n• Retain: Delete the brokerage but keep all accounts, assets, and liabilities (they will no longer be linked to a brokerage)\n• Cancel: Do not delete anything`,
+          onConfirm: async () => {
+            try {
+              await BrokerageService.deleteBrokerage(brokerageId, true, false); // cascade=true
+              setMessage('Brokerage and linked accounts deleted successfully!');
+              loadData();
+              setTimeout(() => setMessage(''), 3000);
+              setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+            } catch (e) {
+              console.error('Failed to delete brokerage', e);
+              const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+              setMessage(errorMessage);
+              setTimeout(() => setMessage(''), 3000);
+            }
+          },
+          onRetain: async () => {
+            try {
+              await BrokerageService.deleteBrokerage(brokerageId, false, true); // retain=true
+              setMessage('Brokerage deleted successfully! Accounts, assets, and liabilities retained (no longer linked to a brokerage).');
+              loadData();
+              setTimeout(() => setMessage(''), 3000);
+              setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+            } catch (e) {
+              console.error('Failed to delete brokerage', e);
+              const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+              setMessage(errorMessage);
+              setTimeout(() => setMessage(''), 3000);
+            }
+          },
+          showCancel: true,
+          cancelText: 'Cancel',
+          showRetain: true,
+          confirmText: 'Delete',
+          retainText: 'Retain',
+          showCascadeOption: false
         });
         return;
       }
@@ -211,7 +228,7 @@ const AccountsSettingsPage = () => {
             setMessage('Brokerage deleted successfully!');
             loadData();
             setTimeout(() => setMessage(''), 2000);
-            setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
+            setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
           } catch (e) {
             console.error('Failed to delete brokerage', e);
             const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
@@ -657,14 +674,18 @@ const AccountsSettingsPage = () => {
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' })}
         onConfirm={confirmDialog.onConfirm || (() => {})}
+        onRetain={confirmDialog.onRetain}
         title={confirmDialog.title}
         message={confirmDialog.message}
         showCancel={confirmDialog.showCancel}
+        showRetain={confirmDialog.showRetain}
         showCascadeOption={confirmDialog.showCascadeOption}
         cascadeMessage={confirmDialog.cascadeMessage}
         cancelText={confirmDialog.cancelText}
+        confirmText={confirmDialog.confirmText}
+        retainText={confirmDialog.retainText}
       />
     </div>
   );
