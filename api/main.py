@@ -728,14 +728,18 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
+    logger.info(f"=== CREATE_PROJECTION ENDPOINT CALLED for user {user.id} ===")
+    logger.info(f"Projection request: years={projection_data.years}, accounts_count={len(projection_data.accounts)}")
     logger.debug(f"Entering create_projection endpoint for user {user.id}. Calling calculate_projection.")
     try:
+        logger.info(f"About to call calculate_projection for user {user.id}")
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
             accounts=projection_data.accounts,
             db=db,
             owner_id=user.id
         )
+        logger.info(f"calculate_projection completed for user {user.id}")
     except Exception as e:
         logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
@@ -883,6 +887,8 @@ def update_projection(
 ):
     """
     Updates an existing projection if user has edit permission."""
+    logger.info(f"=== UPDATE_PROJECTION ENDPOINT CALLED for user {current_user.id}, projection_id={projection_id} ===")
+    logger.info(f"Projection request: years={req.years}, accounts_count={len(req.accounts)}")
     projection = (
         db.query(models.Projection)
         .options(joinedload(models.Projection.accounts_data))
@@ -905,6 +911,7 @@ def update_projection(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
+    logger.info(f"About to call calculate_projection in update_projection for user {current_user.id}")
     logger.debug(f"Entering update_projection endpoint for user {current_user.id}. Calling calculate_projection.")
     
     # Delete existing associated data
@@ -913,6 +920,7 @@ def update_projection(
 
     # Recalculate projection
     try:
+        logger.info(f"Calling calculate_projection in update_projection for user {current_user.id}")
         result = calculations.calculate_projection(
             years=req.years,
             accounts=req.accounts,
