@@ -914,6 +914,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const [projectionData, setProjectionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [useSeparateYAxis, setUseSeparateYAxis] = useState(true); // Toggle for separate y-axis in BASE model
   
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
@@ -2154,7 +2155,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         pointRadius: 4,
         pointHoverRadius: 6,
         order: 1,
-        yAxisID: 'y1',
+        yAxisID: useSeparateYAxis ? 'y1' : 'y', // Use separate axis if enabled, otherwise use main axis
       },
     ],
   };
@@ -2339,6 +2340,17 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             </div>
           ) : (
             <>
+              <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={useSeparateYAxis}
+                    onChange={(e) => setUseSeparateYAxis(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>Use separate y-axis for Available Cash</span>
+                </label>
+              </div>
               <div style={{ marginBottom: "30px" }}>
                 <div className="chart-actions">
                   <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(baseChartRef, "BASE_Model")}>Download PNG</button>
