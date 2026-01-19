@@ -1146,11 +1146,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     const cashAssetIds = userSettings?.cash_asset_ids || [];
     const cashAssets = (assets || []).filter(a => cashAssetIds.includes(a.id));
     
-    // Initial balance is sum of all cash assets
-    let currentBalance = 0;
-    cashAssets.forEach(asset => {
-      currentBalance += asset.value || 0;
-    });
+    // Get cash asset names for looking up balances in projection data
+    const cashAssetNames = cashAssets.map(a => a.name);
 
     const beginningBalances = [];
     const cashInValues = [];
@@ -1158,12 +1155,31 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     const endingBalances = [];
 
     projectionData.forEach((dp, index) => {
-      beginningBalances.push(index === 0 ? currentBalance : endingBalances[index - 1]);
+      // Calculate ending balance from actual cash asset balances in backend data
+      // Backend stores asset balances as "AssetName_Value" in projection data
+      let endingBalance = 0;
+      cashAssetNames.forEach(assetName => {
+        const balanceKey = `${assetName}_Value`;
+        const assetBalance = dp[balanceKey] || 0;
+        if (assetBalance > 0) { // Only sum positive balances (cash assets)
+          endingBalance += assetBalance;
+        }
+      });
+      
+      // Beginning balance is the previous year's ending balance
+      // For first year, use initial cash asset values
+      if (index === 0) {
+        let initialBalance = 0;
+        cashAssets.forEach(asset => {
+          initialBalance += asset.value || 0;
+        });
+        beginningBalances.push(initialBalance);
+      } else {
+        beginningBalances.push(endingBalances[index - 1]);
+      }
+      
       cashInValues.push(dp["Total Income Flow"] || 0);
       cashOutValues.push(Math.abs(dp["Total Expense Flow"] || 0));
-      
-      // Calculate ending balance: beginning + cash in - cash out
-      const endingBalance = beginningBalances[index] + cashInValues[index] - cashOutValues[index];
       endingBalances.push(endingBalance);
     });
 
