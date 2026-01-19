@@ -33,24 +33,32 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     year_start = date(projection_year, 1, 1)  # January 1 of the year
     year_end = date(projection_year, 12, 31)  # December 31 of the year
     
-    item_start = year_start  # Default to start of year if no start_date
-    item_end = year_end  # Default to end of year if no end_date
+    # Parse dates first to check for one-time items
+    start_date_obj = None
+    end_date_obj = None
     
     if start_date_str:
         try:
             start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-            # If item starts during the year, use that date; otherwise use year start
-            item_start = start_date_obj if start_date_obj > year_start else year_start
         except (ValueError, TypeError):
             pass
     
     if end_date_str:
         try:
             end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-            # If item ends during the year, use that date; otherwise use year end
-            item_end = end_date_obj if end_date_obj < year_end else year_end
         except (ValueError, TypeError):
             pass
+    
+    item_start = year_start  # Default to start of year if no start_date
+    item_end = year_end  # Default to end of year if no end_date
+    
+    if start_date_obj:
+        # If item starts during the year, use that date; otherwise use year start
+        item_start = start_date_obj if start_date_obj > year_start else year_start
+    
+    if end_date_obj:
+        # If item ends during the year, use that date; otherwise use year end
+        item_end = end_date_obj if end_date_obj < year_end else year_end
     
     # Special handling for one-time items (start_date == end_date)
     # Return 1.0 for the year the date falls in
@@ -58,10 +66,12 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
         try:
             one_time_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
             if year_start <= one_time_date <= year_end:
+                print(f"--- DEBUG: One-time item detected (string match): start_date={start_date_str}, end_date={end_date_str}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
                 return 1.0
             else:
                 return 0.0
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            print(f"--- DEBUG: One-time string check failed: start_date={start_date_str}, end_date={end_date_str}, error={e} ---"); sys.stdout.flush()
             pass
     
     # If item ends before year starts or starts after year ends, return 0
@@ -71,18 +81,14 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     # Additional check: if start_date and end_date are the same (one-time item),
     # but the string comparison above failed, check using date objects
     # This handles cases where dates might be parsed differently
-    if start_date_str and end_date_str:
-        try:
-            start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-            end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-            if start_date_obj == end_date_obj:
-                # This is a one-time item - return 1.0 for the year it falls in
-                if year_start <= start_date_obj <= year_end:
-                    return 1.0
-                else:
-                    return 0.0
-        except (ValueError, TypeError):
-            pass
+    if start_date_obj is not None and end_date_obj is not None:
+        if start_date_obj == end_date_obj:
+            # This is a one-time item - return 1.0 for the year it falls in
+            if year_start <= start_date_obj <= year_end:
+                print(f"--- DEBUG: One-time item detected (date object match): start_date={start_date_str}, end_date={end_date_str}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
+                return 1.0
+            else:
+                return 0.0
     
     # Calculate the overlap period
     overlap_start = item_start if item_start > year_start else year_start
@@ -91,10 +97,15 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     # Final check: if overlap_start == overlap_end and both are within the year,
     # this is a one-time item - return 1.0 for the full year
     if overlap_start == overlap_end and year_start <= overlap_start <= year_end:
+        print(f"--- DEBUG: One-time item detected (overlap check): start_date={start_date_str}, end_date={end_date_str}, overlap_start={overlap_start}, overlap_end={overlap_end}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
         return 1.0
     
     # Calculate days in overlap (add 1 to include both start and end days)
     overlap_days = (overlap_end - overlap_start).days + 1
+    
+    # Debug logging for one-time items that fall through to day calculation
+    if start_date_str and end_date_str and start_date_str == end_date_str:
+        print(f"--- DEBUG: WARNING - One-time item falling through to day calculation: start_date={start_date_str}, end_date={end_date_str}, overlap_days={overlap_days}, year={projection_year}, item_start={item_start}, item_end={item_end}, overlap_start={overlap_start}, overlap_end={overlap_end} ---"); sys.stdout.flush()
     
     # Calculate fraction (days / days in year)
     days_in_year = (year_end - year_start).days + 1
