@@ -218,10 +218,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   // Calculate federal taxes if the expense item exists
   let federalTax = 0;
   if (federalTaxExpenseItem && userSettings) {
-    const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
-    const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
+    // Use calculateYearFraction to handle one-time items properly
+    const taxYearFraction = calculateYearFraction(federalTaxExpenseItem.start_date, federalTaxExpenseItem.end_date, currentProjectionYear);
     
-    if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+    if (taxYearFraction > 0) {
       try {
         const taxResult = calculateTaxableIncome(
           totalTaxableIncome,
@@ -315,18 +315,12 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         const growthRate = (asset.annual_increase_percent || 0) / 100;
         let assetValue = asset.value || 0;
         
-        // Apply date filters if present
-        if (asset.start_date) {
-          const startYear = new Date(asset.start_date).getFullYear();
-          if (currentProjectionYear < startYear) assetValue = 0;
-        }
-        if (asset.end_date) {
-          const endYear = new Date(asset.end_date).getFullYear();
-          if (currentProjectionYear > endYear) assetValue = 0;
-        }
-        
-        if (assetValue > 0) {
+        // Use calculateYearFraction to handle one-time items and partial years properly
+        const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, currentProjectionYear);
+        if (yearFraction > 0) {
           assetValue = assetValue * Math.pow(1 + growthRate, year);
+        } else {
+          assetValue = 0; // Asset is not active in this year
         }
         assetProjectionsForYear[asset.id] = assetValue;
       });
@@ -335,10 +329,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         if (!ad || !ad.target_asset_id || !cashAssetIds.includes(ad.target_asset_id)) {
           return;
         }
-        const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
-        const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
+        // Use calculateYearFraction to handle one-time items properly
+        const disbursementYearFraction = calculateYearFraction(ad.start_date, ad.end_date, currentProjectionYear);
         
-        if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
+        if (disbursementYearFraction > 0) {
           // Calculate transfer amount the same way as BASE model
           const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
           if (sourceAsset && assetProjectionsForYear[sourceAsset.id] !== undefined) {
@@ -367,10 +361,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         if (!ad || !ad.source_asset_id || !cashAssetIds.includes(ad.source_asset_id) || cashAssetIds.includes(ad.target_asset_id)) {
           return; // Skip if source is not cash asset, or if target is also cash asset (handled above)
         }
-        const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
-        const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
+        // Use calculateYearFraction to handle one-time items properly
+        const disbursementYearFraction = calculateYearFraction(ad.start_date, ad.end_date, currentProjectionYear);
         
-        if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
+        if (disbursementYearFraction > 0) {
           // Calculate transfer amount the same way as BASE model
           const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
           if (sourceAsset && assetProjectionsForYear[sourceAsset.id] !== undefined) {
@@ -944,27 +938,19 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     assets.forEach(asset => {
       assetProjections[asset.id] = [];
       for (let year = 0; year <= projectionYears; year++) {
-        const growthRate = (asset.annual_increase_percent || 0) / 100;
-        let assetValue = asset.value;
-        
-        // Apply date filters if present
-        if (asset.start_date) {
-          const startYear = new Date(asset.start_date).getFullYear();
-          if (currentYear + year < startYear) {
-            assetValue = 0;
-          }
+        const projectionYear = currentYear + year;
+        // Use calculateYearFraction to handle one-time items and partial years properly
+        const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
+        if (yearFraction > 0) {
+          const growthRate = (asset.annual_increase_percent || 0) / 100;
+          let assetValue = asset.value * Math.pow(1 + growthRate, year);
+          // For partial years, we don't prorate asset values (they represent year-end values)
+          // But we should still respect the year fraction to know if asset exists
+          assetProjections[asset.id].push(assetValue);
+        } else {
+          // Asset is not active in this year
+          assetProjections[asset.id].push(0);
         }
-        if (asset.end_date) {
-          const endYear = new Date(asset.end_date).getFullYear();
-          if (currentYear + year > endYear) {
-            assetValue = 0;
-          }
-        }
-        
-        if (assetValue > 0) {
-          assetValue = assetValue * Math.pow(1 + growthRate, year);
-        }
-        assetProjections[asset.id].push(assetValue);
       }
     });
 
@@ -1157,10 +1143,10 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       // Calculate federal taxes if the expense item exists
       let federalTax = 0;
       if (federalTaxExpenseItem && userSettings) {
-        const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
-        const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
-        
-        if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+          // Use calculateYearFraction to handle one-time items properly
+          const taxYearFraction = calculateYearFraction(federalTaxExpenseItem.start_date, federalTaxExpenseItem.end_date, currentProjectionYear);
+          
+          if (taxYearFraction > 0) {
           try {
             const taxResult = calculateTaxableIncome(
               totalTaxableIncome,
@@ -1196,11 +1182,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           }
           
           // Check if disbursement is active for this year
-          const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
-          const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
           const currentProjectionYear = currentYear + year;
+          // Use calculateYearFraction to handle one-time items properly
+          const disbursementYearFraction = calculateYearFraction(ad.start_date, ad.end_date, currentProjectionYear);
           
-          if (currentProjectionYear >= startYear && (ad.end_date === null || currentProjectionYear <= endYear)) {
+          if (disbursementYearFraction > 0) {
             const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
             if (sourceAsset && assetProjections[sourceAsset.id] && assetProjections[sourceAsset.id][year] !== undefined) {
               const sourceValue = assetProjections[sourceAsset.id][year];
@@ -1268,22 +1254,19 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     assets.forEach(asset => {
       assetProjections[asset.id] = [];
       for (let year = 0; year <= projectionYears; year++) {
-        const growthRate = (asset.annual_increase_percent || 0) / 100;
-        let assetValue = asset.value;
-        
-        if (asset.start_date) {
-          const startYear = new Date(asset.start_date).getFullYear();
-          if (currentYear + year < startYear) assetValue = 0;
+        const projectionYear = currentYear + year;
+        // Use calculateYearFraction to handle one-time items and partial years properly
+        const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
+        if (yearFraction > 0) {
+          const growthRate = (asset.annual_increase_percent || 0) / 100;
+          let assetValue = asset.value * Math.pow(1 + growthRate, year);
+          // For partial years, we don't prorate asset values (they represent year-end values)
+          // But we should still respect the year fraction to know if asset exists
+          assetProjections[asset.id].push(assetValue);
+        } else {
+          // Asset is not active in this year
+          assetProjections[asset.id].push(0);
         }
-        if (asset.end_date) {
-          const endYear = new Date(asset.end_date).getFullYear();
-          if (currentYear + year > endYear) assetValue = 0;
-        }
-        
-        if (assetValue > 0) {
-          assetValue = assetValue * Math.pow(1 + growthRate, year);
-        }
-        assetProjections[asset.id].push(assetValue);
       }
     });
     
@@ -1494,10 +1477,10 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       // Calculate federal taxes if the expense item exists
       let federalTax = 0;
       if (federalTaxExpenseItem && userSettings) {
-        const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
-        const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
-        
-        if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+          // Use calculateYearFraction to handle one-time items properly
+          const taxYearFraction = calculateYearFraction(federalTaxExpenseItem.start_date, federalTaxExpenseItem.end_date, currentProjectionYear);
+          
+          if (taxYearFraction > 0) {
           try {
             const taxResult = calculateTaxableIncome(
               totalTaxableIncome,
@@ -1571,11 +1554,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         autoDisbursements.forEach(ad => {
           if (!ad) return;
         if (cashAssetIds.includes(ad.source_asset_id) && !cashAssetIds.includes(ad.target_asset_id)) {
-          const startYear = ad.start_date ? new Date(ad.start_date).getFullYear() : currentYear;
-          const endYear = ad.end_date ? new Date(ad.end_date).getFullYear() : currentYear + projectionYears;
           const currentProjectionYear = currentYear + year;
+          // Use calculateYearFraction to handle one-time items properly
+          const disbursementYearFraction = calculateYearFraction(ad.start_date, ad.end_date, currentProjectionYear);
           
-          if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+          if (disbursementYearFraction > 0) {
             const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
             if (sourceAsset && assetProjections[sourceAsset.id] && assetProjections[sourceAsset.id][year] !== undefined) {
               const sourceValue = assetProjections[sourceAsset.id][year];

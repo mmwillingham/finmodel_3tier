@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext'; // Import useAuth
+import { calculateYearFraction } from '../utils/dateUtils';
 import './CashFlowSummary.css';
 
 ChartJS.register(
@@ -56,9 +57,16 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
   assets.forEach(asset => {
     assetProjections[asset.name] = [];
     for (let i = 0; i < years; i++) {
-      const growthRate = (asset.annual_increase_percent || 0) / 100;
-      const assetValue = asset.value * Math.pow(1 + growthRate, i);
-      assetProjections[asset.name].push(assetValue);
+      const projectionYear = currentYear + i;
+      const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
+      if (yearFraction > 0) {
+        const growthRate = (asset.annual_increase_percent || 0) / 100;
+        const assetValue = asset.value * Math.pow(1 + growthRate, i);
+        assetProjections[asset.name].push(assetValue);
+      } else {
+        // Asset is not active in this year
+        assetProjections[asset.name].push(0);
+      }
     }
   });
 
@@ -69,6 +77,13 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
     
     // Calculate income for this year
     const yearIncome = incomeItems.reduce((sum, item) => {
+      // Check if item is active in this year and calculate proration
+      const yearFraction = calculateYearFraction(item.start_date, item.end_date, year);
+      if (yearFraction <= 0) {
+        // Item is not active in this year, skip it
+        return sum;
+      }
+      
       let itemValue = item.yearly_value || 0;
       
       // Handle dynamic items (linked to assets) - check both linked_item_id and linked_asset_ids
@@ -103,11 +118,21 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
         itemValue = item.yearly_value * Math.pow(1 + increaseRate, i);
       }
       
+      // Apply year fraction to prorate for one-time items and partial years
+      itemValue = itemValue * yearFraction;
+      
       return sum + itemValue;
     }, 0);
 
     // Calculate expenses for this year
     const yearExpenses = expenseItems.reduce((sum, item) => {
+      // Check if item is active in this year and calculate proration
+      const yearFraction = calculateYearFraction(item.start_date, item.end_date, year);
+      if (yearFraction <= 0) {
+        // Item is not active in this year, skip it
+        return sum;
+      }
+      
       let itemValue = item.yearly_value;
       
       // Handle dynamic items (linked to assets)
@@ -124,6 +149,9 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
         const inflationRate = (item.inflation_percent || defaultInflation) / 100;
         itemValue = item.yearly_value * Math.pow(1 + inflationRate, i);
       }
+      
+      // Apply year fraction to prorate for one-time items and partial years
+      itemValue = itemValue * yearFraction;
       
       return sum + itemValue;
     }, 0);
