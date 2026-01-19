@@ -528,6 +528,12 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       },
     },
     scales: {
+      x: {
+        title: {
+          display: true,
+          text: 'End of Year',
+        },
+      },
       y: {
         beginAtZero: false,
         ticks: {
@@ -630,7 +636,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
             <table ref={tableRef} style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f0f0f0' }}>
-                  <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>Year</th>
+                  <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>EoY</th>
                   <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>10th %ile</th>
                   <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>25th %ile</th>
                   <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Median</th>
@@ -676,7 +682,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
             <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f0f0f0' }}>
-                  <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>Year</th>
+                  <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>EoY</th>
                   <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>10th %ile</th>
                   <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>25th %ile</th>
                   <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Median</th>

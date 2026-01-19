@@ -345,6 +345,12 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       },
     },
     scales: {
+      x: {
+        title: {
+          display: true,
+          text: 'End of Year',
+        },
+      },
       y: {
         beginAtZero: true,
       },
@@ -572,7 +578,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       <table ref={overallTableRef} className="cashflow-table">
         <thead>
           <tr>
-            <th>Year</th>
+            <th>EoY</th>
             <th>Total Assets</th>
             <th>Total Liabilities</th>
             <th>Net Worth</th>
