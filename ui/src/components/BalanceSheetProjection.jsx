@@ -522,7 +522,12 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
 
   return (
     <div className="balance-sheet-projection">
-      <h2>Balance Sheet Projections</h2>
+      <div style={{ marginBottom: '15px' }}>
+        <h2 style={{ marginBottom: '8px' }}>Balance Sheet Projections</h2>
+        <p style={{ fontSize: '0.9em', color: '#666', fontStyle: 'italic', margin: 0 }}>
+          Note: All values are calculated as of December 31st of the specified year. For example, values for 2026 represent the balance sheet position as of December 31, 2026.
+        </p>
+      </div>
 
       {/* Overall Financial Snapshot Chart */}
       <h3>Overall Financial Snapshot</h3>
