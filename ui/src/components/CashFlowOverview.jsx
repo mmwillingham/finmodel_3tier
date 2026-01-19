@@ -2136,8 +2136,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                   }
                   // Safely render SankeyDiagram with error boundary
                   try {
+                    // Create a key that changes when relevant data changes to force re-render
+                    const sankeyKey = `sankey-${sankeyYear}-${userSettings?.surplus_asset_id || 'none'}-${baseModel ? 'hasBaseModel' : 'noBaseModel'}-${cashFlowProjection ? 'hasProjection' : 'noProjection'}`;
                     return (
                       <SankeyDiagram
+                        key={sankeyKey}
                         incomeItems={incomeItems || []}
                         expenseItems={expenseItems || []}
                         assets={assets || []}
