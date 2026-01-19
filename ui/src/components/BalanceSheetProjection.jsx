@@ -24,12 +24,17 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
 
   // Convert assets and liabilities to ProjectedAccountCreate format and call backend
   const fetchProjectionData = useCallback(async () => {
-    if (!assets || !liabilities) return;
+    console.log("=== BALANCE SHEET PROJECTION: fetchProjectionData called ===");
+    if (!assets || !liabilities) {
+      console.log("No assets or liabilities, returning early");
+      return;
+    }
     
     setLoading(true);
     setError(null);
     
     try {
+      console.log("About to prepare projection request...");
       // Convert assets to ProjectedAccountCreate format
       // Note: Expenses that contribute to assets are now handled by the backend
       // We no longer need to pre-calculate contributions here for fixed expenses
@@ -199,11 +204,14 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       };
 
       // Check if a "Balance Sheet Projection" already exists and update it, otherwise create new
+      console.log("Checking for existing projections...");
       let projectionId = null;
       try {
         const existingProjections = await ProjectionService.getProjections();
+        console.log("Got existing projections:", existingProjections);
         const existing = existingProjections.find(p => p.name === "Balance Sheet Projection");
         if (existing) {
+          console.log("Found existing projection:", existing.id);
           // Try to get details to check if we have edit permission
           try {
             const details = await ProjectionService.getProjectionDetails(existing.id);
@@ -224,20 +232,27 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       let projection;
       if (projectionId) {
         try {
+          console.log(`=== CALLING updateProjection with id=${projectionId} ===`);
           // Try to update existing projection
           projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
+          console.log("updateProjection completed:", projection);
         } catch (err) {
+          console.error("updateProjection error:", err);
           // If update fails (e.g., 403 Forbidden), create a new one instead
           if (err.response?.status === 403) {
             console.log("No permission to update existing projection, creating new one");
+            console.log(`=== CALLING createProjection (fallback) ===`);
             projection = await ProjectionService.createProjection(projectionRequest);
+            console.log("createProjection (fallback) completed:", projection);
           } else {
             throw err; // Re-throw other errors
           }
         }
       } else {
         // Create new projection
+        console.log(`=== CALLING createProjection (new) ===`);
         projection = await ProjectionService.createProjection(projectionRequest);
+        console.log("createProjection (new) completed:", projection);
       }
 
       // Parse the data_json
