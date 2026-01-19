@@ -30,6 +30,21 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     Returns:
         Fraction of the year (0 to 1), e.g., 0.5833 for 7 months, 1.0 for one-time items
     """
+    # Convert to string if not already (handles date objects) and normalize
+    if start_date_str is not None:
+        if not isinstance(start_date_str, str):
+            start_date_str = str(start_date_str) if hasattr(start_date_str, 'isoformat') else None
+        else:
+            start_date_str = start_date_str.strip() if start_date_str.strip() else None
+    if end_date_str is not None:
+        if not isinstance(end_date_str, str):
+            end_date_str = str(end_date_str) if hasattr(end_date_str, 'isoformat') else None
+        else:
+            end_date_str = end_date_str.strip() if end_date_str.strip() else None
+    
+    # Log input values for debugging
+    print(f"--- DEBUG calculate_year_fraction: start_date={start_date_str}, end_date={end_date_str}, year={projection_year} ---"); sys.stdout.flush()
+    
     year_start = date(projection_year, 1, 1)  # January 1 of the year
     year_end = date(projection_year, 12, 31)  # December 31 of the year
     
@@ -40,13 +55,15 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     if start_date_str:
         try:
             start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            print(f"--- DEBUG: Failed to parse start_date '{start_date_str}': {e} ---"); sys.stdout.flush()
             pass
     
     if end_date_str:
         try:
             end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            print(f"--- DEBUG: Failed to parse end_date '{end_date_str}': {e} ---"); sys.stdout.flush()
             pass
     
     item_start = year_start  # Default to start of year if no start_date
@@ -61,7 +78,17 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
         item_end = end_date_obj if end_date_obj < year_end else year_end
     
     # Special handling for one-time items (start_date == end_date)
-    # Return 1.0 for the year the date falls in
+    # Check using parsed date objects first (more reliable)
+    if start_date_obj is not None and end_date_obj is not None and start_date_obj == end_date_obj:
+        # This is a one-time item - return 1.0 for the year it falls in
+        if year_start <= start_date_obj <= year_end:
+            print(f"--- DEBUG: One-time item detected (date object match): start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
+            return 1.0
+        else:
+            print(f"--- DEBUG: One-time item outside year: start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 0.0 ---"); sys.stdout.flush()
+            return 0.0
+    
+    # Also check string comparison as fallback
     if start_date_str and end_date_str and start_date_str == end_date_str:
         try:
             one_time_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
@@ -78,17 +105,7 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     if item_end < year_start or item_start > year_end:
         return 0.0
     
-    # Additional check: if start_date and end_date are the same (one-time item),
-    # but the string comparison above failed, check using date objects
-    # This handles cases where dates might be parsed differently
-    if start_date_obj is not None and end_date_obj is not None:
-        if start_date_obj == end_date_obj:
-            # This is a one-time item - return 1.0 for the year it falls in
-            if year_start <= start_date_obj <= year_end:
-                print(f"--- DEBUG: One-time item detected (date object match): start_date={start_date_str}, end_date={end_date_str}, year={projection_year}, returning 1.0 ---"); sys.stdout.flush()
-                return 1.0
-            else:
-                return 0.0
+    # Note: One-time check is now done at the top of the function using parsed date objects
     
     # Calculate the overlap period
     overlap_start = item_start if item_start > year_start else year_start
