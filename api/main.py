@@ -815,37 +815,41 @@ def get_projection_details(
     
     # Auto-recalculate if projection is stale (transparent to user)
     # Only auto-recalculate if we have accounts_data to rebuild from
-    if is_projection_stale(db, projection, current_user.id) and projection.accounts_data and len(projection.accounts_data) > 0:
-        logger.info(f"Projection {projection_id} is stale, auto-recalculating...")
-        try:
-            # Rebuild projection from stored accounts_data
-            result = rebuild_projection_from_stored_data(db, projection, current_user.id)
-            
-            # Update projection with new results
-            projection.final_value = result["final_value"]
-            projection.total_contributed = result["total_contributed"]
-            projection.total_growth = result["total_growth"]
-            projection.data_json = result.get("data_json")
-            projection.last_calculated_at = datetime.utcnow()
-            projection.timestamp = datetime.utcnow()
-            
-            # Delete old accounts
-            db.query(models.ProjectedAccount).filter(
-                models.ProjectedAccount.projection_id == projection_id
-            ).delete()
-            
-            # Add new data
-            for acc in result["projected_accounts"]:
-                acc.projection_id = projection.id
-                db.add(acc)
-            
-            db.commit()
-            db.refresh(projection)
-            logger.info(f"Projection {projection_id} auto-recalculated successfully")
-        except Exception as e:
-            logger.error(f"Error auto-recalculating projection {projection_id}: {e}", exc_info=True)
-            # Continue with stale data rather than failing
-            db.rollback()
+    try:
+        if is_projection_stale(db, projection, current_user.id) and projection.accounts_data and len(projection.accounts_data) > 0:
+            logger.info(f"Projection {projection_id} is stale, auto-recalculating...")
+            try:
+                # Rebuild projection from stored accounts_data
+                result = rebuild_projection_from_stored_data(db, projection, current_user.id)
+                
+                # Update projection with new results
+                projection.final_value = result["final_value"]
+                projection.total_contributed = result["total_contributed"]
+                projection.total_growth = result["total_growth"]
+                projection.data_json = result.get("data_json")
+                projection.last_calculated_at = datetime.utcnow()
+                projection.timestamp = datetime.utcnow()
+                
+                # Delete old accounts
+                db.query(models.ProjectedAccount).filter(
+                    models.ProjectedAccount.projection_id == projection_id
+                ).delete()
+                
+                # Add new data
+                for acc in result["projected_accounts"]:
+                    acc.projection_id = projection.id
+                    db.add(acc)
+                
+                db.commit()
+                db.refresh(projection)
+                logger.info(f"Projection {projection_id} auto-recalculated successfully")
+            except Exception as e:
+                logger.error(f"Error auto-recalculating projection {projection_id}: {e}", exc_info=True)
+                # Continue with stale data rather than failing
+                db.rollback()
+    except Exception as e:
+        logger.error(f"Error checking if projection {projection_id} is stale: {e}", exc_info=True)
+        # Continue without auto-recalculation
     
     # Return response without time_series_data to save memory
     # data_json is read directly from database (stored during calculation)

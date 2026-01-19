@@ -70,6 +70,14 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
           let totalTaxableIncome = 0; // Track taxable income for tax calculations
           
           incomeItems.forEach(item => {
+            const currentProjectionYear = currentYear + year;
+            // Calculate year fraction to handle one-time items and partial years
+            const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
+            if (yearFraction === 0) {
+              // Item is not active in this year, skip it
+              return;
+            }
+            
             let itemValue = item.yearly_value;
             
             if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null) {
@@ -87,6 +95,9 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               const increaseRate = (item.annual_increase_percent || 0) / 100;
               itemValue = item.yearly_value * Math.pow(1 + increaseRate, year) * (1 + variation);
             }
+            
+            // Apply year fraction to prorate for one-time items and partial years
+            itemValue = itemValue * yearFraction;
             
             // Count as taxable income if taxable
             if (item.taxable) {
@@ -142,12 +153,10 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
           
           // Process regular expenses first (excluding federal tax expense)
           regularExpenseItems.forEach(item => {
-            // Check if item is active in this year
-            const startYear = item.start_date ? new Date(item.start_date).getFullYear() : currentYear;
-            const endYear = item.end_date ? new Date(item.end_date).getFullYear() : currentYear + projectionYears;
             const currentProjectionYear = currentYear + year;
-            
-            if (currentProjectionYear < startYear || currentProjectionYear > endYear) {
+            // Calculate year fraction to handle one-time items and partial years
+            const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
+            if (yearFraction === 0) {
               // Item is not active in this year, skip it
               return;
             }
@@ -185,6 +194,10 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
                   linkedIncomeValue = linkedIncomeItem.yearly_value * Math.pow(1 + increaseRate, year) * (1 + variation);
                 }
                 
+                // Apply year fraction to linked income for one-time items and partial years
+                const linkedIncomeYearFraction = calculateYearFraction(linkedIncomeItem.start_date, linkedIncomeItem.end_date, currentProjectionYear);
+                linkedIncomeValue = linkedIncomeValue * linkedIncomeYearFraction;
+                
                 // Calculate expense as percentage of linked income
                 itemValue = linkedIncomeValue * (item.percentage / 100.0);
               } else {
@@ -199,6 +212,9 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               const inflationRate = (item.inflation_percent || 2.0) / 100;
               itemValue = item.yearly_value * Math.pow(1 + inflationRate, year) * (1 + variation);
             }
+            
+            // Apply year fraction to prorate for one-time items and partial years
+            itemValue = itemValue * yearFraction;
             
             // Count tax-deductible expenses for tax calculation
             if (item.tax_deductible) {
@@ -221,10 +237,10 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
           let federalTax = 0;
           if (federalTaxExpenseItem && userSettings) {
             const currentProjectionYear = currentYear + year;
-            const startYear = federalTaxExpenseItem.start_date ? new Date(federalTaxExpenseItem.start_date).getFullYear() : currentYear;
-            const endYear = federalTaxExpenseItem.end_date ? new Date(federalTaxExpenseItem.end_date).getFullYear() : currentYear + projectionYears;
+            // Use calculateYearFraction to handle one-time items properly
+            const taxYearFraction = calculateYearFraction(federalTaxExpenseItem.start_date, federalTaxExpenseItem.end_date, currentProjectionYear);
             
-            if (currentProjectionYear >= startYear && currentProjectionYear <= endYear) {
+            if (taxYearFraction > 0) {
               try {
                 const taxResult = calculateTaxableIncome(
                   totalTaxableIncome,
