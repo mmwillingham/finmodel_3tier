@@ -2192,7 +2192,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Cash In / Out ($)',
+          text: useSeparateYAxis ? 'Cash In / Out ($)' : 'Amount ($)',
         },
         ticks: {
           callback: function(value) {
@@ -2200,23 +2200,25 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           }
         }
       },
-      y1: {
-        type: 'linear',
-        position: 'right',
-        beginAtZero: false,
-        title: {
-          display: true,
-          text: 'Available Cash ($)',
-        },
-        ticks: {
-          callback: function(value) {
-            return safeFormatCurrency(value);
-          }
-        },
-        grid: {
-          drawOnChartArea: false,
-        },
-      },
+      ...(useSeparateYAxis ? {
+        y1: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: false,
+          title: {
+            display: true,
+            text: 'Available Cash ($)',
+          },
+          ticks: {
+            callback: function(value) {
+              return safeFormatCurrency(value);
+            }
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
+        }
+      } : {}),
     },
   };
 
