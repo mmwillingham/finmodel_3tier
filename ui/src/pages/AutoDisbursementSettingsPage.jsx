@@ -220,8 +220,10 @@ const AutoDisbursementSettingsPage = () => {
     }
   };
 
-  const handleCancel = () => {
-    window.location.href = '/'; // Navigate back to home page
+  const handleCancel = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.location.href = '/';
   };
 
   if (loading) {

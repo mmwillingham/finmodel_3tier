@@ -643,45 +643,45 @@ export default function CustomChartForm({
                   </div>
                 )}
 
-                {(currentSeriesDataType === 'assets' || currentSeriesDataType === 'liabilities' || currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && (
-                  <div className="form-group">
-                    <label>{currentSeriesDataType.charAt(0).toUpperCase() + currentSeriesDataType.slice(1)}:</label>
-                    {(() => {
-                      const itemOptions = getDataSourceItemOptions(
-                        currentSeriesDataType,
-                        assets,
-                        liabilities,
-                        incomeItems,
-                        expenseItems,
-                        series.category,
-                        series.selected_account_ids || []
-                      );
-                      const selectProps = {
-                        value: series.selected_item_id || '',
-                        onChange: (e) => {
+                {(currentSeriesDataType === 'assets' || currentSeriesDataType === 'liabilities' || currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && (() => {
+                  const itemOptions = getDataSourceItemOptions(
+                    currentSeriesDataType,
+                    assets,
+                    liabilities,
+                    incomeItems,
+                    expenseItems,
+                    series.category,
+                    series.selected_account_ids || []
+                  );
+                  const shouldExpand = series.selected_item_id === '';
+                  const selectSize = shouldExpand ? Math.min(15, itemOptions.length + 1) : undefined;
+                  
+                  return (
+                    <div className="form-group">
+                      <label>{currentSeriesDataType.charAt(0).toUpperCase() + currentSeriesDataType.slice(1)}:</label>
+                      <select
+                        value={series.selected_item_id || ''}
+                        onChange={(e) => {
                           handleSeriesChange(index, 'selected_item_id', e.target.value);
                           if (e.target.value && e.target.value !== '') {
                             handleSeriesChange(index, 'itemize', false);
                           }
-                        },
-                        disabled: !!series.itemize,
-                        style: { 
+                        }}
+                        disabled={!!series.itemize}
+                        style={{ 
                           position: 'relative',
-                          zIndex: series.selected_item_id === '' ? 10 : 1
-                        }
-                      };
-                      if (series.selected_item_id === '') {
-                        selectProps.size = Math.min(15, itemOptions.length + 1);
-                      }
-                      return (
-                        <select {...selectProps}>
-                          <option value="">All Items</option>
-                          {itemOptions.map(item => (
-                            <option key={item.id} value={item.id}>{item.name}</option>
-                          ))}
-                        </select>
-                      );
-                    })()}
+                          zIndex: shouldExpand ? 10 : 1
+                        }}
+                        size={selectSize}
+                      >
+                        <option value="">All Items</option>
+                        {itemOptions.map(item => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
                     {series.itemize && (
                       <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
                         Item selection is disabled when itemize is enabled
