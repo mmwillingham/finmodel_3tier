@@ -94,37 +94,17 @@ def evaluate_chart_formulas(
                     elif data_type == 'liabilities':
                         value = abs(year_data.get('Total Liabilities', 0) or 0)
                     elif data_type == 'income':
-                        # Sum individual income item _Value keys (matching frontend getAggregatedValue)
-                        # This ensures formula evaluation uses the same values as the table display
-                        value = 0.0
-                        for key in year_data.keys():
-                            if key.endswith('_Value') and key not in ['Total Income Flow_Value', 'Total Expense Flow_Value', 
-                                                                      'Total Assets_Value', 'Total Liabilities_Value', 
-                                                                      'Net Worth_Value', 'Net Cash Flow_Value']:
-                                item_value = year_data.get(key, 0) or 0
-                                # Income items are positive in projection data
-                                if item_value > 0:
-                                    # Extract item name from key (remove _Value suffix)
-                                    item_name = key[:-6]  # Remove '_Value'
-                                    # Check if this item matches the series filters
-                                    # Note: We can't easily check category/account_id here without DB access,
-                                    # so we sum all positive _Value keys for income (or negative for expenses)
-                                    # This matches the frontend's getAggregatedValue when no filters are applied
-                                    value += item_value
-                        logger.info(f"Series '{series_label}' income aggregate: using sum of individual items = {value}")
+                        # Use Total Income Flow for aggregate income (matches frontend when no filters applied)
+                        # Total Income Flow already excludes reinvested dividends, matching frontend behavior
+                        value = year_data.get('Total Income Flow', 0) or 0
+                        # Ensure positive (income should be positive)
+                        if value < 0:
+                            value = abs(value)
+                        logger.info(f"Series '{series_label}' income aggregate: using Total Income Flow = {value}")
                     elif data_type == 'expenses':
-                        # Sum individual expense item _Value keys (matching frontend getAggregatedValue)
-                        # This ensures formula evaluation uses the same values as the table display
-                        value = 0.0
-                        for key in year_data.keys():
-                            if key.endswith('_Value') and key not in ['Total Income Flow_Value', 'Total Expense Flow_Value', 
-                                                                      'Total Assets_Value', 'Total Liabilities_Value', 
-                                                                      'Net Worth_Value', 'Net Cash Flow_Value']:
-                                item_value = year_data.get(key, 0) or 0
-                                # Expense items are negative in projection data
-                                if item_value < 0:
-                                    value += abs(item_value)  # Convert to positive
-                        logger.info(f"Series '{series_label}' expense aggregate: using sum of individual items = {value}")
+                        # Use Total Expense Flow for aggregate expenses (matches frontend when no filters applied)
+                        value = abs(year_data.get('Total Expense Flow', 0) or 0)  # Convert to positive
+                        logger.info(f"Series '{series_label}' expense aggregate: using Total Expense Flow = {value}")
                 
                 series_data.append(float(value))
             
