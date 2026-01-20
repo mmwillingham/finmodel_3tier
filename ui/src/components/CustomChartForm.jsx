@@ -636,7 +636,7 @@ export default function CustomChartForm({
                        currentSeriesDataType === 'liabilities' && liabilityCategories ||
                        currentSeriesDataType === 'income' && incomeCategories ||
                        currentSeriesDataType === 'expenses' && expenseCategories ||
-                       []).map(category => (
+                       []).slice().sort().map(category => (
                         <option key={category} value={category}>{category}</option>
                       ))}
                     </select>
@@ -656,6 +656,19 @@ export default function CustomChartForm({
                         }
                       }}
                       disabled={!!series.itemize}
+                      style={{ 
+                        position: 'relative',
+                        zIndex: series.selected_item_id === '' ? 10 : 1
+                      }}
+                      size={series.selected_item_id === '' ? Math.min(15, getDataSourceItemOptions(
+                        currentSeriesDataType,
+                        assets,
+                        liabilities,
+                        incomeItems,
+                        expenseItems,
+                        series.category,
+                        series.selected_account_ids || []
+                      ).length + 1) : undefined}
                     >
                       <option value="">All Items</option>
                       {getDataSourceItemOptions(

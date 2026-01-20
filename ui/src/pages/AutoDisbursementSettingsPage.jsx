@@ -113,7 +113,10 @@ const AutoDisbursementSettingsPage = () => {
         end_date: '',
       });
       loadData();
-      setTimeout(() => setMessage(''), 2000);
+      setTimeout(() => {
+        setMessage('');
+        navigate('/'); // Close the page after successful save
+      }, 1000);
     } catch (e) {
       console.error('Failed to create auto-disbursement', e);
       const errorMessage = e.response?.data?.detail || 'Error creating auto-disbursement';
@@ -160,7 +163,10 @@ const AutoDisbursementSettingsPage = () => {
       setMessage('Auto-disbursement updated successfully!');
       setEditingAutoDisbursement(null);
       loadData();
-      setTimeout(() => setMessage(''), 2000);
+      setTimeout(() => {
+        setMessage('');
+        navigate('/'); // Close the page after successful save
+      }, 1000);
     } catch (e) {
       console.error('Failed to update auto-disbursement', e);
       const errorMessage = e.response?.data?.detail || 'Error updating auto-disbursement';
@@ -202,13 +208,20 @@ const AutoDisbursementSettingsPage = () => {
         surplus_asset_id: surplusAssetId || null,
       });
       setMessage('Surplus Asset saved successfully!');
-      setTimeout(() => setMessage(''), 2000);
+      setTimeout(() => {
+        setMessage('');
+        navigate('/'); // Close the page after successful save
+      }, 1000);
     } catch (e) {
       console.error('Failed to save surplus asset', e);
       const errorMessage = e.response?.data?.detail || 'Error saving surplus asset';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
     }
+  };
+
+  const handleCancel = () => {
+    navigate('/'); // Navigate back on cancel
   };
 
   if (loading) {
@@ -288,9 +301,14 @@ const AutoDisbursementSettingsPage = () => {
                 Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
               </small>
             </div>
-            <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ marginTop: '24px', padding: '10px 24px', whiteSpace: 'nowrap' }}>
-              Save
-            </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ padding: '10px 24px', whiteSpace: 'nowrap' }}>
+                Save
+              </button>
+              <button onClick={handleCancel} className="btn-primary-modern" style={{ backgroundColor: '#6c757d', padding: '10px 24px', whiteSpace: 'nowrap' }}>
+                Cancel
+              </button>
+            </div>
           </div>
           <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#f0f7ff', border: '1px solid #b3d9ff', borderRadius: '4px', fontSize: '0.9em', color: '#004085' }}>
             <strong>Transfer Sequence:</strong>

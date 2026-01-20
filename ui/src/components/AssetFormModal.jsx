@@ -651,7 +651,7 @@ export default function AssetFormModal({
                 fontSize: '0.9rem',
                 color: '#0066cc'
               }}>
-                When enabled, linked income items will be created/updated to track interest/dividends as taxable income. The Internal Growth Rate above represents the asset's appreciation (e.g., equity growth), while the Interest/Dividend Rates represent income generated. Dividends will be automatically reinvested back into the asset.
+                When enabled, linked income items will be created/updated to track interest/dividends as taxable income. The Internal Growth Rate above represents the asset's appreciation (e.g., equity growth), while the Interest/Dividend Rates represent income generated.
               </div>
             )
           )}

@@ -71,6 +71,8 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
       isOpen: true,
       title: 'Recalculate All',
       message: 'This will recalculate all charts with current data. Continue?',
+      confirmText: 'OK',
+      showCancel: true,
       onConfirm: async () => {
         setRecalculating(true);
         setMessage('');
@@ -226,6 +228,8 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
         onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText || "OK"}
+        showCancel={confirmDialog.showCancel !== false}
       />
     </div>
   );
