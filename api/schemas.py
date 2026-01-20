@@ -582,7 +582,7 @@ class CustomChartCreate(CustomChartBase):
     pass
 
 class CustomChartUpdate(CustomChartBase):
-    pass
+    skip_recalculate: Optional[bool] = False  # If True, skip recalculation (only update config)
 
 class CustomChartOut(CustomChartBase):
     id: int

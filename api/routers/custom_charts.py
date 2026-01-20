@@ -863,6 +863,26 @@ def update_custom_chart(
     if not has_permission:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to edit this chart")
     
+    # Update chart fields that don't require recalculation
+    if chart_update.name is not None:
+        db_chart.name = chart_update.name
+    if chart_update.chart_type is not None:
+        db_chart.chart_type = chart_update.chart_type
+    if chart_update.display_type is not None:
+        db_chart.display_type = chart_update.display_type
+    if chart_update.x_axis_label is not None:
+        db_chart.x_axis_label = chart_update.x_axis_label
+    if chart_update.y_axis_label is not None:
+        db_chart.y_axis_label = chart_update.y_axis_label
+    
+    # Skip recalculation if requested (for cases like Refresh Itemization where only IDs/labels change)
+    if chart_update.skip_recalculate:
+        if chart_update.series_configurations:
+            db_chart.series_configurations = chart_update.series_configurations
+        db.commit()
+        db.refresh(db_chart)
+        return db_chart
+    
     if chart_update.series_configurations:
         series_configs = json.loads(chart_update.series_configurations)
         

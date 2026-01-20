@@ -738,17 +738,54 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       // Use updated series (preserving itemization)
       const finalSeries = updatedSeries;
       
-      // Update the chart configuration
+      // Check if series configurations actually changed in a meaningful way
+      // (only IDs/labels changed, but same items are still being displayed)
+      const originalSeriesStr = JSON.stringify(seriesConfigurations);
+      const finalSeriesStr = JSON.stringify(finalSeries);
+      
+      // If only item IDs/labels changed but the actual items are the same,
+      // we can update the chart config without triggering a recalculation
+      // by comparing the actual data being displayed (not just the IDs)
+      let needsUpdate = false;
+      if (originalSeriesStr !== finalSeriesStr) {
+        // Check if the change is only in IDs/labels (same items, different IDs)
+        // If items were added/removed, we do need to recalculate
+        const originalItemCounts = {};
+        const finalItemCounts = {};
+        
+        seriesConfigurations.forEach(s => {
+          const key = `${s.data_type}_${s.category || 'all'}_${s.selected_item_id || s.item_id || 'unitemized'}`;
+          originalItemCounts[key] = (originalItemCounts[key] || 0) + 1;
+        });
+        
+        finalSeries.forEach(s => {
+          const key = `${s.data_type}_${s.category || 'all'}_${s.selected_item_id || s.item_id || 'unitemized'}`;
+          finalItemCounts[key] = (finalItemCounts[key] || 0) + 1;
+        });
+        
+        // Compare counts to see if same items are being displayed
+        const originalKeys = Object.keys(originalItemCounts).sort().join(',');
+        const finalKeys = Object.keys(finalItemCounts).sort().join(',');
+        needsUpdate = originalKeys !== finalKeys; // Only update if items changed, not just IDs
+      }
+      
+      // Always update the series configurations
+      // Use skip_recalculate flag to avoid triggering recalculation if only IDs/labels changed
       const updatedConfig = {
         ...chartConfig,
         series_configurations: JSON.stringify(finalSeries),
+        skip_recalculate: !needsUpdate, // Skip recalculation if only IDs/labels changed
       };
       
       await CustomChartService.update(chartId, updatedConfig);
       
-      setMessage('Itemization refreshed. Itemized series have been re-matched to current items. Chart will use existing projection data.');
+      if (needsUpdate) {
+        setMessage('Itemization refreshed. Chart has been recalculated with updated items.');
+      } else {
+        setMessage('Itemization refreshed. Itemized series have been re-matched to current items. Chart uses existing projection data.');
+      }
       
-      // Reload the chart to reflect the changes (don't recalculate - use existing projection)
+      // Reload the chart to reflect the changes
       const response = await CustomChartService.get(chartId);
       const fetchedConfig = response.data;
       setChartConfig(fetchedConfig);
