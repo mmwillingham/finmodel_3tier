@@ -1359,24 +1359,24 @@ def update_custom_chart(
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
 
         try:
-                import calculations # Lazy import (absolute import like liabilities.py uses)
-                projection_results = calculations.calculate_projection(
-                    years=projection_years,
-                    accounts=accounts_for_projection,
-                    db=db,
-                    owner_id=current_user.id
-                )
-                
-                # Evaluate formulas for formula-based series
-                projection_results = evaluate_chart_formulas(
-                    projection_results,
-                    series_configs,
-                    projection_years
-                )
-                
-                print(f"--- DEBUG: Projection calculation successful for chart update. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
-                print(f"--- DEBUG: data_json content before saving in update_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush() # Debug log for update
-                db_chart.data_json = projection_results["data_json"]
+            import calculations # Lazy import (absolute import like liabilities.py uses)
+            projection_results = calculations.calculate_projection(
+                years=projection_years,
+                accounts=accounts_for_projection,
+                db=db,
+                owner_id=current_user.id
+            )
+            
+            # Evaluate formulas for formula-based series
+            projection_results = evaluate_chart_formulas(
+                projection_results,
+                series_configs,
+                projection_years
+            )
+            
+            print(f"--- DEBUG: Projection calculation successful for chart update. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
+            print(f"--- DEBUG: data_json content before saving in update_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush() # Debug log for update
+            db_chart.data_json = projection_results["data_json"]
             db_chart.final_value = projection_results["final_value"]
             db_chart.total_contributed = projection_results["total_contributed"]
             db_chart.total_growth = projection_results["total_growth"]
