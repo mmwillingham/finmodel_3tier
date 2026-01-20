@@ -6,7 +6,7 @@ import { Line, Pie } from "react-chartjs-2";
 import ProjectionService from '../services/projection.service';
 
 export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals }) {
-  const { userSettings } = useAuth();
+  const { userSettings, currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const overallChartRef = useRef(null);
   const overallTableRef = useRef(null);
@@ -206,23 +206,19 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       // Check if a "Balance Sheet Projection" already exists and update it, otherwise create new
       console.log("Checking for existing projections...");
       let projectionId = null;
+      let canUpdate = false;
       try {
         const existingProjections = await ProjectionService.getProjections();
         console.log("Got existing projections:", existingProjections);
         const existing = existingProjections.find(p => p.name === "Balance Sheet Projection");
         if (existing) {
           console.log("Found existing projection:", existing.id);
-          // Try to get details to check if we have edit permission
-          try {
-            const details = await ProjectionService.getProjectionDetails(existing.id);
-            // If we can get details, check if we can update by attempting to update
-            // But first, verify we own it (owner_id should match current user)
-            // Since we can't check owner_id from frontend, we'll try to update and catch 403
+          // Only attempt update if we own the projection
+          if (existing.owner_id === currentUser?.id) {
             projectionId = existing.id;
-          } catch (e) {
-            // If we can't get details or don't have permission, create new
-            console.log("Cannot access existing projection, will create new one");
-            projectionId = null;
+            canUpdate = true;
+          } else {
+            console.log("Projection belongs to another user, will create new one");
           }
         }
       } catch (e) {
@@ -230,23 +226,17 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       }
 
       let projection;
-      if (projectionId) {
+      if (projectionId && canUpdate) {
         try {
           console.log(`=== CALLING updateProjection with id=${projectionId} ===`);
           // Try to update existing projection
           projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
           console.log("updateProjection completed:", projection);
         } catch (err) {
-          console.error("updateProjection error:", err);
-          // If update fails (e.g., 403 Forbidden), create a new one instead
-          if (err.response?.status === 403) {
-            console.log("No permission to update existing projection, creating new one");
-            console.log(`=== CALLING createProjection (fallback) ===`);
-            projection = await ProjectionService.createProjection(projectionRequest);
-            console.log("createProjection (fallback) completed:", projection);
-          } else {
-            throw err; // Re-throw other errors
-          }
+          console.error("Update failed, creating new projection:", err);
+          // If update fails for any reason, create a new one
+          projection = await ProjectionService.createProjection(projectionRequest);
+          console.log("createProjection (fallback) completed:", projection);
         }
       } else {
         // Create new projection

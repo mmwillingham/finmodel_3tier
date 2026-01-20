@@ -905,6 +905,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
 }
 
 export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [], liabilities = [] }) {
+  const { currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
   const baseChartRef = useRef(null);
@@ -1075,26 +1076,29 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
       // Check if a "Cash Flow Projection" already exists and update it, otherwise create new
       let projectionId = null;
+      let canUpdate = false;
       try {
         const existingProjections = await ProjectionService.getProjections();
         const existing = existingProjections.find(p => p.name === "Cash Flow Projection");
         if (existing) {
-          projectionId = existing.id;
+          // Only attempt update if we own the projection
+          if (existing.owner_id === currentUser?.id) {
+            projectionId = existing.id;
+            canUpdate = true;
+          }
         }
       } catch (e) {
         console.log("Could not check for existing projection, will create new one");
       }
 
       let projection;
-      if (projectionId) {
+      if (projectionId && canUpdate) {
         try {
           projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
         } catch (err) {
-          if (err.response?.status === 403) {
-            projection = await ProjectionService.createProjection(projectionRequest);
-          } else {
-            throw err;
-          }
+          // If update fails for any reason, create a new one
+          console.log("Update failed, creating new projection:", err);
+          projection = await ProjectionService.createProjection(projectionRequest);
         }
       } else {
         projection = await ProjectionService.createProjection(projectionRequest);

@@ -139,6 +139,7 @@ class ProjectionOut(BaseModel):
     total_contributed: float | None = None # NEW
     total_growth: float | None = None # NEW
     timestamp: datetime | None = None
+    owner_id: int  # Added to allow frontend to check ownership before update
     model_config = ConfigDict(from_attributes=True)
 
 class ProjectionDetailOut(BaseModel):
