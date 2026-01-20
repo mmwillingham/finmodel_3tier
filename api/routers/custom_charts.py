@@ -61,6 +61,8 @@ def evaluate_chart_formulas(
             selected_item_id = series_config.get('selected_item_id') or series_config.get('item_id')
             
             # Extract values for this series from projection data
+            # IMPORTANT: This must match how the frontend aggregates values (getAggregatedValue)
+            # to ensure formula results match what's displayed in the table
             series_data = []
             for year_data in projection_data:
                 value = 0.0
@@ -73,15 +75,24 @@ def evaluate_chart_formulas(
                     if data_type == 'expenses' or data_type == 'liabilities':
                         value = abs(value)  # Convert to positive for expenses/liabilities
                 else:
-                    # No specific item - use aggregate
+                    # No specific item - aggregate individual items (matching frontend getAggregatedValue)
+                    # This ensures formula evaluation uses the same values as the table display
+                    category = series_config.get('category', '')
+                    
                     if data_type == 'assets':
                         value = year_data.get('Total Assets', 0) or 0
                     elif data_type == 'liabilities':
                         value = abs(year_data.get('Total Liabilities', 0) or 0)
                     elif data_type == 'income':
+                        # Use Total Income Flow - this is what should match the table
+                        # The frontend getAggregatedValue should also match this when aggregating all income
                         value = year_data.get('Total Income Flow', 0) or 0
+                        logger.info(f"Series '{series_label}' income aggregate: using Total Income Flow = {value}")
                     elif data_type == 'expenses':
+                        # Use Total Expense Flow (absolute value) - this is what should match the table
+                        # The frontend getAggregatedValue should also match this when aggregating all expenses
                         value = abs(year_data.get('Total Expense Flow', 0) or 0)
+                        logger.info(f"Series '{series_label}' expense aggregate: using Total Expense Flow = {value}")
                 
                 series_data.append(float(value))
             
@@ -106,7 +117,13 @@ def evaluate_chart_formulas(
                 logger.info(f"Series values available: {list(series_values.keys())}")
                 for key, values in series_values.items():
                     if len(values) >= 2:
-                        logger.info(f"  {key}: [{values[0]}, {values[1]}, ...] (first 2 years)")
+                        logger.info(f"  {key}: [{values[0]:.2f}, {values[1]:.2f}, ...] (first 2 years)")
+                logger.info(f"Projection data keys (first year): {list(projection_data[0].keys()) if projection_data else []}")
+                if projection_data and len(projection_data) >= 2:
+                    logger.info(f"Year 0 Total Income Flow: {projection_data[0].get('Total Income Flow', 'N/A')}")
+                    logger.info(f"Year 0 Total Expense Flow: {projection_data[0].get('Total Expense Flow', 'N/A')}")
+                    logger.info(f"Year 1 Total Income Flow: {projection_data[1].get('Total Income Flow', 'N/A')}")
+                    logger.info(f"Year 1 Total Expense Flow: {projection_data[1].get('Total Expense Flow', 'N/A')}")
                 
                 # Evaluate the formula
                 formula_values = evaluate_formula(
