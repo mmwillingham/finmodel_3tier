@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 def evaluate_chart_formulas(
     projection_results: dict,
     series_configs: List[dict],
-    projection_years: int
+    projection_years: int,
+    expense_item_descriptions: List[str] = None
 ) -> dict:
     """
     Evaluate formula-based series and add their results to projection data.
@@ -36,6 +37,7 @@ def evaluate_chart_formulas(
         projection_results: Dictionary with 'data_json' containing projection data
         series_configs: List of series configuration dictionaries
         projection_years: Number of projection years
+        expense_item_descriptions: Optional list of expense item descriptions to identify expense _Value keys
     
     Returns:
         Updated projection_results with formula results added to data_json
@@ -102,9 +104,20 @@ def evaluate_chart_formulas(
                             value = abs(value)
                         logger.info(f"Series '{series_label}' income aggregate: using Total Income Flow = {value}")
                     elif data_type == 'expenses':
-                        # Use Total Expense Flow for aggregate expenses (matches frontend when no filters applied)
-                        value = abs(year_data.get('Total Expense Flow', 0) or 0)  # Convert to positive
-                        logger.info(f"Series '{series_label}' expense aggregate: using Total Expense Flow = {value}")
+                        # Sum individual expense _Value keys to match frontend getAggregatedValue
+                        # This excludes liability payments which are included in Total Expense Flow
+                        if expense_item_descriptions:
+                            expense_sum = 0.0
+                            for expense_desc in expense_item_descriptions:
+                                expense_key = f'{expense_desc}_Value'
+                                expense_value = year_data.get(expense_key, 0) or 0
+                                expense_sum += abs(expense_value)  # Expenses are negative, convert to positive
+                            value = expense_sum
+                            logger.info(f"Series '{series_label}' expense aggregate: summing individual expense _Value keys = {value}")
+                        else:
+                            # Fallback to Total Expense Flow if expense item descriptions not provided
+                            value = abs(year_data.get('Total Expense Flow', 0) or 0)  # Convert to positive
+                            logger.info(f"Series '{series_label}' expense aggregate: using Total Expense Flow (fallback) = {value}")
                 
                 series_data.append(float(value))
             
@@ -850,10 +863,18 @@ def create_custom_chart(
         )
         
         # Evaluate formulas for formula-based series and add results to projection data
+        # Get expense item descriptions for accurate expense aggregation (matching frontend getAggregatedValue)
+        expense_descriptions = [item.description for item in all_expense_items] if 'all_expense_items' in locals() else []
+        # Also include Federal Tax if it's calculated
+        if user_settings and user_settings.calculate_federal_tax:
+            federal_tax_desc = "Federal Income Tax (Calculated)"
+            if federal_tax_desc not in expense_descriptions:
+                expense_descriptions.append(federal_tax_desc)
         projection_results = evaluate_chart_formulas(
             projection_results,
             series_configs,
-            projection_years
+            projection_years,
+            expense_item_descriptions=expense_descriptions
         )
         
         # Disabled verbose debug logging - data_json dumps are huge
@@ -1410,10 +1431,18 @@ def update_custom_chart(
             )
             
             # Evaluate formulas for formula-based series
+            # Get expense item descriptions for accurate expense aggregation (matching frontend getAggregatedValue)
+            expense_descriptions = [item.description for item in all_expense_items] if 'all_expense_items' in locals() else []
+            # Also include Federal Tax if it's calculated
+            if user_settings and user_settings.calculate_federal_tax:
+                federal_tax_desc = "Federal Income Tax (Calculated)"
+                if federal_tax_desc not in expense_descriptions:
+                    expense_descriptions.append(federal_tax_desc)
             projection_results = evaluate_chart_formulas(
                 projection_results,
                 series_configs,
-                projection_years
+                projection_years,
+                expense_item_descriptions=expense_descriptions
             )
             
             print(f"--- DEBUG: Projection calculation successful for chart update. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
