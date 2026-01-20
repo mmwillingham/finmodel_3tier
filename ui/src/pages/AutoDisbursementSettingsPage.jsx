@@ -221,7 +221,7 @@ const AutoDisbursementSettingsPage = () => {
   };
 
   const handleCancel = () => {
-    navigate('/'); // Navigate back on cancel
+    window.location.href = '/'; // Navigate back to home page
   };
 
   if (loading) {
@@ -305,7 +305,7 @@ const AutoDisbursementSettingsPage = () => {
               <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ padding: '10px 24px', whiteSpace: 'nowrap' }}>
                 Save
               </button>
-              <button onClick={handleCancel} className="btn-primary-modern" style={{ backgroundColor: '#6c757d', padding: '10px 24px', whiteSpace: 'nowrap' }}>
+              <button type="button" onClick={handleCancel} className="btn-primary-modern" style={{ backgroundColor: '#6c757d', padding: '10px 24px', whiteSpace: 'nowrap' }}>
                 Cancel
               </button>
             </div>

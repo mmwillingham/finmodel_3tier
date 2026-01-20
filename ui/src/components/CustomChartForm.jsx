@@ -646,34 +646,8 @@ export default function CustomChartForm({
                 {(currentSeriesDataType === 'assets' || currentSeriesDataType === 'liabilities' || currentSeriesDataType === 'income' || currentSeriesDataType === 'expenses') && (
                   <div className="form-group">
                     <label>{currentSeriesDataType.charAt(0).toUpperCase() + currentSeriesDataType.slice(1)}:</label>
-                    <select
-                      value={series.selected_item_id || ''}
-                      onChange={(e) => {
-                        handleSeriesChange(index, 'selected_item_id', e.target.value);
-                        // Clear itemize if a specific item is selected
-                        if (e.target.value && e.target.value !== '') {
-                          handleSeriesChange(index, 'itemize', false);
-                        }
-                      }}
-                      disabled={!!series.itemize}
-                      style={{ 
-                        position: 'relative',
-                        zIndex: series.selected_item_id === '' ? 10 : 1
-                      }}
-                      {...(series.selected_item_id === '' && {
-                        size: Math.min(15, getDataSourceItemOptions(
-                          currentSeriesDataType,
-                          assets,
-                          liabilities,
-                          incomeItems,
-                          expenseItems,
-                          series.category,
-                          series.selected_account_ids || []
-                        ).length + 1)
-                      })}
-                    >
-                      <option value="">All Items</option>
-                      {getDataSourceItemOptions(
+                    {(() => {
+                      const itemOptions = getDataSourceItemOptions(
                         currentSeriesDataType,
                         assets,
                         liabilities,
@@ -681,10 +655,33 @@ export default function CustomChartForm({
                         expenseItems,
                         series.category,
                         series.selected_account_ids || []
-                      ).map(item => (
-                        <option key={item.id} value={item.id}>{item.name}</option>
-                      ))}
-                    </select>
+                      );
+                      const selectProps = {
+                        value: series.selected_item_id || '',
+                        onChange: (e) => {
+                          handleSeriesChange(index, 'selected_item_id', e.target.value);
+                          if (e.target.value && e.target.value !== '') {
+                            handleSeriesChange(index, 'itemize', false);
+                          }
+                        },
+                        disabled: !!series.itemize,
+                        style: { 
+                          position: 'relative',
+                          zIndex: series.selected_item_id === '' ? 10 : 1
+                        }
+                      };
+                      if (series.selected_item_id === '') {
+                        selectProps.size = Math.min(15, itemOptions.length + 1);
+                      }
+                      return (
+                        <select {...selectProps}>
+                          <option value="">All Items</option>
+                          {itemOptions.map(item => (
+                            <option key={item.id} value={item.id}>{item.name}</option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                     {series.itemize && (
                       <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
                         Item selection is disabled when itemize is enabled
