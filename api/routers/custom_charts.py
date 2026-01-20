@@ -18,10 +18,118 @@ from database import get_db
 from auth import get_current_user
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
+from utils.formula_evaluator import evaluate_formula, resolve_series_references, extract_series_references
 # Removed: from api import calculations # This will now be lazy-loaded inside functions
 
 
 logger = logging.getLogger(__name__)
+
+def evaluate_chart_formulas(
+    projection_results: dict,
+    series_configs: List[dict],
+    projection_years: int
+) -> dict:
+    """
+    Evaluate formula-based series and add their results to projection data.
+    
+    Args:
+        projection_results: Dictionary with 'data_json' containing projection data
+        series_configs: List of series configuration dictionaries
+        projection_years: Number of projection years
+    
+    Returns:
+        Updated projection_results with formula results added to data_json
+    """
+    if not projection_results or 'data_json' not in projection_results:
+        return projection_results
+    
+    try:
+        projection_data = json.loads(projection_results['data_json'])
+        if not isinstance(projection_data, list):
+            return projection_results
+        
+        # Build series values dictionary from non-formula series
+        series_values = {}
+        
+        # First, compute values for all non-formula series
+        for idx, series_config in enumerate(series_configs):
+            if series_config.get('type') == 'formula':
+                continue  # Skip formulas for now
+            
+            series_label = series_config.get('label', f'Series_{idx + 1}')
+            data_type = series_config.get('data_type')
+            selected_item_id = series_config.get('selected_item_id') or series_config.get('item_id')
+            
+            # Extract values for this series from projection data
+            series_data = []
+            for year_data in projection_data:
+                value = 0.0
+                
+                # If specific item is selected, look for that item's value
+                if selected_item_id:
+                    # Item name should match the label
+                    item_key = f'{series_label}_Value'
+                    value = year_data.get(item_key, 0) or 0
+                    if data_type == 'expenses' or data_type == 'liabilities':
+                        value = abs(value)  # Convert to positive for expenses/liabilities
+                else:
+                    # No specific item - use aggregate
+                    if data_type == 'assets':
+                        value = year_data.get('Total Assets', 0) or 0
+                    elif data_type == 'liabilities':
+                        value = abs(year_data.get('Total Liabilities', 0) or 0)
+                    elif data_type == 'income':
+                        value = year_data.get('Total Income Flow', 0) or 0
+                    elif data_type == 'expenses':
+                        value = abs(year_data.get('Total Expense Flow', 0) or 0)
+                
+                series_data.append(float(value))
+            
+            series_values[series_label] = series_data
+            # Also add by Series_X reference
+            series_values[f'Series_{idx + 1}'] = series_data
+        
+        # Now evaluate formulas
+        for idx, series_config in enumerate(series_configs):
+            if series_config.get('type') != 'formula':
+                continue
+            
+            formula = series_config.get('formula', '')
+            if not formula or not formula.strip():
+                continue
+            
+            series_label = series_config.get('label', f'Formula_{idx + 1}')
+            
+            try:
+                # Evaluate the formula
+                formula_values = evaluate_formula(
+                    formula=formula,
+                    series_values=series_values,
+                    projection_data=projection_data,
+                    series_labels={}
+                )
+                
+                # Add formula results to projection data
+                for year_index, formula_value in enumerate(formula_values):
+                    if year_index < len(projection_data):
+                        # Store formula result with _Value suffix like other series
+                        projection_data[year_index][f'{series_label}_Value'] = float(formula_value)
+                        
+            except Exception as e:
+                logger.error(f"Error evaluating formula '{formula}' for series '{series_label}': {e}")
+                # Set all years to 0 if formula evaluation fails
+                for year_data in projection_data:
+                    year_data[f'{series_label}_Value'] = 0.0
+        
+        # Update projection_results with modified data_json
+        projection_results['data_json'] = json.dumps(projection_data)
+        
+    except Exception as e:
+        logger.error(f"Error evaluating chart formulas: {e}")
+        # Return original projection_results if formula evaluation fails
+    
+    return projection_results
+
 
 try:
     router = APIRouter(
@@ -698,6 +806,14 @@ def create_custom_chart(
             db=db,
             owner_id=current_user.id
         )
+        
+        # Evaluate formulas for formula-based series and add results to projection data
+        projection_results = evaluate_chart_formulas(
+            projection_results,
+            series_configs,
+            projection_years
+        )
+        
         # Disabled verbose debug logging - data_json dumps are huge
         # print(f"--- DEBUG: Projection calculation successful. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
         # print(f"--- DEBUG: data_json content after calculation, before model assignment: {projection_results.get('data_json')} ---"); sys.stdout.flush()
@@ -1243,16 +1359,24 @@ def update_custom_chart(
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
 
         try:
-            import calculations # Lazy import (absolute import like liabilities.py uses)
-            projection_results = calculations.calculate_projection(
-                years=projection_years,
-                accounts=accounts_for_projection,
-                db=db,
-                owner_id=current_user.id
-            )
-            print(f"--- DEBUG: Projection calculation successful for chart update. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
-            print(f"--- DEBUG: data_json content before saving in update_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush() # Debug log for update
-            db_chart.data_json = projection_results["data_json"]
+                import calculations # Lazy import (absolute import like liabilities.py uses)
+                projection_results = calculations.calculate_projection(
+                    years=projection_years,
+                    accounts=accounts_for_projection,
+                    db=db,
+                    owner_id=current_user.id
+                )
+                
+                # Evaluate formulas for formula-based series
+                projection_results = evaluate_chart_formulas(
+                    projection_results,
+                    series_configs,
+                    projection_years
+                )
+                
+                print(f"--- DEBUG: Projection calculation successful for chart update. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
+                print(f"--- DEBUG: data_json content before saving in update_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush() # Debug log for update
+                db_chart.data_json = projection_results["data_json"]
             db_chart.final_value = projection_results["final_value"]
             db_chart.total_contributed = projection_results["total_contributed"]
             db_chart.total_growth = projection_results["total_growth"]
@@ -1580,6 +1704,14 @@ def update_custom_chart(
                     db=db,
                     owner_id=current_user.id
                 )
+                
+                # Evaluate formulas for formula-based series
+                projection_results = evaluate_chart_formulas(
+                    projection_results,
+                    series_configs,
+                    projection_years
+                )
+                
                 db_chart.data_json = projection_results["data_json"]
                 db_chart.final_value = projection_results["final_value"]
                 db_chart.total_contributed = projection_results["total_contributed"]
@@ -1983,6 +2115,13 @@ def recalculate_all_charts(
                     owner_id=current_user.id
                 )
                 
+                # Evaluate formulas for formula-based series
+                projection_results = evaluate_chart_formulas(
+                    projection_results,
+                    series_configs,
+                    projection_years
+                )
+                
                 # Update chart
                 db_chart.data_json = projection_results["data_json"]
                 db_chart.final_value = projection_results["final_value"]
@@ -2345,6 +2484,15 @@ def recalculate_chart(
                 db=db,
                 owner_id=current_user.id
             )
+            
+            # Evaluate formulas for formula-based series
+            series_configs = json.loads(db_chart.series_configurations) if db_chart.series_configurations else []
+            projection_results = evaluate_chart_formulas(
+                projection_results,
+                series_configs,
+                projection_years
+            )
+            
             db_chart.data_json = projection_results["data_json"]
             db_chart.final_value = projection_results["final_value"]
             db_chart.total_contributed = projection_results["total_contributed"]

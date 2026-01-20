@@ -6,6 +6,7 @@ import './CustomChartForm.css'; // We will create this CSS file
 
 const chartTypes = ["line", "bar", "pie"];
 const dataSourcesOptions = ["assets", "liabilities", "income", "expenses"];
+const dataTypeOptions = ["assets", "liabilities", "income", "expenses", "formula"]; // Include formula as a type option
 const aggregationOptions = ["sum", "average", "count"];
 
 // Helper to generate a random color
@@ -95,6 +96,8 @@ export default function CustomChartForm({
             selected_item_id: series.selected_item_id || null,
             selected_account_ids: series.selected_account_ids || [], // Load account filter if present
             itemize: series.itemize || false, // Load itemize flag if present
+            type: series.type || (series.data_type === 'formula' ? 'formula' : undefined), // Load type for formulas
+            formula: series.formula || '', // Load formula if present
           })));
           setXAxisLabel(chart.x_axis_label || "");
           setYAxisLabel(chart.y_axis_label || "");
@@ -131,6 +134,7 @@ export default function CustomChartForm({
     const defaultLabel = defaultDataType ? defaultDataType.charAt(0).toUpperCase() + defaultDataType.slice(1) : "";
     setSeriesConfigurations(prev => [...prev, {
       data_type: defaultDataType,
+      type: defaultDataType === 'formula' ? 'formula' : undefined, // Add type field for formulas
       field: "value", // Default field, will need to be dynamic later
       aggregation: "sum",
       label: defaultLabel, // Initialize with capitalized data type name
@@ -139,6 +143,7 @@ export default function CustomChartForm({
       selected_item_id: null, // Initialize selected_item_id
       selected_account_ids: [], // Initialize account filter
       itemize: false, // Initialize itemize flag
+      formula: "", // Initialize formula field for formula series
     }]);
   };
 
@@ -150,6 +155,15 @@ export default function CustomChartForm({
       newSeries[index].category = '';
       newSeries[index].selected_item_id = null;
       newSeries[index].selected_account_ids = [];
+      // Set type field for formulas
+      if (value === 'formula') {
+        newSeries[index].type = 'formula';
+        newSeries[index].formula = newSeries[index].formula || '';
+        newSeries[index].label = newSeries[index].label || 'Formula';
+      } else {
+        newSeries[index].type = undefined;
+        newSeries[index].formula = '';
+      }
       // Set default label to data type name (capitalized) when only data type is selected
       const dataTypeLabel = value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
       newSeries[index].label = dataTypeLabel;
@@ -601,20 +615,53 @@ export default function CustomChartForm({
               series.selected_account_ids || []
             );
 
+            const isFormulaSeries = series.data_type === 'formula' || series.type === 'formula';
+            const availableSeriesRefs = seriesConfigurations
+              .filter((s, i) => i !== index && s.type !== 'formula' && s.data_type !== 'formula')
+              .map((s, i) => ({
+                label: s.label || `Series_${i + 1}`,
+                index: i + 1
+              }));
+
             return (
               <div key={index} className="series-item">
                 <div className="form-group">
-                  <label>Data Type:</label>
+                  <label>Series Type:</label>
                   <select
-                    value={series.data_type}
+                    value={series.data_type || 'formula'}
                     onChange={(e) => handleSeriesChange(index, 'data_type', e.target.value)}
                   >
-                    {selectedDataSources.map(source => (
-                      <option key={source} value={source}>{source.charAt(0).toUpperCase() + source.slice(1)}</option>
+                    {dataTypeOptions.map(type => (
+                      <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
                     ))}
                   </select>
                 </div>
 
+                {/* Formula input field - shown only for formula series */}
+                {isFormulaSeries && (
+                  <div className="form-group">
+                    <label>Formula:</label>
+                    <textarea
+                      value={series.formula || ''}
+                      onChange={(e) => handleSeriesChange(index, 'formula', e.target.value)}
+                      placeholder='e.g., ("Income" - "Expenses") or (Series_1 - Series_2) or (Total_Income_Flow - Total_Expense_Flow)'
+                      rows={3}
+                      style={{ width: '100%', fontFamily: 'monospace' }}
+                    />
+                    <small style={{ display: 'block', color: '#666', marginTop: '4px' }}>
+                      <strong>Available references:</strong><br />
+                      • Other series: {availableSeriesRefs.length > 0 ? availableSeriesRefs.map(s => `"${s.label}"`).join(', ') : 'None (add other series first)'}<br />
+                      • Series by position: Series_1, Series_2, etc.<br />
+                      • Projection fields: Total_Income_Flow, Total_Expense_Flow, Total_Assets, Net_Cash_Flow<br />
+                      • Math operations: +, -, *, /, %<br />
+                      • Functions: SUM(), AVG(), MAX(), MIN(), ABS()
+                    </small>
+                  </div>
+                )}
+
+                {/* Regular series fields - hidden for formula series */}
+                {!isFormulaSeries && (
+                  <>
                 {/* Account multi-selector, only for assets */}
                 {currentSeriesDataType === 'assets' && accounts && accounts.length > 0 && (
                   <div className="form-group">
@@ -691,25 +738,27 @@ export default function CustomChartForm({
                   </div>
                 )}
 
-                {/* TODO: Dynamically render fields based on selected data_type */}
-                <div className="form-group">
-                  <label>Field:</label>
-                  <input
-                    type="text"
-                    value={series.field}
-                    onChange={(e) => handleSeriesChange(index, 'field', e.target.value)}
-                  />
-                </div>
+                    {/* TODO: Dynamically render fields based on selected data_type */}
+                    <div className="form-group">
+                      <label>Field:</label>
+                      <input
+                        type="text"
+                        value={series.field}
+                        onChange={(e) => handleSeriesChange(index, 'field', e.target.value)}
+                      />
+                    </div>
 
-                <div className="form-group">
-                  <label>Aggregation:</label>
-                  <select
-                    value={series.aggregation}
-                    onChange={(e) => handleSeriesChange(index, 'aggregation', e.target.value)}
-                  >
-                    {aggregationOptions.map(agg => <option key={agg} value={agg}>{agg}</option>)}
-                  </select>
-                </div>
+                    <div className="form-group">
+                      <label>Aggregation:</label>
+                      <select
+                        value={series.aggregation}
+                        onChange={(e) => handleSeriesChange(index, 'aggregation', e.target.value)}
+                      >
+                        {aggregationOptions.map(agg => <option key={agg} value={agg}>{agg}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 <div className="form-group">
                   <label>Label:</label>
