@@ -679,16 +679,14 @@ export default function CustomChartForm({
                           <option key={item.id} value={item.id}>{item.name}</option>
                         ))}
                       </select>
+                      {series.itemize && (
+                        <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
+                          Item selection is disabled when itemize is enabled
+                        </small>
+                      )}
                     </div>
                   );
                 })()}
-                    {series.itemize && (
-                      <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
-                        Item selection is disabled when itemize is enabled
-                      </small>
-                    )}
-                  </div>
-                )}
 
                     {/* TODO: Dynamically render fields based on selected data_type */}
                     <div className="form-group">
@@ -710,7 +708,6 @@ export default function CustomChartForm({
                       </select>
                     </div>
                   </>
-                )}
 
                 <div className="form-group">
                   <label>Label:</label>
