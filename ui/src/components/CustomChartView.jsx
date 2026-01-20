@@ -746,17 +746,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       
       await CustomChartService.update(chartId, updatedConfig);
       
-      // Recalculate the chart to reflect any ID/label updates
-      try {
-        await CustomChartService.recalculate(chartId);
-      } catch (recalcError) {
-        console.warn("Chart recalculation after refresh itemization failed:", recalcError);
-        // Continue anyway - the update should have already triggered recalculation
-      }
+      setMessage('Itemization refreshed. Itemized series have been re-matched to current items. Chart will use existing projection data.');
       
-      setMessage('Itemization refreshed. Itemized series have been re-matched to current items.');
-      
-      // Reload the chart to reflect the changes
+      // Reload the chart to reflect the changes (don't recalculate - use existing projection)
       const response = await CustomChartService.get(chartId);
       const fetchedConfig = response.data;
       setChartConfig(fetchedConfig);
