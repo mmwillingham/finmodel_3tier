@@ -112,6 +112,7 @@ def evaluate_chart_formulas(
             # Also add by Series_X reference (use series_number which matches visual order)
             series_values[f'Series_{series_number}'] = series_data
             logger.info(f"Added series '{series_label}' as Series_{series_number} with values: [{series_data[0]:.2f}, {series_data[1]:.2f}, ...] (first 2 years)")
+            logger.info(f"  Series_{series_number} = {series_label} (data_type: {data_type}, selected_item_id: {selected_item_id})")
         
         # Now evaluate formulas
         for idx, series_config in enumerate(series_configs):
