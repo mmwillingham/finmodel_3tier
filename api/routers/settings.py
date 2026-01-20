@@ -12,6 +12,7 @@ from utils.social_security import calculate_fra, fra_to_date, calculate_monthly_
 
 # Constant to identify the federal tax expense item (must match frontend)
 FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
 SOCIAL_SECURITY_INCOME_DESCRIPTION_PREFIX = "Social Security - "
 
 logger = logging.getLogger(__name__)
@@ -318,6 +319,77 @@ def update_user_settings(
             db.delete(federal_tax_expense)
             logger.info(f"Deleted federal tax expense item for user {current_user.id}")
 
+    # Handle calculate_state_tax setting
+    calculate_state_tax_enabled = update_data.get("calculate_state_tax")
+    if calculate_state_tax_enabled is not None:
+        # Validate required fields if enabling
+        if calculate_state_tax_enabled:
+            if not user_settings.tax_filing_status:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Tax filing status is required when 'Calculate State Income Tax' is enabled. Please set it in Profile Settings."
+                )
+            if not user_settings.person1_birthdate:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Person 1 birthdate is required when 'Calculate State Income Tax' is enabled. Please set it in Profile Settings."
+                )
+            # Note: State is checked in Profile Settings, not here
+        
+        # Get the old value to detect changes
+        old_calculate_state_tax = user_settings.calculate_state_tax or False
+        
+        # Update the setting
+        user_settings.calculate_state_tax = calculate_state_tax_enabled
+        
+        # Create or delete the state tax expense item
+        state_tax_expense = db.query(models.CashFlowItem).filter(
+            models.CashFlowItem.owner_id == current_user.id,
+            models.CashFlowItem.is_income == False,
+            models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
+        ).first()
+        
+        if calculate_state_tax_enabled and not state_tax_expense:
+            # Create the state tax expense item
+            # Ensure "Taxes" category exists in expense_categories, add it if missing
+            expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
+            if "Taxes" not in expense_categories:
+                expense_categories.append("Taxes")
+                user_settings.expense_categories = expense_categories
+                flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
+                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
+            
+            state_tax_expense = models.CashFlowItem(
+                owner_id=current_user.id,
+                is_income=False,
+                category="Taxes",  # Always use "Taxes" category
+                description=STATE_TAX_EXPENSE_DESCRIPTION,
+                frequency="yearly",
+                yearly_value=0.0,  # This will be calculated dynamically in projections
+                inflation_percent=0.0,
+                taxable=False,
+                tax_deductible=False
+            )
+            db.add(state_tax_expense)
+            db.flush()  # Flush to ensure the expense is available for commit
+            logger.info(f"Created state tax expense item for user {current_user.id} with category 'Taxes'")
+        elif calculate_state_tax_enabled and state_tax_expense:
+            # Update existing state tax expense to ensure it has "Taxes" category
+            expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
+            if "Taxes" not in expense_categories:
+                expense_categories.append("Taxes")
+                user_settings.expense_categories = expense_categories
+                flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
+                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
+            
+            if state_tax_expense.category != "Taxes":
+                state_tax_expense.category = "Taxes"
+                logger.info(f"Updated state tax expense category to 'Taxes' for user {current_user.id}")
+        elif not calculate_state_tax_enabled and state_tax_expense:
+            # Delete the state tax expense item
+            db.delete(state_tax_expense)
+            logger.info(f"Deleted state tax expense item for user {current_user.id}")
+
     # Update fields only if provided in the payload
     # IMPORTANT: Update category fields AFTER rename detection and updates, so old values are preserved for comparison
     for key, value in update_data.items():
@@ -327,7 +399,7 @@ def update_user_settings(
         # Skip category fields if they were already processed for renames above
         if key in ["asset_categories", "liability_categories", "income_categories", "expense_categories"]:
             setattr(user_settings, key, value)
-        elif key != "calculate_federal_tax":  # Skip calculate_federal_tax as it's already handled above
+        elif key not in ["calculate_federal_tax", "calculate_state_tax"]:  # Skip calculate_federal_tax and calculate_state_tax as they're already handled above
             setattr(user_settings, key, value)
 
     # Handle Social Security fields - calculate monthly benefits and create/update income items
