@@ -84,6 +84,13 @@ def evaluate_formula(
     num_years = len(projection_data)
     results = []
     
+    # Log series values for debugging (only once, before the loop)
+    if num_years > 0:
+        logger.info(f"Formula evaluator: Formula='{formula}', Available series_values keys: {list(series_values.keys())}")
+        for key, values in series_values.items():
+            if len(values) >= 2:
+                logger.info(f"  {key}: [{values[0]:.2f}, {values[1]:.2f}, ...] (first 2 years)")
+    
     # Build a context dictionary for each year
     for year_index in range(num_years):
         year_data = projection_data[year_index]
@@ -94,6 +101,9 @@ def evaluate_formula(
             if year_index < len(values):
                 # Use the series reference as-is (label or ID)
                 context[series_ref] = values[year_index]
+                # Log context values for first 2 years
+                if year_index < 2:
+                    logger.info(f"  Year {year_index} context[{series_ref}] = {values[year_index]:.2f}")
         
         # Add projection fields to context (replace spaces with underscores for formula access)
         for key, value in year_data.items():
@@ -160,19 +170,29 @@ def evaluate_formula(
                         break
                 
                 if series_id_key and series_id_key in context:
+                    replacement_value = str(context[series_id_key])
+                    logger.info(f"  Replacing {series_id_matched} with {replacement_value}")
                     evaluated_formula = evaluated_formula.replace(
                         series_id_matched,
-                        str(context[series_id_key])
+                        replacement_value
                     )
             
             # Replace field references (but not quoted strings - already processed)
+            # Also skip Series_X keys since we already processed them
             for key, value in context.items():
                 # Skip if it's a quoted string we already processed
                 if key.startswith('"'):
                     continue
+                # Skip Series_X keys - we already processed them
+                if re.match(r'Series_\d+', key, re.IGNORECASE):
+                    continue
                 # Replace all occurrences of the key (as a whole word)
                 pattern = r'\b' + re.escape(key) + r'\b'
                 evaluated_formula = re.sub(pattern, str(value), evaluated_formula, flags=re.IGNORECASE)
+            
+            # Log the final formula before evaluation (for first 2 years only)
+            if year_index < 2:
+                logger.info(f"  Year {year_index} formula after replacements: {evaluated_formula}")
             
             # Evaluate the formula safely
             # Only allow math operations and function calls
@@ -193,6 +213,10 @@ def evaluate_formula(
                 continue
             
             result = eval(safe_formula, allowed_names)
+            
+            # Log the result (for first 2 years only)
+            if year_index < 2:
+                logger.info(f"  Year {year_index} formula result: {result}")
             
             # Convert result to float
             if isinstance(result, (int, float)):
