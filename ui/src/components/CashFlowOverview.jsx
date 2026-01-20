@@ -915,6 +915,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [useSeparateYAxis, setUseSeparateYAxis] = useState(true); // Toggle for separate y-axis in BASE model
+  const [showTotalAssets, setShowTotalAssets] = useState(false); // Toggle for showing Total Assets in BASE model
   
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
@@ -1232,7 +1233,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         beginningBalances,
         cashInValues,
         cashOutValues,
-        endingBalances
+        endingBalances,
+        totalAssets: projectionData.map(dp => dp["Total Assets"] || 0) // Add Total Assets array
       }
     };
   };
@@ -2195,6 +2197,21 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         order: 1,
         yAxisID: useSeparateYAxis ? 'y1' : 'y', // Use separate axis if enabled, otherwise use main axis
       },
+      ...(showTotalAssets ? [{
+        type: 'line',
+        label: 'Total Assets',
+        data: baseModel?.totalAssets || [],
+        borderColor: 'rgb(255, 165, 0)',
+        backgroundColor: 'rgba(255, 165, 0, 0.2)',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        fill: false,
+        tension: 0.1,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        order: 1,
+        yAxisID: useSeparateYAxis ? 'y1' : 'y', // Use same axis as Available Cash
+      }] : []),
     ],
   };
 
@@ -2380,7 +2397,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             </div>
           ) : (
             <>
-              <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
@@ -2389,6 +2406,15 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                     style={{ cursor: 'pointer' }}
                   />
                   <span>Use separate y-axis for Available Cash</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={showTotalAssets}
+                    onChange={(e) => setShowTotalAssets(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>Show Total Assets</span>
                 </label>
               </div>
               <div style={{ marginBottom: "30px" }}>
@@ -2411,6 +2437,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                     <th>Cash In (Additions)</th>
                     <th>Cash Out (Subtractions)</th>
                     <th>Ending Balance (Available Cash)</th>
+                    {showTotalAssets && <th>Total Assets</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -2421,6 +2448,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                       <td>{safeFormatCurrency(baseModel?.cashInValues?.[yearIndex] || 0)}</td>
                       <td>{safeFormatCurrency(baseModel?.cashOutValues?.[yearIndex] || 0)}</td>
                       <td>{safeFormatCurrency(baseModel?.endingBalances?.[yearIndex] || 0)}</td>
+                      {showTotalAssets && <td>{safeFormatCurrency(baseModel?.totalAssets?.[yearIndex] || 0)}</td>}
                     </tr>
                   ))}
                 </tbody>
