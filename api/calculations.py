@@ -11,7 +11,7 @@ import models
 import schemas # Import schemas for type hinting
 from datetime import date, datetime # Import datetime for parsing loan_start_date
 from math import pow # NEW: For amortization calculation
-from utils.tax_calculator import calculate_taxable_income # NEW: For federal tax calculation
+from utils.tax_calculator import calculate_taxable_income, calculate_state_taxable_income # NEW: For federal and state tax calculation
 
 
 logger = logging.getLogger(__name__)
@@ -304,11 +304,14 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             if surplus_asset:
                 surplus_asset_name = surplus_asset.name
         
-        # Constant to identify the federal tax expense item (DEPRECATED: Use cash_flow_item_id instead)
+        # Constants to identify tax expense items (DEPRECATED: Use cash_flow_item_id instead)
         FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
+        STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
         
-        # Check if federal tax calculation is enabled
+        # Check if tax calculations are enabled
         calculate_federal_tax = user_settings.calculate_federal_tax if user_settings else False
+        calculate_state_tax = user_settings.calculate_state_tax if user_settings else False
+        user_state = user_settings.state if user_settings else None
         
         # Pre-load CashFlowItems for tax calculation (keyed by ID for reliable lookup)
         # This replaces the fragile description-based matching with ID-based lookups
@@ -1330,14 +1333,17 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         print(f"--- DEBUG: Year {year} - Before tax calculation: current_year_taxable_income={current_year_taxable_income:.2f}, current_year_tax_deductible_expenses={current_year_tax_deductible_expenses:.2f} ---"); sys.stdout.flush()
                         if current_year_taxable_income > 0:
                             try:
-                                print(f"--- DEBUG: Year {year} - Calling calculate_taxable_income with: income={current_year_taxable_income:.2f}, expenses={current_year_tax_deductible_expenses:.2f}, filing_status={user_settings.tax_filing_status or 'Single'}, year={current_projection_year}, qualified_dividends={current_year_qualified_dividends:.2f} ---"); sys.stdout.flush()
+                                # Use tax_year from settings, or default to projection year if not set
+                                # Note: Only 2025 tax brackets are currently implemented
+                                tax_year_for_calc = user_settings.tax_year if user_settings and user_settings.tax_year else current_projection_year
+                                print(f"--- DEBUG: Year {year} - Calling calculate_taxable_income with: income={current_year_taxable_income:.2f}, expenses={current_year_tax_deductible_expenses:.2f}, filing_status={user_settings.tax_filing_status or 'Single'}, tax_year={tax_year_for_calc}, qualified_dividends={current_year_qualified_dividends:.2f} ---"); sys.stdout.flush()
                                 taxable_income_result, standard_deduction_result, tax_owed = calculate_taxable_income(
                                     current_year_taxable_income,
                                     current_year_tax_deductible_expenses,
                                     user_settings.tax_filing_status or "Single",
                                     user_settings.person1_birthdate,
                                     user_settings.person2_birthdate,
-                                    current_projection_year,
+                                    tax_year_for_calc,  # Use tax_year from settings
                                     qualified_dividends=current_year_qualified_dividends
                                 )
                                 print(f"--- DEBUG: Year {year} - calculate_taxable_income returned: taxable_income={taxable_income_result:.2f}, standard_deduction={standard_deduction_result:.2f}, tax_owed={tax_owed:.2f} ---"); sys.stdout.flush()
@@ -1380,6 +1386,110 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 print(f"--- WARNING: Error calculating federal tax for year {year}: {e} ---"); sys.stdout.flush()
                         else:
                             print(f"--- DEBUG: Year {year} - Skipping federal tax calculation: current_year_taxable_income={current_year_taxable_income:.2f} (must be > 0) ---"); sys.stdout.flush()
+            
+            # Calculate state income tax if enabled (similar to federal tax)
+            state_tax_expense_value = 0.0
+            state_tax_expense_account_name = None
+            if calculate_state_tax and user_settings and user_state:
+                # Find the state tax expense item (similar to federal tax)
+                state_tax_expense_item_id = None
+                for acc in projected_accounts_for_db:
+                    if acc.account_type == "expense" and acc.cash_flow_item_id:
+                        cash_flow_item = cash_flow_items_by_id.get(acc.cash_flow_item_id)
+                        if cash_flow_item and cash_flow_item.description == STATE_TAX_EXPENSE_DESCRIPTION:
+                            state_tax_expense_item_id = acc.cash_flow_item_id
+                            state_tax_expense_account_name = acc.name
+                            break
+                
+                # Fallback: query by description if not found in projected_accounts_for_db
+                state_tax_expense_item = None
+                if state_tax_expense_item_id:
+                    state_tax_expense_item = cash_flow_items_by_id.get(state_tax_expense_item_id)
+                else:
+                    state_tax_expense_item = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == owner_id,
+                        models.CashFlowItem.is_income == False,
+                        models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
+                    ).first()
+                
+                if state_tax_expense_item:
+                    # Check if expense is active for this year
+                    current_projection_year = current_year + year - 1
+                    start_year = state_tax_expense_item.start_date
+                    end_year = state_tax_expense_item.end_date
+                    
+                    if start_year:
+                        try:
+                            start_year_obj = datetime.strptime(start_year, "%Y-%m-%d").date()
+                            if current_projection_year < start_year_obj.year:
+                                state_tax_expense_item = None  # Not active yet
+                        except ValueError:
+                            pass
+                    if end_year and state_tax_expense_item:
+                        try:
+                            end_year_obj = datetime.strptime(end_year, "%Y-%m-%d").date()
+                            if current_projection_year > end_year_obj.year:
+                                state_tax_expense_item = None  # No longer active
+                        except ValueError:
+                            pass
+                    
+                    if state_tax_expense_item:
+                        # Calculate state tax using the taxable income and tax-deductible expenses
+                        # we tracked during the projection loop (same as federal tax)
+                        print(f"--- DEBUG: Year {year} - Before state tax calculation: current_year_taxable_income={current_year_taxable_income:.2f}, current_year_tax_deductible_expenses={current_year_tax_deductible_expenses:.2f}, state={user_state} ---"); sys.stdout.flush()
+                        if current_year_taxable_income > 0:
+                            try:
+                                # Use tax_year from settings, or default to projection year if not set
+                                # Note: Only 2025 tax brackets are currently implemented
+                                tax_year_for_state_calc = user_settings.tax_year if user_settings and user_settings.tax_year else current_year + year - 1
+                                (state_taxable_income_result, state_standard_deduction_result, state_tax_owed) = calculate_state_taxable_income(
+                                    total_income=current_year_taxable_income + current_year_tax_deductible_expenses,  # Add back deductions to get total income
+                                    tax_deductible_expenses=current_year_tax_deductible_expenses,
+                                    state=user_state,
+                                    filing_status=user_settings.tax_filing_status if user_settings else "Single",
+                                    federal_tax_owed=federal_tax_expense_value,  # Pass federal tax for states that allow deduction
+                                    current_year=tax_year_for_state_calc  # Use tax_year from settings
+                                )
+                                print(f"--- DEBUG: Year {year} - calculate_state_taxable_income returned: state_taxable_income={state_taxable_income_result:.2f}, state_standard_deduction={state_standard_deduction_result:.2f}, state_tax_owed={state_tax_owed:.2f} ---"); sys.stdout.flush()
+                                state_tax_expense_value = state_tax_owed or 0.0
+                                
+                                # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
+                                state_tax_value = -state_tax_expense_value if state_tax_expense_value != 0.0 else 0.0
+                                
+                                # Use the account name we found earlier, or find it by name as fallback
+                                if not state_tax_expense_account_name:
+                                    for acc in projected_accounts_for_db:
+                                        if acc.account_type == "expense":
+                                            display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
+                                            if display_name == STATE_TAX_EXPENSE_DESCRIPTION:
+                                                state_tax_expense_account_name = acc.name
+                                                break
+                                
+                                # Always store the tax value with the constant key first (ensures it's always available)
+                                annual_flow_values[STATE_TAX_EXPENSE_DESCRIPTION] = state_tax_value
+                                
+                                # Update annual_flow_values for state tax expense (negative for expenses)
+                                # Store with account name if we found it (helps with lookup)
+                                if state_tax_expense_account_name:
+                                    # Store with the account name (full name from projected_accounts_for_db)
+                                    annual_flow_values[state_tax_expense_account_name] = state_tax_value
+                                    # Also store with display_name (cleaned name) as fallback for chart matching
+                                    display_name_for_tax = state_tax_expense_account_name.split("|LINKED:")[0] if "|LINKED:" in state_tax_expense_account_name else state_tax_expense_account_name
+                                    if "|LINKED_INCOME:" in display_name_for_tax:
+                                        display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
+                                    # Always store with display_name as well (even if same as account_name) to ensure lookup works
+                                    annual_flow_values[display_name_for_tax] = state_tax_value
+                                    print(f"--- DEBUG: Year {year} - Calculated state tax: {state_tax_expense_value:.2f}, stored value: {state_tax_value:.2f}, stored with keys: '{state_tax_expense_account_name}', '{display_name_for_tax}', '{STATE_TAX_EXPENSE_DESCRIPTION}' ---"); sys.stdout.flush()
+                                else:
+                                    # Account name not found, but we still stored the value with the constant key
+                                    print(f"--- DEBUG: Year {year} - Calculated state tax: {state_tax_expense_value:.2f}, stored value: {state_tax_value:.2f}, stored with key: '{STATE_TAX_EXPENSE_DESCRIPTION}' (account name not found in projected_accounts_for_db) ---"); sys.stdout.flush()
+                                
+                                # Update expense flow total
+                                current_year_total_expense_flow -= state_tax_expense_value  # Subtract because expenses are negative
+                            except Exception as e:
+                                print(f"--- WARNING: Error calculating state tax for year {year}: {e} ---"); sys.stdout.flush()
+                        else:
+                            print(f"--- DEBUG: Year {year} - Skipping state tax calculation: current_year_taxable_income={current_year_taxable_income:.2f} (must be > 0) ---"); sys.stdout.flush()
             
             # Calculate and apply surplus/deficit transfer AFTER growth calculations
             # Surplus/deficit transfers happen at the end of the year, after all assets have grown

@@ -177,7 +177,9 @@ class UserSettings(Base):
     show_chart_totals = Column(Boolean, default=True) # New field
     surplus_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True)  # Designated asset for surplus/deficit
     tax_filing_status = Column(String, default="Single")  # Tax filing status: Single, Married Filing Jointly, etc.
+    tax_year = Column(Integer, default=2025)  # Tax year for calculations (allows updating brackets when year changes)
     calculate_federal_tax = Column(Boolean, default=False)  # Whether to calculate and create federal income tax expense item
+    calculate_state_tax = Column(Boolean, default=False)  # Whether to calculate and create state income tax expense item
     cash_asset_ids = Column(JSON, default=[])  # Array of asset IDs that are considered cash for BASE model and Sankey diagram
     cash_in_source_ids = Column(JSON, default=[])  # Array of income item IDs for cash-in sources (empty = all income)
     cash_out_source_ids = Column(JSON, default=[])  # Array of expense item IDs for cash-out sources (empty = all expenses)
