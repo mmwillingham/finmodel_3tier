@@ -91,12 +91,12 @@
 }
 
 .confirm-dialog-confirm {
-  background-color: #dc3545;
+  background-color: #007bff;
   color: white;
 }
 
 .confirm-dialog-confirm:hover {
-  background-color: #c82333;
+  background-color: #0056b3;
 }
 
 .confirm-dialog-retain {

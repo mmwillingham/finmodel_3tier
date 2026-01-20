@@ -887,6 +887,14 @@ def update_custom_chart(
     
     # Update chart fields that don't require recalculation
     if chart_update.name is not None:
+        # Check for duplicate chart name (excluding current chart)
+        existing_chart = db.query(models.CustomChart).filter(
+            models.CustomChart.user_id == current_user.id,
+            models.CustomChart.name == chart_update.name,
+            models.CustomChart.id != chart_id
+        ).first()
+        if existing_chart:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"A chart with the name '{chart_update.name}' already exists. Please choose a different name.")
         db_chart.name = chart_update.name
     if chart_update.chart_type is not None:
         db_chart.chart_type = chart_update.chart_type

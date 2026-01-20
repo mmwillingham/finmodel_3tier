@@ -660,15 +660,17 @@ export default function CustomChartForm({
                         position: 'relative',
                         zIndex: series.selected_item_id === '' ? 10 : 1
                       }}
-                      size={series.selected_item_id === '' ? Math.min(15, getDataSourceItemOptions(
-                        currentSeriesDataType,
-                        assets,
-                        liabilities,
-                        incomeItems,
-                        expenseItems,
-                        series.category,
-                        series.selected_account_ids || []
-                      ).length + 1) : undefined}
+                      {...(series.selected_item_id === '' && {
+                        size: Math.min(15, getDataSourceItemOptions(
+                          currentSeriesDataType,
+                          assets,
+                          liabilities,
+                          incomeItems,
+                          expenseItems,
+                          series.category,
+                          series.selected_account_ids || []
+                        ).length + 1)
+                      })}
                     >
                       <option value="">All Items</option>
                       {getDataSourceItemOptions(
