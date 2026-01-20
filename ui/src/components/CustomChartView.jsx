@@ -325,15 +325,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       seriesConfigurations.forEach((series) => {
         console.log("DEBUG (CustomChartView.jsx): Processing series:", series.label, "(Category:", series.category, ")"); // RE-ADDED LOG
 
-        const isFormulaSeries = series.type === 'formula' || series.data_type === 'formula';
-        
         const dataValues = parsedDataJson.map(dataPoint => {
-          // For formula series, get value directly from data_json (backend calculated it)
-          if (isFormulaSeries) {
-            const formulaKey = `${series.label}_Value`;
-            return dataPoint[formulaKey] || 0;
-          }
-          // For regular series, use getAggregatedValue
           const valueForSeries = getAggregatedValue(dataPoint, series);
           return valueForSeries;
         });

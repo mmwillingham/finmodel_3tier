@@ -18,7 +18,6 @@ from database import get_db
 from auth import get_current_user
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
-from utils.formula_evaluator import evaluate_formula, resolve_series_references, extract_series_references
 # Removed: from api import calculations # This will now be lazy-loaded inside functions
 
 
@@ -28,19 +27,32 @@ def evaluate_chart_formulas(
     projection_results: dict,
     series_configs: List[dict],
     projection_years: int,
-    expense_item_descriptions: List[str] = None
+    expense_item_descriptions: List[str] = None,
+    income_item_descriptions: List[str] = None,
+    asset_names: List[str] = None,
+    liability_names: List[str] = None
 ) -> dict:
     """
-    Evaluate formula-based series and add their results to projection data.
+    Process chart series configurations (no longer evaluates formulas - removed for reliability).
+    This function is kept for backward compatibility but no longer performs formula evaluation.
     
     Args:
         projection_results: Dictionary with 'data_json' containing projection data
         series_configs: List of series configuration dictionaries
         projection_years: Number of projection years
-        expense_item_descriptions: Optional list of expense item descriptions to identify expense _Value keys
+        expense_item_descriptions: Optional list of expense item descriptions (unused, kept for compatibility)
+        income_item_descriptions: Optional list of income item descriptions (unused, kept for compatibility)
+        asset_names: Optional list of asset names (unused, kept for compatibility)
+        liability_names: Optional list of liability names (unused, kept for compatibility)
     
     Returns:
-        Updated projection_results with formula results added to data_json
+        projection_results unchanged (function kept for backward compatibility)
+    """
+    # Formula evaluation has been removed for reliability
+    # This function is kept for backward compatibility but no longer performs any operations
+    return projection_results
+    
+    # Disabled code below (kept for reference only):
     """
     if not projection_results or 'data_json' not in projection_results:
         return projection_results
@@ -50,16 +62,13 @@ def evaluate_chart_formulas(
         if not isinstance(projection_data, list):
             return projection_results
         
-        # Build series values dictionary from non-formula series
+        # Build series values dictionary from series
         series_values = {}
         
-        # First, compute values for all non-formula series
+        # Compute values for all series
         # Use a separate counter for Series_X references to ensure they match the visual order
-        # (ignoring formula series in the count)
         series_number = 0
         for idx, series_config in enumerate(series_configs):
-            if series_config.get('type') == 'formula':
-                continue  # Skip formulas for now
             
             series_number += 1  # Increment only for non-formula series
             series_label = series_config.get('label', f'Series_{series_number}')
@@ -92,20 +101,57 @@ def evaluate_chart_formulas(
                             selected_account_ids = []
                     
                     if data_type == 'assets':
-                        value = year_data.get('Total Assets', 0) or 0
+                        # Sum individual asset _Value keys to match frontend getAggregatedValue
+                        # This supports category filtering and account filtering
+                        if asset_names:
+                            asset_sum = 0.0
+                            for asset_name in asset_names:
+                                asset_key = f'{asset_name}_Value'
+                                asset_value = year_data.get(asset_key, 0) or 0
+                                asset_sum += asset_value
+                            value = asset_sum
+                            logger.info(f"Series '{series_label}' asset aggregate: summing individual asset _Value keys = {value}")
+                        else:
+                            # Fallback to Total Assets if asset names not provided
+                            value = year_data.get('Total Assets', 0) or 0
+                            logger.info(f"Series '{series_label}' asset aggregate: using Total Assets (fallback) = {value}")
                     elif data_type == 'liabilities':
-                        value = abs(year_data.get('Total Liabilities', 0) or 0)
+                        # Sum individual liability _Value keys to match frontend getAggregatedValue
+                        # This supports category filtering
+                        if liability_names:
+                            liability_sum = 0.0
+                            for liability_name in liability_names:
+                                liability_key = f'{liability_name}_Value'
+                                liability_value = year_data.get(liability_key, 0) or 0
+                                liability_sum += abs(liability_value)  # Liabilities are negative, convert to positive
+                            value = liability_sum
+                            logger.info(f"Series '{series_label}' liability aggregate: summing individual liability _Value keys = {value}")
+                        else:
+                            # Fallback to Total Liabilities if liability names not provided
+                            value = abs(year_data.get('Total Liabilities', 0) or 0)
+                            logger.info(f"Series '{series_label}' liability aggregate: using Total Liabilities (fallback) = {value}")
                     elif data_type == 'income':
-                        # Use Total Income Flow for aggregate income (matches frontend when no filters applied)
-                        # Total Income Flow already excludes reinvested dividends, matching frontend behavior
-                        value = year_data.get('Total Income Flow', 0) or 0
-                        # Ensure positive (income should be positive)
-                        if value < 0:
-                            value = abs(value)
-                        logger.info(f"Series '{series_label}' income aggregate: using Total Income Flow = {value}")
+                        # Sum individual income _Value keys to match frontend getAggregatedValue
+                        # This supports category filtering and excludes reinvested dividends
+                        if income_item_descriptions:
+                            income_sum = 0.0
+                            for income_desc in income_item_descriptions:
+                                income_key = f'{income_desc}_Value'
+                                income_value = year_data.get(income_key, 0) or 0
+                                income_sum += abs(income_value)  # Income should be positive
+                            value = income_sum
+                            logger.info(f"Series '{series_label}' income aggregate: summing individual income _Value keys = {value}")
+                        else:
+                            # Fallback to Total Income Flow if income item descriptions not provided
+                            value = year_data.get('Total Income Flow', 0) or 0
+                            # Ensure positive (income should be positive)
+                            if value < 0:
+                                value = abs(value)
+                            logger.info(f"Series '{series_label}' income aggregate: using Total Income Flow (fallback) = {value}")
                     elif data_type == 'expenses':
                         # Sum individual expense _Value keys to match frontend getAggregatedValue
                         # This excludes liability payments which are included in Total Expense Flow
+                        # This supports category filtering
                         if expense_item_descriptions:
                             expense_sum = 0.0
                             for expense_desc in expense_item_descriptions:
@@ -126,55 +172,6 @@ def evaluate_chart_formulas(
             series_values[f'Series_{series_number}'] = series_data
             logger.info(f"Added series '{series_label}' as Series_{series_number} with values: [{series_data[0]:.2f}, {series_data[1]:.2f}, ...] (first 2 years)")
             logger.info(f"  Series_{series_number} = {series_label} (data_type: {data_type}, selected_item_id: {selected_item_id})")
-        
-        # Now evaluate formulas
-        for idx, series_config in enumerate(series_configs):
-            if series_config.get('type') != 'formula':
-                continue
-            
-            formula = series_config.get('formula', '')
-            if not formula or not formula.strip():
-                continue
-            
-            series_label = series_config.get('label', f'Formula_{idx + 1}')
-            
-            try:
-                # Debug: Log series values for formula evaluation
-                logger.info(f"Evaluating formula '{formula}' for series '{series_label}'")
-                logger.info(f"Series values available: {list(series_values.keys())}")
-                for key, values in series_values.items():
-                    if len(values) >= 2:
-                        logger.info(f"  {key}: [{values[0]:.2f}, {values[1]:.2f}, ...] (first 2 years)")
-                logger.info(f"Projection data keys (first year): {list(projection_data[0].keys()) if projection_data else []}")
-                if projection_data and len(projection_data) >= 2:
-                    logger.info(f"Year 0 Total Income Flow: {projection_data[0].get('Total Income Flow', 'N/A')}")
-                    logger.info(f"Year 0 Total Expense Flow: {projection_data[0].get('Total Expense Flow', 'N/A')}")
-                    logger.info(f"Year 1 Total Income Flow: {projection_data[1].get('Total Income Flow', 'N/A')}")
-                    logger.info(f"Year 1 Total Expense Flow: {projection_data[1].get('Total Expense Flow', 'N/A')}")
-                
-                # Evaluate the formula
-                formula_values = evaluate_formula(
-                    formula=formula,
-                    series_values=series_values,
-                    projection_data=projection_data,
-                    series_labels={}
-                )
-                
-                # Debug: Log formula results
-                if len(formula_values) >= 2:
-                    logger.info(f"Formula results: [{formula_values[0]}, {formula_values[1]}, ...] (first 2 years)")
-                
-                # Add formula results to projection data
-                for year_index, formula_value in enumerate(formula_values):
-                    if year_index < len(projection_data):
-                        # Store formula result with _Value suffix like other series
-                        projection_data[year_index][f'{series_label}_Value'] = float(formula_value)
-                        
-            except Exception as e:
-                logger.error(f"Error evaluating formula '{formula}' for series '{series_label}': {e}")
-                # Set all years to 0 if formula evaluation fails
-                for year_data in projection_data:
-                    year_data[f'{series_label}_Value'] = 0.0
         
         # Update projection_results with modified data_json
         projection_results['data_json'] = json.dumps(projection_data)
@@ -863,18 +860,26 @@ def create_custom_chart(
         )
         
         # Evaluate formulas for formula-based series and add results to projection data
-        # Get expense item descriptions for accurate expense aggregation (matching frontend getAggregatedValue)
+        # Get item descriptions/names for accurate aggregation (matching frontend getAggregatedValue)
+        # For now, pass all items (category/account filtering can be added later if needed)
         expense_descriptions = [item.description for item in all_expense_items] if 'all_expense_items' in locals() else []
+        income_descriptions = [item.description for item in all_income_items] if 'all_income_items' in locals() else []
         # Also include Federal Tax if it's calculated
         if user_settings and user_settings.calculate_federal_tax:
             federal_tax_desc = "Federal Income Tax (Calculated)"
             if federal_tax_desc not in expense_descriptions:
                 expense_descriptions.append(federal_tax_desc)
+        # Get asset and liability names from projection accounts
+        asset_names = [acc.name.split("|LINKED:")[0] for acc in accounts_for_projection if acc.account_type == "asset"]
+        liability_names = [acc.name for acc in accounts_for_projection if acc.account_type == "liability"]
         projection_results = evaluate_chart_formulas(
             projection_results,
             series_configs,
             projection_years,
-            expense_item_descriptions=expense_descriptions
+            expense_item_descriptions=expense_descriptions,
+            income_item_descriptions=income_descriptions,
+            asset_names=asset_names,
+            liability_names=liability_names
         )
         
         # Disabled verbose debug logging - data_json dumps are huge
@@ -1431,18 +1436,25 @@ def update_custom_chart(
             )
             
             # Evaluate formulas for formula-based series
-            # Get expense item descriptions for accurate expense aggregation (matching frontend getAggregatedValue)
+            # Get item descriptions/names for accurate aggregation (matching frontend getAggregatedValue)
             expense_descriptions = [item.description for item in all_expense_items] if 'all_expense_items' in locals() else []
+            income_descriptions = [item.description for item in all_income_items] if 'all_income_items' in locals() else []
             # Also include Federal Tax if it's calculated
             if user_settings and user_settings.calculate_federal_tax:
                 federal_tax_desc = "Federal Income Tax (Calculated)"
                 if federal_tax_desc not in expense_descriptions:
                     expense_descriptions.append(federal_tax_desc)
+            # Get asset and liability names from projection accounts
+            asset_names = [acc.name.split("|LINKED:")[0] for acc in accounts_for_projection if acc.account_type == "asset"]
+            liability_names = [acc.name for acc in accounts_for_projection if acc.account_type == "liability"]
             projection_results = evaluate_chart_formulas(
                 projection_results,
                 series_configs,
                 projection_years,
-                expense_item_descriptions=expense_descriptions
+                expense_item_descriptions=expense_descriptions,
+                income_item_descriptions=income_descriptions,
+                asset_names=asset_names,
+                liability_names=liability_names
             )
             
             print(f"--- DEBUG: Projection calculation successful for chart update. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
