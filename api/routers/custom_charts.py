@@ -716,6 +716,28 @@ def create_custom_chart(
             print(f"--- WARNING: user_settings is None, cannot check calculate_federal_tax ---"); sys.stdout.flush()
         elif not user_settings.calculate_federal_tax:
             print(f"--- DEBUG: calculate_federal_tax is disabled in user_settings ---"); sys.stdout.flush()
+        
+        # Auto-include State Tax expense if tax calculation is enabled
+        STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
+        if user_settings and user_settings.calculate_state_tax:
+            state_tax_expense = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == False,
+                models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
+            ).first()
+            if state_tax_expense and STATE_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                print(f"--- DEBUG: Auto-including State Tax expense for chart calculation (create) ---"); sys.stdout.flush()
+                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                    name=STATE_TAX_EXPENSE_DESCRIPTION,
+                    account_type='expense',
+                    initial_value=0.0,
+                    contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                    growth_rate=0.0,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=state_tax_expense.start_date, end_date=state_tax_expense.end_date,
+                    cash_flow_item_id=state_tax_expense.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
+                ))
+                included_expense_names.add(STATE_TAX_EXPENSE_DESCRIPTION)
 
         # Disabled verbose debug logging - JSON dumps are very large
         # print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
@@ -1313,6 +1335,27 @@ def update_custom_chart(
                     start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
                 ))
                 included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
+        
+        # Auto-include State Tax expense if tax calculation is enabled
+        STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
+        if user_settings and user_settings.calculate_state_tax:
+            state_tax_expense = db.query(models.CashFlowItem).filter(
+                models.CashFlowItem.owner_id == current_user.id,
+                models.CashFlowItem.is_income == False,
+                models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
+            ).first()
+            if state_tax_expense and STATE_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                print(f"--- DEBUG: Auto-including State Tax expense for chart calculation (update) ---"); sys.stdout.flush()
+                accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                    name=STATE_TAX_EXPENSE_DESCRIPTION,
+                    account_type='expense',
+                    initial_value=0.0,
+                    contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                    growth_rate=0.0,
+                    loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                    start_date=state_tax_expense.start_date, end_date=state_tax_expense.end_date
+                ))
+                included_expense_names.add(STATE_TAX_EXPENSE_DESCRIPTION)
 
         print(f"--- DEBUG: Accounts prepared for projection update: {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
 
@@ -1668,6 +1711,27 @@ def update_custom_chart(
                         start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
                     ))
                     included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
+            
+            # Auto-include State Tax expense if tax calculation is enabled
+            STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
+            if user_settings and user_settings.calculate_state_tax:
+                state_tax_expense = db.query(models.CashFlowItem).filter(
+                    models.CashFlowItem.owner_id == current_user.id,
+                    models.CashFlowItem.is_income == False,
+                    models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
+                ).first()
+                if state_tax_expense and STATE_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                    print(f"--- DEBUG: Auto-including State Tax expense for chart calculation (recalculate_all) ---"); sys.stdout.flush()
+                    accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                        name=STATE_TAX_EXPENSE_DESCRIPTION,
+                        account_type='expense',
+                        initial_value=0.0,
+                        contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                        growth_rate=0.0,
+                        loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                        start_date=state_tax_expense.start_date, end_date=state_tax_expense.end_date
+                    ))
+                    included_expense_names.add(STATE_TAX_EXPENSE_DESCRIPTION)
 
             try:
                 import calculations
@@ -2078,6 +2142,27 @@ def recalculate_all_charts(
                             start_date=federal_tax_expense.start_date, end_date=federal_tax_expense.end_date
                         ))
                         included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
+                
+                # Auto-include State Tax expense if tax calculation is enabled
+                STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
+                if user_settings and user_settings.calculate_state_tax:
+                    state_tax_expense = db.query(models.CashFlowItem).filter(
+                        models.CashFlowItem.owner_id == current_user.id,
+                        models.CashFlowItem.is_income == False,
+                        models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
+                    ).first()
+                    if state_tax_expense and STATE_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
+                        print(f"--- DEBUG: Auto-including State Tax expense for chart calculation (recalculate) ---"); sys.stdout.flush()
+                        accounts_for_projection.append(schemas.ProjectedAccountCreate(
+                            name=STATE_TAX_EXPENSE_DESCRIPTION,
+                            account_type='expense',
+                            initial_value=0.0,
+                            contribution=0.0,  # Tax is calculated dynamically, not a fixed contribution
+                            growth_rate=0.0,
+                            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+                            start_date=state_tax_expense.start_date, end_date=state_tax_expense.end_date
+                        ))
+                        included_expense_names.add(STATE_TAX_EXPENSE_DESCRIPTION)
                 
                 # Recalculate projection
                 import calculations
