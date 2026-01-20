@@ -191,8 +191,13 @@ def evaluate_formula(
                     replacement_value
                 )
             
+            # Log formula after Series_X replacement (for first 2 years)
+            if year_index < 2:
+                logger.info(f"  Year {year_index} formula after Series_X replacement: {evaluated_formula}")
+            
             # Replace field references (but not quoted strings - already processed)
             # Also skip Series_X keys since we already processed them
+            # IMPORTANT: Skip keys that are pure numbers to avoid replacing numeric values in formulas
             for key, value in context.items():
                 # Skip if it's a quoted string we already processed
                 if key.startswith('"'):
@@ -200,9 +205,19 @@ def evaluate_formula(
                 # Skip Series_X keys - we already processed them
                 if re.match(r'Series_\d+', key, re.IGNORECASE):
                     continue
+                # Skip keys that are pure numbers (to avoid replacing numeric values in the formula)
+                # This prevents replacing numbers like "237053" with other values
+                if isinstance(key, (int, float)) or (isinstance(key, str) and re.match(r'^-?\d+\.?\d*$', str(key))):
+                    continue
                 # Replace all occurrences of the key (as a whole word)
-                pattern = r'\b' + re.escape(key) + r'\b'
-                evaluated_formula = re.sub(pattern, str(value), evaluated_formula, flags=re.IGNORECASE)
+                pattern = r'\b' + re.escape(str(key)) + r'\b'
+                # Check if replacement would happen and log it
+                if re.search(pattern, evaluated_formula, flags=re.IGNORECASE):
+                    if year_index < 2:
+                        logger.info(f"  Year {year_index} Would replace field reference '{key}' (value: {value}) in formula")
+                    evaluated_formula = re.sub(pattern, str(value), evaluated_formula, flags=re.IGNORECASE)
+                    if year_index < 2:
+                        logger.info(f"  Year {year_index} After replacing '{key}': {evaluated_formula}")
             
             # Log the final formula before evaluation (for first 2 years only)
             if year_index < 2:
