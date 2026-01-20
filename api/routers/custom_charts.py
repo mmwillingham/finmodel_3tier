@@ -101,6 +101,13 @@ def evaluate_chart_formulas(
             series_label = series_config.get('label', f'Formula_{idx + 1}')
             
             try:
+                # Debug: Log series values for formula evaluation
+                logger.info(f"Evaluating formula '{formula}' for series '{series_label}'")
+                logger.info(f"Series values available: {list(series_values.keys())}")
+                for key, values in series_values.items():
+                    if len(values) >= 2:
+                        logger.info(f"  {key}: [{values[0]}, {values[1]}, ...] (first 2 years)")
+                
                 # Evaluate the formula
                 formula_values = evaluate_formula(
                     formula=formula,
@@ -108,6 +115,10 @@ def evaluate_chart_formulas(
                     projection_data=projection_data,
                     series_labels={}
                 )
+                
+                # Debug: Log formula results
+                if len(formula_values) >= 2:
+                    logger.info(f"Formula results: [{formula_values[0]}, {formula_values[1]}, ...] (first 2 years)")
                 
                 # Add formula results to projection data
                 for year_index, formula_value in enumerate(formula_values):

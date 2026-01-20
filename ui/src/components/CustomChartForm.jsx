@@ -129,7 +129,8 @@ export default function CustomChartForm({
   };
 
   const handleAddSeries = () => {
-    const defaultDataType = selectedDataSources.length > 0 ? selectedDataSources[0] : dataSourcesOptions[0];
+    // Always use first data source option (assets) as default when adding a new series
+    const defaultDataType = dataSourcesOptions[0];
     // Set default label to capitalized data type name
     const defaultLabel = defaultDataType ? defaultDataType.charAt(0).toUpperCase() + defaultDataType.slice(1) : "";
     setSeriesConfigurations(prev => [...prev, {
@@ -240,7 +241,7 @@ export default function CustomChartForm({
       name,
       chart_type: chartType,
       display_type: displayType, // Include new display type
-      data_sources: selectedDataSources.join(','),
+      data_sources: dataSourcesOptions.join(','), // Always use all data sources
       series_configurations: JSON.stringify(seriesConfigurations),
       x_axis_label: xAxisLabel,
       y_axis_label: yAxisLabel,
@@ -564,22 +565,6 @@ export default function CustomChartForm({
           </select>
         </div>
 
-        <div className="form-group">
-          <label>Data Sources:</label>
-          <div className="checkbox-group">
-            {dataSourcesOptions.map(source => (
-              <label key={source}>
-                <input
-                  type="checkbox"
-                  value={source}
-                  checked={selectedDataSources.includes(source)}
-                  onChange={handleDataSourceChange}
-                />
-                {source.charAt(0).toUpperCase() + source.slice(1)}
-              </label>
-            ))}
-          </div>
-        </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
           <h4 style={{ margin: 0 }}>Series Configuration</h4>

@@ -148,14 +148,21 @@ def evaluate_formula(
             # Now remove spaces for easier parsing (after quoted strings are replaced)
             evaluated_formula = evaluated_formula.replace(' ', '')
             
-            # Replace Series_X references
+            # Replace Series_X references (case-insensitive lookup)
             series_pattern = r'Series_(\d+)'
             for match in re.finditer(series_pattern, evaluated_formula, re.IGNORECASE):
-                series_id = match.group(0)
-                if series_id in context:
+                series_id_matched = match.group(0)  # Matched string (could be Series_1 or series_1)
+                # Find the actual key in context (case-insensitive)
+                series_id_key = None
+                for key in context.keys():
+                    if key.lower() == series_id_matched.lower():
+                        series_id_key = key
+                        break
+                
+                if series_id_key and series_id_key in context:
                     evaluated_formula = evaluated_formula.replace(
-                        series_id,
-                        str(context[series_id])
+                        series_id_matched,
+                        str(context[series_id_key])
                     )
             
             # Replace field references (but not quoted strings - already processed)
