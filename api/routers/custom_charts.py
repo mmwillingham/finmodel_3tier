@@ -52,11 +52,15 @@ def evaluate_chart_formulas(
         series_values = {}
         
         # First, compute values for all non-formula series
+        # Use a separate counter for Series_X references to ensure they match the visual order
+        # (ignoring formula series in the count)
+        series_number = 0
         for idx, series_config in enumerate(series_configs):
             if series_config.get('type') == 'formula':
                 continue  # Skip formulas for now
             
-            series_label = series_config.get('label', f'Series_{idx + 1}')
+            series_number += 1  # Increment only for non-formula series
+            series_label = series_config.get('label', f'Series_{series_number}')
             data_type = series_config.get('data_type')
             selected_item_id = series_config.get('selected_item_id') or series_config.get('item_id')
             
@@ -125,8 +129,9 @@ def evaluate_chart_formulas(
                 series_data.append(float(value))
             
             series_values[series_label] = series_data
-            # Also add by Series_X reference
-            series_values[f'Series_{idx + 1}'] = series_data
+            # Also add by Series_X reference (use series_number which matches visual order)
+            series_values[f'Series_{series_number}'] = series_data
+            logger.info(f"Added series '{series_label}' as Series_{series_number} with values: [{series_data[0]:.2f}, {series_data[1]:.2f}, ...] (first 2 years)")
         
         # Now evaluate formulas
         for idx, series_config in enumerate(series_configs):

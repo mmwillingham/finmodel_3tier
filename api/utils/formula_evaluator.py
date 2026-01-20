@@ -158,8 +158,15 @@ def evaluate_formula(
             # Now remove spaces for easier parsing (after quoted strings are replaced)
             evaluated_formula = evaluated_formula.replace(' ', '')
             
+            # Log context keys for debugging (first 2 years only)
+            if year_index < 2:
+                logger.info(f"  Year {year_index} context keys: {list(context.keys())}")
+                logger.info(f"  Year {year_index} formula before Series_X replacement: {evaluated_formula}")
+            
             # Replace Series_X references (case-insensitive lookup)
+            # Collect all matches first, then replace in reverse order to avoid position shifts
             series_pattern = r'Series_(\d+)'
+            series_replacements = []
             for match in re.finditer(series_pattern, evaluated_formula, re.IGNORECASE):
                 series_id_matched = match.group(0)  # Matched string (could be Series_1 or series_1)
                 # Find the actual key in context (case-insensitive)
@@ -171,11 +178,18 @@ def evaluate_formula(
                 
                 if series_id_key and series_id_key in context:
                     replacement_value = str(context[series_id_key])
-                    logger.info(f"  Replacing {series_id_matched} with {replacement_value}")
-                    evaluated_formula = evaluated_formula.replace(
-                        series_id_matched,
-                        replacement_value
-                    )
+                    logger.info(f"  Replacing {series_id_matched} with {replacement_value} (from context key: {series_id_key})")
+                    series_replacements.append((series_id_matched, replacement_value))
+                else:
+                    logger.error(f"  ERROR: Could not find {series_id_matched} in context! Available keys: {list(context.keys())}")
+                    logger.error(f"  This will cause incorrect formula evaluation. Formula: {formula}")
+            
+            # Apply replacements (using replace for each unique match)
+            for series_id_matched, replacement_value in series_replacements:
+                evaluated_formula = evaluated_formula.replace(
+                    series_id_matched,
+                    replacement_value
+                )
             
             # Replace field references (but not quoted strings - already processed)
             # Also skip Series_X keys since we already processed them
