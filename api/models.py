@@ -399,11 +399,12 @@ class AuthorizedUser(Base):
     """
     SQLAlchemy Model for authorized users.
     Allows a primary user to grant access to another user with granular permissions.
+    authorized_user_id can be None if the user hasn't registered yet - they'll be linked when they sign up.
     """
     __tablename__ = "authorized_users"
     id = Column(Integer, primary_key=True, index=True)
     primary_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # Owner who grants access
-    authorized_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # User who receives access
+    authorized_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)  # User who receives access (None until they register)
     authorized_user_email = Column(String, nullable=False, index=True)  # Email of authorized user (for reference)
     
     # Granular permissions: "view", "edit", or None (no access)

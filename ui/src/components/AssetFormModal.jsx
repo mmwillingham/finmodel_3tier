@@ -58,7 +58,10 @@ export default function AssetFormModal({
     return accounts.find(acc => acc.id === accountId);
   }, [accounts, itemToEdit?.account_id, newItem.account_id]);
   
-  const isRetirementAccount = selectedAccount?.is_retirement || false;
+  // Check if this is a retirement account by checking both the account's is_retirement flag
+  // and the asset's category (for backward compatibility)
+  const accountCategory = itemToEdit?.category || newItem.category || "";
+  const isRetirementAccount = selectedAccount?.is_retirement || accountCategory?.toLowerCase() === "retirement";
 
   useEffect(() => {
     if (!isOpen) return; // Only load when modal is open
@@ -90,8 +93,13 @@ export default function AssetFormModal({
           // Load retirement interest and dividend rates if they exist
           // If they exist, we need to adjust annual_increase_percent to show only the internal rate
           // (since annual_increase_percent currently contains the total for backward compatibility)
-          const hasRetirementRates = (itemToEdit.retirement_interest_rate !== null && itemToEdit.retirement_interest_rate !== undefined) ||
-                                     (itemToEdit.retirement_dividend_rate !== null && itemToEdit.retirement_dividend_rate !== undefined);
+          // Check if retirement rates exist (handle 0, null, undefined, and empty string)
+          const hasRetirementRates = (itemToEdit.retirement_interest_rate !== null && 
+                                     itemToEdit.retirement_interest_rate !== undefined &&
+                                     itemToEdit.retirement_interest_rate !== "") ||
+                                     (itemToEdit.retirement_dividend_rate !== null && 
+                                     itemToEdit.retirement_dividend_rate !== undefined &&
+                                     itemToEdit.retirement_dividend_rate !== "");
           
           if (hasRetirementRates && isRetirementAccount) {
             // Extract the internal growth rate by subtracting the retirement rates from the total
@@ -106,8 +114,9 @@ export default function AssetFormModal({
               annual_increase_percent: Math.max(0, internalRate) // Ensure non-negative
             }));
             
-            setRetirementInterestRate(retirementInterest > 0 ? retirementInterest.toString() : "");
-            setRetirementDividendRate(retirementDividend > 0 ? retirementDividend.toString() : "");
+            // Always set the rates if they exist, even if they're small values like 0.04
+            setRetirementInterestRate(retirementInterest !== null && retirementInterest !== undefined && retirementInterest !== "" ? retirementInterest.toString() : "");
+            setRetirementDividendRate(retirementDividend !== null && retirementDividend !== undefined && retirementDividend !== "" ? retirementDividend.toString() : "");
           } else {
             // No retirement rates stored - this might be old data or non-retirement account
             setRetirementInterestRate("");
@@ -235,6 +244,7 @@ export default function AssetFormModal({
       totalGrowthRate = totalGrowthRate + retirementInterest + retirementDividend;
     }
 
+    // Build the asset payload - always include retirement rates for retirement accounts
     const assetPayload = {
       name: newItem.name,
       category: newItem.category,
@@ -242,13 +252,22 @@ export default function AssetFormModal({
       annual_increase_percent: totalGrowthRate, // Total growth rate (Internal + Interest + Dividend for retirement accounts)
       annual_change_type: newItem.annual_change_type,
       account_id: newItem.account_id || null,
-      // Save retirement rates if they are valid numbers (including 0.04, etc.)
-      // Only save if the string is not empty and the parsed value is not NaN
-      retirement_interest_rate: isRetirementAccount ? (retirementInterestStr !== "" && !isNaN(retirementInterest) ? retirementInterest : null) : null,
-      retirement_dividend_rate: isRetirementAccount ? (retirementDividendStr !== "" && !isNaN(retirementDividend) ? retirementDividend : null) : null,
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
     };
+    
+    // For retirement accounts, always include retirement rates (even if null)
+    if (isRetirementAccount) {
+      // Save retirement rates if they are valid numbers (including 0.04, etc.)
+      // Only save if the string is not empty and the parsed value is not NaN
+      assetPayload.retirement_interest_rate = retirementInterestStr !== "" && !isNaN(retirementInterest) ? retirementInterest : null;
+      assetPayload.retirement_dividend_rate = retirementDividendStr !== "" && !isNaN(retirementDividend) ? retirementDividend : null;
+    } else {
+      // For non-retirement accounts, explicitly set to null to clear any existing values
+      assetPayload.retirement_interest_rate = null;
+      assetPayload.retirement_dividend_rate = null;
+    }
+    
 
     try {
       let savedAsset;
