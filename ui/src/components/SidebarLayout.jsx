@@ -34,6 +34,17 @@ import AutoDisbursementSettingsPage from "../pages/AutoDisbursementSettingsPage"
 import DocumentsPage from "../pages/DocumentsPage";
 import CashHandlingPage from "../pages/CashHandlingPage";
 import ChangePasswordModal from "./ChangePasswordModal";
+import CategorySettingsPage from "../pages/CategorySettingsPage";
+import ProfileSettingsPage from "../pages/ProfileSettingsPage";
+import ApplicationSettingsPage from "../pages/ApplicationSettingsPage";
+import UserManagementPage from "../pages/UserManagementPage";
+import DefaultCategoriesPage from "../pages/DefaultCategoriesPage";
+import HelpPage from "../pages/HelpPage";
+import AboutPage from "../pages/AboutPage";
+import ExportImportPage from "../pages/ExportImportPage";
+import ReferAFriendPage from "../pages/ReferAFriendPage";
+import AuthorizedUsersPage from "../pages/AuthorizedUsersPage";
+import AccountSwitcherPage from "../pages/AccountSwitcherPage";
 
 export default function SidebarLayout() {
   const { viewingUserId, userSettings, currentUser, login } = useAuth();
@@ -145,6 +156,45 @@ export default function SidebarLayout() {
       setLoading(false);
     }
   }, [viewingUserId, currentUser?.id]);
+
+  // Detect settings routes and update view accordingly
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/settings')) {
+      if (path === '/settings/categories') {
+        setView('settings-categories');
+      } else if (path === '/settings/profile') {
+        setView('settings-profile');
+      } else if (path === '/settings/application') {
+        setView('settings-application');
+      } else if (path === '/settings/accounts') {
+        setView('accounts');
+      } else if (path === '/settings/auto-disbursements') {
+        setView('automatic-transfers');
+      } else if (path === '/settings/authorized-users') {
+        setView('settings-authorized-users');
+      } else if (path === '/settings/export-import') {
+        setView('settings-export-import');
+      } else if (path === '/settings/refer-a-friend') {
+        setView('settings-refer-a-friend');
+      } else if (path === '/settings/help') {
+        setView('settings-help');
+      } else if (path === '/settings/about') {
+        setView('settings-about');
+      } else if (path === '/settings/account-switcher') {
+        setView('settings-account-switcher');
+      } else if (path === '/settings/admin/users') {
+        setView('settings-admin-users');
+      } else if (path === '/settings/admin/global-categories') {
+        setView('settings-admin-global-categories');
+      }
+    } else if (path === '/documents') {
+      setView('documents');
+    } else if (path === '/') {
+      // Reset to home view when navigating to root
+      setView('new-home');
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const load = async () => {
@@ -342,8 +392,11 @@ export default function SidebarLayout() {
               Accounts
             </button>
             <button
-              className={`nav-btn ${location.pathname === '/settings/categories' ? 'active' : ''}`}
-              onClick={() => { navigate('/settings/categories'); }}
+              className={`nav-btn ${view === 'settings-categories' ? 'active' : ''}`}
+              onClick={() => { 
+                setView('settings-categories');
+                navigate('/settings/categories', { replace: true });
+              }}
             >
               Categories
             </button>
@@ -437,6 +490,51 @@ export default function SidebarLayout() {
 
         {!loading && view === "cash-handling" && (
           <CashHandlingPage />
+        )}
+
+        {/* Settings Pages */}
+        {!loading && view === "settings-categories" && (
+          <CategorySettingsPage />
+        )}
+
+        {!loading && view === "settings-profile" && (
+          <ProfileSettingsPage />
+        )}
+
+        {!loading && view === "settings-application" && (
+          <ApplicationSettingsPage />
+        )}
+
+        {!loading && view === "settings-authorized-users" && (
+          <AuthorizedUsersPage />
+        )}
+
+        {!loading && view === "settings-export-import" && (
+          <ExportImportPage />
+        )}
+
+        {!loading && view === "settings-refer-a-friend" && (
+          <ReferAFriendPage />
+        )}
+
+        {!loading && view === "settings-help" && (
+          <HelpPage />
+        )}
+
+        {!loading && view === "settings-about" && (
+          <AboutPage />
+        )}
+
+        {!loading && view === "settings-account-switcher" && (
+          <AccountSwitcherPage />
+        )}
+
+        {!loading && view === "settings-admin-users" && (
+          <UserManagementPage />
+        )}
+
+        {!loading && view === "settings-admin-global-categories" && (
+          <DefaultCategoriesPage />
         )}
 
         {!loading && (view === "new-home" || view === null || view === undefined) && (

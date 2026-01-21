@@ -58,21 +58,21 @@ function App() {
                                 }
                             />
                             
-                            {/* New Protected Settings Routes */}
-                            <Route path="/settings/account-switcher" element={<ProtectedRoute><AccountSwitcherPage /></ProtectedRoute>} />
-                            <Route path="/settings/application" element={<ProtectedRoute><ApplicationSettingsPage /></ProtectedRoute>} />
-                            <Route path="/settings/profile" element={<ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>} />
-                            <Route path="/settings/categories" element={<ProtectedRoute><CategorySettingsPage /></ProtectedRoute>} />
-                            <Route path="/settings/accounts" element={<ProtectedRoute><AccountsSettingsPage /></ProtectedRoute>} />
-                            <Route path="/settings/auto-disbursements" element={<ProtectedRoute><AutoDisbursementSettingsPage /></ProtectedRoute>} />
-                            <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>} />
-                            <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><DefaultCategoriesPage /></ProtectedRoute>} />
-                            <Route path="/settings/export-import" element={<ProtectedRoute><ExportImportPage /></ProtectedRoute>} />
-                            <Route path="/settings/refer-a-friend" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
-                            <Route path="/settings/authorized-users" element={<ProtectedRoute><AuthorizedUsersPage /></ProtectedRoute>} />
-                            <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
-                            <Route path="/settings/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
-                            <Route path="/settings/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
+                            {/* New Protected Settings Routes - all render within SidebarLayout to keep sidebar visible */}
+                            <Route path="/settings/account-switcher" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/application" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/profile" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/categories" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/accounts" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/auto-disbursements" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/export-import" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/refer-a-friend" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/authorized-users" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/documents" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/help" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/settings/about" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
 
                             {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}
                             <Route path="/my-projections" element={<Navigate to="/" replace />} />
