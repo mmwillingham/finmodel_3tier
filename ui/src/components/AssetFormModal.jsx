@@ -225,8 +225,11 @@ export default function AssetFormModal({
     // For retirement accounts, store interest and dividend rates separately
     // Calculate total growth rate for use in calculations (Internal + Interest + Dividend)
     let totalGrowthRate = parseFloat(newItem.annual_increase_percent || 0);
-    const retirementInterest = isRetirementAccount ? parseFloat(retirementInterestRate || 0) : 0;
-    const retirementDividend = isRetirementAccount ? parseFloat(retirementDividendRate || 0) : 0;
+    // Parse retirement rates, handling empty strings and whitespace
+    const retirementInterestStr = (retirementInterestRate || "").trim();
+    const retirementDividendStr = (retirementDividendRate || "").trim();
+    const retirementInterest = isRetirementAccount ? (retirementInterestStr !== "" ? parseFloat(retirementInterestStr) : 0) : 0;
+    const retirementDividend = isRetirementAccount ? (retirementDividendStr !== "" ? parseFloat(retirementDividendStr) : 0) : 0;
     
     if (isRetirementAccount) {
       totalGrowthRate = totalGrowthRate + retirementInterest + retirementDividend;
@@ -239,8 +242,10 @@ export default function AssetFormModal({
       annual_increase_percent: totalGrowthRate, // Total growth rate (Internal + Interest + Dividend for retirement accounts)
       annual_change_type: newItem.annual_change_type,
       account_id: newItem.account_id || null,
-      retirement_interest_rate: isRetirementAccount ? (retirementInterest > 0 ? retirementInterest : null) : null,
-      retirement_dividend_rate: isRetirementAccount ? (retirementDividend > 0 ? retirementDividend : null) : null,
+      // Save retirement rates if they are valid numbers (including 0.04, etc.)
+      // Only save if the string is not empty and the parsed value is not NaN
+      retirement_interest_rate: isRetirementAccount ? (retirementInterestStr !== "" && !isNaN(retirementInterest) ? retirementInterest : null) : null,
+      retirement_dividend_rate: isRetirementAccount ? (retirementDividendStr !== "" && !isNaN(retirementDividend) ? retirementDividend : null) : null,
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
     };
