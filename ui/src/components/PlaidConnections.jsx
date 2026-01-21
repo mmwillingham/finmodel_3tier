@@ -146,7 +146,7 @@ function PlaidConnections({ onSyncSuccess }) {
                 disabled={syncing[item.item_id]}
                 style={{ fontSize: "0.9em", padding: "6px 12px" }}
               >
-                {syncing[item.item_id] ? "Syncing..." : "Sync Now"}
+                {syncing[item.item_id] ? "Syncing..." : "Sync"}
               </button>
               <button
                 className="btn-primary-modern"
