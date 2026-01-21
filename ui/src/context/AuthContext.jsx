@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import SettingsService from '../services/settings.service';
@@ -15,14 +15,8 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [userSettings, setUserSettings] = useState(null);
     // Load viewingUserId from localStorage on mount, default to null
-    const [viewingUserId, setViewingUserId] = useState(() => {
-        try {
-            const saved = localStorage.getItem('viewingUserId');
-            return saved ? parseInt(saved) : null;
-        } catch {
-            return null;
-        }
-    });
+    // Only load if it's different from currentUser.id (which we'll check in useEffect)
+    const [viewingUserId, setViewingUserId] = useState(null); // Always start with null, check localStorage in useEffect
 
     const navigate = useNavigate();
     
@@ -82,6 +76,16 @@ export const AuthProvider = ({ children }) => {
         AuthService.logout();
         setCurrentUser(null);
         setUserSettings(null);
+        // Clear viewingUserId and all session markers on logout
+        setViewingUserId(null);
+        // Clear all session markers
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+            if (key.startsWith('session_user_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        localStorage.removeItem('viewingUserId');
         navigate('/login');
     };
     
@@ -102,63 +106,138 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Reset viewingUserId when user changes (but keep saved preference if valid)
-    // Also automatically switch to authorized account for view-only users
+    // Reset viewingUserId to null (own account) every time user logs in (user ID changes)
+    // This ensures users always start viewing their own account on login,
+    // regardless of what was saved in the previous session
+    // Users can still switch accounts during the session, but it will reset on next login
+    const previousUserIdRef = useRef(null);
     useEffect(() => {
         if (currentUser) {
-            const checkAndSetViewingUser = async () => {
-                try {
-                    const saved = localStorage.getItem('viewingUserId');
-                    // Only use saved value if it's different from current user's ID
-                    // If viewing own account or no saved value, use null
-                    if (saved && parseInt(saved) !== currentUser.id) {
-                        setViewingUserId(parseInt(saved));
+            const currentUserId = currentUser.id;
+            const sessionKey = `session_user_${currentUserId}`;
+            const lastSessionUserId = localStorage.getItem(sessionKey);
+            
+            // Check if this is a new login (user ID changed) or new session
+            const isNewLogin = previousUserIdRef.current !== null && previousUserIdRef.current !== currentUserId;
+            const isNewSession = lastSessionUserId !== currentUserId.toString();
+            
+            console.log('AuthContext - viewingUserId effect:', {
+                currentUserId,
+                previousUserIdRef: previousUserIdRef.current,
+                lastSessionUserId,
+                isNewLogin,
+                isNewSession,
+                savedViewingUserId: localStorage.getItem('viewingUserId')
+            });
+            
+            if (isNewLogin || isNewSession) {
+                // User ID changed OR new session - this is a fresh login
+                console.log('AuthContext - New login/session, resetting to own account');
+                // Reset to own account on login
+                setViewingUserId(null);
+                // Clear any saved viewingUserId preference from previous session
+                localStorage.removeItem('viewingUserId');
+                // Mark this as the current session
+                localStorage.setItem(sessionKey, currentUserId.toString());
+                // Update the ref to track the current user ID
+                previousUserIdRef.current = currentUserId;
+            } else if (!isNewSession && previousUserIdRef.current === null) {
+                // Same session, but refs reset due to page reload - restore from localStorage
+                // This handles page reloads within the same session
+                console.log('AuthContext - Page reload in same session, restoring from localStorage');
+                const saved = localStorage.getItem('viewingUserId');
+                if (saved) {
+                    const savedId = parseInt(saved);
+                    if (savedId && savedId !== currentUserId) {
+                        // User switched accounts in this session - restore it
+                        console.log('AuthContext - Restoring switched account:', savedId);
+                        setViewingUserId(savedId);
                     } else {
-                        // Check if user has received access (is authorized to view other users' data)
-                        try {
-                            const receivedAccess = await AuthorizedUsersService.listReceivedAccess();
-                            
-                            if (receivedAccess && receivedAccess.length > 0) {
-                                // Find the first primary user with non-documents permissions
-                                // (users with only documents permission shouldn't appear in the main view)
-                                const firstPrimaryUser = receivedAccess.find(access => {
-                                    return access.items_permission || 
-                                           access.accounts_permission || 
-                                           access.projections_permission || 
-                                           access.charts_permission;
-                                });
-                                
-                                if (firstPrimaryUser && firstPrimaryUser.primary_user_id) {
-                                    // Automatically set viewingUserId to the first authorized primary user
-                                    // This handles Situation 2: view-only users who don't have their own data
-                                    console.log(`Auto-switching to authorized account: ${firstPrimaryUser.primary_user_id}`);
-                                    setViewingUserId(firstPrimaryUser.primary_user_id);
-                                    localStorage.setItem('viewingUserId', firstPrimaryUser.primary_user_id.toString());
-                                } else {
-                                    // No non-documents permissions, stay on own account
-                                    setViewingUserId(null);
-                                    localStorage.removeItem('viewingUserId');
-                                }
-                            } else {
-                                // No received access, stay on own account
-                                setViewingUserId(null);
-                                localStorage.removeItem('viewingUserId');
-                            }
-                        } catch (error) {
-                            console.error('Error checking received access:', error);
-                            // On error, default to own account
-                            setViewingUserId(null);
-                            localStorage.removeItem('viewingUserId');
-                        }
+                        // Invalid or own account - reset to null
+                        console.log('AuthContext - Invalid saved value, resetting to null');
+                        setViewingUserId(null);
+                        localStorage.removeItem('viewingUserId');
                     }
-                } catch {
+                } else {
+                    // No saved value - default to own account
+                    console.log('AuthContext - No saved value, defaulting to own account');
                     setViewingUserId(null);
                 }
-            };
-            
-            checkAndSetViewingUser();
+                // Update refs
+                previousUserIdRef.current = currentUserId;
+            } else if (previousUserIdRef.current === null) {
+                // First time initializing in this session - check if there's a saved viewingUserId
+                // If there is and it's different from current user, preserve it (user switched accounts)
+                // Otherwise, default to own account
+                const saved = localStorage.getItem('viewingUserId');
+                console.log('AuthContext - First init in session, saved viewingUserId:', saved);
+                if (saved) {
+                    const savedId = parseInt(saved);
+                    if (savedId && savedId !== currentUserId) {
+                        // User switched accounts in this session - preserve it
+                        console.log('AuthContext - Preserving switched account:', savedId);
+                        setViewingUserId(savedId);
+                        // Mark this as the current session AFTER setting viewingUserId
+                        localStorage.setItem(sessionKey, currentUserId.toString());
+                        previousUserIdRef.current = currentUserId;
+                        // Return early to prevent further execution
+                        return;
+                    } else {
+                        // Invalid or own account - reset to null
+                        console.log('AuthContext - Invalid saved value, resetting to null');
+                        setViewingUserId(null);
+                        localStorage.removeItem('viewingUserId');
+                    }
+                } else {
+                    // No saved value - default to own account
+                    console.log('AuthContext - No saved value, defaulting to own account');
+                    setViewingUserId(null);
+                }
+                // Mark this as the current session
+                localStorage.setItem(sessionKey, currentUserId.toString());
+                previousUserIdRef.current = currentUserId;
+            } else {
+                // Already initialized - check if viewingUserId needs to be synchronized with localStorage
+                // Only restore if state is null but localStorage has a value
+                // Don't reset it if it's already set correctly
+                const saved = localStorage.getItem('viewingUserId');
+                if (saved) {
+                    const savedId = parseInt(saved);
+                    if (savedId && savedId !== currentUserId) {
+                        // localStorage has a switched account saved
+                        if (viewingUserId === null || viewingUserId !== savedId) {
+                            // State doesn't match localStorage - restore from localStorage
+                            console.log('AuthContext - Restoring viewingUserId from localStorage:', savedId, '(current state:', viewingUserId, ')');
+                            setViewingUserId(savedId);
+                        } else {
+                            console.log('AuthContext - Already initialized, viewingUserId matches localStorage:', viewingUserId);
+                        }
+                    } else {
+                        // Invalid saved value - clear it
+                        if (savedId === currentUserId) {
+                            console.log('AuthContext - Saved value is own account, clearing');
+                            localStorage.removeItem('viewingUserId');
+                            if (viewingUserId !== null) {
+                                setViewingUserId(null);
+                            }
+                        }
+                    }
+                } else {
+                    // No saved value in localStorage
+                    if (viewingUserId !== null && viewingUserId !== currentUserId) {
+                        // State has a switched account but localStorage doesn't - this shouldn't happen
+                        // Clear the state to match localStorage
+                        console.log('AuthContext - State has switched account but localStorage cleared, resetting to own account');
+                        setViewingUserId(null);
+                    } else {
+                        console.log('AuthContext - Already initialized, viewing own account');
+                    }
+                }
+            }
+            // If already initialized and user ID hasn't changed, don't reset viewingUserId
+            // (preserve account switch during session)
         }
-    }, [currentUser]);
+    }, [currentUser?.id]); // Only depend on currentUser.id, not the whole currentUser object
 
     const value = {
         currentUser,

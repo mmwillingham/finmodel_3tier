@@ -248,22 +248,6 @@ const AccountsSettingsPage = () => {
     }
   };
 
-  // Group accounts by brokerage
-  const accountsByBrokerage = accounts.reduce((acc, account) => {
-    const key = account.brokerage || 'Unknown';
-    if (!acc[key]) {
-      acc[key] = {
-        brokerage: account.brokerage,
-        broker_name: account.broker_name,
-        broker_phone: account.broker_phone,
-        broker_email: account.broker_email,
-        accounts: []
-      };
-    }
-    acc[key].accounts.push(account);
-    return acc;
-  }, {});
-
   if (loading) {
     return <div className="loading-message">Loading accounts...</div>;
   }
@@ -288,7 +272,7 @@ const AccountsSettingsPage = () => {
 
       {/* Plaid Bank Connection Section */}
       <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
-        <h3 style={{ margin: 0, marginBottom: '12px' }}>Connect Bank Accounts (Plaid)</h3>
+        <h3 style={{ margin: 0, marginBottom: '12px', fontWeight: 'bold', fontSize: '1.2em' }}>Connect Bank Accounts (Plaid)</h3>
         <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '12px' }}>
           Securely connect your bank accounts to automatically sync account balances as assets.
         </p>
@@ -421,9 +405,9 @@ const AccountsSettingsPage = () => {
         )}
       </div>
 
-      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Add New Account</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px', fontWeight: 'bold', fontSize: '1.2em' }}>Add New Account</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div className="form-field">
             <label htmlFor="brokerage_select">Brokerage *</label>
             <select
@@ -459,33 +443,28 @@ const AccountsSettingsPage = () => {
               />
             )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
-            <div className="form-field">
-              <label htmlFor="account_name">Account Name *</label>
-              <input
-                id="account_name"
-                type="text"
-                placeholder="e.g., Investment Account or Master CMA - Savings"
-                value={newAccount.account_name}
-                onChange={(e) => setNewAccount({ ...newAccount, account_name: e.target.value })}
-                className="input-modern"
-              />
-              <small style={{ color: '#666', fontSize: '0.85em', marginTop: '4px', display: 'block' }}>
-                Tip: For accounts with subaccounts (like Merrill Lynch CMA), create separate accounts for each subaccount (e.g., "Master CMA - Savings", "Master CMA - Checking")
-              </small>
-            </div>
-            <div className="form-field">
-              <label htmlFor="is_retirement">Account Type</label>
-              <select
-                id="is_retirement"
-                value={newAccount.is_retirement ? 'yes' : 'no'}
-                onChange={(e) => setNewAccount({ ...newAccount, is_retirement: e.target.value === 'yes' })}
-                className="input-modern"
-              >
-                <option value="no">Standard</option>
-                <option value="yes">Retirement</option>
-              </select>
-            </div>
+          <div className="form-field">
+            <label htmlFor="account_name">Account Name *</label>
+            <input
+              id="account_name"
+              type="text"
+              placeholder="e.g., Investment Account or Master CMA - Savings"
+              value={newAccount.account_name}
+              onChange={(e) => setNewAccount({ ...newAccount, account_name: e.target.value })}
+              className="input-modern"
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="is_retirement">Account Type</label>
+            <select
+              id="is_retirement"
+              value={newAccount.is_retirement ? 'yes' : 'no'}
+              onChange={(e) => setNewAccount({ ...newAccount, is_retirement: e.target.value === 'yes' })}
+              className="input-modern"
+            >
+              <option value="no">Standard</option>
+              <option value="yes">Retirement</option>
+            </select>
           </div>
           <div className="form-field">
             <label htmlFor="account_number">Account Number</label>
@@ -498,172 +477,153 @@ const AccountsSettingsPage = () => {
               className="input-modern"
             />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '4px' }}>
-            <button onClick={handleCreateAccount} className="btn-primary-modern">Add Account</button>
-          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '14px' }}>
+          <button onClick={handleCreateAccount} className="btn-primary-modern">Add Account</button>
         </div>
       </div>
 
-      <div className="setting-group">
-        <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Existing Accounts</h3>
+      <div style={{ marginBottom: '20px' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '15px', fontWeight: 'bold', fontSize: '1.2em' }}>Existing Accounts</h3>
         {accounts.length === 0 ? (
           <p style={{ padding: '20px', textAlign: 'center', color: '#666' }}>No accounts defined. Add an account above.</p>
         ) : (
-          <div>
-            {Object.entries(accountsByBrokerage).map(([brokerageName, group]) => (
-              <div key={brokerageName} className="card-modern" style={{ marginBottom: '20px', padding: '15px' }}>
-                <div style={{ marginBottom: '12px', paddingBottom: '8px', borderBottom: '2px solid #e0edfb' }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1em', fontWeight: 600 }}>
-                    {brokerageName}
-                    {group.broker_name && <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '8px', fontWeight: 'normal' }}>— {group.broker_name}</span>}
-                  </h4>
-                  {(group.broker_phone || group.broker_email) && (
-                    <div style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
-                      {group.broker_phone && <span>📞 {group.broker_phone}</span>}
-                      {group.broker_phone && group.broker_email && <span style={{ marginLeft: '10px' }}>|</span>}
-                      {group.broker_email && <span style={{ marginLeft: '10px' }}>📧 {group.broker_email}</span>}
-                    </div>
-                  )}
-                </div>
-                <div style={{ overflowX: 'visible', width: '100%' }}>
-                  <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-                    <thead>
-                      <tr>
-                        <th style={{ width: '8%' }}>Owner</th>
-                        <th style={{ width: '15%' }}>Brokerage</th>
-                        <th style={{ width: '25%' }}>Account Name</th>
-                        <th style={{ width: '15%' }}>Account Number</th>
-                        <th style={{ width: '10%' }}>Retirement</th>
-                        <th style={{ width: '12%' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.accounts.map((account) => (
-                        <tr key={account.id}>
-                          {editingAccount?.id === account.id ? (
-                            <>
-                              <td>
-                                {account.owner_id === currentUser?.id ? (
-                                  <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
-                                ) : (
-                                  <span style={{ color: '#6c757d' }}>{account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}</span>
-                                )}
-                              </td>
-                              <td>
-                                <select
-                                  value={editingAccount.brokerage_id || ''}
-                                  onChange={(e) => setEditingAccount({ ...editingAccount, brokerage_id: e.target.value ? parseInt(e.target.value) : null })}
-                                  className="input-modern"
-                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
-                                >
-                                  <option value="">Select Brokerage...</option>
-                                  {brokerages.map(b => (
-                                    <option key={b.id} value={b.id}>{b.name}</option>
-                                  ))}
-                                </select>
-                              </td>
-                              <td>
-                                <input
-                                  type="text"
-                                  value={editingAccount.account_name}
-                                  onChange={(e) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
-                                  className="input-modern"
-                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="text"
-                                  value={editingAccount.account_number || ''}
-                                  onChange={(e) => setEditingAccount({ ...editingAccount, account_number: e.target.value })}
-                                  className="input-modern"
-                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
-                                />
-                              </td>
-                              <td>
-                                <select
-                                  value={editingAccount.is_retirement ? 'yes' : 'no'}
-                                  onChange={(e) => setEditingAccount({ ...editingAccount, is_retirement: e.target.value === 'yes' })}
-                                  className="input-modern"
-                                  style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
-                                >
-                                  <option value="no">No</option>
-                                  <option value="yes">Yes</option>
-                                </select>
-                              </td>
-                              <td>
-                                <button 
-                                  onClick={() => handleUpdateAccount(account.id, editingAccount)} 
-                                  className="btn-primary-modern" 
-                                  style={{ padding: '4px 8px', marginRight: '4px', fontSize: '0.85em' }}
-                                >
-                                  Save
-                                </button>
-                                <button 
-                                  onClick={() => setEditingAccount(null)} 
-                                  className="btn-secondary-modern" 
-                                  style={{ padding: '4px 8px', fontSize: '0.85em' }}
-                                >
-                                  Cancel
-                                </button>
-                              </td>
-                            </>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="accounts-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+              <thead>
+                <tr>
+                  <th style={{ minWidth: '100px', padding: '8px', textAlign: 'left' }}>Owner</th>
+                  <th style={{ minWidth: '150px', padding: '8px', textAlign: 'left' }}>Brokerage</th>
+                  <th style={{ minWidth: '250px', padding: '8px', textAlign: 'left' }}>Account Name</th>
+                  <th style={{ minWidth: '150px', padding: '8px', textAlign: 'left' }}>Account Number</th>
+                  <th style={{ minWidth: '100px', padding: '8px', textAlign: 'left' }}>Retirement</th>
+                  <th style={{ minWidth: '120px', padding: '8px', textAlign: 'left' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map((account) => (
+                  <tr key={account.id}>
+                    {editingAccount?.id === account.id ? (
+                      <>
+                        <td style={{ padding: '8px' }}>
+                          {account.owner_id === currentUser?.id ? (
+                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
                           ) : (
-                            <>
-                              <td>
-                                {account.owner_id === currentUser?.id ? (
-                                  <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
-                                ) : (
-                                  <span style={{ color: '#6c757d' }} title={account.owner_email || 'Authorized Access'}>
-                                    {account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}
-                                  </span>
-                                )}
-                              </td>
-                              <td>
-                                {account.brokerage_id ? (
-                                  brokerages.find(b => b.id === account.brokerage_id)?.name || '-'
-                                ) : (
-                                  '-'
-                                )}
-                              </td>
-                              <td style={{ fontWeight: 500 }}>{account.account_name}</td>
-                              <td>{account.account_number || '-'}</td>
-                              <td>{account.is_retirement ? 'Yes' : 'No'}</td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                  {account.owner_id === currentUser?.id ? (
-                                    <>
-                                      <button 
-                                        onClick={() => setEditingAccount({ ...account, brokerage_id: account.brokerage_id || null })} 
-                                        className="edit-icon-btn" 
-                                        title="Edit"
-                                        style={{ padding: '4px 6px', fontSize: '1em' }}
-                                      >
-                                        ✏️
-                                      </button>
-                                      <button 
-                                        onClick={() => handleDeleteAccount(account.id, account.account_name)} 
-                                        className="delete-icon-btn" 
-                                        title="Delete"
-                                        style={{ padding: '4px 6px', fontSize: '1em' }}
-                                      >
-                                        🗑️
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <span style={{ color: '#6c757d', fontSize: '0.85em' }} title="You can only edit your own accounts">View Only</span>
-                                  )}
-                                </div>
-                              </td>
-                            </>
+                            <span style={{ color: '#6c757d' }}>{account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}</span>
                           )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          <select
+                            value={editingAccount.brokerage_id || ''}
+                            onChange={(e) => setEditingAccount({ ...editingAccount, brokerage_id: e.target.value ? parseInt(e.target.value) : null })}
+                            className="input-modern"
+                            style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                          >
+                            <option value="">Select Brokerage...</option>
+                            {brokerages.map(b => (
+                              <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          <input
+                            type="text"
+                            value={editingAccount.account_name}
+                            onChange={(e) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
+                            className="input-modern"
+                            style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                          />
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          <input
+                            type="text"
+                            value={editingAccount.account_number || ''}
+                            onChange={(e) => setEditingAccount({ ...editingAccount, account_number: e.target.value })}
+                            className="input-modern"
+                            style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                          />
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          <select
+                            value={editingAccount.is_retirement ? 'yes' : 'no'}
+                            onChange={(e) => setEditingAccount({ ...editingAccount, is_retirement: e.target.value === 'yes' })}
+                            className="input-modern"
+                            style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                          >
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          <button 
+                            onClick={() => handleUpdateAccount(account.id, editingAccount)} 
+                            className="btn-primary-modern" 
+                            style={{ padding: '4px 8px', marginRight: '4px', fontSize: '0.85em' }}
+                          >
+                            Save
+                          </button>
+                          <button 
+                            onClick={() => setEditingAccount(null)} 
+                            className="btn-secondary-modern" 
+                            style={{ padding: '4px 8px', fontSize: '0.85em' }}
+                          >
+                            Cancel
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td style={{ padding: '8px' }}>
+                          {account.owner_id === currentUser?.id ? (
+                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>Me</span>
+                          ) : (
+                            <span style={{ color: '#6c757d' }} title={account.owner_email || 'Authorized Access'}>
+                              {account.owner_email ? account.owner_email.split('@')[0] : 'Other User'}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          {account.brokerage_id ? (
+                            brokerages.find(b => b.id === account.brokerage_id)?.name || '-'
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td style={{ fontWeight: 500, padding: '8px' }}>{account.account_name}</td>
+                        <td style={{ padding: '8px' }}>{account.account_number || '-'}</td>
+                        <td style={{ padding: '8px' }}>{account.is_retirement ? 'Yes' : 'No'}</td>
+                        <td style={{ padding: '8px' }}>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {account.owner_id === currentUser?.id ? (
+                              <>
+                                <button 
+                                  onClick={() => setEditingAccount({ ...account, brokerage_id: account.brokerage_id || null })} 
+                                  className="edit-icon-btn" 
+                                  title="Edit"
+                                  style={{ padding: '4px 6px', fontSize: '1em' }}
+                                >
+                                  ✏️
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteAccount(account.id, account.account_name)} 
+                                  className="delete-icon-btn" 
+                                  title="Delete"
+                                  style={{ padding: '4px 6px', fontSize: '1em' }}
+                                >
+                                  🗑️
+                                </button>
+                              </>
+                            ) : (
+                              <span style={{ color: '#6c757d', fontSize: '0.85em' }} title="You can only edit your own accounts">View Only</span>
+                            )}
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

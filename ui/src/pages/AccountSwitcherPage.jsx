@@ -99,8 +99,15 @@ const AccountSwitcherPage = () => {
         }, 5000);
     };
 
-    const currentViewingId = viewingUserId || currentUser?.id;
-    const currentAccount = accessibleAccounts.find(acc => acc.id === currentViewingId) || accessibleAccounts[0];
+    // Default to current user's account (My Account) if viewingUserId is not explicitly set
+    // Note: viewingUserId might be null (viewing own account) or a number (viewing another account)
+    // We want the select to default to currentUser.id when viewingUserId is null
+    const currentViewingId = viewingUserId !== null && viewingUserId !== undefined ? viewingUserId : (currentUser?.id || null);
+    const currentAccount = accessibleAccounts.find(acc => acc.id === currentViewingId) || accessibleAccounts.find(acc => acc.id === currentUser?.id) || accessibleAccounts[0];
+    
+    // Debug: log the values to see what's happening
+    console.log('AccountSwitcher - viewingUserId:', viewingUserId, 'currentUser?.id:', currentUser?.id, 'currentViewingId:', currentViewingId, 'accessibleAccounts:', accessibleAccounts);
+    console.log('AccountSwitcher - Select value will be:', viewingUserId === null || viewingUserId === undefined ? (currentUser?.id || accessibleAccounts[0]?.id || '') : (viewingUserId || currentUser?.id || ''));
 
     return (
         <div className="settings-page-container">
@@ -147,7 +154,14 @@ const AccountSwitcherPage = () => {
                             </label>
                             <select
                                 id="account-switcher-select"
-                                value={currentViewingId}
+                                value={(() => {
+                                    // If viewingUserId is null or undefined, default to current user's account (My Account)
+                                    if (viewingUserId === null || viewingUserId === undefined) {
+                                        return currentUser?.id || accessibleAccounts[0]?.id || '';
+                                    }
+                                    // Otherwise, use the viewingUserId (user is viewing another account)
+                                    return viewingUserId || currentUser?.id || '';
+                                })()}
                                 onChange={handleAccountChange}
                                 style={{
                                     width: '100%',

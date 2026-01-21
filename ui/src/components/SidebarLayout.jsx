@@ -93,6 +93,8 @@ export default function SidebarLayout() {
     }
   }, []);
 
+  const [viewingUserSettings, setViewingUserSettings] = useState(null);
+
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     try {
@@ -102,7 +104,7 @@ export default function SidebarLayout() {
         AssetService.list(viewingUserId),
         LiabilityService.list(viewingUserId),
         AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
-        SettingsService.getSettings(),
+        SettingsService.getSettings(), // This always returns current user's settings
         AutoDisbursementService.getAllAutoDisbursements().catch(() => []), // NEW: Load auto-disbursements
       ]);
 
@@ -112,8 +114,18 @@ export default function SidebarLayout() {
       setLiabilities(lib.data || []);
       setAccounts(accs || []);
       setAutoDisbursements(autoDisburs || []); // NEW: Set auto-disbursements
-      setProjectionYears(settingsRes.data.projection_years || 30);
-      setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
+      
+      // Only use current user's settings for projection years and chart totals
+      // Categories will come from actual items when viewing another user
+      if (!viewingUserId || viewingUserId === currentUser?.id) {
+        setProjectionYears(settingsRes.data.projection_years || 30);
+        setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
+        setViewingUserSettings(settingsRes.data);
+      } else {
+        // When viewing another user, use categories from their actual items
+        // and keep projection years/chart totals from current user (or use defaults)
+        setViewingUserSettings(null); // No settings available for viewing user
+      }
 
       const uniqueAssetCategories = [...new Set(ast.data.map(item => item.category))].filter(Boolean);
       setAssetCategories(uniqueAssetCategories);
@@ -132,7 +144,7 @@ export default function SidebarLayout() {
     } finally {
       setLoading(false);
     }
-  }, [viewingUserId]);
+  }, [viewingUserId, currentUser?.id]);
 
   useEffect(() => {
     const load = async () => {
@@ -328,6 +340,12 @@ export default function SidebarLayout() {
               onClick={() => { setView('accounts'); }}
             >
               Accounts
+            </button>
+            <button
+              className={`nav-btn ${location.pathname === '/settings/categories' ? 'active' : ''}`}
+              onClick={() => { navigate('/settings/categories'); }}
+            >
+              Categories
             </button>
             <button
               className={`nav-btn ${view === 'assets' ? 'active' : ''}`}
@@ -684,7 +702,7 @@ export default function SidebarLayout() {
               refreshAssets={refreshAssets}
               refreshCashflow={refreshCashflow}
               accounts={accounts}
-              validCategories={userSettings?.asset_categories || []}
+              validCategories={viewingUserId && viewingUserId !== currentUser?.id ? assetCategories : (userSettings?.asset_categories || [])}
             />
           </div>
         )}
@@ -706,7 +724,11 @@ export default function SidebarLayout() {
               incomeItems={incomeItems}
               expenseItems={expenseItems}
               refreshCashflow={refreshCashflow}
-              validCategories={cashFlowView === 'expense' ? (userSettings?.expense_categories || []) : (userSettings?.income_categories || [])}
+              validCategories={
+                viewingUserId && viewingUserId !== currentUser?.id 
+                  ? (cashFlowView === 'expense' ? expenseCategories : incomeCategories)
+                  : (cashFlowView === 'expense' ? (userSettings?.expense_categories || []) : (userSettings?.income_categories || []))
+              }
               assets={assets}
             />
           </div>
