@@ -96,9 +96,6 @@ const HelpPage = () => {
           <div dangerouslySetInnerHTML={{ __html: helpContent }} />
         )}
       </div>
-      <div className="settings-page-actions">
-        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
-      </div>
     </div>
   );
 };
