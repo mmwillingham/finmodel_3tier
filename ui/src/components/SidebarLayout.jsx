@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
+import { useLocation, useNavigate } from "react-router-dom";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
 import AccountService from "../services/account.service";
+import AuthService from "../services/auth.service";
 import { useAuth } from "../context/AuthContext.jsx";
 import { SkeletonList } from "./Skeleton";
 import ProjectionDetail from "./ProjectionDetail.jsx";
@@ -31,9 +33,12 @@ import AccountsSettingsPage from "../pages/AccountsSettingsPage";
 import AutoDisbursementSettingsPage from "../pages/AutoDisbursementSettingsPage";
 import DocumentsPage from "../pages/DocumentsPage";
 import CashHandlingPage from "../pages/CashHandlingPage";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function SidebarLayout() {
-  const { viewingUserId, userSettings } = useAuth();
+  const { viewingUserId, userSettings, currentUser, login } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [view, setView] = useState("new-home"); // Default to home view
   const [cashFlowView, setCashFlowView] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +59,29 @@ export default function SidebarLayout() {
   const [selectedChartId, setSelectedChartId] = useState(null);
   const [chartToViewId, setChartToViewId] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(null); // 'profile', 'categories', 'accounts', or null
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+
+  // Check if password change is required on mount or when currentUser changes
+  useEffect(() => {
+    // Check navigation state first
+    if (location.state?.mustChangePassword) {
+      setShowPasswordChangeModal(true);
+      // Clear the state to avoid showing it again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    } else if (currentUser && currentUser.must_change_password) {
+      // Also check currentUser directly in case the state wasn't passed
+      setShowPasswordChangeModal(true);
+    }
+  }, [location.state, currentUser, navigate, location.pathname]);
+
+  // Handle password change completion - refresh user data from context
+  const handlePasswordChangeComplete = () => {
+    // The password change endpoint already clears must_change_password flag
+    // Check currentUser again to see if it was cleared
+    if (currentUser && !currentUser.must_change_password) {
+      setShowPasswordChangeModal(false);
+    }
+  };
 
   const refreshSettings = useCallback(async () => {
     try {
@@ -727,6 +755,26 @@ export default function SidebarLayout() {
           </div>
         )}
       </main>
+      <ChangePasswordModal 
+        isOpen={showPasswordChangeModal}
+        onClose={async () => {
+          // Only allow closing if password has been changed (must_change_password is false)
+          // Refresh user data first to get the latest must_change_password flag
+          try {
+            const updatedUser = await AuthService.getCurrentUser();
+            if (updatedUser && !updatedUser.must_change_password) {
+              setShowPasswordChangeModal(false);
+              // Refresh AuthContext to update currentUser
+              await login();
+            }
+          } catch (error) {
+            console.error("Error checking user data:", error);
+            // If we can't check, assume password was changed
+            setShowPasswordChangeModal(false);
+          }
+        }}
+        requireChange={currentUser?.must_change_password || false}
+      />
     </div>
   );
 }

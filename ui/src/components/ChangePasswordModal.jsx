@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuthService from '../services/auth.service';
+import { useAuth } from '../context/AuthContext';
 import './ChangePasswordModal.css';
 
-export default function ChangePasswordModal({ isOpen, onClose }) {
+export default function ChangePasswordModal({ isOpen, onClose, requireChange = false }) {
+  const { currentUser, login } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -26,8 +28,24 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
-      setTimeout(() => {
-        onClose();
+      // After password change, refresh user data to get updated must_change_password flag
+      // Refresh the AuthContext to get the updated user data
+      setTimeout(async () => {
+        try {
+          // Refresh user data in AuthContext
+          await login();
+          // Give it a moment for state to update, then check
+          setTimeout(async () => {
+            const updatedUser = await AuthService.getCurrentUser();
+            // Only close if password change was not required, or if the flag is now cleared
+            if (!requireChange || (updatedUser && !updatedUser.must_change_password)) {
+              onClose();
+            }
+          }, 500);
+        } catch (error) {
+          // If we can't check, still close the modal
+          onClose();
+        }
       }, 1500);
     } catch (error) {
       let displayMessage = "Failed to change password. Please try again.";
@@ -55,10 +73,18 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  // If password change is required, don't allow closing by clicking overlay
+  const handleOverlayClick = requireChange ? undefined : onClose;
+
   return (
-    <div className="change-password-modal-overlay" onClick={onClose}>
+    <div className="change-password-modal-overlay" onClick={handleOverlayClick}>
       <div className="change-password-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Change Password</h2>
+        <h2>{requireChange ? 'Change Password Required' : 'Change Password'}</h2>
+        {requireChange && (
+          <p style={{ color: '#d9534f', marginBottom: '15px' }}>
+            You must change your password before continuing.
+          </p>
+        )}
         {message && <div className="message">{message}</div>}
 
         <form onSubmit={handleSubmit}>
@@ -94,7 +120,9 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
           </div>
           <div className="modal-actions">
             <button type="submit" disabled={loading}>Change Password</button>
-            <button type="button" onClick={onClose} disabled={loading}>Cancel</button>
+            {!requireChange && (
+              <button type="button" onClick={onClose} disabled={loading}>Cancel</button>
+            )}
           </div>
         </form>
       </div>

@@ -522,7 +522,24 @@ const ProfileSettingsPage = () => {
         </div>
 
         <div className="form-group-horizontal">
-            <button type="button" className="change-password-btn" onClick={() => setIsChangePasswordModalOpen(true)}>Change Password</button>
+            <button 
+              type="button" 
+              className="change-password-btn" 
+              onClick={() => setIsChangePasswordModalOpen(true)}
+              style={{ 
+                backgroundColor: '#007bff', 
+                color: 'white', 
+                border: 'none', 
+                padding: '8px 16px', 
+                borderRadius: '4px', 
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
+            >
+              Change Password
+            </button>
         </div>
       </div>
       <div className="settings-page-actions">

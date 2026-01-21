@@ -202,7 +202,18 @@ const UserManagementPage = () => {
         <button 
           onClick={() => setShowCreateForm(!showCreateForm)}
           className="create-user-btn"
-          style={{ marginLeft: 'auto' }}
+          style={{ 
+            marginLeft: 'auto', 
+            backgroundColor: '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            padding: '8px 16px', 
+            borderRadius: '4px', 
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
         >
           {showCreateForm ? 'Cancel' : 'Create User'}
         </button>
@@ -213,7 +224,7 @@ const UserManagementPage = () => {
           <h3>Create New User</h3>
           <form onSubmit={handleCreateUser}>
             <div className="form-group" style={{ marginBottom: '15px' }}>
-              <label htmlFor="new-user-email">User name (optional):</label>
+              <label htmlFor="new-user-email">User name:</label>
               <input
                 id="new-user-email"
                 type="text"
@@ -248,7 +259,23 @@ const UserManagementPage = () => {
               </label>
             </div>
             <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit" className="create-button" disabled={loading}>
+              <button 
+                type="submit" 
+                className="create-button" 
+                disabled={loading}
+                style={{ 
+                  backgroundColor: '#007bff', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '8px 16px', 
+                  borderRadius: '4px', 
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.2s',
+                  opacity: loading ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#0056b3')}
+                onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#007bff')}
+              >
                 Create User
               </button>
               <button 

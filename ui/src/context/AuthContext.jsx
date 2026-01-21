@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import SettingsService from '../services/settings.service';
+import AuthorizedUsersService from '../services/authorizedUsers.service';
 
 const AuthContext = createContext();
 
@@ -52,8 +53,8 @@ export const AuthProvider = ({ children }) => {
                 setUserSettings(settingsResponse.data);
                 console.log('Fetched user settings in AuthContext:', settingsResponse.data);
 
-                // NEW: Check email confirmation status here
-                if (!userResponse.is_confirmed) {
+                // NEW: Check email confirmation status here (only if user has email)
+                if (userResponse.email && !userResponse.is_confirmed) {
                     AuthService.logout();
                     setCurrentUser(null);
                     setUserSettings(null);
@@ -102,21 +103,60 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Reset viewingUserId when user changes (but keep saved preference if valid)
+    // Also automatically switch to authorized account for view-only users
     useEffect(() => {
         if (currentUser) {
-            try {
-                const saved = localStorage.getItem('viewingUserId');
-                // Only use saved value if it's different from current user's ID
-                // If viewing own account or no saved value, use null
-                if (saved && parseInt(saved) !== currentUser.id) {
-                    setViewingUserId(parseInt(saved));
-                } else {
+            const checkAndSetViewingUser = async () => {
+                try {
+                    const saved = localStorage.getItem('viewingUserId');
+                    // Only use saved value if it's different from current user's ID
+                    // If viewing own account or no saved value, use null
+                    if (saved && parseInt(saved) !== currentUser.id) {
+                        setViewingUserId(parseInt(saved));
+                    } else {
+                        // Check if user has received access (is authorized to view other users' data)
+                        try {
+                            const receivedAccess = await AuthorizedUsersService.listReceivedAccess();
+                            
+                            if (receivedAccess && receivedAccess.length > 0) {
+                                // Find the first primary user with non-documents permissions
+                                // (users with only documents permission shouldn't appear in the main view)
+                                const firstPrimaryUser = receivedAccess.find(access => {
+                                    return access.items_permission || 
+                                           access.accounts_permission || 
+                                           access.projections_permission || 
+                                           access.charts_permission;
+                                });
+                                
+                                if (firstPrimaryUser && firstPrimaryUser.primary_user_id) {
+                                    // Automatically set viewingUserId to the first authorized primary user
+                                    // This handles Situation 2: view-only users who don't have their own data
+                                    console.log(`Auto-switching to authorized account: ${firstPrimaryUser.primary_user_id}`);
+                                    setViewingUserId(firstPrimaryUser.primary_user_id);
+                                    localStorage.setItem('viewingUserId', firstPrimaryUser.primary_user_id.toString());
+                                } else {
+                                    // No non-documents permissions, stay on own account
+                                    setViewingUserId(null);
+                                    localStorage.removeItem('viewingUserId');
+                                }
+                            } else {
+                                // No received access, stay on own account
+                                setViewingUserId(null);
+                                localStorage.removeItem('viewingUserId');
+                            }
+                        } catch (error) {
+                            console.error('Error checking received access:', error);
+                            // On error, default to own account
+                            setViewingUserId(null);
+                            localStorage.removeItem('viewingUserId');
+                        }
+                    }
+                } catch {
                     setViewingUserId(null);
-                    localStorage.removeItem('viewingUserId');
                 }
-            } catch {
-                setViewingUserId(null);
-            }
+            };
+            
+            checkAndSetViewingUser();
         }
     }, [currentUser]);
 

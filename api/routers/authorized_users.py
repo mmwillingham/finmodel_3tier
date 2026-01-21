@@ -32,13 +32,46 @@ def create_authorized_user(
     """
     Create a new authorized user entry.
     The current user (primary_user) grants access to another user (authorized_user).
-    If the user doesn't exist yet, create the entry with just the email (authorized_user_id will be null).
-    When they register, they'll be automatically linked.
+    If the user doesn't exist yet:
+    - If temporary_password is provided, the user account will be created immediately
+    - Otherwise, create the entry with just the email (authorized_user_id will be null).
+      When they register, they'll be automatically linked.
     """
     # Find the authorized user by email
     target_user = db.query(models.User).filter(
         models.User.email == authorized_user.authorized_user_email.lower()
     ).first()
+    
+    # If user doesn't exist and temporary_password is provided, create the user account
+    if not target_user and authorized_user.temporary_password:
+        try:
+            hashed_password = auth.get_password_hash(authorized_user.temporary_password)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Password did not meet requirements: {e}"
+            )
+        
+        # Create the user account
+        target_user = models.User(
+            email=authorized_user.authorized_user_email.lower(),
+            hashed_password=hashed_password,
+            is_active=True,
+            is_confirmed=True,  # Auto-confirm since they're being invited
+            must_change_password=True,  # Require password change on first login
+            referred_by_id=None
+        )
+        
+        db.add(target_user)
+        db.commit()
+        db.refresh(target_user)
+        
+        # Initialize UserSettings with defaults
+        user_settings = models.UserSettings(owner_id=target_user.id)
+        db.add(user_settings)
+        db.commit()
+        
+        logger.info(f"Created user account for {authorized_user.authorized_user_email} (user_id: {target_user.id})")
     
     # Cannot authorize yourself
     if target_user and target_user.id == current_user.id:
@@ -67,7 +100,7 @@ def create_authorized_user(
         )
     
     # Create the authorized user entry
-    # If user exists, link them. If not, authorized_user_id will be None until they register
+    # If user exists (or was just created), link them. If not, authorized_user_id will be None until they register
     db_authorized_user = models.AuthorizedUser(
         primary_user_id=current_user.id,
         authorized_user_id=target_user.id if target_user else None,
@@ -87,18 +120,30 @@ def create_authorized_user(
     
     # Send email notification in the background
     try:
-        primary_user_name = current_user.email.split('@')[0]
-        signup_link = f"{settings.FRONTEND_URL or 'https://www.ordaxium.com'}/signup"
+        primary_user_name = current_user.email.split('@')[0] if current_user.email else "User"
+        login_link = f"{settings.FRONTEND_URL or 'https://www.ordaxium.com'}/login"
         
-        email_subject = f"You've been granted access to {current_user.email}'s financial data"
+        email_subject = f"You've been granted access to {current_user.email or 'a user'}'s financial data"
         if target_user:
-            invitation_message = "Your account has been linked and you can now access their data."
+            if authorized_user.temporary_password:
+                invitation_message = f"""Your account has been created! You can now log in to access their data.
+
+Login credentials:
+- Username/Email: {authorized_user.authorized_user_email}
+- Temporary Password: {authorized_user.temporary_password}
+
+Please log in at: {login_link}
+
+You will be required to change your password on first login for security."""
+            else:
+                invitation_message = "Your account has been linked and you can now access their data."
         else:
+            signup_link = f"{settings.FRONTEND_URL or 'https://www.ordaxium.com'}/signup"
             invitation_message = f"To accept this invitation and access their data, please sign up at:\n\n{signup_link}\n\nOnce you register with this email address, your access will be automatically activated."
         
         email_body = f"""Hello,
 
-{primary_user_name} ({current_user.email}) has granted you access to their financial data in {settings.APP_NAME}.
+{primary_user_name} ({current_user.email or 'a user'}) has granted you access to their financial data in {settings.APP_NAME}.
 
 {invitation_message}
 

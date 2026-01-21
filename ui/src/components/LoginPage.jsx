@@ -40,24 +40,29 @@ const LoginPage = () => {
 
         try {
             // 1. Call the backend API service to get the JWT token
-            await AuthService.login(email, password);
+            const loginResponse = await AuthService.login(email, password);
 
             // 2. If the API call succeeds (200 OK), update the global authentication state
             //    The login() function will retrieve and verify the token.
             await login();
 
+            // Get the user data from the login response (more reliable than waiting for context state)
+            const userData = loginResponse.user || currentUser;
+
             // Check if the user's email is confirmed (only if they have an email)
-            if (currentUser && currentUser.email && !currentUser.is_confirmed) {
+            if (userData && userData.email && !userData.is_confirmed) {
                 logout(); // Log out the user to clear the token
                 setError("Your email address has not been confirmed. Please check your inbox for a confirmation link.");
                 setLoading(false);
                 return;
             }
             
-            // Check if password change is required
-            if (currentUser && currentUser.must_change_password) {
-                // Redirect to profile settings where they can change password
+            // Check if password change is required (check both response flag and user data)
+            // The backend returns must_change_password in the token response
+            if (loginResponse.must_change_password === true || (userData && userData.must_change_password === true)) {
+                // Show password change modal - redirect to home with flag
                 navigate('/', { state: { mustChangePassword: true } });
+                setLoading(false);
                 return;
             }
             

@@ -22,7 +22,9 @@ class AuthorizedUserBase(BaseModel):
         return v
 
 class AuthorizedUserCreate(AuthorizedUserBase):
-    pass
+    temporary_password: Optional[str] = None
+    """Optional temporary password. If provided, the user account will be created immediately.
+    The user will be required to change this password on first login."""
 
 class AuthorizedUserUpdate(BaseModel):
     accounts_permission: Optional[PermissionType] = None

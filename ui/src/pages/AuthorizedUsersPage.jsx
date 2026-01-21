@@ -16,6 +16,7 @@ const AuthorizedUsersPage = () => {
   
   // Form states
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newTemporaryPassword, setNewTemporaryPassword] = useState('');
   const [newPermissions, setNewPermissions] = useState({
     accounts_permission: null,
     items_permission: null,
@@ -67,11 +68,19 @@ const AuthorizedUsersPage = () => {
     }
     
     try {
-      await AuthorizedUsersService.createAuthorizedUser({
+      const payload = {
         authorized_user_email: newUserEmail.trim(),
         ...newPermissions
-      });
+      };
+      
+      // Include temporary_password only if provided
+      if (newTemporaryPassword.trim()) {
+        payload.temporary_password = newTemporaryPassword.trim();
+      }
+      
+      await AuthorizedUsersService.createAuthorizedUser(payload);
       setNewUserEmail('');
+      setNewTemporaryPassword('');
       setNewPermissions({
         accounts_permission: null,
         items_permission: null,
@@ -274,7 +283,10 @@ const AuthorizedUsersPage = () => {
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Add Authorized User</h2>
-            <p className="modal-hint">The user must already be registered in the system.</p>
+            <p className="modal-hint">
+              If the user is not registered, you can optionally create their account by providing a temporary password.
+              If the user is already registered, leave the password field empty.
+            </p>
             <input
               type="email"
               placeholder="User email address"
@@ -282,8 +294,16 @@ const AuthorizedUsersPage = () => {
               onChange={(e) => setNewUserEmail(e.target.value)}
               className="form-input"
             />
+            <input
+              type="password"
+              placeholder="Temporary password (optional - creates account if user doesn't exist)"
+              value={newTemporaryPassword}
+              onChange={(e) => setNewTemporaryPassword(e.target.value)}
+              className="form-input"
+              style={{ marginTop: '10px' }}
+            />
             
-            <div className="permissions-section">
+            <div className="permissions-section" style={{ marginTop: '20px' }}>
               <h3>Permissions</h3>
               <PermissionSelector
                 permissionType="accounts_permission"
