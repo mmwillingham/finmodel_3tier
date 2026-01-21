@@ -19,6 +19,10 @@ const UserManagementPage = () => {
   const [itemsPerPage] = useState(10);
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserMustChangePassword, setNewUserMustChangePassword] = useState(true);
 
   const fetchUsers = useCallback(async () => {
     if (!currentUser || !currentUser.is_admin) {
@@ -45,20 +49,21 @@ const UserManagementPage = () => {
   }, [fetchUsers]);
 
   const handleDeleteUser = async (userId, userEmail) => {
+    const userName = userEmail || `User ID ${userId}`;
     setConfirmDialog({
       isOpen: true,
       title: 'Delete User',
-      message: `Are you sure you want to delete user ${userEmail} (ID: ${userId})? This action cannot be undone.`,
+      message: `Are you sure you want to delete user ${userName} (ID: ${userId})? This action cannot be undone.`,
       onConfirm: async () => {
         setLoading(true);
         setMessage('');
         try {
           await AuthService.deleteUser(userId);
-          setMessage(`User ${userEmail} deleted successfully.`);
+          setMessage(`User ${userName} deleted successfully.`);
           fetchUsers(); // Refresh the list
         } catch (error) {
           console.error("Failed to delete user:", error);
-          setMessage(`Failed to delete user ${userEmail}: ${error.response?.data?.detail || error.message}`);
+          setMessage(`Failed to delete user ${userName}: ${error.response?.data?.detail || error.message}`);
         } finally {
           setLoading(false);
         }
@@ -67,25 +72,51 @@ const UserManagementPage = () => {
   };
 
   const handleSetAdminStatus = async (userId, userEmail, isAdmin) => {
+    const userName = userEmail || `User ID ${userId}`;
     setConfirmDialog({
       isOpen: true,
       title: isAdmin ? 'Make Admin' : 'Revoke Admin Status',
-      message: `Are you sure you want to ${isAdmin ? 'make' : 'revoke'} admin status for user ${userEmail} (ID: ${userId})?`,
+      message: `Are you sure you want to ${isAdmin ? 'make' : 'revoke'} admin status for user ${userName} (ID: ${userId})?`,
       onConfirm: async () => {
         setLoading(true);
         setMessage('');
         try {
           await AuthService.setUserAdminStatus(userId, isAdmin);
-          setMessage(`User ${userEmail} ${isAdmin ? 'made' : 'admin status revoked for'} successfully.`);
+          setMessage(`User ${userName} ${isAdmin ? 'made' : 'admin status revoked for'} successfully.`);
           fetchUsers(); // Refresh the list
         } catch (error) {
           console.error("Failed to update admin status:", error);
-          setMessage(`Failed to update admin status for user ${userEmail}: ${error.response?.data?.detail || error.message}`);
+          setMessage(`Failed to update admin status for user ${userName}: ${error.response?.data?.detail || error.message}`);
         } finally {
           setLoading(false);
         }
       }
     });
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newUserPassword || newUserPassword.length < 8) {
+      setMessage('Password must be at least 8 characters long.');
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    try {
+      await AuthService.createUser(newUserEmail || null, newUserPassword, newUserMustChangePassword);
+      setMessage(`User ${newUserEmail || 'created'} created successfully.`);
+      setShowCreateForm(false);
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserMustChangePassword(true);
+      fetchUsers(); // Refresh the list
+    } catch (error) {
+      console.error("Failed to create user:", error);
+      setMessage(`Failed to create user: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (error) {
@@ -156,7 +187,7 @@ const UserManagementPage = () => {
             value={sortField} 
             onChange={(e) => handleSort(e.target.value)}
           >
-            <option value="email">Email</option>
+            <option value="email">User name</option>
             <option value="created_at">Date Created</option>
             <option value="id">ID</option>
             <option value="is_admin">Admin Status</option>
@@ -168,7 +199,74 @@ const UserManagementPage = () => {
             {sortDirection === 'asc' ? '↑' : '↓'}
           </button>
         </div>
+        <button 
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="create-user-btn"
+          style={{ marginLeft: 'auto' }}
+        >
+          {showCreateForm ? 'Cancel' : 'Create User'}
+        </button>
       </div>
+
+      {showCreateForm && (
+        <div className="create-user-form" style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ddd', borderRadius: '4px' }}>
+          <h3>Create New User</h3>
+          <form onSubmit={handleCreateUser}>
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label htmlFor="new-user-email">User name (optional):</label>
+              <input
+                id="new-user-email"
+                type="text"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="Leave empty for users without email"
+                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label htmlFor="new-user-password">Temporary Password *:</label>
+              <input
+                id="new-user-password"
+                type="password"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                required
+                minLength={8}
+                placeholder="Minimum 8 characters"
+                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={newUserMustChangePassword}
+                  onChange={(e) => setNewUserMustChangePassword(e.target.checked)}
+                  style={{ marginRight: '8px' }}
+                />
+                Require password change on first login
+              </label>
+            </div>
+            <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" className="create-button" disabled={loading}>
+                Create User
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setNewUserEmail('');
+                  setNewUserPassword('');
+                  setNewUserMustChangePassword(true);
+                }}
+                className="cancel-button"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading">Loading users...</div>
@@ -180,7 +278,7 @@ const UserManagementPage = () => {
                 <tr>
                   <th>ID</th>
                   <th onClick={() => handleSort('email')} className="sortable-header">
-                    Email {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    User name {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
                   <th onClick={() => handleSort('created_at')} className="sortable-header">
                     Date Created {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -196,7 +294,7 @@ const UserManagementPage = () => {
                   currentUsers.map(user => (
                     <tr key={user.id}>
                       <td>{user.id}</td>
-                      <td>{user.email}</td>
+                      <td>{user.email || 'N/A'}</td>
                       <td>{formatDate(user.created_at)}</td>
                       <td>{user.is_admin ? 'Yes' : 'No'}</td>
                       <td>

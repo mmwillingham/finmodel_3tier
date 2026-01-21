@@ -41,7 +41,7 @@ class AuthorizedUserUpdate(BaseModel):
 class AuthorizedUserOut(AuthorizedUserBase):
     id: int
     primary_user_id: int
-    authorized_user_id: int
+    authorized_user_id: Optional[int] = None  # Can be None if user hasn't registered yet
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)

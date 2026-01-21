@@ -6,7 +6,7 @@ from datetime import datetime, date
 # --- USER SCHEMAS ---
 
 class UserBase(BaseModel):
-    email: str
+    email: Optional[str] = None  # Can be None for users without email (e.g., retirees)
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
@@ -23,10 +23,11 @@ class UserCreate(UserBase):
 
 class UserOut(BaseModel):
     id: int
-    email: str
+    email: Optional[str] = None
     created_at: datetime
     is_confirmed: bool = False # NEW FIELD
     is_admin: bool = False # NEW FIELD
+    must_change_password: bool = False  # Require password change on first login
     model_config = ConfigDict(from_attributes=True)
 
 class TokenData(BaseModel):
@@ -67,6 +68,21 @@ class EmailConfirmation(BaseModel):
 
 class UserAdminStatusUpdate(BaseModel):
     is_admin: bool
+
+class AdminUserCreate(BaseModel):
+    """Schema for admin to create users (email optional, can set must_change_password)"""
+    email: Optional[str] = None  # Username/email - can be None
+    password: str = Field(..., min_length=8)
+    must_change_password: bool = True  # Default to True for admin-created users
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Za-z]', v):
+            raise ValueError('Password must contain at least one letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        return v
 
 class CategoryUsageCheck(BaseModel):
     category_name: str

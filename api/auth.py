@@ -146,6 +146,7 @@ def change_user_password(db: Session, user_id: int, current_password: str, new_p
     
     hashed_new_password = get_password_hash(new_password)
     user.hashed_password = hashed_new_password
+    user.must_change_password = False  # Clear the flag after successful password change
     db.commit()
     db.refresh(user)
     return user

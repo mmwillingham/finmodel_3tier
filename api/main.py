@@ -185,7 +185,8 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    if not user.is_confirmed:
+    # Only require email confirmation if user has an email address
+    if user.email and not user.is_confirmed:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Please confirm your email address before logging in.",
@@ -197,7 +198,12 @@ def login_for_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Return must_change_password flag so frontend can handle it
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "must_change_password": user.must_change_password
+    }
 
 @app.get("/users/me", response_model=schemas.UserOut)
 def read_users_me(
@@ -221,16 +227,19 @@ async def debug_environment():
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
     """
     Registers a new user in the database and initializes their settings with global defaults if available.
+    Email is optional - if provided, it must be unique.
     """
-    db_user = db.query(models.User).filter(
-        (models.User.email == user.email)
-    ).first()
-    
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
+    # Check if email is provided and if it's already registered
+    if user.email:
+        db_user = db.query(models.User).filter(
+            (models.User.email == user.email)
+        ).first()
+        
+        if db_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
         
     try:
         hashed_password = auth.get_password_hash(user.password)
@@ -258,10 +267,11 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
             referred_by_id = referrer.id
     
     db_user = models.User(
-        email=user.email,
+        email=user.email if user.email else None,
         hashed_password=hashed_password,
         is_active=True,
         is_confirmed=False,
+        must_change_password=False,  # Regular signups don't require password change
         referred_by_id=referred_by_id
     )
     
@@ -317,13 +327,15 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     db.commit()
     db.refresh(user_settings)
 
-    confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
-    confirmation_link = f"{settings.FRONTEND_URL}/confirm-email?token={confirmation_token}"
-    logger.debug(f"Email confirmation link: {confirmation_link}")
-    background_tasks.add_task(send_email, 
-        to_email=db_user.email,
-        subject="Financial Projector - Confirm Your Email",
-        body=f"""Hello {db_user.email},
+    # Only send confirmation email if user has an email address
+    if db_user.email:
+        confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
+        confirmation_link = f"{settings.FRONTEND_URL}/confirm-email?token={confirmation_token}"
+        logger.debug(f"Email confirmation link: {confirmation_link}")
+        background_tasks.add_task(send_email, 
+            to_email=db_user.email,
+            subject="Financial Projector - Confirm Your Email",
+            body=f"""Hello {db_user.email},
 
 Thank you for registering with Financial Projector!
 
@@ -334,7 +346,7 @@ This link will expire in 24 hours.
 
 Best regards,
 The Financial Projector Team"""
-    )
+        )
     
     return db_user
 
@@ -389,6 +401,83 @@ def list_all_manageable_users(
     """
     users = db.query(models.User).filter(models.User.id != current_admin_user.id).all()
     return [schemas.UserOut.model_validate(user) for user in users]
+
+@app.post("/admin/users", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["admin"])
+def admin_create_user(
+    user: schemas.AdminUserCreate,
+    db: Session = Depends(database.get_db),
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
+):
+    """
+    Allows an admin to create a new user with optional email and password change requirement.
+    """
+    # Check if email is provided and if it's already registered
+    if user.email:
+        existing_user = db.query(models.User).filter(
+            models.User.email == user.email
+        ).first()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email/username already registered"
+            )
+    
+    try:
+        hashed_password = auth.get_password_hash(user.password)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Password did not meet requirements: {e}"
+        )
+    
+    db_user = models.User(
+        email=user.email if user.email else None,
+        hashed_password=hashed_password,
+        is_active=True,
+        is_confirmed=True,  # Admin-created users are auto-confirmed
+        must_change_password=user.must_change_password,
+        referred_by_id=None
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    # Initialize UserSettings with global defaults if available
+    global_settings = db.query(models.GlobalSettings).first()
+    if global_settings:
+        user_settings = models.UserSettings(
+            owner_id=db_user.id,
+            asset_categories=global_settings.asset_categories,
+            liability_categories=global_settings.liability_categories,
+            income_categories=global_settings.income_categories,
+            expense_categories=global_settings.expense_categories,
+            default_inflation_percent=schemas.UserSettingsBase.model_fields['default_inflation_percent'].default,
+            person1_first_name=schemas.UserSettingsBase.model_fields['person1_first_name'].default,
+            person1_last_name=schemas.UserSettingsBase.model_fields['person1_last_name'].default,
+            person1_birthdate=schemas.UserSettingsBase.model_fields['person1_birthdate'].default,
+            person1_cell_phone=schemas.UserSettingsBase.model_fields['person1_cell_phone'].default,
+            person2_first_name=schemas.UserSettingsBase.model_fields['person2_first_name'].default,
+            person2_last_name=schemas.UserSettingsBase.model_fields['person2_last_name'].default,
+            person2_birthdate=schemas.UserSettingsBase.model_fields['person2_birthdate'].default,
+            person2_cell_phone=schemas.UserSettingsBase.model_fields['person2_cell_phone'].default,
+            address=schemas.UserSettingsBase.model_fields['address'].default,
+            city=schemas.UserSettingsBase.model_fields['city'].default,
+            state=schemas.UserSettingsBase.model_fields['state'].default,
+            zip_code=schemas.UserSettingsBase.model_fields['zip_code'].default,
+            projection_years=schemas.UserSettingsBase.model_fields['projection_years'].default,
+            show_chart_totals=schemas.UserSettingsBase.model_fields['show_chart_totals'].default,
+        )
+    else:
+        user_settings = models.UserSettings(owner_id=db_user.id)
+    
+    db.add(user_settings)
+    db.commit()
+    db.refresh(user_settings)
+    
+    logger.info(f"Admin {current_admin_user.id} created user {db_user.id} (email: {db_user.email or 'None'})")
+    return db_user
 
 @app.put("/admin/users/{user_id}/set-admin-status", response_model=schemas.UserOut, tags=["admin"])
 def set_user_admin_status(

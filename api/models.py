@@ -7,15 +7,18 @@ from datetime import datetime
 class User(Base):
     """
     SQLAlchemy Model for the User table.
+    email can be None for users without email addresses (e.g., retirees).
+    In that case, the email field serves as a username for login.
     """
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=True)  # Can be None for users without email
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_active = Column(Boolean, default=True)
     is_confirmed = Column(Boolean, default=False) # NEW FIELD
     is_admin = Column(Boolean, default=False) # NEW FIELD
+    must_change_password = Column(Boolean, default=False)  # Require password change on first login
     google_id = Column(String, unique=True, index=True, nullable=True) # NEW FIELD for Google OAuth
     referred_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # NEW: Track who referred this user
     # Relationship to Projections: one user can have many projections

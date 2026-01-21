@@ -33,7 +33,7 @@ const LoginPage = () => {
 
         // Basic client-side validation
         if (!email || !password) {
-            setError("Please enter both email and password.");
+            setError("Please enter both user name and password.");
             setLoading(false);
             return;
         }
@@ -46,11 +46,18 @@ const LoginPage = () => {
             //    The login() function will retrieve and verify the token.
             await login();
 
-            // Check if the user's email is confirmed
-            if (currentUser && !currentUser.is_confirmed) {
+            // Check if the user's email is confirmed (only if they have an email)
+            if (currentUser && currentUser.email && !currentUser.is_confirmed) {
                 logout(); // Log out the user to clear the token
                 setError("Your email address has not been confirmed. Please check your inbox for a confirmation link.");
                 setLoading(false);
+                return;
+            }
+            
+            // Check if password change is required
+            if (currentUser && currentUser.must_change_password) {
+                // Redirect to profile settings where they can change password
+                navigate('/', { state: { mustChangePassword: true } });
                 return;
             }
             
@@ -84,14 +91,15 @@ const LoginPage = () => {
                     {error && <p className="error-message">{error}</p>}
 
                     <div className="form-group">
-                        <label htmlFor="email">Email Address</label>
+                        <label htmlFor="email">User name</label>
                         <input
-                            type="email"
+                            type="text"
                             id="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             disabled={loading}
+                            placeholder="Enter your user name or email"
                         />
                     </div>
 

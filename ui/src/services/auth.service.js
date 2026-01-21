@@ -26,7 +26,11 @@ const AuthService = {
                 AuthService.setToken(response.data.access_token);
                 // After successful login, fetch user details
                 const userDetails = await AuthService.getCurrentUser();
-                return { token: response.data.access_token, user: userDetails };
+                return { 
+                    token: response.data.access_token, 
+                    user: userDetails,
+                    must_change_password: response.data.must_change_password || false
+                };
             }
         } catch (error) {
             throw error;
@@ -184,6 +188,29 @@ const AuthService = {
         const response = await axios.put(API_URL + `admin/users/${userId}/set-admin-status`, 
             {
                 is_admin: isAdmin,
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+        return response.data;
+    },
+
+    /**
+     * Creates a new user. (Admin only)
+     */
+    async createUser(email, password, mustChangePassword = true) {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.post(API_URL + "admin/users", 
+            {
+                email: email || null,
+                password: password,
+                must_change_password: mustChangePassword,
             },
             {
                 headers: {
