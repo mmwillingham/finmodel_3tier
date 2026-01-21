@@ -258,6 +258,8 @@ class Asset(Base):
     annual_increase_percent = Column(Float, default=0.0)
     annual_change_type = Column(String, default="increase") # New field
     account_id = Column(Integer, ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)  # Link to master account
+    retirement_interest_rate = Column(Float, nullable=True)  # Interest rate for retirement accounts (reinvested, not taxable)
+    retirement_dividend_rate = Column(Float, nullable=True)  # Dividend rate for retirement accounts (reinvested, not taxable)
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

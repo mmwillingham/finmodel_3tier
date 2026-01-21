@@ -595,9 +595,6 @@ const AutoDisbursementSettingsPage = () => {
         </div>
       )}
 
-      <div className="settings-page-actions" style={{ marginTop: '20px' }}>
-        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
-      </div>
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

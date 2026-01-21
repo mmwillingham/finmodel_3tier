@@ -465,6 +465,8 @@ class AssetCreate(BaseModel):
     annual_increase_percent: float = 0.0
     annual_change_type: str = "increase" # New field
     account_id: int | None = None  # Link to master account
+    retirement_interest_rate: float | None = None  # Interest rate for retirement accounts (reinvested, not taxable)
+    retirement_dividend_rate: float | None = None  # Dividend rate for retirement accounts (reinvested, not taxable)
     start_date: str = Field(default_factory=lambda: f"{date.today().year}-01-01", description="Start date (YYYY-MM-DD). Defaults to January 1 of current year if not provided.")  # Required field with default
     end_date: str | None = None    # New field
 
@@ -479,6 +481,8 @@ class AssetOut(BaseModel):
     annual_increase_percent: float
     annual_change_type: Optional[str] # New field, made optional
     account_id: Optional[int] = None  # Link to master account
+    retirement_interest_rate: Optional[float] = None  # Interest rate for retirement accounts (reinvested, not taxable)
+    retirement_dividend_rate: Optional[float] = None  # Dividend rate for retirement accounts (reinvested, not taxable)
     start_date: str | None = None  # New field
     end_date: str | None = None    # New field
     model_config = ConfigDict(from_attributes=True)

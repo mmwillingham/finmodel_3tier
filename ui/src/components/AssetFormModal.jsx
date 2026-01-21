@@ -86,6 +86,33 @@ export default function AssetFormModal({
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
           }));
+          
+          // Load retirement interest and dividend rates if they exist
+          // If they exist, we need to adjust annual_increase_percent to show only the internal rate
+          // (since annual_increase_percent currently contains the total for backward compatibility)
+          const hasRetirementRates = (itemToEdit.retirement_interest_rate !== null && itemToEdit.retirement_interest_rate !== undefined) ||
+                                     (itemToEdit.retirement_dividend_rate !== null && itemToEdit.retirement_dividend_rate !== undefined);
+          
+          if (hasRetirementRates && isRetirementAccount) {
+            // Extract the internal growth rate by subtracting the retirement rates from the total
+            const retirementInterest = itemToEdit.retirement_interest_rate || 0;
+            const retirementDividend = itemToEdit.retirement_dividend_rate || 0;
+            const totalRate = itemToEdit.annual_increase_percent || 0;
+            const internalRate = totalRate - retirementInterest - retirementDividend;
+            
+            // Update newItem to show only the internal rate
+            setNewItem(prev => ({
+              ...prev,
+              annual_increase_percent: Math.max(0, internalRate) // Ensure non-negative
+            }));
+            
+            setRetirementInterestRate(retirementInterest > 0 ? retirementInterest.toString() : "");
+            setRetirementDividendRate(retirementDividend > 0 ? retirementDividend.toString() : "");
+          } else {
+            // No retirement rates stored - this might be old data or non-retirement account
+            setRetirementInterestRate("");
+            setRetirementDividendRate("");
+          }
 
           // Check for existing income items linked to this asset
           const linkedIncomeItems = incomeRes.data?.filter(item => 
@@ -195,12 +222,13 @@ export default function AssetFormModal({
       return;
     }
 
-    // For retirement accounts, add interest and dividend rates to the growth rate (reinvested, not taxable)
-    // For non-retirement accounts, keep growth rate separate (interest/dividends tracked as income)
+    // For retirement accounts, store interest and dividend rates separately
+    // Calculate total growth rate for use in calculations (Internal + Interest + Dividend)
     let totalGrowthRate = parseFloat(newItem.annual_increase_percent || 0);
+    const retirementInterest = isRetirementAccount ? parseFloat(retirementInterestRate || 0) : 0;
+    const retirementDividend = isRetirementAccount ? parseFloat(retirementDividendRate || 0) : 0;
+    
     if (isRetirementAccount) {
-      const retirementInterest = parseFloat(retirementInterestRate || 0);
-      const retirementDividend = parseFloat(retirementDividendRate || 0);
       totalGrowthRate = totalGrowthRate + retirementInterest + retirementDividend;
     }
 
@@ -208,9 +236,11 @@ export default function AssetFormModal({
       name: newItem.name,
       category: newItem.category,
       value: parseFloat(newItem.value),
-      annual_increase_percent: totalGrowthRate, // Include retirement interest/dividends in growth rate
+      annual_increase_percent: totalGrowthRate, // Total growth rate (Internal + Interest + Dividend for retirement accounts)
       annual_change_type: newItem.annual_change_type,
       account_id: newItem.account_id || null,
+      retirement_interest_rate: isRetirementAccount ? (retirementInterest > 0 ? retirementInterest : null) : null,
+      retirement_dividend_rate: isRetirementAccount ? (retirementDividend > 0 ? retirementDividend : null) : null,
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
     };
@@ -481,7 +511,7 @@ export default function AssetFormModal({
             </div>
           </div>
 
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* Second row: Percent, Annual Change, Start Date, End Date */} 
+          <div className="form-row" style={{ gridTemplateColumns: isRetirementAccount ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: '12px' }}> {/* Second row: Percent, Annual Change, Start Date, End Date (and Total Growth Rate for retirement) */} 
             <div className="form-field">
               <label htmlFor="annual-change-percent">Internal Growth Rate (%)</label>
               <input
@@ -491,10 +521,25 @@ export default function AssetFormModal({
                 placeholder="Growth Rate"
                 value={newItem.annual_increase_percent}
                 onFocus={(e) => e.target.select()}
-                onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: e.target.value })}
+                onChange={(e) => setNewItem({ ...newItem, annual_increase_percent: parseFloat(e.target.value) || 0 })}
                 title="The asset's internal growth rate (e.g., equity appreciation)"
               />
             </div>
+            
+            {isRetirementAccount && (
+              <div className="form-field">
+                <label htmlFor="total-growth-rate">Total Growth Rate (%)</label>
+                <input
+                  id="total-growth-rate"
+                  type="text"
+                  value={(parseFloat(newItem.annual_increase_percent || 0) + parseFloat(retirementInterestRate || 0) + parseFloat(retirementDividendRate || 0)).toFixed(1)}
+                  readOnly
+                  disabled
+                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  title="Calculated total: Internal Growth Rate + Interest Rate + Dividend Rate"
+                />
+              </div>
+            )}
 
             <div className="form-field">
               <label htmlFor="annual-change-type">Annual Change</label>
@@ -638,7 +683,7 @@ export default function AssetFormModal({
                 fontSize: '0.9rem',
                 color: '#0066cc'
               }}>
-                For retirement accounts, interest and dividends are automatically reinvested (added to the asset's growth rate) and are not tracked as taxable income. The total growth rate will be: Internal Growth Rate + Interest Rate + Dividend Rate.
+                For retirement accounts, interest and dividends are automatically reinvested and are not tracked as taxable income. The Total Growth Rate above shows the sum (Internal Growth Rate + Interest Rate + Dividend Rate) and is used in calculations.
               </div>
             </>
           ) : (
