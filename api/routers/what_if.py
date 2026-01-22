@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -113,21 +114,11 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
         "expense_items": expense_summary,
     }
 
-@router.post("/ask", response_model=WhatIfResponse)
-async def ask_what_if(
-    request: WhatIfRequest,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Ask a "What If?" question about financial scenarios.
-    The AI will analyze the user's financial data and provide insights.
-    """
+async def generate_streaming_response(request: WhatIfRequest, db: Session, current_user: schemas.UserOut):
+    """Generator function that yields chunks from OpenAI stream as Server-Sent Events."""
     if not settings.OPENAI_API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="OpenAI API key not configured. Please contact support."
-        )
+        yield f"data: {json.dumps({'error': 'OpenAI API key not configured. Please contact support.'})}\n\n"
+        return
     
     try:
         # Get financial summary for the current user (or viewing user if authorized)
@@ -165,28 +156,55 @@ User's Question: {request.question}
 
 Please provide a detailed answer to their "What If?" question, using their actual financial data to inform your response."""
         
-        # Call OpenAI API
+        # Call OpenAI API with streaming
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
         
-        response = client.chat.completions.create(
+        stream = client.chat.completions.create(
             model="gpt-4o-mini",  # Using gpt-4o-mini for cost efficiency, can be upgraded to gpt-4 if needed
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
+            stream=True,
             max_tokens=4000  # Increased from 1000 to allow for complete, detailed responses
         )
         
-        answer = response.choices[0].message.content
+        # Stream chunks as Server-Sent Events
+        for chunk in stream:
+            if chunk.choices and len(chunk.choices) > 0:
+                delta = chunk.choices[0].delta
+                if hasattr(delta, 'content') and delta.content:
+                    # Send each content chunk as an SSE event
+                    yield f"data: {json.dumps({'chunk': delta.content})}\n\n"
+        
+        # Send completion event
+        yield f"data: {json.dumps({'done': True})}\n\n"
         
         logger.info(f"What If question answered for user {user_id}: {request.question[:50]}...")
         
-        return WhatIfResponse(answer=answer)
-        
     except Exception as e:
         logger.error(f"Error processing What If question: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process question: {str(e)}"
-        )
+        yield f"data: {json.dumps({'error': f'Failed to process question: {str(e)}'})}\n\n"
+
+
+@router.post("/ask")
+async def ask_what_if(
+    request: WhatIfRequest,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """
+    Ask a "What If?" question about financial scenarios.
+    The AI will analyze the user's financial data and provide insights.
+    Returns a streaming response (Server-Sent Events) so answers appear progressively.
+    """
+    return StreamingResponse(
+        generate_streaming_response(request, db, current_user),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        }
+    )

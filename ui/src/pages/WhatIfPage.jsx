@@ -29,11 +29,13 @@ const WhatIfPage = () => {
     setAnswer('');
 
     try {
-      const response = await whatIfService.askQuestion(question);
-      setAnswer(response.answer);
+      await whatIfService.askQuestion(question, (chunk, fullAnswer) => {
+        // Update answer incrementally as chunks arrive
+        setAnswer(fullAnswer);
+      });
     } catch (err) {
       console.error('Error asking question:', err);
-      setError(err.response?.data?.detail || 'Failed to get answer. Please try again.');
+      setError(err.message || 'Failed to get answer. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -98,13 +100,17 @@ const WhatIfPage = () => {
           </button>
         </form>
 
-        {answer && (
+        {(answer || loading) && (
           <div className="answer-section">
             <h3>Answer:</h3>
             <div className="answer-content">
-              {answer.split('\n').map((line, index) => (
-                <p key={index}>{line || '\u00A0'}</p>
-              ))}
+              {answer ? (
+                answer.split('\n').map((line, index) => (
+                  <p key={index}>{line || '\u00A0'}</p>
+                ))
+              ) : (
+                <p>Thinking...</p>
+              )}
             </div>
           </div>
         )}
