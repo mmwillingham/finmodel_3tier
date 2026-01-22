@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
@@ -53,8 +54,11 @@ def get_user(db: Session, user_id: str):
     return db.query(models.User).filter(models.User.id == int(user_id)).first()
 
 def authenticate_user(db: Session, username: str, password: str):
-    # This is where you would lookup the user and verify the password hash
-    user = db.query(models.User).filter(models.User.email == username).first()
+    # Look up user by email (case-insensitive); email serves as username for login
+    user = db.query(models.User).filter(
+        models.User.email.isnot(None),
+        func.lower(models.User.email) == username.lower(),
+    ).first()
     if not user:
         return False
 
