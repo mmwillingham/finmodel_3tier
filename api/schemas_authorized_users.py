@@ -8,13 +8,10 @@ PermissionType = Literal["view", "edit", None]
 
 class AuthorizedUserBase(BaseModel):
     authorized_user_email: str
-    accounts_permission: Optional[PermissionType] = None
-    items_permission: Optional[PermissionType] = None
-    projections_permission: Optional[PermissionType] = None
-    charts_permission: Optional[PermissionType] = None
-    documents_permission: Optional[PermissionType] = None
+    financial_data_permission: Optional[PermissionType] = None  # Applies to Accounts, Items, Projections, Charts
+    document_vault_permission: Optional[PermissionType] = None  # Renamed from Documents
 
-    @field_validator('accounts_permission', 'items_permission', 'projections_permission', 'charts_permission', 'documents_permission')
+    @field_validator('financial_data_permission', 'document_vault_permission')
     @classmethod
     def validate_permission(cls, v):
         if v is not None and v not in ["view", "edit"]:
@@ -27,13 +24,10 @@ class AuthorizedUserCreate(AuthorizedUserBase):
     The user will be required to change this password on first login."""
 
 class AuthorizedUserUpdate(BaseModel):
-    accounts_permission: Optional[PermissionType] = None
-    items_permission: Optional[PermissionType] = None
-    projections_permission: Optional[PermissionType] = None
-    charts_permission: Optional[PermissionType] = None
-    documents_permission: Optional[PermissionType] = None
+    financial_data_permission: Optional[PermissionType] = None
+    document_vault_permission: Optional[PermissionType] = None
 
-    @field_validator('accounts_permission', 'items_permission', 'projections_permission', 'charts_permission', 'documents_permission')
+    @field_validator('financial_data_permission', 'document_vault_permission')
     @classmethod
     def validate_permission(cls, v):
         if v is not None and v not in ["view", "edit"]:

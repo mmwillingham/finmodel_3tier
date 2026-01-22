@@ -34,17 +34,10 @@ const AccountSwitcher = ({ compact = false }) => {
                         console.log('DEBUG AccountSwitcher - processing access:', access);
                         const email = access.primary_user_email || (access.primary_user && access.primary_user.email);
                         if (email && access.primary_user_id) {
-                            // Only include users where we have at least one non-documents permission
-                            // (items, accounts, projections, or charts)
-                            // Users with only documents_permission should NOT appear here
+                            // Only include users where we have financial_data_permission
+                            // Users with only document_vault_permission should NOT appear here
                             // They can access documents through the Documents page/section only
-                            const hasNonDocumentsPermission = 
-                                access.items_permission || 
-                                access.accounts_permission || 
-                                access.projections_permission || 
-                                access.charts_permission;
-                            
-                            if (hasNonDocumentsPermission) {
+                            if (access.financial_data_permission) {
                                 accounts.push({
                                     id: access.primary_user_id,
                                     email: email,

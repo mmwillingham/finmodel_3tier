@@ -39,7 +39,7 @@ function App() {
                     <NavigationGuard>
                     <Header /> {/* Removed setIsSettingsModalOpen prop */}
                     <SettingsPageLayout>
-                        <main className="container">
+                        <main className="container container-with-sidebar">
                             <Routes>
                             {/* Public Routes */}
                             <Route path="/login" element={<LoginPage />} />

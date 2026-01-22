@@ -5,6 +5,68 @@
     background-color: var(--color-background-soft);
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    position: relative; /* Ensure it doesn't affect parent positioning */
+    overflow: visible; /* Allow content to scroll within */
+}
+
+/* Override centering for settings pages when inside main-content (which has SidebarLayout) */
+.main-content .settings-page-container {
+    margin: 20px 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Special handling for Help page container - match Application Settings layout */
+.help-page-container {
+    padding: 15px 20px !important;
+    margin: 20px 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    background-color: var(--color-background-soft) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+/* Override any centering styles in help content HTML */
+.help-content-wrapper,
+.help-content-wrapper * {
+    text-align: left !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin: 0 !important;
+}
+
+.help-content-wrapper div,
+.help-content-wrapper section,
+.help-content-wrapper article,
+.help-content-wrapper p,
+.help-content-wrapper h1,
+.help-content-wrapper h2,
+.help-content-wrapper h3 {
+    max-width: 100% !important;
+    width: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    text-align: left !important;
+}
+
+/* Override any inline styles in help content that might center things */
+.help-content-wrapper [style*="margin"] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.help-content-wrapper [style*="text-align"] {
+    text-align: left !important;
 }
 
 /* User Management page needs more width */
@@ -563,6 +625,51 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
     border-radius: 8px;
     min-height: 200px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto; /* Allow horizontal scrolling for wide content */
+    overflow-y: visible;
+    word-wrap: break-word; /* Break long words */
+    overflow-wrap: break-word; /* Break long words */
+    position: relative; /* Create a positioning context */
+    isolation: isolate; /* Create a new stacking context to prevent layout interference */
+}
+
+/* Prevent help content from affecting layout - more aggressive containment */
+.help-content-display * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative !important; /* Prevent absolute positioning from escaping */
+}
+
+/* Prevent any absolute/fixed positioning from escaping */
+.help-content-display *[style*="position: absolute"],
+.help-content-display *[style*="position:fixed"] {
+    position: relative !important;
+}
+
+/* Ensure images in help content don't overflow */
+.help-content-display img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+}
+
+/* Prevent tables from breaking layout */
+.help-content-display table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto;
+    word-wrap: break-word;
+}
+
+/* Prevent any element from having width that exceeds container */
+.help-content-display div,
+.help-content-display section,
+.help-content-display article {
+    max-width: 100% !important;
+    width: auto !important;
 }
 
 .help-content-display h1,

@@ -827,16 +827,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           {onEdit && (
             <button onClick={() => onEdit(chartId)} className="btn-primary-modern">Edit</button>
           )}
-          {hasItemizedSeries && (
-            <button 
-              onClick={handleRefreshItemization} 
-              className="btn-primary-modern"
-              disabled={refreshingItemization}
-              title="Refresh itemization - removes all itemization and re-matches series to current items by name. Items not found will be un-itemized."
-            >
-              {refreshingItemization ? 'Refreshing...' : 'Refresh Itemization'}
-            </button>
-          )}
           <label className="show-totals-toggle" style={{ margin: 0 }}>
           <input
             type="checkbox"

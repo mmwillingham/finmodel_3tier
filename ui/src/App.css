@@ -73,6 +73,22 @@ html, body {
     margin: 0 auto;
 }
 
+/* Override container centering when it contains SidebarLayout */
+.container.container-with-sidebar {
+    margin: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Also override for any container that has sidebar-layout (fallback if :has not supported) */
+.container:has(.sidebar-layout) {
+    margin: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin-top: 0 !important;
+}
+
 /* Basic styling for buttons and forms for consistency */
 button {
     background-color: #007bff;

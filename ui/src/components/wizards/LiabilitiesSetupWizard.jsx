@@ -253,7 +253,7 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }) => {
                         onChange={(e) => setNewLiability({ ...newLiability, category: e.target.value })}
                       >
                         <option value="">Select Category</option>
-                        {categories.map((cat) => (
+                        {[...categories].sort().map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>
@@ -347,7 +347,7 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }) => {
                               onChange={(e) => setNewLiability({ ...newLiability, expense_category: e.target.value })}
                             >
                               <option value="">Select Category</option>
-                              {expenseCategories.map((cat) => (
+                              {[...expenseCategories].sort().map((cat) => (
                                 <option key={cat} value={cat}>{cat}</option>
                               ))}
                             </select>

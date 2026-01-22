@@ -56,6 +56,8 @@
   gap: 16px;
   overflow: auto;
   position: relative; /* Ensure proper positioning */
+  max-width: 100%; /* Prevent content from expanding beyond container */
+  overflow-x: hidden; /* Prevent horizontal scrolling from affecting layout */
 }
 
 .right-top, .right-bottom {

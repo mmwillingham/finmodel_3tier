@@ -324,7 +324,7 @@ export default function LiabilityFormModal({
             <div className="form-field">
               <label htmlFor="category">Category *</label>
               <select id="category" value={newItem.category} onChange={handleInputChange}>
-                {categories.map((cat) => (
+                {[...categories].sort().map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -493,7 +493,7 @@ export default function LiabilityFormModal({
                     required
                   >
                     <option value="">Select Category</option>
-                    {expenseCategories.map(cat => (
+                    {[...expenseCategories].sort().map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>

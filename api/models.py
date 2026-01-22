@@ -410,12 +410,9 @@ class AuthorizedUser(Base):
     authorized_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)  # User who receives access (None until they register)
     authorized_user_email = Column(String, nullable=False, index=True)  # Email of authorized user (for reference)
     
-    # Granular permissions: "view", "edit", or None (no access)
-    accounts_permission = Column(String, nullable=True)  # "view" or "edit"
-    items_permission = Column(String, nullable=True)  # "view" or "edit" (applies to assets, liabilities, cashflow)
-    projections_permission = Column(String, nullable=True)  # "view" or "edit"
-    charts_permission = Column(String, nullable=True)  # "view" or "edit" (custom charts)
-    documents_permission = Column(String, nullable=True)  # "view" or "edit"
+    # Simplified permissions: "view", "edit", or None (no access)
+    financial_data_permission = Column(String, nullable=True)  # "view" or "edit" (applies to accounts, items, projections, charts)
+    document_vault_permission = Column(String, nullable=True)  # "view" or "edit" (renamed from documents)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

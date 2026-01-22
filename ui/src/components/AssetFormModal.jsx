@@ -483,7 +483,7 @@ export default function AssetFormModal({
               <label htmlFor="asset-category">Category *</label>
               <select id="asset-category" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
                 <option value="">Select Category</option>
-                {categories.map((cat) => (
+                {[...categories].sort().map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -625,7 +625,18 @@ export default function AssetFormModal({
                       placeholder="Interest Rate"
                       value={interestRate}
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setInterestRate(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*\.?\d?$/.test(val)) {
+                          setInterestRate(val);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          setInterestRate(val.toFixed(1));
+                        }
+                      }}
                       title="Interest rate as a percentage of the asset's total value (e.g., 1.5% for interest income)"
                     />
                   </div>
@@ -659,7 +670,18 @@ export default function AssetFormModal({
                       placeholder="Dividend Rate"
                       value={dividendRate}
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setDividendRate(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*\.?\d?$/.test(val)) {
+                          setDividendRate(val);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          setDividendRate(val.toFixed(1));
+                        }
+                      }}
                       title="Dividend rate as a percentage of the asset's total value (e.g., 2% for dividend yield)"
                     />
                   </div>

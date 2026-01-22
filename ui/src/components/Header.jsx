@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Header.css'; // NEW: Import Header-specific CSS
 import SettingsDropdownMenu from './SettingsDropdownMenu'; // New component for the dropdown menu
 import PointsModal from './PointsModal'; // Points modal component
 import AboutModal from './AboutModal'; // About modal component
+import HelpModal from './HelpModal'; // Help modal component
 import AccountSwitcher from './AccountSwitcher'; // Account switcher component
 
 const Header = () => { // Removed setIsSettingsModalOpen prop
     const { currentUser, logout, viewingUserId } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [showDropdown, setShowDropdown] = useState(false); // State to manage dropdown visibility
     const [showPointsModal, setShowPointsModal] = useState(false); // State for points modal
     const [showAboutModal, setShowAboutModal] = useState(false); // State for about modal
+    const [showHelpModal, setShowHelpModal] = useState(false); // State for help modal
+
+    // Handle direct navigation to /settings/help or /settings/about
+    useEffect(() => {
+        if (location.pathname === '/settings/help') {
+            setShowHelpModal(true);
+        } else if (location.pathname === '/settings/about') {
+            setShowAboutModal(true);
+        }
+    }, [location.pathname]);
     
     const handleLogout = () => {
         logout();
@@ -27,9 +39,14 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
     const handleNavigation = (path) => {
         console.log(`Navigating to: ${path}`); // Debug log
         
-        // Handle About modal separately - don't navigate, just show modal
+        // Handle About and Help modals separately - don't navigate, just show modal
         if (path === '/settings/about') {
             setShowAboutModal(true);
+            setShowDropdown(false); // Close dropdown
+            return;
+        }
+        if (path === '/settings/help') {
+            setShowHelpModal(true);
             setShowDropdown(false); // Close dropdown
             return;
         }
@@ -101,7 +118,23 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
             />
             <AboutModal 
                 isOpen={showAboutModal} 
-                onClose={() => setShowAboutModal(false)} 
+                onClose={() => {
+                    setShowAboutModal(false);
+                    // Navigate away from /settings/about if we're on that route
+                    if (location.pathname === '/settings/about') {
+                        navigate('/', { replace: true });
+                    }
+                }} 
+            />
+            <HelpModal 
+                isOpen={showHelpModal} 
+                onClose={() => {
+                    setShowHelpModal(false);
+                    // Navigate away from /settings/help if we're on that route
+                    if (location.pathname === '/settings/help') {
+                        navigate('/', { replace: true });
+                    }
+                }} 
             />
         </header>
     );

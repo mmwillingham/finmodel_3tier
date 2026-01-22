@@ -69,7 +69,7 @@ const HelpPage = () => {
       {message && <div className="message">{message}</div>}
       
       {currentUser && currentUser.is_admin && (
-        <div className="help-admin-controls">
+        <div className="help-admin-controls" style={{ marginBottom: '20px' }}>
           {!isEditing ? (
             <button onClick={() => setIsEditing(true)}>Edit Help Content</button>
           ) : (
@@ -90,10 +90,13 @@ const HelpPage = () => {
             value={helpContent}
             onChange={(e) => setHelpContent(e.target.value)}
             rows="20"
-            style={{ width: '100%', padding: '10px', minHeight: '300px' }}
+            style={{ width: '100%', padding: '10px', minHeight: '300px', boxSizing: 'border-box' }}
           />
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: helpContent }} />
+          <div 
+            className="help-content-wrapper"
+            dangerouslySetInnerHTML={{ __html: helpContent }} 
+          />
         )}
       </div>
     </div>

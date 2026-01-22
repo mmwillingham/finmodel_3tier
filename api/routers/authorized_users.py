@@ -105,11 +105,8 @@ def create_authorized_user(
         primary_user_id=current_user.id,
         authorized_user_id=target_user.id if target_user else None,
         authorized_user_email=authorized_user.authorized_user_email.lower(),
-        accounts_permission=authorized_user.accounts_permission,
-        items_permission=authorized_user.items_permission,
-        projections_permission=authorized_user.projections_permission,
-        charts_permission=authorized_user.charts_permission,
-        documents_permission=authorized_user.documents_permission
+        financial_data_permission=authorized_user.financial_data_permission,
+        document_vault_permission=authorized_user.document_vault_permission
     )
     
     db.add(db_authorized_user)
@@ -148,11 +145,8 @@ You will be required to change your password on first login for security."""
 {invitation_message}
 
 Permissions granted:
-- Accounts: {authorized_user.accounts_permission or 'None'}
-- Items (Assets/Liabilities/Income/Expenses): {authorized_user.items_permission or 'None'}
-- Projections: {authorized_user.projections_permission or 'None'}
-- Charts: {authorized_user.charts_permission or 'None'}
-- Documents: {authorized_user.documents_permission or 'None'}
+- Financial Data (Accounts, Items, Projections, Charts): {authorized_user.financial_data_permission or 'None'}
+- Document Vault: {authorized_user.document_vault_permission or 'None'}
 
 Thank you!
 The {settings.APP_NAME} Team
@@ -184,11 +178,8 @@ def list_authorized_users(
             "primary_user_id": user.primary_user_id,
             "authorized_user_id": user.authorized_user_id,
             "authorized_user_email": user.authorized_user_email,
-            "accounts_permission": user.accounts_permission,
-            "items_permission": user.items_permission,
-            "projections_permission": user.projections_permission,
-            "charts_permission": user.charts_permission,
-            "documents_permission": user.documents_permission,
+            "financial_data_permission": user.financial_data_permission,
+            "document_vault_permission": user.document_vault_permission,
             "created_at": user.created_at,
             "updated_at": user.updated_at,
         }
@@ -220,11 +211,8 @@ def list_authorized_access_received(
             "authorized_user_id": access.authorized_user_id,
             "authorized_user_email": access.authorized_user_email,
             "primary_user_email": primary_user.email if primary_user else None,
-            "accounts_permission": access.accounts_permission,
-            "items_permission": access.items_permission,
-            "projections_permission": access.projections_permission,
-            "charts_permission": access.charts_permission,
-            "documents_permission": access.documents_permission,
+            "financial_data_permission": access.financial_data_permission,
+            "document_vault_permission": access.document_vault_permission,
             "created_at": access.created_at,
             "updated_at": access.updated_at,
         }

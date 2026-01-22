@@ -258,7 +258,7 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }) => {
                         onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
                       >
                         <option value="">Select Category</option>
-                        {categories.map((cat) => (
+                        {[...categories].sort().map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>

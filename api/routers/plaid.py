@@ -205,6 +205,15 @@ def preview_plaid_accounts(
             detail="Failed to fetch accounts from Plaid"
         )
     
+    # Get institution name
+    institution_name = plaid_item.institution_name or "Connected Institution"
+    
+    # Get or create brokerage to find existing accounts
+    brokerage = db.query(models.Brokerage).filter(
+        models.Brokerage.owner_id == current_user.id,
+        models.Brokerage.name == institution_name
+    ).first()
+    
     # Build preview list
     previews = []
     for plaid_account in accounts:
@@ -216,21 +225,62 @@ def preview_plaid_accounts(
         mask = plaid_account.get('mask')
         
         # Determine suggested category and type
-        if account_type == 'investment':
-            suggested_category = 'Investment'
-            suggested_type = 'asset'
-        elif account_type == 'depository':
-            if account_subtype_str.lower() in ['checking', 'savings']:
-                suggested_category = 'Cash'
+        suggested_category = None
+        suggested_type = None
+        
+        # Check for existing asset or liability with this account name and institution
+        # This allows us to remember previous mappings
+        if brokerage:
+            account_record = db.query(models.Account).filter(
+                models.Account.owner_id == current_user.id,
+                models.Account.account_name == account_name,
+                models.Account.brokerage_id == brokerage.id
+            ).first()
+            
+            if account_record:
+                # Check for existing asset
+                asset_name = f"{account_name} - {institution_name}"
+                if mask:
+                    asset_name += f" ({mask})"
+                
+                existing_asset = db.query(models.Asset).filter(
+                    models.Asset.owner_id == current_user.id,
+                    models.Asset.account_id == account_record.id,
+                    models.Asset.name == asset_name
+                ).first()
+                
+                if existing_asset:
+                    suggested_category = existing_asset.category
+                    suggested_type = 'asset'
+                else:
+                    # Check for existing liability
+                    existing_liability = db.query(models.Liability).filter(
+                        models.Liability.owner_id == current_user.id,
+                        models.Liability.account_id == account_record.id,
+                        models.Liability.name == asset_name
+                    ).first()
+                    
+                    if existing_liability:
+                        suggested_category = existing_liability.category
+                        suggested_type = 'liability'
+        
+        # If no existing mapping found, use defaults
+        if not suggested_category:
+            if account_type == 'investment':
+                suggested_category = 'Investment'
+                suggested_type = 'asset'
+            elif account_type == 'depository':
+                if account_subtype_str.lower() in ['checking', 'savings']:
+                    suggested_category = 'Cash'
+                else:
+                    suggested_category = 'Depository'
+                suggested_type = 'asset'
+            elif account_type == 'credit':
+                suggested_category = 'Credit Card'  # Preselect Credit Card category for credit accounts
+                suggested_type = 'liability'  # Credit cards should be liabilities
             else:
-                suggested_category = 'Depository'
-            suggested_type = 'asset'
-        elif account_type == 'credit':
-            suggested_category = 'Credit Card'  # Preselect Credit Card category for credit accounts
-            suggested_type = 'liability'  # Credit cards should be liabilities
-        else:
-            suggested_category = 'Other'
-            suggested_type = 'asset'
+                suggested_category = 'Other'
+                suggested_type = 'asset'
         
         previews.append(schemas.PlaidAccountPreview(
             account_id=account_id,

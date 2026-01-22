@@ -18,11 +18,8 @@ const AuthorizedUsersPage = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newTemporaryPassword, setNewTemporaryPassword] = useState('');
   const [newPermissions, setNewPermissions] = useState({
-    accounts_permission: null,
-    items_permission: null,
-    projections_permission: null,
-    charts_permission: null,
-    documents_permission: null
+    financial_data_permission: null,
+    document_vault_permission: null
   });
   
   const [editUser, setEditUser] = useState(null);
@@ -82,11 +79,8 @@ const AuthorizedUsersPage = () => {
       setNewUserEmail('');
       setNewTemporaryPassword('');
       setNewPermissions({
-        accounts_permission: null,
-        items_permission: null,
-        projections_permission: null,
-        charts_permission: null,
-        documents_permission: null
+        financial_data_permission: null,
+        document_vault_permission: null
       });
       setShowAddModal(false);
       loadData();
@@ -98,11 +92,8 @@ const AuthorizedUsersPage = () => {
   const handleEditUser = (user) => {
     setEditUser(user);
     setEditPermissions({
-      accounts_permission: user.accounts_permission,
-      items_permission: user.items_permission,
-      projections_permission: user.projections_permission,
-      charts_permission: user.charts_permission,
-      documents_permission: user.documents_permission
+      financial_data_permission: user.financial_data_permission,
+      document_vault_permission: user.document_vault_permission
     });
     setShowEditModal(true);
   };
@@ -157,6 +148,9 @@ const AuthorizedUsersPage = () => {
     <div className="authorized-users-page">
       <div className="page-header">
         <h1>🔐 Authorized Users</h1>
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
         <button onClick={() => setShowAddModal(true)} className="btn-primary">
           + Add Authorized User
         </button>
@@ -196,11 +190,8 @@ const AuthorizedUsersPage = () => {
                 <thead>
                   <tr>
                     <th>User</th>
-                    <th>Accounts</th>
-                    <th>Items</th>
-                    <th>Projections</th>
-                    <th>Charts</th>
-                    <th>Documents</th>
+                    <th>Financial Data</th>
+                    <th>Document Vault</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -215,11 +206,8 @@ const AuthorizedUsersPage = () => {
                           </div>
                         )}
                       </td>
-                      <td>{user.accounts_permission || '-'}</td>
-                      <td>{user.items_permission || '-'}</td>
-                      <td>{user.projections_permission || '-'}</td>
-                      <td>{user.charts_permission || '-'}</td>
-                      <td>{user.documents_permission || '-'}</td>
+                      <td>{user.financial_data_permission || '-'}</td>
+                      <td>{user.document_vault_permission || '-'}</td>
                       <td className="actions-cell">
                         <button onClick={() => handleEditUser(user)} className="btn-icon" title="Edit">
                           ✏️
@@ -244,11 +232,8 @@ const AuthorizedUsersPage = () => {
                 <thead>
                   <tr>
                     <th>Primary User</th>
-                    <th>Accounts</th>
-                    <th>Items</th>
-                    <th>Projections</th>
-                    <th>Charts</th>
-                    <th>Documents</th>
+                    <th>Financial Data</th>
+                    <th>Document Vault</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -264,11 +249,8 @@ const AuthorizedUsersPage = () => {
                           User ID: {access.primary_user_id}
                         </div>
                       </td>
-                      <td>{access.accounts_permission || '-'}</td>
-                      <td>{access.items_permission || '-'}</td>
-                      <td>{access.projections_permission || '-'}</td>
-                      <td>{access.charts_permission || '-'}</td>
-                      <td>{access.documents_permission || '-'}</td>
+                      <td>{access.financial_data_permission || '-'}</td>
+                      <td>{access.document_vault_permission || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -280,8 +262,12 @@ const AuthorizedUsersPage = () => {
 
       {/* Add User Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onMouseDown={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowAddModal(false);
+          }
+        }}>
+          <div className="modal-content" onMouseDown={(e) => e.stopPropagation()}>
             <h2>Add Authorized User</h2>
             <p className="modal-hint">
               If the user is not registered, you can optionally create their account by providing a temporary password.
@@ -306,34 +292,16 @@ const AuthorizedUsersPage = () => {
             <div className="permissions-section" style={{ marginTop: '20px' }}>
               <h3>Permissions</h3>
               <PermissionSelector
-                permissionType="accounts_permission"
-                value={newPermissions.accounts_permission}
+                permissionType="financial_data_permission"
+                value={newPermissions.financial_data_permission}
                 onChange={handlePermissionChange}
-                label="Accounts"
+                label="Financial Data (Accounts, Items, Projections, Charts)"
               />
               <PermissionSelector
-                permissionType="items_permission"
-                value={newPermissions.items_permission}
+                permissionType="document_vault_permission"
+                value={newPermissions.document_vault_permission}
                 onChange={handlePermissionChange}
-                label="Items (Assets, Liabilities, Cash Flow)"
-              />
-              <PermissionSelector
-                permissionType="projections_permission"
-                value={newPermissions.projections_permission}
-                onChange={handlePermissionChange}
-                label="Projections"
-              />
-              <PermissionSelector
-                permissionType="charts_permission"
-                value={newPermissions.charts_permission}
-                onChange={handlePermissionChange}
-                label="Charts"
-              />
-              <PermissionSelector
-                permissionType="documents_permission"
-                value={newPermissions.documents_permission}
-                onChange={handlePermissionChange}
-                label="Documents"
+                label="Document Vault"
               />
             </div>
             
@@ -351,41 +319,27 @@ const AuthorizedUsersPage = () => {
 
       {/* Edit User Modal */}
       {showEditModal && editUser && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onMouseDown={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowEditModal(false);
+          }
+        }}>
+          <div className="modal-content" onMouseDown={(e) => e.stopPropagation()}>
             <h2>Edit Permissions for {editUser.authorized_user_email}</h2>
             
             <div className="permissions-section">
               <h3>Permissions</h3>
               <PermissionSelector
-                permissionType="accounts_permission"
-                value={editPermissions.accounts_permission}
+                permissionType="financial_data_permission"
+                value={editPermissions.financial_data_permission}
                 onChange={(type, val) => handlePermissionChange(type, val, true)}
-                label="Accounts"
+                label="Financial Data (Accounts, Items, Projections, Charts)"
               />
               <PermissionSelector
-                permissionType="items_permission"
-                value={editPermissions.items_permission}
+                permissionType="document_vault_permission"
+                value={editPermissions.document_vault_permission}
                 onChange={(type, val) => handlePermissionChange(type, val, true)}
-                label="Items (Assets, Liabilities, Cash Flow)"
-              />
-              <PermissionSelector
-                permissionType="projections_permission"
-                value={editPermissions.projections_permission}
-                onChange={(type, val) => handlePermissionChange(type, val, true)}
-                label="Projections"
-              />
-              <PermissionSelector
-                permissionType="charts_permission"
-                value={editPermissions.charts_permission}
-                onChange={(type, val) => handlePermissionChange(type, val, true)}
-                label="Charts"
-              />
-              <PermissionSelector
-                permissionType="documents_permission"
-                value={editPermissions.documents_permission}
-                onChange={(type, val) => handlePermissionChange(type, val, true)}
-                label="Documents"
+                label="Document Vault"
               />
             </div>
             

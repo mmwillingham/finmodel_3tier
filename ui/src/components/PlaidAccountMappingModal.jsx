@@ -331,7 +331,7 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
                             {!availableCategories.includes(mapping.category) && mapping.category && (
                               <option key={mapping.category} value={mapping.category}>{mapping.category}</option>
                             )}
-                            {availableCategories.map(cat => (
+                            {[...availableCategories].sort().map(cat => (
                               <option key={cat} value={cat}>{cat}</option>
                             ))}
                           </select>

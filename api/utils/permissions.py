@@ -11,7 +11,7 @@ def check_permission(
     db: Session,
     current_user_id: int,
     primary_user_id: int,
-    permission_type: str,  # "accounts", "items", "projections", "charts", "documents"
+    permission_type: str,  # "accounts", "items", "projections", "charts", "documents", "financial_data", "document_vault"
     required_permission: PermissionType = "view"
 ) -> bool:
     """
@@ -21,7 +21,10 @@ def check_permission(
         db: Database session
         current_user_id: ID of the user making the request
         primary_user_id: ID of the resource owner
-        permission_type: Type of permission to check ("accounts", "items", "projections", "charts", "documents")
+        permission_type: Type of permission to check 
+            - Legacy: "accounts", "items", "projections", "charts" (all map to "financial_data")
+            - New: "financial_data", "document_vault"
+            - Legacy: "documents" (maps to "document_vault")
         required_permission: Required permission level ("view" or "edit")
     
     Returns:
@@ -40,9 +43,15 @@ def check_permission(
     if not authorized_user:
         return False
     
+    # Map legacy permission types to new structure
+    if permission_type in ["accounts", "items", "projections", "charts"]:
+        permission_type = "financial_data"
+    elif permission_type == "documents":
+        permission_type = "document_vault"
+    
     # Get the permission for this resource type
     permission_field = f"{permission_type}_permission"
-    user_permission = getattr(authorized_user, permission_field)
+    user_permission = getattr(authorized_user, permission_field, None)
     
     if user_permission is None:
         return False
@@ -109,7 +118,10 @@ def has_permission_for_resource_type(
         db: Database session
         current_user_id: ID of the user making the request
         primary_user_id: ID of the resource owner
-        permission_type: Type of permission ("accounts", "items", "projections", "charts", "documents")
+        permission_type: Type of permission 
+            - Legacy: "accounts", "items", "projections", "charts" (all map to "financial_data")
+            - New: "financial_data", "document_vault"
+            - Legacy: "documents" (maps to "document_vault")
     
     Returns:
         Permission level ("view", "edit") or None if no permission
@@ -127,7 +139,13 @@ def has_permission_for_resource_type(
     if not authorized_user:
         return None
     
+    # Map legacy permission types to new structure
+    if permission_type in ["accounts", "items", "projections", "charts"]:
+        permission_type = "financial_data"
+    elif permission_type == "documents":
+        permission_type = "document_vault"
+    
     # Get the permission for this resource type
     permission_field = f"{permission_type}_permission"
-    return getattr(authorized_user, permission_field)
+    return getattr(authorized_user, permission_field, None)
 

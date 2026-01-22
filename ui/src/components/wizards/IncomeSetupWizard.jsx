@@ -252,7 +252,7 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }) => {
                         onChange={(e) => setNewIncome({ ...newIncome, category: e.target.value })}
                       >
                         <option value="">Select Category</option>
-                        {categories.map((cat) => (
+                        {[...categories].sort().map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>

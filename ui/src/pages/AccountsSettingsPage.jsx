@@ -304,8 +304,8 @@ const AccountsSettingsPage = () => {
           <h3 style={{ margin: 0 }}>Brokerages</h3>
           <button 
             onClick={() => setShowNewBrokerageForm(!showNewBrokerageForm)} 
-            className="btn-secondary-modern"
-            style={{ padding: '6px 12px', fontSize: '0.9em' }}
+            className="btn-primary-modern"
+            style={{ padding: '10px 20px', fontSize: '0.95em', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
           >
             {showNewBrokerageForm ? 'Cancel' : '+ New Brokerage'}
           </button>
@@ -358,7 +358,7 @@ const AccountsSettingsPage = () => {
                 />
               </div>
             </div>
-            <button onClick={handleCreateBrokerage} className="btn-primary-modern" style={{ padding: '8px 16px', fontSize: '0.9em' }}>Create Brokerage</button>
+            <button onClick={handleCreateBrokerage} className="btn-primary-modern" style={{ padding: '10px 20px', fontSize: '0.95em', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Create Brokerage</button>
           </div>
         )}
         {brokerages.length > 0 && (
@@ -409,7 +409,7 @@ const AccountsSettingsPage = () => {
         <h3 style={{ marginTop: 0, marginBottom: '16px', fontWeight: 'bold', fontSize: '1.2em' }}>Add New Account</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div className="form-field">
-            <label htmlFor="brokerage_select">Brokerage *</label>
+            <label htmlFor="brokerage_select" style={{ marginBottom: '8px', display: 'block' }}>Brokerage *</label>
             <select
               id="brokerage_select"
               value={newAccount.brokerage_id || ''}
@@ -444,7 +444,7 @@ const AccountsSettingsPage = () => {
             )}
           </div>
           <div className="form-field">
-            <label htmlFor="account_name">Account Name *</label>
+            <label htmlFor="account_name" style={{ marginBottom: '8px', display: 'block' }}>Account Name *</label>
             <input
               id="account_name"
               type="text"
@@ -455,7 +455,7 @@ const AccountsSettingsPage = () => {
             />
           </div>
           <div className="form-field">
-            <label htmlFor="is_retirement">Account Type</label>
+            <label htmlFor="is_retirement" style={{ marginBottom: '8px', display: 'block' }}>Account Type</label>
             <select
               id="is_retirement"
               value={newAccount.is_retirement ? 'yes' : 'no'}
@@ -467,7 +467,7 @@ const AccountsSettingsPage = () => {
             </select>
           </div>
           <div className="form-field">
-            <label htmlFor="account_number">Account Number</label>
+            <label htmlFor="account_number" style={{ marginBottom: '8px', display: 'block' }}>Account Number</label>
             <input
               id="account_number"
               type="text"
@@ -478,8 +478,11 @@ const AccountsSettingsPage = () => {
             />
           </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '14px' }}>
-          <button onClick={handleCreateAccount} className="btn-primary-modern">Add Account</button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
+          <div></div>
+          <div>
+            <button onClick={handleCreateAccount} className="btn-primary-modern">Add Account</button>
+          </div>
         </div>
       </div>
 

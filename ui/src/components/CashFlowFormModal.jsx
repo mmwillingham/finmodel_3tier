@@ -401,7 +401,7 @@ export default function CashFlowFormModal({
               <label htmlFor="category-select">Category *</label>
               <select id="category-select" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}> 
                 <option value="">Select Category</option>
-                {typeOptions.map((opt) => (
+                {[...typeOptions].sort().map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
                   </option>

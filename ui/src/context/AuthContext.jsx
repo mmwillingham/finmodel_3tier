@@ -56,6 +56,40 @@ export const AuthProvider = ({ children }) => {
                     throw new Error("Your email address has not been confirmed. Please check your inbox for a confirmation link.");
                 }
 
+                // NEW: Check if user has received authorized access and has no data
+                // If so, automatically switch to the authorizing user's data
+                try {
+                    const AuthorizedUsersService = (await import('../services/authorizedUsers.service')).default;
+                    const receivedAccess = await AuthorizedUsersService.listReceivedAccess();
+                    if (receivedAccess && receivedAccess.length > 0) {
+                        // Check if user has any data of their own
+                        const AssetService = (await import('../services/asset.service')).default;
+                        const CashFlowService = (await import('../services/cashflow.service')).default;
+                        const [assetsRes, incomeRes, expenseRes] = await Promise.all([
+                            AssetService.list(null).catch(() => ({ data: [] })),
+                            CashFlowService.list(true, null).catch(() => ({ data: [] })),
+                            CashFlowService.list(false, null).catch(() => ({ data: [] }))
+                        ]);
+                        
+                        const hasOwnData = (assetsRes.data && assetsRes.data.length > 0) ||
+                                         (incomeRes.data && incomeRes.data.length > 0) ||
+                                         (expenseRes.data && expenseRes.data.length > 0);
+                        
+                        // If user has no data and has received access, switch to the first authorizing user
+                        if (!hasOwnData && receivedAccess.length > 0) {
+                            const firstAccess = receivedAccess[0];
+                            if (firstAccess.primary_user_id) {
+                                console.log('AuthContext - User has no data but has received access, switching to primary user:', firstAccess.primary_user_id);
+                                setViewingUserId(firstAccess.primary_user_id);
+                                localStorage.setItem('viewingUserId', firstAccess.primary_user_id.toString());
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error checking authorized access:', err);
+                    // Don't fail login if this check fails
+                }
+
             } catch (error) {
                 AuthService.logout();
                 setCurrentUser(null);
