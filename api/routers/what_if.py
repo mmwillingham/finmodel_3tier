@@ -35,11 +35,12 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
         assets_summary.append({
             "name": asset.name,
             "category": asset.category,
-            "current_value": float(asset.current_value) if asset.current_value else 0,
-            "interest_rate": float(asset.interest_rate) if asset.interest_rate else 0,
-            "dividend_rate": float(asset.dividend_rate) if asset.dividend_rate else 0,
+            "value": float(asset.value) if asset.value else 0,
+            "annual_increase_percent": float(asset.annual_increase_percent) if asset.annual_increase_percent else 0,
+            "retirement_interest_rate": float(asset.retirement_interest_rate) if asset.retirement_interest_rate else None,
+            "retirement_dividend_rate": float(asset.retirement_dividend_rate) if asset.retirement_dividend_rate else None,
         })
-        total_assets += float(asset.current_value) if asset.current_value else 0
+        total_assets += float(asset.value) if asset.value else 0
     
     # Get liabilities
     liabilities = db.query(models.Liability).filter(models.Liability.owner_id == user_id).all()
@@ -49,11 +50,12 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
         liabilities_summary.append({
             "name": liability.name,
             "category": liability.category,
-            "current_balance": float(liability.current_balance) if liability.current_balance else 0,
-            "interest_rate": float(liability.interest_rate) if liability.interest_rate else 0,
-            "monthly_payment": float(liability.monthly_payment) if liability.monthly_payment else 0,
+            "value": float(liability.value) if liability.value else 0,
+            "interest_rate": float(liability.interest_rate) if liability.interest_rate else None,
+            "monthly_payment": float(liability.monthly_payment) if liability.monthly_payment else None,
+            "annual_increase_percent": float(liability.annual_increase_percent) if liability.annual_increase_percent else 0,
         })
-        total_liabilities += float(liability.current_balance) if liability.current_balance else 0
+        total_liabilities += float(liability.value) if liability.value else 0
     
     # Get income items
     income_items = db.query(models.CashFlowItem).filter(
@@ -63,13 +65,14 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
     income_summary = []
     total_annual_income = 0
     for item in income_items:
-        annual_amount = float(item.annual_amount) if item.annual_amount else 0
+        yearly_value = float(item.yearly_value) if item.yearly_value else 0
         income_summary.append({
             "name": item.description,
             "category": item.category,
-            "annual_amount": annual_amount,
+            "yearly_value": yearly_value,
+            "annual_increase_percent": float(item.annual_increase_percent) if item.annual_increase_percent else 0,
         })
-        total_annual_income += annual_amount
+        total_annual_income += yearly_value
     
     # Get expense items
     expense_items = db.query(models.CashFlowItem).filter(
@@ -79,13 +82,14 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
     expense_summary = []
     total_annual_expenses = 0
     for item in expense_items:
-        annual_amount = float(item.annual_amount) if item.annual_amount else 0
+        yearly_value = float(item.yearly_value) if item.yearly_value else 0
         expense_summary.append({
             "name": item.description,
             "category": item.category,
-            "annual_amount": annual_amount,
+            "yearly_value": yearly_value,
+            "inflation_percent": float(item.inflation_percent) if item.inflation_percent else 0,
         })
-        total_annual_expenses += annual_amount
+        total_annual_expenses += yearly_value
     
     # Get user settings
     user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == user_id).first()
