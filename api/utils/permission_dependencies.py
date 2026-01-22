@@ -63,12 +63,23 @@ def get_accessible_user_ids(
     Args:
         db: Database session
         current_user_id: ID of the current user
-        permission_type: Type of permission ("accounts", "items", etc.)
+        permission_type: Type of permission ("accounts", "items", "projections",
+            "charts", "documents", "financial_data", "document_vault").
+            Legacy "accounts"/"items"/"projections"/"charts" map to "financial_data";
+            "documents" maps to "document_vault".
     
     Returns:
         List of user IDs (includes current_user_id + any primary user IDs with access)
     """
     user_ids = [current_user_id]  # Always include own resources
+    
+    # Map legacy permission types to current model fields
+    if permission_type in ["accounts", "items", "projections", "charts"]:
+        permission_type = "financial_data"
+    elif permission_type == "documents":
+        permission_type = "document_vault"
+    
+    permission_field = f"{permission_type}_permission"
     
     # Find all primary users that have granted access to this user
     authorized_access = db.query(models.AuthorizedUser).filter(
@@ -76,11 +87,7 @@ def get_accessible_user_ids(
     ).all()
     
     for access in authorized_access:
-        # Check if this permission type is granted
-        permission_field = f"{permission_type}_permission"
-        permission = getattr(access, permission_field)
-        
-        # If permission is "view" or "edit", add primary user to list
+        permission = getattr(access, permission_field, None)
         if permission in ["view", "edit"]:
             user_ids.append(access.primary_user_id)
     
