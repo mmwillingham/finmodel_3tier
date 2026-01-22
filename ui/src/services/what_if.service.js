@@ -1,15 +1,8 @@
-import axios from 'axios';
-import authHeader from './auth-header';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import ApiService from './api.service';
 
 const askQuestion = async (question) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/what-if/ask`,
-      { question },
-      { headers: authHeader() }
-    );
+    const response = await ApiService.post('/what-if/ask', { question });
     return response.data;
   } catch (error) {
     console.error('Error asking What If question:', error);
