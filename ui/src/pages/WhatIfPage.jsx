@@ -3,12 +3,12 @@ import './WhatIfPage.css';
 import whatIfService from '../services/what_if.service';
 
 const exampleQuestions = [
-  "What if I reinvest dividends?",
-  "What if my expenses are 20% higher than expected?",
-  "What if I keep working another year?",
-  "What if person 1 takes social security one year later?",
-  "What will my net worth be in 2040 if all my assets grow at 10% per year?",
-  "What if the stock market is negative 20% in 2030?"
+  "Compare the long term affect on net worth between keeping or reinvesting dividends.",
+  "How will my 2040 net worth be affected if inflation is 2% higher than expected?",
+  "If my assets grow at 0% and my income drops to 60,000 per year in 2028, what year will my money run out?",
+  "How will taking social security at age 62 vs 67 affect my 2035 net worth?",
+  "Compare my net worth in 2040 if all my assets grow at 8% vs 10% per year?",
+  "How will a 20% decline in year 2030 in my investment and retirement accounts affect my net worth in 2040?"
 ];
 
 const WhatIfPage = () => {

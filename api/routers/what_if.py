@@ -71,6 +71,8 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
             "category": item.category,
             "yearly_value": yearly_value,
             "annual_increase_percent": float(item.annual_increase_percent) if item.annual_increase_percent else 0,
+            "start_date": item.start_date,
+            "end_date": item.end_date,
         })
         total_annual_income += yearly_value
     
@@ -88,6 +90,8 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
             "category": item.category,
             "yearly_value": yearly_value,
             "inflation_percent": float(item.inflation_percent) if item.inflation_percent else 0,
+            "start_date": item.start_date,
+            "end_date": item.end_date,
         })
         total_annual_expenses += yearly_value
     
@@ -171,7 +175,8 @@ Please provide a detailed answer to their "What If?" question, using their actua
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
-            max_tokens=1000
+            stream=True,
+            max_tokens=4000  # Increased from 1000 to allow for complete, detailed responses
         )
         
         answer = response.choices[0].message.content
