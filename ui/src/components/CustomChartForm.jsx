@@ -76,8 +76,9 @@ export default function CustomChartForm({
   const [yAxisLabel, setYAxisLabel] = useState("Value");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [refreshingItemization, setRefreshingItemization] = useState(false);
+  const [removingItemization, setRemovingItemization] = useState(false);
   const formRef = useRef(null);
+  const [initialSeriesConfigurations, setInitialSeriesConfigurations] = useState(null);
 
   useEffect(() => {
     if (chartId) {
@@ -90,13 +91,15 @@ export default function CustomChartForm({
           setChartType(chart.chart_type);
           setDisplayType(chart.display_type || "chart"); // Set display type from fetched config
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
-          setSeriesConfigurations(JSON.parse(chart.series_configurations).map(series => ({ 
-            ...series, 
-            category: series.category || '', 
-            selected_item_id: series.selected_item_id || null,
-            selected_account_ids: series.selected_account_ids || [], // Load account filter if present
-            itemize: series.itemize || false, // Load itemize flag if present
-          })));
+        const parsedSeries = JSON.parse(chart.series_configurations);
+        setInitialSeriesConfigurations(parsedSeries);
+        setSeriesConfigurations(parsedSeries.map(series => ({ 
+          ...series, 
+          category: series.category || '', 
+          selected_item_id: series.selected_item_id || null,
+          selected_account_ids: series.selected_account_ids || [], // Load account filter if present
+          itemize: series.itemize || false, // Load itemize flag if present
+        })));
           setXAxisLabel(chart.x_axis_label || "");
           setYAxisLabel(chart.y_axis_label || "");
         })
@@ -320,187 +323,81 @@ export default function CustomChartForm({
     };
   }, []);
 
-  // Handle Refresh Itemization - similar to CustomChartView
-  const handleRefreshItemization = async () => {
+  // Remove itemization: consolidate to one "All Items" series per data_type (assets, income, etc.)
+  const handleRemoveItemization = async () => {
     if (!chartId || seriesConfigurations.length === 0) return;
-    
-    setRefreshingItemization(true);
+    setRemovingItemization(true);
     setMessage('');
-    
     try {
-      let needsUpdate = false;
-      let matchedCount = 0;
-      let unmatchedCount = 0;
-      
-      const updatedSeries = seriesConfigurations.map(series => {
-        const selectedItemId = series.selected_item_id || series.item_id;
-        const isItemized = selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0;
-        
-        // Check if label looks like a stale item name
-        const labelMatchesDefault = series.label === series.category || 
-                                   series.label === (series.data_type ? series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1) : null) ||
-                                   series.label === 'All Categories' ||
-                                   series.label === 'All Items' ||
-                                   !series.label;
-        const hasStaleLabel = !labelMatchesDefault && series.label && series.data_type;
-        
-        // If series is NOT itemized and doesn't have a stale label, pass through unchanged
-        // This preserves non-itemized series (which show all items) and prevents them from being modified
-        if (!isItemized && !hasStaleLabel) {
-          return series; // Pass through for duplicate checking
-        }
-        
-        // Only process itemized series or series with stale labels
-        // Get the appropriate array of items based on data type
-        let items = [];
-        if (series.data_type === 'assets') {
-          items = assets;
-        } else if (series.data_type === 'liabilities') {
-          items = liabilities;
-        } else if (series.data_type === 'income') {
-          items = incomeItems;
-        } else if (series.data_type === 'expenses') {
-          items = expenseItems;
-        } else {
-          return series;
-        }
-        
-        // Try to find item by ID first (only for itemized series)
-        let foundItem = null;
-        if (isItemized) {
-          const itemIdNum = typeof selectedItemId === 'string' ? parseInt(selectedItemId, 10) : selectedItemId;
-          foundItem = items.find(item => item.id === itemIdNum || item.id === selectedItemId);
-        }
-        
-        // If not found by ID, try to find by label/name (only for itemized series or stale labels)
-        if (!foundItem && (isItemized || hasStaleLabel) && series.label) {
-          foundItem = items.find(item => {
-            const itemName = item.description || item.name;
-            return itemName === series.label;
-          });
-        }
-        
-        // If item was found, update the ID and label (keep it itemized)
-        if (foundItem) {
-          matchedCount++;
-          needsUpdate = true;
-          const currentItemName = foundItem.description || foundItem.name;
-          return {
-            ...series,
-            selected_item_id: foundItem.id,
-            item_id: foundItem.id,
-            label: currentItemName,
-            itemize: true, // Ensure itemize flag is set
-          };
-        }
-        
-        // Item not found - only un-itemize if it was previously itemized
-        // If it was never itemized (hasStaleLabel but not isItemized), don't change it
-        if (!isItemized && hasStaleLabel) {
-          // Stale label but not itemized - just update the label to a default
-          let newLabel;
-          if (series.category) {
-            newLabel = series.category;
-          } else if (series.data_type) {
-            newLabel = series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1);
-          } else {
-            newLabel = 'All Items';
-          }
-          return {
-            ...series,
-            label: newLabel,
-          };
-        }
-        
-        // Item was itemized but not found - remove itemization (show all items in category)
-        unmatchedCount++;
-        needsUpdate = true;
-        
-        let newLabel;
-        if (series.category) {
-          newLabel = series.category;
-        } else if (series.data_type) {
-          newLabel = series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1);
-        } else {
-          newLabel = 'All Items';
-        }
-        
-        return {
+      let updatedSeries = [];
+      if (initialSeriesConfigurations && initialSeriesConfigurations.length > 0) {
+        updatedSeries = initialSeriesConfigurations.map(series => ({
           ...series,
+          itemize: false,
           selected_item_id: null,
-          item_id: null,
-          itemize: false, // Ensure itemize flag is cleared
-          label: newLabel,
-        };
-      });
-      
-      // Consolidate duplicate series
-      const seriesMap = new Map();
-      const consolidatedSeries = [];
-      
-      updatedSeries.forEach(series => {
-        const selectedItemId = series.selected_item_id || series.item_id;
-        const isStillItemized = selectedItemId && selectedItemId !== "" && selectedItemId !== null && selectedItemId !== 0;
-        
-        let key;
-        if (isStillItemized) {
-          key = `${series.data_type}_${series.category || 'all'}_${selectedItemId}`;
-        } else {
-          key = `${series.data_type}_${series.category || 'all'}_unitemized`;
-        }
-        
-        if (!seriesMap.has(key)) {
-          seriesMap.set(key, series);
-          consolidatedSeries.push(series);
-        } else {
-          needsUpdate = true;
-        }
-      });
-      
-      const finalSeries = consolidatedSeries.length < updatedSeries.length ? consolidatedSeries : updatedSeries;
-      
-      if (needsUpdate || consolidatedSeries.length < updatedSeries.length) {
-        setSeriesConfigurations(finalSeries);
-        
-        // Build success message
-        const duplicatesRemoved = consolidatedSeries.length < updatedSeries.length;
-        const duplicateCount = updatedSeries.length - consolidatedSeries.length;
-        let messageText = 'Itemization refreshed. ';
-        if (matchedCount > 0 && unmatchedCount === 0 && !duplicatesRemoved) {
-          messageText += `All ${matchedCount} itemized series re-matched to current items.`;
-        } else if (matchedCount > 0 && unmatchedCount > 0) {
-          messageText += `${matchedCount} series re-matched. ${unmatchedCount} series un-itemized (items not found).`;
-          if (duplicatesRemoved) {
-            messageText += ` ${duplicateCount} duplicate series removed.`;
-          }
-        } else if (unmatchedCount > 0) {
-          messageText += `${unmatchedCount} series un-itemized (items not found).`;
-          if (duplicatesRemoved) {
-            messageText += ` ${duplicateCount} duplicate series removed.`;
-          }
-          messageText += ' You can re-itemize individual series if needed.';
-        } else if (duplicatesRemoved) {
-          messageText += `${duplicateCount} duplicate series removed.`;
-        } else {
-          messageText += 'Chart updated.';
-        }
-        
-        setMessage(messageText);
-        setTimeout(() => setMessage(''), 5000);
+          selected_account_ids: series.selected_account_ids || [],
+          category: series.category || '',
+          label: series.label || (series.data_type ? series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1) : 'All Items'),
+        }));
       } else {
-        setMessage('Itemization is up to date. All linked items are valid.');
-        setTimeout(() => setMessage(''), 5000);
+        const byType = new Map();
+        for (const series of seriesConfigurations) {
+          const key = series.data_type || '';
+          if (!key) continue;
+          if (!byType.has(key)) {
+            byType.set(key, {
+              data_type: series.data_type,
+              field: series.field || 'value',
+              aggregation: series.aggregation || 'sum',
+              label: 'All Items',
+              color: series.color || getRandomColor(),
+              category: '',
+              selected_item_id: null,
+              selected_account_ids: [],
+              itemize: false,
+            });
+          }
+        }
+        updatedSeries = Array.from(byType.values());
+        if (updatedSeries.length === 0) {
+          updatedSeries = [{
+            data_type: seriesConfigurations[0].data_type,
+            field: seriesConfigurations[0].field || 'value',
+            aggregation: seriesConfigurations[0].aggregation || 'sum',
+            label: 'All Items',
+            color: seriesConfigurations[0].color || getRandomColor(),
+            category: '',
+            selected_item_id: null,
+            selected_account_ids: [],
+            itemize: false,
+          }];
+        }
       }
+
+      setSeriesConfigurations(updatedSeries);
+      const chartData = {
+        name,
+        chart_type: chartType,
+        display_type: displayType,
+        data_sources: dataSourcesOptions.join(','),
+        series_configurations: JSON.stringify(updatedSeries),
+        x_axis_label: xAxisLabel,
+        y_axis_label: yAxisLabel,
+      };
+      await CustomChartService.update(chartId, chartData);
+      await CustomChartService.recalculate(chartId);
+      setMessage('Itemization removed. All series now show aggregated data.');
+      setTimeout(() => setMessage(''), 5000);
     } catch (error) {
-      console.error("Error refreshing itemization:", error);
-      setMessage(`Failed to refresh itemization: ${error.response?.data?.detail || error.message}`);
+      console.error('Error removing itemization:', error);
+      setMessage(`Failed to remove itemization: ${error.response?.data?.detail || error.message}`);
       setTimeout(() => setMessage(''), 5000);
     } finally {
-      setRefreshingItemization(false);
+      setRemovingItemization(false);
     }
   };
 
-  // Check if chart has itemized series (for showing Refresh Itemization button)
+  // Check if chart has itemized series (for showing Remove Itemization button)
   const hasItemizedSeries = seriesConfigurations.some(s => {
     const hasItemId = (s.selected_item_id || s.item_id) && (s.selected_item_id !== null && s.selected_item_id !== "" && s.selected_item_id !== 0);
     const labelMatchesDefault = s.label === s.category || 
@@ -560,11 +457,11 @@ export default function CustomChartForm({
               <button 
                 type="button" 
                 className="btn-primary-modern" 
-                onClick={handleRefreshItemization}
-                disabled={refreshingItemization}
-                title="Refresh itemization - removes all itemization and re-matches series to current items by name. Items not found will be un-itemized."
+                onClick={handleRemoveItemization}
+                disabled={removingItemization}
+                title="Remove itemization from all series. Each series will show aggregated totals (e.g. all assets, all income) instead of individual items."
               >
-                {refreshingItemization ? 'Refreshing...' : 'Refresh Itemization'}
+                {removingItemization ? 'Removing...' : 'Remove Itemization'}
               </button>
             )}
             <button type="submit" disabled={loading} className="btn-primary-modern">
