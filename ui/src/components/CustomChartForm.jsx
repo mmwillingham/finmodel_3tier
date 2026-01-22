@@ -78,7 +78,6 @@ export default function CustomChartForm({
   const [message, setMessage] = useState("");
   const [removingItemization, setRemovingItemization] = useState(false);
   const formRef = useRef(null);
-  const [initialSeriesConfigurations, setInitialSeriesConfigurations] = useState(null);
 
   useEffect(() => {
     if (chartId) {
@@ -92,7 +91,6 @@ export default function CustomChartForm({
           setDisplayType(chart.display_type || "chart"); // Set display type from fetched config
           setSelectedDataSources(chart.data_sources ? chart.data_sources.split(',') : []);
         const parsedSeries = JSON.parse(chart.series_configurations);
-        setInitialSeriesConfigurations(parsedSeries);
         setSeriesConfigurations(parsedSeries.map(series => ({ 
           ...series, 
           category: series.category || '', 
@@ -329,50 +327,25 @@ export default function CustomChartForm({
     setRemovingItemization(true);
     setMessage('');
     try {
-      let updatedSeries = [];
-      if (initialSeriesConfigurations && initialSeriesConfigurations.length > 0) {
-        updatedSeries = initialSeriesConfigurations.map(series => ({
-          ...series,
-          itemize: false,
-          selected_item_id: null,
-          selected_account_ids: series.selected_account_ids || [],
-          category: series.category || '',
-          label: series.label || (series.data_type ? series.data_type.charAt(0).toUpperCase() + series.data_type.slice(1) : 'All Items'),
-        }));
-      } else {
-        const byType = new Map();
-        for (const series of seriesConfigurations) {
-          const key = series.data_type || '';
-          if (!key) continue;
-          if (!byType.has(key)) {
-            byType.set(key, {
-              data_type: series.data_type,
-              field: series.field || 'value',
-              aggregation: series.aggregation || 'sum',
-              label: 'All Items',
-              color: series.color || getRandomColor(),
-              category: '',
-              selected_item_id: null,
-              selected_account_ids: [],
-              itemize: false,
-            });
-          }
-        }
-        updatedSeries = Array.from(byType.values());
-        if (updatedSeries.length === 0) {
-          updatedSeries = [{
-            data_type: seriesConfigurations[0].data_type,
-            field: seriesConfigurations[0].field || 'value',
-            aggregation: seriesConfigurations[0].aggregation || 'sum',
+      const byType = new Map();
+      seriesConfigurations.forEach(series => {
+        const key = series.data_type || '';
+        if (!key) return;
+        if (!byType.has(key)) {
+          byType.set(key, {
+            data_type: series.data_type,
+            field: series.field || 'value',
+            aggregation: series.aggregation || 'sum',
             label: 'All Items',
-            color: seriesConfigurations[0].color || getRandomColor(),
+            color: series.color || getRandomColor(),
             category: '',
             selected_item_id: null,
             selected_account_ids: [],
             itemize: false,
-          }];
+          });
         }
-      }
+      });
+      const updatedSeries = Array.from(byType.values());
 
       setSeriesConfigurations(updatedSeries);
       const chartData = {
