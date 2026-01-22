@@ -33,15 +33,15 @@
 
 .chart-display-area {
   position: relative;
-  height: 400px;
   width: 100%;
   margin: 0 auto;
+  /* No fixed height: grows to fit chart + table so both are visible without scrolling */
 }
 
 .chart-container {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 400px; /* Fixed height for chart only; table flows below */
 }
 
 .custom-chart-view-container .loading,
