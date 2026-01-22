@@ -175,7 +175,6 @@ Please provide a detailed answer to their "What If?" question, using their actua
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
-            stream=True,
             max_tokens=4000  # Increased from 1000 to allow for complete, detailed responses
         )
         
