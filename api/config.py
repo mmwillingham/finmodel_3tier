@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     PLAID_COUNTRY_CODES: list[str] = ["US"]  # Country codes
     PLAID_REDIRECT_URI: str | None = os.getenv("PLAID_REDIRECT_URI", None)  # For OAuth flows
     
+    # OpenAI API Settings
+    OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY", "") or os.getenv("_OPENAI_API_KEY", "")
 
     # Method to generate DATABASE_URL after validation
     def model_post_init(self, __context: Any) -> None:

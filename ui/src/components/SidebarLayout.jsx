@@ -45,6 +45,7 @@ import ExportImportPage from "../pages/ExportImportPage";
 import ReferAFriendPage from "../pages/ReferAFriendPage";
 import AuthorizedUsersPage from "../pages/AuthorizedUsersPage";
 import AccountSwitcherPage from "../pages/AccountSwitcherPage";
+import WhatIfPage from "../pages/WhatIfPage";
 
 export default function SidebarLayout() {
   const { viewingUserId, userSettings, currentUser, login } = useAuth();
@@ -465,6 +466,12 @@ export default function SidebarLayout() {
             >
               Custom
             </button>
+            <button 
+              className={`nav-btn ${view === 'what-if' ? 'active' : ''}`} 
+              onClick={() => { setView('what-if'); setCashFlowView(null); }}
+            >
+              What If?
+            </button>
           </section>
         </nav>
       </aside>
@@ -873,6 +880,10 @@ export default function SidebarLayout() {
               onEdit={handleEditChart}
             />
           </div>
+        )}
+
+        {!loading && view === "what-if" && (
+          <WhatIfPage />
         )}
       </main>
       <ChangePasswordModal 
