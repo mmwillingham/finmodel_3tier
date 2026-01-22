@@ -1,7 +1,7 @@
 """simplify_permissions_to_two_areas
 
 Revision ID: ce90ec2a0c6f
-Revises: be67356d65e4
+Revises: 2350de417992
 Create Date: 2026-01-22 09:38:14.006595
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'ce90ec2a0c6f'
-down_revision: Union[str, Sequence[str], None] = 'be67356d65e4'
+down_revision: Union[str, Sequence[str], None] = '2350de417992'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
