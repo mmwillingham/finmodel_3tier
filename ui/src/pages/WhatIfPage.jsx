@@ -3,7 +3,7 @@ import './WhatIfPage.css';
 import whatIfService from '../services/what_if.service';
 
 const exampleQuestions = [
-  "Compare the long term affect on net worth between keeping or reinvesting dividends.",
+  "Compare the long term affect on my net worth between keeping or reinvesting dividends.",
   "How will my 2040 net worth be affected if inflation is 2% higher than expected?",
   "If my assets grow at 0% and my income drops to 60,000 per year in 2028, what year will my money run out?",
   "How will taking social security at age 62 vs 67 affect my 2035 net worth?",
