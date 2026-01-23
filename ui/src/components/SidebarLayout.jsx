@@ -168,45 +168,49 @@ export default function SidebarLayout() {
   // Detect settings routes and update view accordingly
   useEffect(() => {
     const path = location.pathname;
-      if (path.startsWith('/settings')) {
-      if (path === '/settings/categories') {
-        setView('settings-categories');
-      } else if (path === '/settings/profile') {
-        setView('settings-profile');
-      } else if (path === '/settings/application') {
-        setView('settings-application');
-      } else if (path === '/settings/accounts') {
-        setView('accounts');
-      } else if (path === '/settings/auto-disbursements') {
-        setView('automatic-transfers');
-      } else if (path === '/settings/authorized-users') {
-        setView('settings-authorized-users');
-      } else if (path === '/settings/export-import') {
-        setView('settings-export-import');
-      } else if (path === '/settings/refer-a-friend') {
-        setView('settings-refer-a-friend');
-      } else if (path === '/settings/help') {
-        setView('settings-help');
-      } else if (path === '/settings/about') {
-        setView('settings-about');
-      } else if (path === '/settings/account-switcher') {
-        setView('settings-account-switcher');
-      } else if (path === '/settings/admin/users') {
-        setView('settings-admin-users');
-      } else if (path === '/settings/admin/global-categories') {
-        setView('settings-admin-global-categories');
-      }
-    } else if (path === '/categories') {
+    if (path === '/' || path === '') {
+      setView('new-home');
+      setCashFlowView(null);
+    } else if (path === '/accounts' || path === '/settings/accounts') {
+      setView('accounts');
+    } else if (path === '/assets') {
+      setView('assets');
+    } else if (path === '/liabilities') {
+      setView('liabilities');
+    } else if (path === '/cashflow/income') {
+      setView('cashflow');
+      setCashFlowView('income');
+    } else if (path === '/cashflow/expense') {
+      setView('cashflow');
+      setCashFlowView('expense');
+    } else if (path === '/automatic-transfers' || path === '/settings/auto-disbursements') {
+      setView('automatic-transfers');
+    } else if (path === '/categories' || path === '/settings/categories') {
       setView('settings-categories');
     } else if (path === '/documents') {
       setView('documents');
-    } else if (path === '/') {
-      // Reset to home view ONLY if we're already on home (prevents overriding other views)
-      if (view === 'new-home') {
-        setView('new-home');
-      }
+    } else if (path === '/settings/application') {
+      setView('settings-application');
+    } else if (path === '/settings/profile') {
+      setView('settings-profile');
+    } else if (path === '/settings/account-switcher') {
+      setView('settings-account-switcher');
+    } else if (path === '/settings/export-import') {
+      setView('settings-export-import');
+    } else if (path === '/settings/refer-a-friend') {
+      setView('settings-refer-a-friend');
+    } else if (path === '/settings/help') {
+      setView('settings-help');
+    } else if (path === '/settings/about') {
+      setView('settings-about');
+    } else if (path === '/settings/authorized-users') {
+      setView('settings-authorized-users');
+    } else if (path === '/settings/admin/users') {
+      setView('settings-admin-users');
+    } else if (path === '/settings/admin/global-categories') {
+      setView('settings-admin-global-categories');
     }
-  }, [location.pathname, view]);
+  }, [location.pathname]);
 
   useEffect(() => {
     refreshAllData();
@@ -354,55 +358,54 @@ export default function SidebarLayout() {
         <nav className="sidebar-nav">
           <section className="nav-section">
             <h3>MY DATA</h3>
-            <button 
-              className={`nav-btn ${view === 'documents' ? 'active' : ''}`} 
-              onClick={() => { navigate('/documents'); setView('documents'); }}
+            <NavLink
+              to="/documents"
+              className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
               Document Vault
-            </button>
-            <button
-              className={`nav-btn ${view === 'accounts' ? 'active' : ''}`}
-              onClick={() => { navigate('/'); setView('accounts'); }}
+            </NavLink>
+            <NavLink
+              to="/accounts"
+              className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
               Accounts
-            </button>
+            </NavLink>
             <NavLink
               to="/categories"
               className={({ isActive }) => `nav-btn ${isActive || view === 'settings-categories' ? 'active' : ''}`}
-              onClick={() => setView('settings-categories')}
             >
               Categories
             </NavLink>
-            <button
-              className={`nav-btn ${view === 'assets' ? 'active' : ''}`}
-              onClick={() => { navigate('/'); setView('assets'); setCashFlowView(null); }}
+            <NavLink
+              to="/assets"
+              className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
               Assets
-            </button>
-            <button
-              className={`nav-btn ${view === 'liabilities' ? 'active' : ''}`}
-              onClick={() => { navigate('/'); setView('liabilities'); setCashFlowView(null); }}
+            </NavLink>
+            <NavLink
+              to="/liabilities"
+              className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
               Liabilities / Debts
-            </button>
-            <button
-              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
-              onClick={() => { navigate('/'); setView('cashflow'); setCashFlowView('income'); }}
+            </NavLink>
+            <NavLink
+              to="/cashflow/income"
+              className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
               Income (Cash In)
-            </button>
-            <button
-              className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
-              onClick={() => { navigate('/'); setView('cashflow'); setCashFlowView('expense'); }}
+            </NavLink>
+            <NavLink
+              to="/cashflow/expense"
+              className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
               Expenses (Cash Out)
-            </button>
-            <button
-              className={`nav-btn ${view === 'automatic-transfers' ? 'active' : ''}`}
-              onClick={() => { navigate('/'); setView('automatic-transfers'); }}
+            </NavLink>
+            <NavLink
+              to="/automatic-transfers"
+              className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
               Automatic Transfers
-            </button>
+            </NavLink>
             <button
               className={`nav-btn ${view === 'cash-handling' ? 'active' : ''}`}
               onClick={() => { setView('cash-handling'); }}

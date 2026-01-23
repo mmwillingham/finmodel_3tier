@@ -59,14 +59,18 @@ function App() {
                                     </ProtectedRoute>
                                 }
                             />
-                            
-                            {/* New Protected Settings Routes - all render within SidebarLayout to keep sidebar visible */}
+                            <Route path="/accounts" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/assets" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/liabilities" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/cashflow/income" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/cashflow/expense" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/automatic-transfers" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                            <Route path="/categories" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                             <Route path="/settings/account-switcher" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                             <Route path="/settings/application" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                             <Route path="/settings/profile" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                             <Route path="/settings/categories" element={<Navigate to="/categories" replace />} />
                             <Route path="/settings/accounts" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/categories" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                             <Route path="/settings/auto-disbursements" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                             <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
                             <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />

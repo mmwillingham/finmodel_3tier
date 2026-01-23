@@ -2212,7 +2212,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const baseModel = parsedData.baseModel;
   
   if (loading) {
-    return <div>Loading cash flow projections...</div>;
+    return <div>Loading projections. Please be patient...</div>;
   }
   
   if (error) {
