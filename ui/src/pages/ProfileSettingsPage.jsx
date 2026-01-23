@@ -6,6 +6,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity.js';
+import { useSettingsContext } from '../context/SettingsContext.jsx';
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
@@ -55,46 +56,34 @@ const ProfileSettingsPage = () => {
   const [person2SSRetirementDate, setPerson2SSRetirementDate] = useState("");
   const [person2SSCOLA, setPerson2SSCOLA] = useState("");
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const { settings, loading: settingsLoading, refreshSettings } = useSettingsContext();
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
-  const loadSettings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await SettingsService.getSettings();
-      setPerson1FirstName(res.data.person1_first_name || "");
-      setPerson1LastName(res.data.person1_last_name || "");
-      setPerson1Birthdate(res.data.person1_birthdate || "");
-      setPerson1CellPhone(res.data.person1_cell_phone || "");
-      setPerson2FirstName(res.data.person2_first_name || "");
-      setPerson2LastName(res.data.person2_last_name || "");
-      setPerson2Birthdate(res.data.person2_birthdate || "");
-      setPerson2CellPhone(res.data.person2_cell_phone || "");
-      setAddress(res.data.address || "");
-      setCity(res.data.city || "");
-      setState(res.data.state || "");
-      setZipCode(res.data.zip_code || "");
-      setTaxFilingStatus(res.data.tax_filing_status || "Single");
-      // Load Social Security fields
-      setPerson1SSPIA(res.data.person1_ss_pia?.toString() || "");
-      setPerson1SSRetirementDate(res.data.person1_ss_retirement_date || "");
-      setPerson1SSCOLA(res.data.person1_ss_cola?.toString() || "");
-      setPerson2SSPIA(res.data.person2_ss_pia?.toString() || "");
-      setPerson2SSRetirementDate(res.data.person2_ss_retirement_date || "");
-      setPerson2SSCOLA(res.data.person2_ss_cola?.toString() || "");
-    } catch (e) {
-      console.error('Failed to load profile settings', e);
-      setError('Failed to load profile settings.');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser]);
-
   useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
+    if (!settings) {
+      return;
+    }
+    setPerson1FirstName(settings.person1_first_name || "");
+    setPerson1LastName(settings.person1_last_name || "");
+    setPerson1Birthdate(settings.person1_birthdate || "");
+    setPerson1CellPhone(settings.person1_cell_phone || "");
+    setPerson2FirstName(settings.person2_first_name || "");
+    setPerson2LastName(settings.person2_last_name || "");
+    setPerson2Birthdate(settings.person2_birthdate || "");
+    setPerson2CellPhone(settings.person2_cell_phone || "");
+    setAddress(settings.address || "");
+    setCity(settings.city || "");
+    setState(settings.state || "");
+    setZipCode(settings.zip_code || "");
+    setTaxFilingStatus(settings.tax_filing_status || "Single");
+    setPerson1SSPIA(settings.person1_ss_pia?.toString() || "");
+    setPerson1SSRetirementDate(settings.person1_ss_retirement_date || "");
+    setPerson1SSCOLA(settings.person1_ss_cola?.toString() || "");
+    setPerson2SSPIA(settings.person2_ss_pia?.toString() || "");
+    setPerson2SSRetirementDate(settings.person2_ss_retirement_date || "");
+    setPerson2SSCOLA(settings.person2_ss_cola?.toString() || "");
+  }, [settings]);
 
   const handleSave = async () => {
     setMessage('');
@@ -122,6 +111,7 @@ const ProfileSettingsPage = () => {
         person2_ss_retirement_date: person2SSRetirementDate || null,
         person2_ss_cola: person2SSCOLA ? parseFloat(person2SSCOLA) : null,
       });
+      await refreshSettings();
       setMessage('Profile settings saved successfully!');
       setTimeout(() => {
         setMessage('');
@@ -136,12 +126,8 @@ const ProfileSettingsPage = () => {
     }
   };
 
-  if (loading) {
+  if (settingsLoading) {
     return <div className="loading-message">Loading profile settings...</div>;
-  }
-
-  if (error) {
-    return <div className="error-message">Error: {error}</div>;
   }
 
   // Show message if viewing another account's data

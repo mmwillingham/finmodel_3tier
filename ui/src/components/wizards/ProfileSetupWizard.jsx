@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SettingsService from '../../services/settings.service';
 import './Wizard.css';
+import { useSettingsContext } from '../../context/SettingsContext.jsx';
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
@@ -85,6 +86,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }) => {
     }
   };
 
+  const { refreshSettings } = useSettingsContext();
+
   const handleSave = async () => {
     setMessage('');
     setLoading(true);
@@ -104,6 +107,7 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }) => {
         zip_code: zipCode,
         tax_filing_status: taxFilingStatus,
       });
+      await refreshSettings();
       setMessage('Profile saved successfully!');
       setTimeout(() => {
         if (onComplete) onComplete();

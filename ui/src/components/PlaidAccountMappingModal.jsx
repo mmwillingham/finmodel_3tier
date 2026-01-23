@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PlaidService from "../services/plaid.service";
 import SettingsService from "../services/settings.service";
+import { useSettingsContext } from "../context/SettingsContext.jsx";
 import "./PlaidAccountMappingModal.css";
 
 /**
@@ -19,20 +20,16 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [newCategoriesAdded, setNewCategoriesAdded] = useState({ assets: [], liabilities: [] }); // Track new categories added
+  const { settings, refreshSettings } = useSettingsContext();
 
   // Load categories from settings
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const response = await SettingsService.getSettings();
-        setAssetCategories(response.data.asset_categories || []);
-        setLiabilityCategories(response.data.liability_categories || []);
-      } catch (err) {
-        console.error("Error loading categories:", err);
-      }
-    };
-    loadCategories();
-  }, []);
+    if (!settings) {
+      return;
+    }
+    setAssetCategories(settings.asset_categories || []);
+    setLiabilityCategories(settings.liability_categories || []);
+  }, [settings]);
 
   // Initialize mappings from accounts
   useEffect(() => {
@@ -137,9 +134,7 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
       // First, save any new categories to user settings
       if (newCategoriesAdded.assets.length > 0 || newCategoriesAdded.liabilities.length > 0) {
         try {
-          const settingsResponse = await SettingsService.getSettings();
-          const currentSettings = settingsResponse.data;
-          
+          const currentSettings = settings || {};
           const updatedSettings = {
             asset_categories: [
               ...(currentSettings.asset_categories || []),
@@ -152,6 +147,7 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
           };
           
           await SettingsService.updateSettings(updatedSettings);
+          await refreshSettings();
         } catch (settingsErr) {
           console.error("Error saving new categories to settings:", settingsErr);
           // Don't fail the whole operation if settings save fails, but log it

@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
-import { useAuth } from '../context/AuthContext';
+import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 
 const ApplicationSettingsPage = () => {
-  const { currentUser, viewingUserId } = useAuth();
   const navigate = useNavigate();
   useSettingsBackButton(); // Fix browser back button navigation
   const [inflationPercent, setInflationPercent] = useState(2.0);
@@ -15,35 +14,25 @@ const ApplicationSettingsPage = () => {
   const [taxYear, setTaxYear] = useState(2025);
   const [calculateFederalTax, setCalculateFederalTax] = useState(false);
   const [calculateStateTax, setCalculateStateTax] = useState(false);
+  const { settings, loading: settingsLoading, refreshSettings } = useSettingsContext();
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadSettings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const settingsRes = await SettingsService.getSettings();
-      setInflationPercent(settingsRes.data.default_inflation_percent);
-      setProjectionYears(settingsRes.data.projection_years || 30);
-      setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
-      setTaxYear(settingsRes.data.tax_year || 2025);
-      setCalculateFederalTax(settingsRes.data.calculate_federal_tax ?? false);
-      setCalculateStateTax(settingsRes.data.calculate_state_tax ?? false);
-    } catch (e) {
-      console.error('Failed to load application settings', e);
-      setError('Failed to load application settings.');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser, viewingUserId]);
-
   useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
+    if (!settings) {
+      return;
+    }
+    setInflationPercent(settings.default_inflation_percent || 2.0);
+    setProjectionYears(settings.projection_years || 30);
+    setShowChartTotals(settings.show_chart_totals ?? true);
+    setTaxYear(settings.tax_year || 2025);
+    setCalculateFederalTax(settings.calculate_federal_tax ?? false);
+    setCalculateStateTax(settings.calculate_state_tax ?? false);
+  }, [settings]);
 
   const handleSave = async () => {
     setMessage('');
+    setError(null);
     try {
       await SettingsService.updateSettings({
         default_inflation_percent: parseFloat(inflationPercent),
@@ -53,7 +42,7 @@ const ApplicationSettingsPage = () => {
         calculate_federal_tax: calculateFederalTax,
         calculate_state_tax: calculateStateTax,
       });
-      // Navigate to home page after successful save
+      await refreshSettings();
       navigate('/');
     } catch (e) {
       console.error('Failed to save application settings', e);
@@ -63,12 +52,8 @@ const ApplicationSettingsPage = () => {
   };
 
 
-  if (loading) {
+  if (settingsLoading) {
     return <div className="loading-message">Loading application settings...</div>;
-  }
-
-  if (error) {
-    return <div className="error-message">Error: {error}</div>;
   }
 
   return (
@@ -91,7 +76,7 @@ const ApplicationSettingsPage = () => {
         </div>
         <div className="form-group-horizontal">
           <label htmlFor="projection-years">
-            Number of Years to Project (Refresh browser after changing.)
+            Number of Years to Project
           </label>
           <input
             id="projection-years"

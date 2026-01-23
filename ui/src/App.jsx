@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import NavigationGuard from './components/NavigationGuard';
 import SettingsPageLayout from './components/SettingsLayout';
+import { SettingsProvider } from './context/SettingsContext.jsx';
 
 // Import all main components
 import Header from './components/Header.jsx';
@@ -36,6 +37,7 @@ function App() {
         <Router>
             {/* Wrap the entire app in the Auth Provider */}
             <AuthProvider>
+                <SettingsProvider>
                     <NavigationGuard>
                     <Header /> {/* Removed setIsSettingsModalOpen prop */}
                     <SettingsPageLayout>
@@ -81,6 +83,7 @@ function App() {
                         </main>
                     </SettingsPageLayout>
                 </NavigationGuard>
+                </SettingsProvider>
             </AuthProvider>
         </Router>
     );

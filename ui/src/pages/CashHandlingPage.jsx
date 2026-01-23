@@ -3,6 +3,7 @@ import SettingsService from '../services/settings.service';
 import AssetService from '../services/asset.service';
 import CashFlowService from '../services/cashflow.service';
 import { useAuth } from '../context/AuthContext';
+import { useSettingsContext } from '../context/SettingsContext.jsx';
 import './SettingsPages.css';
 
 const CashHandlingPage = () => {
@@ -16,6 +17,7 @@ const CashHandlingPage = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { refreshSettings } = useSettingsContext();
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -54,6 +56,7 @@ const CashHandlingPage = () => {
         cash_in_source_ids: cashInSourceIds,
         cash_out_source_ids: cashOutSourceIds,
       });
+      await refreshSettings();
       setMessage('Cash handling settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (e) {

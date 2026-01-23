@@ -15,7 +15,7 @@ import LiabilityView from "./LiabilityView";
 import BalanceSheetProjection from "./BalanceSheetProjection";
 import CashFlowOverview from "./CashFlowOverview";
 import "./SidebarLayout.css";
-import SettingsService from "../services/settings.service";
+import { useSettingsContext } from "../context/SettingsContext.jsx";
 import CustomChartList from "./CustomChartList";
 import CustomChartForm from "./CustomChartForm";
 import CustomChartView from "./CustomChartView";
@@ -49,6 +49,7 @@ import WhatIfPage from "../pages/WhatIfPage";
 
 export default function SidebarLayout() {
   const { viewingUserId, userSettings, currentUser, login } = useAuth();
+  const { settings } = useSettingsContext();
   const location = useLocation();
   const navigate = useNavigate();
   const [view, setView] = useState("new-home"); // Default to home view
@@ -95,28 +96,29 @@ export default function SidebarLayout() {
     }
   };
 
-  const refreshSettings = useCallback(async () => {
-    try {
-      const settingsRes = await SettingsService.getSettings();
-      setProjectionYears(settingsRes.data.projection_years || 30);
-      setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
-    } catch (e) {
-      console.error("Failed to refresh settings", e);
-    }
-  }, []);
-
   const [viewingUserSettings, setViewingUserSettings] = useState(null);
+  useEffect(() => {
+    if (!settings) {
+      return;
+    }
+    if (!viewingUserId || viewingUserId === currentUser?.id) {
+      setProjectionYears(settings.projection_years || 30);
+      setShowChartTotals(settings.show_chart_totals ?? true);
+      setViewingUserSettings(settings);
+    } else {
+      setViewingUserSettings(null);
+    }
+  }, [settings, viewingUserId, currentUser?.id]);
 
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [inc, exp, ast, lib, accs, settingsRes, autoDisburs] = await Promise.all([
+      const [inc, exp, ast, lib, accs, autoDisburs] = await Promise.all([
         CashFlowService.list(true, viewingUserId),
         CashFlowService.list(false, viewingUserId),
         AssetService.list(viewingUserId),
         LiabilityService.list(viewingUserId),
         AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
-        SettingsService.getSettings(), // This always returns current user's settings
         AutoDisbursementService.getAllAutoDisbursements().catch(() => []), // NEW: Load auto-disbursements
       ]);
 
@@ -126,18 +128,6 @@ export default function SidebarLayout() {
       setLiabilities(lib.data || []);
       setAccounts(accs || []);
       setAutoDisbursements(autoDisburs || []); // NEW: Set auto-disbursements
-      
-      // Only use current user's settings for projection years and chart totals
-      // Categories will come from actual items when viewing another user
-      if (!viewingUserId || viewingUserId === currentUser?.id) {
-        setProjectionYears(settingsRes.data.projection_years || 30);
-        setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
-        setViewingUserSettings(settingsRes.data);
-      } else {
-        // When viewing another user, use categories from their actual items
-        // and keep projection years/chart totals from current user (or use defaults)
-        setViewingUserSettings(null); // No settings available for viewing user
-      }
 
       const uniqueAssetCategories = [...new Set(ast.data.map(item => item.category))].filter(Boolean);
       setAssetCategories(uniqueAssetCategories);
@@ -156,7 +146,7 @@ export default function SidebarLayout() {
     } finally {
       setLoading(false);
     }
-  }, [viewingUserId, currentUser?.id]);
+  }, [viewingUserId]);
 
   // Detect settings routes and update view accordingly
   useEffect(() => {
@@ -198,44 +188,7 @@ export default function SidebarLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-      const [inc, exp, ast, lib, accs, settingsRes, autoDisburs] = await Promise.all([
-        CashFlowService.list(true, viewingUserId),
-        CashFlowService.list(false, viewingUserId),
-        AssetService.list(viewingUserId),
-        LiabilityService.list(viewingUserId),
-        AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
-        SettingsService.getSettings(),
-        AutoDisbursementService.getAllAutoDisbursements().catch(() => []), // NEW: Load auto-disbursements
-      ]);
-        setIncomeItems(inc.data || []);
-        setExpenseItems(exp.data || []);
-        setAssets(ast.data || []);
-        setLiabilities(lib.data || []);
-        setAccounts(accs || []);
-        setAutoDisbursements(autoDisburs || []); // NEW: Set auto-disbursements
-        setProjectionYears(settingsRes.data.projection_years || 30);
-        setShowChartTotals(settingsRes.data.show_chart_totals ?? true);
-
-        const uniqueAssetCategories = [...new Set(ast.data.map(item => item.category))].filter(Boolean);
-        setAssetCategories(uniqueAssetCategories);
-        
-        const uniqueLiabilityCategories = [...new Set(lib.data.map(item => item.category || ''))];
-        setLiabilityCategories(uniqueLiabilityCategories);
-        
-        const uniqueIncomeCategories = [...new Set(inc.data.map(item => item.category))].filter(Boolean);
-        setIncomeCategories(uniqueIncomeCategories);
-        
-        const uniqueExpenseCategories = [...new Set(exp.data.map(item => item.category))].filter(Boolean);
-        setExpenseCategories(uniqueExpenseCategories);
-      } catch (e) {
-        console.error("Failed to load cashflow, assets, or liabilities", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    refreshAllData();
     
     // Listen for category updates from CategorySettingsPage
     const handleCategoryUpdate = () => {
@@ -258,7 +211,7 @@ export default function SidebarLayout() {
       window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
       window.removeEventListener('navigateToHome', handleNavigateToHome);
     };
-  }, [refreshSettings, refreshAllData, viewingUserId]); // Refresh when viewingUserId changes
+  }, [refreshAllData, viewingUserId]); // Refresh when viewingUserId changes
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("en-US", {

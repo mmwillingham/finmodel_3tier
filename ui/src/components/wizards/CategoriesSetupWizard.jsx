@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import SettingsService from '../../services/settings.service';
 import CategoryEditorModal from '../CategoryEditorModal';
+import { useSettingsContext } from '../../context/SettingsContext.jsx';
 import './Wizard.css';
 
-const CategoriesSetupWizard = ({ isOpen, onClose, onComplete }) => {
+  const CategoriesSetupWizard = ({ isOpen, onClose, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -17,6 +18,7 @@ const CategoriesSetupWizard = ({ isOpen, onClose, onComplete }) => {
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const { refreshSettings } = useSettingsContext();
 
   useEffect(() => {
     if (isOpen) {
@@ -62,6 +64,7 @@ const CategoriesSetupWizard = ({ isOpen, onClose, onComplete }) => {
       settingsToUpdate[`${categoryType}_categories`] = updatedCategories;
 
       await SettingsService.updateSettings(settingsToUpdate);
+      await refreshSettings();
       setMessage(`${categoryType} categories saved!`);
       
       // Update local state
@@ -82,6 +85,7 @@ const CategoriesSetupWizard = ({ isOpen, onClose, onComplete }) => {
     setLoading(true);
     try {
       await SettingsService.loadDefaultCategories();
+      await refreshSettings();
       await loadCategories();
       setMessage('Default categories loaded successfully!');
       setTimeout(() => setMessage(''), 2000);

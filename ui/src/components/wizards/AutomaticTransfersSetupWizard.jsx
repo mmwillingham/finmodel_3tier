@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AutoDisbursementService from '../../services/auto_disbursement.service';
 import AssetService from '../../services/asset.service';
 import SettingsService from '../../services/settings.service';
+import { useSettingsContext } from '../../context/SettingsContext.jsx';
 import './Wizard.css';
 
 const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }) => {
@@ -26,6 +27,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }) => {
       loadData();
     }
   }, [isOpen]);
+
+  const { refreshSettings } = useSettingsContext();
 
   const loadData = async () => {
     try {
@@ -67,6 +70,7 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }) => {
       await SettingsService.updateSettings({
         surplus_asset_id: surplusAssetId || null,
       });
+      await refreshSettings();
       setMessage('Surplus Asset saved!');
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import CategoryEditorModal from '../components/CategoryEditorModal';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
+import { useSettingsContext } from '../context/SettingsContext.jsx';
 
 const CategorySettingsPage = () => {
   const { currentUser } = useAuth();
@@ -17,6 +18,7 @@ const CategorySettingsPage = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { refreshSettings } = useSettingsContext();
 
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
@@ -65,6 +67,7 @@ const CategorySettingsPage = () => {
         });
 
         await SettingsService.updateSettings(settingsToUpdate);
+        await refreshSettings();
         setMessage(`${categoryType} categories saved successfully! Categories in your items have been updated.`);
         // Refresh local state to reflect changes if save was successful
         loadSettings();
@@ -85,6 +88,7 @@ const CategorySettingsPage = () => {
     setLoadingDefaults(true);
     try {
       await SettingsService.loadDefaultCategories();
+      await refreshSettings();
       setMessage('Default categories loaded successfully!');
       // Refresh local state to reflect changes
       loadSettings();

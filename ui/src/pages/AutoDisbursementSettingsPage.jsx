@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AutoDisbursementService from '../services/auto_disbursement.service';
 import AssetService from '../services/asset.service';
 import SettingsService from '../services/settings.service';
+import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -30,6 +31,7 @@ const AutoDisbursementSettingsPage = () => {
     start_date: '',
     end_date: '',
   });
+  const { refreshSettings } = useSettingsContext();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -207,6 +209,7 @@ const AutoDisbursementSettingsPage = () => {
       await SettingsService.updateSettings({
         surplus_asset_id: surplusAssetId || null,
       });
+      await refreshSettings();
       setMessage('Surplus Asset saved successfully!');
       setTimeout(() => {
         setMessage('');
