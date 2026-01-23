@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, NavLink } from "react-router-dom";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
@@ -168,7 +168,7 @@ export default function SidebarLayout() {
   // Detect settings routes and update view accordingly
   useEffect(() => {
     const path = location.pathname;
-    if (path.startsWith('/settings')) {
+      if (path.startsWith('/settings')) {
       if (path === '/settings/categories') {
         setView('settings-categories');
       } else if (path === '/settings/profile') {
@@ -196,13 +196,17 @@ export default function SidebarLayout() {
       } else if (path === '/settings/admin/global-categories') {
         setView('settings-admin-global-categories');
       }
+    } else if (path === '/categories') {
+      setView('settings-categories');
     } else if (path === '/documents') {
       setView('documents');
     } else if (path === '/') {
-      // Reset to home view when navigating to root
-      setView('new-home');
+      // Reset to home view ONLY if we're already on home (prevents overriding other views)
+      if (view === 'new-home') {
+        setView('new-home');
+      }
     }
-  }, [location.pathname]);
+  }, [location.pathname, view]);
 
   useEffect(() => {
     refreshAllData();
@@ -215,8 +219,7 @@ export default function SidebarLayout() {
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
     
     // Listen for navigation to home from Header
-    const handleNavigateToHome = (event) => {
-      if (event?.detail === 'prevent-reset') return;
+    const handleNavigateToHome = () => {
       setView('new-home');
       setCashFlowView(null);
       setCustomChartView(null);
@@ -353,53 +356,50 @@ export default function SidebarLayout() {
             <h3>MY DATA</h3>
             <button 
               className={`nav-btn ${view === 'documents' ? 'active' : ''}`} 
-              onClick={() => { setView('documents'); }}
+              onClick={() => { navigate('/documents'); setView('documents'); }}
             >
               Document Vault
             </button>
             <button
               className={`nav-btn ${view === 'accounts' ? 'active' : ''}`}
-              onClick={() => { setView('accounts'); }}
+              onClick={() => { navigate('/'); setView('accounts'); }}
             >
               Accounts
             </button>
-            <button
-              className={`nav-btn ${view === 'settings-categories' || location.pathname === '/settings/categories' ? 'active' : ''}`}
-              onClick={() => { 
-                setView('settings-categories');
-                navigate('/settings/categories', { replace: true });
-                window.dispatchEvent(new CustomEvent('navigateToHome', { detail: 'prevent-reset' }));
-              }}
+            <NavLink
+              to="/categories"
+              className={({ isActive }) => `nav-btn ${isActive || view === 'settings-categories' ? 'active' : ''}`}
+              onClick={() => setView('settings-categories')}
             >
               Categories
-            </button>
+            </NavLink>
             <button
               className={`nav-btn ${view === 'assets' ? 'active' : ''}`}
-              onClick={() => { setView('assets'); setCashFlowView(null); }}
+              onClick={() => { navigate('/'); setView('assets'); setCashFlowView(null); }}
             >
               Assets
             </button>
             <button
               className={`nav-btn ${view === 'liabilities' ? 'active' : ''}`}
-              onClick={() => { setView('liabilities'); setCashFlowView(null); }}
+              onClick={() => { navigate('/'); setView('liabilities'); setCashFlowView(null); }}
             >
               Liabilities / Debts
             </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'income' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow'); setCashFlowView('income'); }}
+              onClick={() => { navigate('/'); setView('cashflow'); setCashFlowView('income'); }}
             >
               Income (Cash In)
             </button>
             <button
               className={`nav-btn ${view === 'cashflow' && cashFlowView === 'expense' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow'); setCashFlowView('expense'); }}
+              onClick={() => { navigate('/'); setView('cashflow'); setCashFlowView('expense'); }}
             >
               Expenses (Cash Out)
             </button>
             <button
               className={`nav-btn ${view === 'automatic-transfers' ? 'active' : ''}`}
-              onClick={() => { setView('automatic-transfers'); }}
+              onClick={() => { navigate('/'); setView('automatic-transfers'); }}
             >
               Automatic Transfers
             </button>
@@ -472,7 +472,7 @@ export default function SidebarLayout() {
         )}
 
         {/* Settings Pages */}
-        {!loading && (view === "settings-categories" || location.pathname.startsWith("/settings/categories")) && (
+        {!loading && (location.pathname.startsWith("/settings/categories") || location.pathname === "/categories") && (
           <CategorySettingsPage />
         )}
 

@@ -120,12 +120,6 @@ const SettingsPageLayout = ({ children }) => {
                 Accounts
               </button>
               <button 
-                className={`nav-btn ${location.pathname === '/settings/categories' ? 'active' : ''}`} 
-                onClick={() => navigate('/settings/categories')}
-              >
-                Categories
-              </button>
-              <button 
                 className={`nav-btn ${location.pathname === '/settings/auto-disbursements' ? 'active' : ''}`} 
                 onClick={() => navigate('/settings/auto-disbursements')}
               >

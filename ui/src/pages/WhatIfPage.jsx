@@ -16,7 +16,7 @@ const descriptionSentences = [
   "IMPORTANT",
   "- This is a beta feature and may not be accurate.",
   "- This feature will soon only be available for users with a paid subscription.",
-  "- No Personal Information will be shared with the AI model."
+  "- No Personally Identifiable Information (PII) will be shared with the AI model."
 ];
 
 const WhatIfPage = () => {
