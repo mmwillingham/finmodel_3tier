@@ -38,6 +38,8 @@ const AccountsSettingsPage = () => {
     account_number: '',
     is_retirement: false,
   });
+  const [renamingBrokerageId, setRenamingBrokerageId] = useState(null);
+  const [renamingBrokerageName, setRenamingBrokerageName] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -248,6 +250,36 @@ const AccountsSettingsPage = () => {
     }
   };
 
+  const handleStartRename = (brokerage) => {
+    setRenamingBrokerageId(brokerage.id);
+    setRenamingBrokerageName(brokerage.name);
+  };
+
+  const handleCancelRename = () => {
+    setRenamingBrokerageId(null);
+    setRenamingBrokerageName('');
+  };
+
+  const handleConfirmRename = async () => {
+    if (!renamingBrokerageName.trim()) {
+      setMessage('Brokerage name is required');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+    try {
+      await BrokerageService.updateBrokerage(renamingBrokerageId, { name: renamingBrokerageName.trim() });
+      setMessage('Brokerage renamed successfully!');
+      setTimeout(() => setMessage(''), 2000);
+      handleCancelRename();
+      loadData();
+    } catch (e) {
+      console.error('Failed to rename brokerage', e);
+      const errorMessage = e.response?.data?.detail || 'Error renaming brokerage';
+      setMessage(errorMessage);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
   if (loading) {
     return <div className="loading-message">Loading accounts...</div>;
   }
@@ -399,8 +431,57 @@ const AccountsSettingsPage = () => {
                     🗑️
                   </button>
                 )}
+                {b.owner_id === currentUser?.id && (
+                  <button
+                    onClick={() => handleStartRename(b)}
+                    className="delete-icon-btn"
+                    title="Rename Brokerage"
+                    style={{
+                      padding: '2px 4px',
+                      fontSize: '0.9em',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#007bff',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ✏️
+                  </button>
+                )}
               </span>
             ))}
+          </div>
+        )}
+        {renamingBrokerageId && (
+          <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#fff7e6', borderRadius: '6px', border: '1px solid #ffe0b2', maxWidth: '420px' }}>
+            <div style={{ marginBottom: '8px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Rename Brokerage</span>
+              <button
+                onClick={handleCancelRename}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9em', color: '#333' }}
+              >
+                Cancel
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={renamingBrokerageName}
+                onChange={(e) => setRenamingBrokerageName(e.target.value)}
+                className="input-modern"
+                style={{ flex: 1 }}
+              />
+              <button
+                onClick={handleConfirmRename}
+                className="btn-primary-modern"
+                style={{ padding: '6px 16px', fontSize: '0.9em', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Save
+              </button>
+            </div>
           </div>
         )}
       </div>
