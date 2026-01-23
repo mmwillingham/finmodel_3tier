@@ -328,9 +328,9 @@ export default function CustomChartForm({
     setMessage('');
     try {
       const byType = new Map();
-      seriesConfigurations.forEach(series => {
+      for (const series of seriesConfigurations) {
         const key = series.data_type || '';
-        if (!key) return;
+        if (!key) continue;
         if (!byType.has(key)) {
           byType.set(key, {
             data_type: series.data_type,
@@ -344,8 +344,23 @@ export default function CustomChartForm({
             itemize: false,
           });
         }
-      });
-      const updatedSeries = Array.from(byType.values());
+      }
+
+      let updatedSeries = Array.from(byType.values());
+      if (updatedSeries.length === 0 && seriesConfigurations.length > 0) {
+        const fallback = seriesConfigurations[0];
+        updatedSeries = [{
+          data_type: fallback.data_type,
+          field: fallback.field || 'value',
+          aggregation: fallback.aggregation || 'sum',
+          label: 'All Items',
+          color: fallback.color || getRandomColor(),
+          category: '',
+          selected_item_id: null,
+          selected_account_ids: [],
+          itemize: false,
+        }];
+      }
 
       setSeriesConfigurations(updatedSeries);
       const chartData = {
