@@ -1146,9 +1146,11 @@ def create_custom_chart(
             elif not federal_tax_expense:
                 print(f"--- WARNING: Federal Tax expense not found in database for user {current_user.id} ---"); sys.stdout.flush()
             elif FEDERAL_TAX_EXPENSE_DESCRIPTION in included_expense_names:
+                pass
         elif not user_settings:
-            print(f"--- WARNING: user_settings is None, cannot check calculate_federal_tax ---"); sys.stdout.flush()
+            pass
         elif not user_settings.calculate_federal_tax:
+            pass
         
         # Auto-include State Tax expense if tax calculation is enabled
         STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"

@@ -584,7 +584,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3 }}
                 >
                   <h4>📋 Setup Profile</h4>
-                  <p>Enter your personal information, address, and tax filing status.</p>
+                  <p>Enter your personal info and tax filing status</p>
                 </motion.div>
                 
                 <motion.div 
@@ -597,7 +597,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3, delay: 0.1 }}
                 >
                   <h4>🏷️ Setup Categories</h4>
-                  <p>Organize your assets, liabilities, income, and expenses with categories.</p>
+                  <p>Organize your financial categories</p>
                 </motion.div>
                 
                 <motion.div 
@@ -610,7 +610,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3, delay: 0.15 }}
                 >
                   <h4>🏦 Setup Accounts</h4>
-                  <p>Add your financial institution accounts (banks, brokerages, etc.).</p>
+                  <p>Add your financial institution accounts</p>
                 </motion.div>
                 
                 <motion.div 
@@ -623,7 +623,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3, delay: 0.2 }}
                 >
                   <h4>💰 Setup Assets</h4>
-                  <p>Add your assets (checking, savings, investments, real estate, etc.).</p>
+                  <p>Add your assets (bank accounts, real estate, etc.)</p>
                 </motion.div>
                 
                 <motion.div 
