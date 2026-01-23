@@ -91,7 +91,7 @@ const ApplicationSettingsPage = () => {
         </div>
         <div className="form-group-horizontal">
           <label htmlFor="projection-years">
-            Number of Years to Project
+            Number of Years to Project (Refresh browser after changing.)
           </label>
           <input
             id="projection-years"

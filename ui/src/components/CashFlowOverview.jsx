@@ -15,7 +15,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
 
 // Simplified Sankey Diagram Component
-function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [], viewMode = 'sankey' }) {
+function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [], viewMode = 'sankey', includeTransfers = true }) {
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
@@ -409,8 +409,12 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     endingBalance = beginningBalance + totalCashIn - adjustedCashOut;
   }
   
+  // Determine whether to display transfers
+  const activeTransferSources = includeTransfers ? transferSources : {};
+  const activeTransferSinks = includeTransfers ? transferSinks : {};
+
   // Include transfer sources in income values for scaling
-  const allIncomeValues = [...Object.values(incomeCategoryTotals), ...Object.values(transferSources)].filter(v => v && v > 0);
+  const allIncomeValues = [...Object.values(incomeCategoryTotals), ...Object.values(activeTransferSources)].filter(v => v && v > 0);
   
   // Find maximum values for proportional scaling
   const incomeValues = Object.values(incomeCategoryTotals).filter(v => v && v > 0);
@@ -477,7 +481,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   currentY += nodeHeight + nodeSpacing;
   
   // Left side (transfer sources - surplus and auto-disbursements to cash assets)
-  Object.keys(transferSources).forEach(transferLabel => {
+  Object.keys(activeTransferSources).forEach(transferLabel => {
     nodePositions[`transfer_${transferLabel}`] = { x: leftColumnX, y: currentY, width: columnWidth, height: nodeHeight };
     currentY += nodeHeight + nodeSpacing;
   });
@@ -496,7 +500,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   currentY += nodeHeight + nodeSpacing;
   
   // Right side (transfer sinks - negative surplus/deficit from cash assets)
-  Object.keys(transferSinks).forEach(transferLabel => {
+  Object.keys(activeTransferSinks).forEach(transferLabel => {
     nodePositions[`transfer_sink_${transferLabel}`] = { x: rightColumnX, y: currentY, width: columnWidth, height: nodeHeight };
     currentY += nodeHeight + nodeSpacing;
   });
@@ -523,15 +527,17 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
 
   const piePalette = ['#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0', '#00BCD4', '#FF9800', '#E53935', '#00897B', '#7E57C2'];
 
-  const buildPieChartData = (categoryTotals, colorMapper) => {
-    const entries = Object.entries(categoryTotals || {})
+  const buildPieChartEntries = (categoryTotals) => {
+    return Object.entries(categoryTotals || {})
       .map(([label, value]) => ({
         label: label || 'Other',
         value: Math.max(value || 0, 0),
       }))
       .filter(entry => entry.value > 0);
+  };
 
-    if (entries.length === 0) {
+  const buildPieChartData = (entries, colorMapper) => {
+    if (!entries || entries.length === 0) {
       return null;
     }
 
@@ -606,11 +612,26 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     return defaultColor;
   };
 
-  const incomePieTotals = extendTotalsWithTransfers(incomeCategoryTotals, transferSources);
-  const expensePieTotals = extendTotalsWithTransfers(expenseCategoryTotals, transferSinks);
-
-  const incomePieChartData = buildPieChartData(incomePieTotals, getIncomeSliceColor);
-  const expensePieChartData = buildPieChartData(expensePieTotals, getExpenseSliceColor);
+  const incomePieTotals = includeTransfers
+    ? extendTotalsWithTransfers(incomeCategoryTotals, transferSources)
+    : { ...incomeCategoryTotals };
+  const expensePieTotals = includeTransfers
+    ? extendTotalsWithTransfers(expenseCategoryTotals, transferSinks)
+    : { ...expenseCategoryTotals };
+  const incomePieEntries = buildPieChartEntries(incomePieTotals);
+  const incomePieChartData = buildPieChartData(incomePieEntries, getIncomeSliceColor);
+  const expensePieEntries = buildPieChartEntries(expensePieTotals);
+  const expensePieChartData = buildPieChartData(expensePieEntries, getExpenseSliceColor);
+  const incomePieEntriesSorted = [...incomePieEntries].sort((a, b) => (b.value || 0) - (a.value || 0));
+  const expensePieEntriesSorted = [...expensePieEntries].sort((a, b) => (b.value || 0) - (a.value || 0));
+  const incomePieTotal = incomePieEntries.reduce((sum, entry) => sum + (entry.value || 0), 0);
+  const expensePieTotal = expensePieEntries.reduce((sum, entry) => sum + (entry.value || 0), 0);
+  const formatPercent = (value, total) => {
+    if (!total || total === 0) {
+      return '0.0%';
+    }
+    return `${((value / total) * 100).toFixed(1)}%`;
+  };
 
   if (viewMode === 'pie') {
     const paneStyle = {
@@ -623,16 +644,40 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
     };
 
+    const tableCardStyle = {
+      flex: '1 1 300px',
+      minWidth: '280px',
+      backgroundColor: '#fff',
+      borderRadius: '8px',
+      border: '1px solid #e0e0e0',
+      padding: '16px',
+      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
+    };
+
+    const tableHeaderCell = {
+      textAlign: 'left',
+      padding: '6px 8px',
+      fontSize: '0.85em',
+      color: '#555',
+    };
+
+    const tableValueCell = {
+      padding: '6px 8px',
+      borderTop: '1px solid #f0f0f0',
+      fontSize: '0.9em',
+      color: '#333',
+    };
+
     return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={paneStyle}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={paneStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
             <h4 style={{ margin: 0 }}>Cash In Categories</h4>
-            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(totalCashIn || 0)}</span>
+            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(incomePieTotal)}</span>
           </div>
-        {incomePieChartData ? (
+          {incomePieChartData ? (
             <div style={{ minHeight: '320px' }}>
-            <Chart type="pie" data={incomePieChartData} options={pieChartOptions} />
+              <Chart type="pie" data={incomePieChartData} options={pieChartOptions} />
             </div>
           ) : (
             <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No cash in data available for this year.</p>
@@ -641,15 +686,87 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         <div style={paneStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
             <h4 style={{ margin: 0 }}>Cash Out Categories</h4>
-            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(totalCashOut || 0)}</span>
+            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(expensePieTotal)}</span>
           </div>
-        {expensePieChartData ? (
+          {expensePieChartData ? (
             <div style={{ minHeight: '320px' }}>
-            <Chart type="pie" data={expensePieChartData} options={pieChartOptions} />
+              <Chart type="pie" data={expensePieChartData} options={pieChartOptions} />
             </div>
           ) : (
             <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No expenses available for this year.</p>
           )}
+        </div>
+        <div style={{ marginTop: '12px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
+          <div style={tableCardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+              <h5 style={{ margin: 0 }}>Cash In Data</h5>
+              <span style={{ fontSize: '0.85em', color: '#777' }}>{incomePieEntries.length} categories</span>
+            </div>
+            {incomePieEntriesSorted.length > 0 ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={tableHeaderCell}>Category</th>
+                      <th style={{ ...tableHeaderCell, textAlign: 'right' }}>Amount</th>
+                      <th style={{ ...tableHeaderCell, textAlign: 'right' }}>Percent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {incomePieEntriesSorted.map(entry => (
+                      <tr key={`income-table-${entry.label}`}>
+                        <td style={tableValueCell}>{entry.label}</td>
+                        <td style={{ ...tableValueCell, textAlign: 'right' }}>{safeFormatCurrency(entry.value)}</td>
+                        <td style={{ ...tableValueCell, textAlign: 'right' }}>{formatPercent(entry.value, incomePieTotal)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111' }}>Total</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{safeFormatCurrency(incomePieTotal)}</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{formatPercent(incomePieTotal, incomePieTotal)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No cash in categories to show.</p>
+            )}
+          </div>
+          <div style={tableCardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+              <h5 style={{ margin: 0 }}>Cash Out Data</h5>
+              <span style={{ fontSize: '0.85em', color: '#777' }}>{expensePieEntries.length} categories</span>
+            </div>
+            {expensePieEntriesSorted.length > 0 ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={tableHeaderCell}>Category</th>
+                      <th style={{ ...tableHeaderCell, textAlign: 'right' }}>Amount</th>
+                      <th style={{ ...tableHeaderCell, textAlign: 'right' }}>Percent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expensePieEntriesSorted.map(entry => (
+                      <tr key={`expense-table-${entry.label}`}>
+                        <td style={tableValueCell}>{entry.label}</td>
+                        <td style={{ ...tableValueCell, textAlign: 'right' }}>{safeFormatCurrency(entry.value)}</td>
+                        <td style={{ ...tableValueCell, textAlign: 'right' }}>{formatPercent(entry.value, expensePieTotal)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111' }}>Total</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{safeFormatCurrency(expensePieTotal)}</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{formatPercent(expensePieTotal, expensePieTotal)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No expenses categories to show.</p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -699,9 +816,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         })()}
         
         {/* Transfer source nodes (left) - Surplus transfers and auto-disbursements to cash */}
-        {Object.keys(transferSources).map((transferLabel) => {
+        {Object.keys(activeTransferSources).map((transferLabel) => {
           const pos = nodePositions[`transfer_${transferLabel}`];
-          const value = transferSources[transferLabel] || 0;
+          const value = activeTransferSources[transferLabel] || 0;
           const nodeWidth = columnWidth;
           
           // Check if this is a Surplus transfer (gray) or Auto-Disbursement (orange)
@@ -832,9 +949,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         })()}
         
         {/* Transfer sink nodes (right) - Negative surplus/deficit from cash assets */}
-        {Object.keys(transferSinks).map((transferLabel) => {
+        {Object.keys(activeTransferSinks).map((transferLabel) => {
           const pos = nodePositions[`transfer_sink_${transferLabel}`];
-          const value = transferSinks[transferLabel] || 0;
+          const value = activeTransferSinks[transferLabel] || 0;
           const nodeWidth = columnWidth;
           
           // Deficit transfers are gray
@@ -902,9 +1019,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         
         
         {/* Flow lines from transfer sources (surplus and auto-disbursements) to wallet */}
-        {Object.keys(transferSources).map((transferLabel) => {
+        {Object.keys(activeTransferSources).map((transferLabel) => {
           const pos = nodePositions[`transfer_${transferLabel}`];
-          const value = transferSources[transferLabel] || 0;
+          const value = activeTransferSources[transferLabel] || 0;
           
           // Check if this is a Surplus transfer (gray) or Auto-Disbursement (orange)
           const isSurplusTransfer = transferLabel.startsWith('Surplus Transfer to');
@@ -966,10 +1083,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         })}
         
         {/* Flow lines from wallet to transfer sinks (negative surplus/deficit) */}
-        {Object.keys(transferSinks).map((transferLabel) => {
+        {Object.keys(activeTransferSinks).map((transferLabel) => {
           const walletPos = nodePositions['wallet'];
           const sinkPos = nodePositions[`transfer_sink_${transferLabel}`];
-          const value = transferSinks[transferLabel] || 0;
+          const value = activeTransferSinks[transferLabel] || 0;
           
           // Deficit flow lines are gray
           const flowColor = "#9E9E9E"; // Gray for deficit
@@ -1047,6 +1164,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'base', 'sankey'
   const [sankeyYear, setSankeyYear] = useState(0); // Year offset for Sankey diagram (0 = current year)
   const [sankeyViewMode, setSankeyViewMode] = useState('pie'); // Toggle between Sankey and Pie charts
+  const [includeTransfers, setIncludeTransfers] = useState(false);
   const [projectionData, setProjectionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -2639,6 +2757,15 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                 <option value="sankey">Sankey Diagram</option>
                 <option value="pie">Pie Charts</option>
               </select>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
+                <input
+                  type="checkbox"
+                  checked={includeTransfers}
+                  onChange={(e) => setIncludeTransfers(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                Include Surplus/Deficit Transfers
+              </label>
             </div>
           </div>
           <div style={{ 
@@ -2666,7 +2793,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                   // Safely render SankeyDiagram with error boundary
                   try {
                     // Create a key that changes when relevant data changes to force re-render
-                    const sankeyKey = `sankey-${sankeyYear}-${userSettings?.surplus_asset_id || 'none'}-${baseModel ? 'hasBaseModel' : 'noBaseModel'}-${cashFlowProjection ? 'hasProjection' : 'noProjection'}`;
+                    const sankeyKey = `sankey-${sankeyYear}-${userSettings?.surplus_asset_id || 'none'}-${baseModel ? 'hasBaseModel' : 'noBaseModel'}-${cashFlowProjection ? 'hasProjection' : 'noProjection'}-${sankeyViewMode}-${includeTransfers ? 'withTransfers' : 'noTransfers'}`;
                     return (
                       <SankeyDiagram
                         key={sankeyKey}
@@ -2682,6 +2809,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                         selectedYear={sankeyYear}
                         autoDisbursements={autoDisbursements || []}
                       viewMode={sankeyViewMode}
+                      includeTransfers={includeTransfers}
                       />
                     );
                 } catch (innerError) {
