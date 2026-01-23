@@ -2395,7 +2395,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           <h3>BASE Model (Beginning, Additions, Subtractions, Ending)</h3>
           {(!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) ? (
             <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
-              <strong>Note:</strong> Please configure cash assets in Settings &gt; Application Settings to view the BASE Model.
+              <strong>Note:</strong> Please configure cash assets in Cash Handling then refresh your browser to view the BASE Model.
               <br /><br />
               <em>After updating settings, please refresh the page to see the changes.</em>
             </div>
@@ -2505,7 +2505,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                   if (!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) {
                     return (
                       <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
-                        <strong>Note:</strong> Please configure cash assets in Settings &gt; Application Settings to view the Sankey Diagram.
+                        <strong>Note:</strong> Please configure cash assets in Cash Handling then refresh your browser to view the Sankey Diagram.
                         <br /><br />
                         <em>After updating settings, please refresh the page to see the changes.</em>
                       </div>
