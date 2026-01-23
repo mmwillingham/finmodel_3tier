@@ -9,7 +9,7 @@ const ApplicationSettingsPage = () => {
   const navigate = useNavigate();
   useSettingsBackButton(); // Fix browser back button navigation
   const [inflationPercent, setInflationPercent] = useState(2.0);
-  const [projectionYears, setProjectionYears] = useState(30);
+  const [projectionYears, setProjectionYears] = useState(20);
   const [showChartTotals, setShowChartTotals] = useState(true);
   const [taxYear, setTaxYear] = useState(2025);
   const [calculateFederalTax, setCalculateFederalTax] = useState(false);
@@ -23,7 +23,7 @@ const ApplicationSettingsPage = () => {
       return;
     }
     setInflationPercent(settings.default_inflation_percent || 2.0);
-    setProjectionYears(settings.projection_years || 30);
+    setProjectionYears(settings.projection_years || 20);
     setShowChartTotals(settings.show_chart_totals ?? true);
     setTaxYear(settings.tax_year || 2025);
     setCalculateFederalTax(settings.calculate_federal_tax ?? false);
@@ -83,7 +83,7 @@ const ApplicationSettingsPage = () => {
             type="number"
             value={projectionYears}
             onChange={(e) => setProjectionYears(e.target.value)}
-            placeholder="30"
+            placeholder="20"
           />
         </div>
         <div className="form-group-horizontal checkbox-group">

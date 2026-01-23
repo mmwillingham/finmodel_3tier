@@ -176,7 +176,7 @@ class UserSettings(Base):
     city = Column(String, default="")
     state = Column(String, default="")
     zip_code = Column(String, default="")
-    projection_years = Column(Integer, default=30)
+    projection_years = Column(Integer, default=20)
     show_chart_totals = Column(Boolean, default=True) # New field
     surplus_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True)  # Designated asset for surplus/deficit
     tax_filing_status = Column(String, default="Single")  # Tax filing status: Single, Married Filing Jointly, etc.

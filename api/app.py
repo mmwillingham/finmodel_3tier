@@ -6,10 +6,8 @@ app = Flask(__name__)
 @app.route('/')
 def hello():
     # Print all environment variables to stdout for debugging
-    print("--- Environment Variables ---")
     for key, value in os.environ.items():
         print(f"{key}={value}")
-    print("---------------------------")
     return "Hello from Cloud Run (listening on port {})!".format(os.environ.get("PORT", "8080"))
 
 if __name__ == '__main__':

@@ -3,7 +3,6 @@ import logging
 import traceback
 import sys
 # Disabled verbose debug logging - only keeping tax-related logs
-# print(f"--- DEBUG: api/calculations.py LOADED ---"); sys.stdout.flush()
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -325,11 +324,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             # Debug: Log what income items are loaded
             income_items_loaded = [f"{item.id}:{item.description}(taxable={item.taxable})" for item in all_cash_flow_items if item.is_income]
             # Disabled verbose debug logging
-            # print(f"--- DEBUG: Loaded {len(income_items_loaded)} income items for tax calculation: {income_items_loaded} ---"); sys.stdout.flush()
             # Also log all cash flow items for debugging
             all_items_loaded = [f"{item.id}:{item.description}(is_income={item.is_income},taxable={item.taxable if item.is_income else 'N/A'})" for item in all_cash_flow_items]
             # Disabled verbose debug logging
-            # print(f"--- DEBUG: Loaded {len(all_items_loaded)} total cash flow items: {all_items_loaded} ---"); sys.stdout.flush()
 
         # Load auto-disbursement rules
         auto_disbursements = db.query(models.AutoDisbursement).filter(
@@ -354,7 +351,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # These will be associated with the Projection after it's created and has an ID
         for acc_schema in accounts:
             # Disabled verbose debug logging
-            # print(f"--- DEBUG: Account Schema - Name: {acc_schema.name}, Type: {acc_schema.account_type}, Initial Value: {acc_schema.initial_value}, Contribution: {acc_schema.contribution}, Growth Rate: {acc_schema.growth_rate}, Loan Type: {acc_schema.loan_type}, Principal: {acc_schema.principal_amount}, Interest Rate: {acc_schema.interest_rate}, Loan Term: {acc_schema.loan_term_months}, Loan Start Date: {acc_schema.loan_start_date} ---"); sys.stdout.flush()
             projected_account = models.ProjectedAccount(
                 name=acc_schema.name,
                 account_type=acc_schema.account_type,
@@ -411,7 +407,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Main Projection Loop
         for year in range(1, years + 1):
             # Disabled verbose debug logging
-            # print(f"--- DEBUG: Starting projection for Year {year} ---"); sys.stdout.flush()
 
             # Yearly aggregates
             current_year_total_assets = 0.0
@@ -483,7 +478,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 account_current_balances[source_name] -= transfer_amount
                                 account_current_balances[target_name] += transfer_amount
                                 # Disabled verbose debug logging
-                                # print(f"--- DEBUG: Year {year} - Applied auto-disbursement BEFORE growth: {transfer_amount:.2f} from {source_name} to {target_name}. {source_name}: {source_balance:.2f} -> {account_current_balances[source_name]:.2f} ---"); sys.stdout.flush()
 
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
@@ -575,7 +569,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     annual_flow_values[projected_account.name + "_Payment"] = -payment_expense  # Negative for expense
                                     current_year_total_expense_flow += payment_expense
                                     # Disabled verbose debug logging
-                                    # print(f"--- DEBUG: Created payment expense of {payment_expense:.2f} for {projected_account.name} ---"); sys.stdout.flush()
                             
                             # Store principal/interest breakdown for this year
                             account_values_for_year[f"{projected_account.name}_Principal"] = breakdown['principal_paid']
@@ -594,7 +587,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
                     except ValueError:
                         # Disabled verbose debug logging (errors still logged)
-                        # print(f"--- DEBUG: Invalid loan_start_date format for {projected_account.name}. Skipping amortization calculation. (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
                         # Fallback to standard projection logic if date is invalid
                         new_balance = current_balance + (current_balance * (projected_account.growth_rate / 100.0)) + (projected_account.contribution * 12)
                         adjusted_annual_contribution = projected_account.contribution * 12
@@ -619,7 +611,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # Check for expense linked to income
                     if "|LINKED_INCOME:" in projected_account.name and "|PERCENTAGE:" in projected_account.name and projected_account.account_type == "expense":
                         # Disabled verbose debug logging
-                        # print(f"--- DEBUG: Found expense linked to income: {projected_account.name} ---"); sys.stdout.flush()
                         parts = projected_account.name.split("|LINKED_INCOME:")
                         if len(parts) == 2:
                             base_account_name = parts[0]
@@ -630,10 +621,8 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 try:
                                     linked_percentage = float(percent_parts[1])
                                     # Disabled verbose debug logging
-                                    # print(f"--- DEBUG: Parsed expense '{base_account_name}' linked to income '{linked_income_name}' at {linked_percentage}% ---"); sys.stdout.flush()
                                 except ValueError:
                                     linked_percentage = None
-                                    print(f"--- WARNING: Could not parse percentage for expense linked to income: {projected_account.name} ---"); sys.stdout.flush()
                     
                     # Check for item linked to asset(s)
                     elif "|LINKED:" in projected_account.name and "|PERCENTAGE:" in projected_account.name:
@@ -715,7 +704,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         expense_amount = abs(linked_income_flow_value) * (linked_percentage / 100.0)
                         adjusted_annual_contribution = -expense_amount  # Negative for expense
                         # Disabled verbose debug logging
-                        # print(f"--- DEBUG: Expense '{base_account_name}' linked to income '{linked_income_name}': {expense_amount:.2f} ({linked_percentage}% of {linked_income_flow_value:.2f}) ---"); sys.stdout.flush()
                     elif linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
                         # Dynamic item: recalculate contribution based on linked asset(s) current value
                         # Only calculate if item is active for this year
@@ -776,20 +764,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     else:
                                         adjusted_annual_contribution = 0.0
                                     
-                                    print(f"--- DEBUG: Retirement accounts - {yearly_value:.2f} distributed to retirement assets, {adjusted_annual_contribution:.2f} available for spending ---"); sys.stdout.flush()
                                 else:
                                     # For non-retirement accounts, dividends/interest are available for spending
                                     adjusted_annual_contribution = yearly_value
                                     # Disabled verbose debug logging
-                                    # print(f"--- DEBUG: Dynamic item {base_account_name} recalculated: {len(linked_asset_names)} assets total value={total_linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} (available for spending) ---"); sys.stdout.flush()
                             else:
                                 # Expenses (shouldn't normally be dynamic, but handle if needed)
                                 adjusted_annual_contribution = -yearly_value
-                                print(f"--- DEBUG: Dynamic expense item {base_account_name} recalculated: {len(linked_asset_names)} assets total value={total_linked_asset_value:.2f}, {linked_percentage}% = {yearly_value:.2f} ---"); sys.stdout.flush()
                         else:
                             # Linked assets not found in projection, use 0
                             adjusted_annual_contribution = 0.0
-                            print(f"--- WARNING: Linked assets {linked_asset_names} not found for dynamic item {base_account_name} ---"); sys.stdout.flush()
                     else:
                         # Fixed contribution item
                         # Skip calculation if item is not active for this year (for income/expense items)
@@ -858,7 +842,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 new_balance = -new_balance
                             # Debug logging for dynamic items with 0 value
                             if projected_account.account_type == "income" and new_balance == 0.0 and linked_asset_names:
-                                print(f"--- WARNING: Dynamic income item '{base_account_name}' has 0 value. Linked assets: {linked_asset_names}, Percentage: {linked_percentage} ---"); sys.stdout.flush()
                         else:
                             # For fixed cashflow items, apply growth each year: yearly_value * (1 + growth_rate)^(year-1)
                             # adjusted_annual_contribution is the base yearly value (year 1), we need to apply compound growth
@@ -891,31 +874,25 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             
                             # Debug: Log what we're looking for
                             # Disabled verbose debug logging
-                            # print(f"--- DEBUG: Year {year} - Processing {projected_account.account_type} '{projected_account.name}' (cash_flow_item_id={projected_account.cash_flow_item_id}, base_account_name='{base_account_name}', new_balance={new_balance:.2f}) ---"); sys.stdout.flush()
                             
                             # Try ID-based lookup first (preferred method)
                             if projected_account.cash_flow_item_id:
                                 cash_flow_item = cash_flow_items_by_id.get(projected_account.cash_flow_item_id)
                                 if cash_flow_item:
                                     # Disabled verbose debug logging (keeping tax-related logs)
-                                    # print(f"--- DEBUG: Year {year} - Found CashFlowItem by ID {projected_account.cash_flow_item_id}: description='{cash_flow_item.description}', is_income={cash_flow_item.is_income}, taxable={cash_flow_item.taxable if hasattr(cash_flow_item, 'taxable') else 'N/A'} ---"); sys.stdout.flush()
                                     pass
                                 else:
-                                    print(f"--- DEBUG: Year {year} - CashFlowItem with ID {projected_account.cash_flow_item_id} not found in cash_flow_items_by_id. This should not happen. ---"); sys.stdout.flush()
                             
                             # Fallback to description-based lookup for backward compatibility (old projections without cash_flow_item_id)
                             if not cash_flow_item and projected_account.account_type in ["income", "expense"]:
                                 # Use base account name (remove LINKED markers) for lookup
                                 # Build description-based lookup map by searching through cash_flow_items_by_id
-                                print(f"--- DEBUG: Year {year} - Attempting fallback description-based lookup for '{base_item_name}' (cash_flow_item_id is NULL or not found). Available items in cash_flow_items_by_id: {[f'{item.id}:{item.description}' for item in cash_flow_items_by_id.values()]} ---"); sys.stdout.flush()
                                 for item in cash_flow_items_by_id.values():
                                     if item.description == base_item_name:
                                         cash_flow_item = item
-                                        print(f"--- DEBUG: Year {year} - Using fallback description-based lookup for '{base_item_name}' (cash_flow_item_id is NULL) - Found: ID={item.id}, description='{item.description}', is_income={item.is_income}, taxable={item.taxable if hasattr(item, 'taxable') else 'N/A'} ---"); sys.stdout.flush()
                                         break
                                 
                                 if not cash_flow_item:
-                                    print(f"--- DEBUG: Year {year} - Fallback lookup failed: No CashFlowItem found with description='{base_item_name}' ---"); sys.stdout.flush()
                             
                             if cash_flow_item:
                                 if projected_account.account_type == "income" and cash_flow_item.is_income:
@@ -925,21 +902,18 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         current_year_taxable_income += income_amount
                                         lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
                                         # Keeping this log - it's tax-related but might be verbose. Uncomment if needed for debugging
-                                        # print(f"--- DEBUG: Year {year} - Added taxable income ({lookup_method}, {cash_flow_item.description}): {income_amount:.2f}. Total taxable income so far: {current_year_taxable_income:.2f} ---"); sys.stdout.flush()
                                         # Track qualified dividends separately if applicable
                                         if cash_flow_item.is_qualified_dividend:
                                             current_year_qualified_dividends += income_amount
                                     else:
                                         lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
                                         # Disabled verbose debug logging (tax-related but verbose - uncomment if needed)
-                                        # print(f"--- DEBUG: Year {year} - Income item ({lookup_method}, {cash_flow_item.description}) has taxable=False, skipping for tax calculation (income amount: {abs(new_balance):.2f}) ---"); sys.stdout.flush()
                                 elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
                                     # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
                                     if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
                                         # Use the absolute value (new_balance is negative for expenses)
                                         current_year_tax_deductible_expenses += abs(new_balance)
                             else:
-                                print(f"--- DEBUG: Year {year} - CashFlowItem not found for {projected_account.account_type} '{projected_account.name}' (base_account_name='{base_account_name}'). Skipping tax calculation for this item. ---"); sys.stdout.flush()
                         
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
@@ -1026,11 +1000,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         current_year_total_income_flow += abs(new_balance)  # new_balance is positive for income, but use abs() to be safe
                         # Debug logging for income flow accumulation
                         if year == 1:  # Only log for first year to avoid spam
-                            print(f"--- DEBUG: Year {year} - Added income to flow: '{projected_account.name}' = {abs(new_balance):.2f} (prorated), running total = {current_year_total_income_flow:.2f} ---"); sys.stdout.flush()
                     else:
                         # Debug logging for excluded reinvested dividends
                         if year == 1:  # Only log for first year to avoid spam
-                            print(f"--- DEBUG: Year {year} - EXCLUDED reinvested dividend from income flow: '{projected_account.name}' = {abs(new_balance):.2f} (reinvested, not received as cash) ---"); sys.stdout.flush()
                 elif projected_account.account_type == "expense":
                     # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
                     # new_balance is negative for expenses, and we want to accumulate the absolute value for expense flow
@@ -1129,7 +1101,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                             
                                             if total_linked_asset_value > 0:
                                                 linked_income_flow_value = total_linked_asset_value * (linked_income_item.percentage / 100.0) * income_year_fraction
-                                                print(f"--- DEBUG: Recalculated dynamic income '{linked_income_item.description}' from assets: {total_linked_asset_value:.2f} * {linked_income_item.percentage}% = {linked_income_flow_value:.2f} ---"); sys.stdout.flush()
                                     else:
                                         # Fixed income item - calculate with growth for this specific year
                                         base_yearly_value = linked_income_item.yearly_value
@@ -1137,7 +1108,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         growth_factor = pow(1 + effective_growth_rate, year - 1)
                                         linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
                                         # Disabled verbose debug logging
-                                        # print(f"--- DEBUG: Calculated fixed income '{linked_income_item.description}' for year {year}: {base_yearly_value:.2f} * {growth_factor:.4f} * {income_year_fraction:.4f} = {linked_income_flow_value:.2f} ---"); sys.stdout.flush()
                                 
                                 # Calculate expense as percentage of income (already prorated by income_year_fraction)
                                 expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
@@ -1145,7 +1115,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 # This ensures the expense is prorated by its own active period, which may be more restrictive than the income's period
                                 expense_amount = expense_amount * expense_year_fraction
                                 # Disabled verbose debug logging
-                                # print(f"--- DEBUG: Dynamic expense '{exp_item.description}' ({exp_item.percentage}% of '{linked_income_item.description}' = {expense_amount:.2f}) contributing to asset '{target_asset.name}' ---"); sys.stdout.flush()
                                 
                                 # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
                                 annual_flow_values[exp_item.description] = -expense_amount
@@ -1181,11 +1150,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # This ensures balance sheet projections show correct totals
                         current_year_total_assets += expense_amount
                         # Disabled verbose debug logging
-                        # print(f"--- DEBUG: Year {year} - Added expense contribution of {expense_amount:.2f} from '{exp_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_expense:.2f} -> {balance_after_expense:.2f} ---"); sys.stdout.flush()
             
             # Apply income that contributes to assets (must happen after income flows are calculated and asset growth has been applied)
             # This handles dividend reinvestment where dividends are reinvested back into the asset
-            print(f"--- DEBUG: Year {year} - Starting income contribution check. db is None: {db is None}, owner_id: {owner_id} ---"); sys.stdout.flush()
             
             contributing_income = []
             if db:
@@ -1200,9 +1167,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         (models.CashFlowItem.reinvest_dividends == True) & (models.CashFlowItem.reinvestment_account_id.isnot(None))
                     )
                 ).all()
-                print(f"--- DEBUG: Year {year} - Query executed. Found {len(contributing_income)} income items that contribute to assets. Items: {[f'{item.id}:{item.description} (contributes_to_asset_id={item.contributes_to_asset_id}, reinvestment_account_id={item.reinvestment_account_id}, reinvest_dividends={item.reinvest_dividends})' for item in contributing_income]} ---"); sys.stdout.flush()
             else:
-                print(f"--- WARNING: Year {year} - db is None, cannot query for income items that contribute to assets ---"); sys.stdout.flush()
             
             for income_item in contributing_income:
                 # Check if income is active for this year and calculate proration
@@ -1214,26 +1179,20 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 )
                 
                 if income_year_fraction <= 0.0:
-                    print(f"--- DEBUG: Year {year} - Income item '{income_item.description}' (ID: {income_item.id}) is not active for this year (fraction: {income_year_fraction:.4f}). Skipping. ---"); sys.stdout.flush()
                     continue  # Skip this income for this year
                 
-                print(f"--- DEBUG: Year {year} - Processing income item '{income_item.description}' (ID: {income_item.id}) contributing to asset_id: {income_item.contributes_to_asset_id}, reinvestment_account_id: {income_item.reinvestment_account_id}, reinvest_dividends: {income_item.reinvest_dividends}, linked_item_id: {income_item.linked_item_id}, linked_item_type: {income_item.linked_item_type}, percentage: {income_item.percentage} ---"); sys.stdout.flush()
                 
                 # Find the target asset - prefer contributes_to_asset_id, fallback to reinvestment_account_id
                 target_asset_id = income_item.contributes_to_asset_id or income_item.reinvestment_account_id
                 if not target_asset_id:
-                    print(f"--- WARNING: Year {year} - Income item '{income_item.description}' has neither contributes_to_asset_id nor reinvestment_account_id set. Skipping reinvestment. ---"); sys.stdout.flush()
                     continue
                 
                 target_asset = db.query(models.Asset).filter(models.Asset.id == target_asset_id).first()
                 if not target_asset:
-                    print(f"--- WARNING: Year {year} - Target asset with ID {income_item.contributes_to_asset_id} not found for income item '{income_item.description}'. Skipping reinvestment. ---"); sys.stdout.flush()
                     continue
                 if target_asset.name not in account_current_balances:
-                    print(f"--- WARNING: Year {year} - Target asset '{target_asset.name}' not found in account_current_balances for income item '{income_item.description}'. Available balances: {list(account_current_balances.keys())[:10]}. Skipping reinvestment. ---"); sys.stdout.flush()
                     continue
                 
-                print(f"--- DEBUG: Year {year} - Target asset found: '{target_asset.name}' with current balance: {account_current_balances.get(target_asset.name, 0.0):.2f} ---"); sys.stdout.flush()
                 
                 # Calculate the income amount for this year
                 # For dividend reinvestment, dividends are calculated from the beginning-of-year asset balance
@@ -1249,9 +1208,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         effective_growth_rate = (target_asset.annual_increase_percent or 0) / 100.0
                         beginning_balance = current_balance / pow(1 + effective_growth_rate, 1.0)  # Full year growth
                         income_amount = beginning_balance * (income_item.percentage / 100.0) * income_year_fraction
-                        print(f"--- DEBUG: Year {year} - Calculated dividend from beginning balance: {beginning_balance:.2f} * {income_item.percentage}% = {income_amount:.2f} for reinvestment ---"); sys.stdout.flush()
                     else:
-                        print(f"--- WARNING: Year {year} - Cannot calculate dividend for '{income_item.description}': asset '{target_asset.name}' has balance 0 ---"); sys.stdout.flush()
                 else:
                     # Fixed income item - calculate with growth
                     base_yearly_value = income_item.yearly_value
@@ -1262,7 +1219,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     income_amount = income_amount * income_year_fraction
                 
                 # Add the income amount to the asset balance (dividend reinvestment)
-                print(f"--- DEBUG: Year {year} - About to add income contribution for '{income_item.description}': income_amount={income_amount:.2f}, target_asset='{target_asset.name}' ---"); sys.stdout.flush()
                 
                 if income_amount > 0:
                     balance_before_income = account_current_balances.get(target_asset.name, 0.0)
@@ -1276,9 +1232,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # Update current_year_total_assets to include the contribution
                     # This ensures balance sheet projections show correct totals
                     current_year_total_assets += income_amount
-                    print(f"--- DEBUG: Year {year} - Added income contribution (dividend reinvestment) of {income_amount:.2f} from '{income_item.description}' to asset '{target_asset.name}'. Balance: {balance_before_income:.2f} -> {balance_after_income:.2f} ---"); sys.stdout.flush()
                 else:
-                    print(f"--- WARNING: Year {year} - Income amount is 0 for '{income_item.description}'. Cannot add to asset '{target_asset.name}'. income_amount={income_amount:.2f} ---"); sys.stdout.flush()
             
             # Calculate federal income tax if enabled
             federal_tax_expense_value = 0.0
@@ -1330,13 +1284,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     if federal_tax_expense_item:
                         # Calculate federal tax using the taxable income and tax-deductible expenses
                         # we tracked during the projection loop
-                        print(f"--- DEBUG: Year {year} - Before tax calculation: current_year_taxable_income={current_year_taxable_income:.2f}, current_year_tax_deductible_expenses={current_year_tax_deductible_expenses:.2f} ---"); sys.stdout.flush()
                         if current_year_taxable_income > 0:
                             try:
                                 # Use tax_year from settings, or default to projection year if not set
                                 # Note: Only 2025 tax brackets are currently implemented
                                 tax_year_for_calc = user_settings.tax_year if user_settings and user_settings.tax_year else current_projection_year
-                                print(f"--- DEBUG: Year {year} - Calling calculate_taxable_income with: income={current_year_taxable_income:.2f}, expenses={current_year_tax_deductible_expenses:.2f}, filing_status={user_settings.tax_filing_status or 'Single'}, tax_year={tax_year_for_calc}, qualified_dividends={current_year_qualified_dividends:.2f} ---"); sys.stdout.flush()
                                 taxable_income_result, standard_deduction_result, tax_owed = calculate_taxable_income(
                                     current_year_taxable_income,
                                     current_year_tax_deductible_expenses,
@@ -1346,7 +1298,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     tax_year_for_calc,  # Use tax_year from settings
                                     qualified_dividends=current_year_qualified_dividends
                                 )
-                                print(f"--- DEBUG: Year {year} - calculate_taxable_income returned: taxable_income={taxable_income_result:.2f}, standard_deduction={standard_deduction_result:.2f}, tax_owed={tax_owed:.2f} ---"); sys.stdout.flush()
                                 federal_tax_expense_value = tax_owed or 0.0
                                 
                                 # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
@@ -1375,17 +1326,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
                                     # Always store with display_name as well (even if same as account_name) to ensure lookup works
                                     annual_flow_values[display_name_for_tax] = federal_tax_value
-                                    print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored value: {federal_tax_value:.2f}, stored with keys: '{federal_tax_expense_account_name}', '{display_name_for_tax}', '{FEDERAL_TAX_EXPENSE_DESCRIPTION}' ---"); sys.stdout.flush()
                                 else:
                                     # Account name not found, but we still stored the value with the constant key
-                                    print(f"--- DEBUG: Year {year} - Calculated federal tax: {federal_tax_expense_value:.2f}, stored value: {federal_tax_value:.2f}, stored with key: '{FEDERAL_TAX_EXPENSE_DESCRIPTION}' (account name not found in projected_accounts_for_db) ---"); sys.stdout.flush()
                                 
                                 # Update expense flow total
                                 current_year_total_expense_flow -= federal_tax_expense_value  # Subtract because expenses are negative
                             except Exception as e:
-                                print(f"--- WARNING: Error calculating federal tax for year {year}: {e} ---"); sys.stdout.flush()
                         else:
-                            print(f"--- DEBUG: Year {year} - Skipping federal tax calculation: current_year_taxable_income={current_year_taxable_income:.2f} (must be > 0) ---"); sys.stdout.flush()
             
             # Calculate state income tax if enabled (similar to federal tax)
             state_tax_expense_value = 0.0
@@ -1436,7 +1383,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     if state_tax_expense_item:
                         # Calculate state tax using the taxable income and tax-deductible expenses
                         # we tracked during the projection loop (same as federal tax)
-                        print(f"--- DEBUG: Year {year} - Before state tax calculation: current_year_taxable_income={current_year_taxable_income:.2f}, current_year_tax_deductible_expenses={current_year_tax_deductible_expenses:.2f}, state={user_state} ---"); sys.stdout.flush()
                         if current_year_taxable_income > 0:
                             try:
                                 # Use tax_year from settings, or default to projection year if not set
@@ -1450,7 +1396,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     federal_tax_owed=federal_tax_expense_value,  # Pass federal tax for states that allow deduction
                                     current_year=tax_year_for_state_calc  # Use tax_year from settings
                                 )
-                                print(f"--- DEBUG: Year {year} - calculate_state_taxable_income returned: state_taxable_income={state_taxable_income_result:.2f}, state_standard_deduction={state_standard_deduction_result:.2f}, state_tax_owed={state_tax_owed:.2f} ---"); sys.stdout.flush()
                                 state_tax_expense_value = state_tax_owed or 0.0
                                 
                                 # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
@@ -1479,17 +1424,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
                                     # Always store with display_name as well (even if same as account_name) to ensure lookup works
                                     annual_flow_values[display_name_for_tax] = state_tax_value
-                                    print(f"--- DEBUG: Year {year} - Calculated state tax: {state_tax_expense_value:.2f}, stored value: {state_tax_value:.2f}, stored with keys: '{state_tax_expense_account_name}', '{display_name_for_tax}', '{STATE_TAX_EXPENSE_DESCRIPTION}' ---"); sys.stdout.flush()
                                 else:
                                     # Account name not found, but we still stored the value with the constant key
-                                    print(f"--- DEBUG: Year {year} - Calculated state tax: {state_tax_expense_value:.2f}, stored value: {state_tax_value:.2f}, stored with key: '{STATE_TAX_EXPENSE_DESCRIPTION}' (account name not found in projected_accounts_for_db) ---"); sys.stdout.flush()
                                 
                                 # Update expense flow total
                                 current_year_total_expense_flow -= state_tax_expense_value  # Subtract because expenses are negative
                             except Exception as e:
-                                print(f"--- WARNING: Error calculating state tax for year {year}: {e} ---"); sys.stdout.flush()
                         else:
-                            print(f"--- DEBUG: Year {year} - Skipping state tax calculation: current_year_taxable_income={current_year_taxable_income:.2f} (must be > 0) ---"); sys.stdout.flush()
             
             # Calculate and apply surplus/deficit transfer AFTER growth calculations
             # Surplus/deficit transfers happen at the end of the year, after all assets have grown
@@ -1498,7 +1439,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             surplus_deficit = current_year_total_income_flow - abs(current_year_total_expense_flow)
             
             # Debug logging for surplus calculation
-            print(f"--- DEBUG: Year {year} - Surplus calculation: income_flow={current_year_total_income_flow:.2f}, expense_flow={current_year_total_expense_flow:.2f}, abs(expense_flow)={abs(current_year_total_expense_flow):.2f}, surplus_deficit={surplus_deficit:.2f} ---"); sys.stdout.flush()
             
             # Apply surplus/deficit to designated asset AFTER growth
             # NOTE: This happens after growth, so the surplus asset has already grown on its beginning balance
@@ -1516,7 +1456,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 account_values_for_year[surplus_value_key] = account_current_balances[surplus_asset_name]
                 
                 # Debug logging to investigate checking balance discrepancy
-                print(f"--- DEBUG: Year {year} - {surplus_asset_name} - Applied surplus AFTER growth: {surplus_deficit:.2f}, balance before: {balance_before_surplus:.2f}, balance after: {balance_after_surplus:.2f}, account_values_for_year[{surplus_value_key}]: {account_values_for_year[surplus_value_key]:.2f} ---"); sys.stdout.flush()
 
             # Note: The calculation sequence is:
             # 1. Beginning of year: Apply auto-disbursements (transfers between assets before growth)
@@ -1561,7 +1500,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         for key, val in annual_flow_values.items():
                             if FEDERAL_TAX_EXPENSE_DESCRIPTION in key or key == FEDERAL_TAX_EXPENSE_DESCRIPTION:
                                 value = val
-                                print(f"--- DEBUG: Found Federal Income Tax value {value:.2f} using key '{key}' ---"); sys.stdout.flush()
                                 break
                     account_values[f"{display_name}_Value"] = value
                 else:
@@ -1572,13 +1510,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         account_values[f"{display_name}_Value"] = balance_value
                         # Debug logging for checking balance issue
                         if acc.name == "Comp Test Checking" or "Checking" in acc.name:
-                            print(f"--- DEBUG: Year {year} - Set account_values['{display_name}_Value'] = {balance_value:.2f} from account_current_balances['{acc.name}'] ---"); sys.stdout.flush()
                     else:
                         # Fallback: try account_values_for_year if account_current_balances doesn't have it
                         fallback_value = account_values_for_year.get(f"{acc.name}_Value", 0.0)
                         account_values[f"{display_name}_Value"] = fallback_value
                         if acc.name == "Comp Test Checking" or "Checking" in acc.name:
-                            print(f"--- DEBUG: Year {year} - Set account_values['{display_name}_Value'] = {fallback_value:.2f} from account_values_for_year (fallback) ---"); sys.stdout.flush()
             
             # Add principal/interest breakdown values (for loans) and any other breakdown values
             # BUT: Don't overwrite asset/liability _Value keys that we just set from account_current_balances
@@ -1591,7 +1527,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 elif key.endswith("_Value") and key in account_values:
                     # Debug logging for checking balance issue - this should NOT happen (we shouldn't overwrite)
                     if "Checking" in key:
-                        print(f"--- DEBUG: Year {year} - SKIPPING overwrite of account_values['{key}'] (current={account_values.get(key, 0):.2f}, would_set={value:.2f}) - This is correct behavior ---"); sys.stdout.flush()
             
             # Ensure Federal Income Tax is always stored with the exact key the frontend expects
             # This handles cases where the Federal Tax expense item might have a different display_name
@@ -1603,19 +1538,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         federal_tax_value = 0.0
                     federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
                     account_values[federal_tax_key] = federal_tax_value
-                    print(f"--- DEBUG: Year {year} - Explicitly stored Federal Income Tax with key '{federal_tax_key}': {federal_tax_value:.2f} ---"); sys.stdout.flush()
                 else:
                     # Tax calculation is enabled but value not found in annual_flow_values
                     # This might happen if tax calculation failed or wasn't executed
                     federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
                     account_values[federal_tax_key] = 0.0
-                    print(f"--- WARNING: Year {year} - calculate_federal_tax is enabled but Federal Income Tax value not found in annual_flow_values. Setting to 0.0 ---"); sys.stdout.flush()
             
             # Debug logging for checking balance - check final value being stored
             checking_value_key = "Comp Test Checking_Value"
             if checking_value_key in account_values:
                 checking_final_value = account_values[checking_value_key]
-                print(f"--- DEBUG: Year {year} - Final account_values['{checking_value_key}'] = {checking_final_value:.2f} (before storing in yearly_data_points) ---"); sys.stdout.flush()
             
             yearly_data_points[year] = {
                 "Year": current_year + year -1, # Display actual calendar year
@@ -1631,14 +1563,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             # Debug logging - check what was actually stored
             if checking_value_key in yearly_data_points[year]:
                 stored_value = yearly_data_points[year][checking_value_key]
-                print(f"--- DEBUG: Year {year} - Stored in yearly_data_points[{year}]['{checking_value_key}'] = {stored_value:.2f} ---"); sys.stdout.flush()
 
 
         # Final value is the net worth at the end of the last projected year
         final_value_projection = current_year_net_worth if years > 0 else sum(acc.initial_value for acc in projected_accounts_for_db)
 
         # Disabled verbose debug logging
-        # print(f"--- DEBUG: Finished projection. Final Value: {final_value_projection}, Total Contributed: {total_contributed_overall}, Total Growth: {total_growth_overall} ---"); sys.stdout.flush()
         
         # Convert yearly_data_points to a list of dicts for JSON serialization
         data_for_json = [yearly_data_points[year] for year in sorted(yearly_data_points.keys())]
@@ -1653,5 +1583,4 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             "data_json": data_json_string # Include the JSON string of yearly data
         }
     except Exception as e:
-        print(f"--- CRITICAL ERROR in calculate_projection: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
         raise e

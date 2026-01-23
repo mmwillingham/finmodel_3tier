@@ -67,7 +67,7 @@ export default function SidebarLayout() {
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [autoDisbursements, setAutoDisbursements] = useState([]); // NEW: For cash flow transfers
-  const [projectionYears, setProjectionYears] = useState(30);
+  const [projectionYears, setProjectionYears] = useState(20);
   const [showChartTotals, setShowChartTotals] = useState(true);
   const [customChartView, setCustomChartView] = useState(null);
   const [selectedChartId, setSelectedChartId] = useState(null);
@@ -121,7 +121,7 @@ export default function SidebarLayout() {
       return;
     }
     if (viewingUserSettings) {
-      setProjectionYears(viewingUserSettings.projection_years || 30);
+      setProjectionYears(viewingUserSettings.projection_years || 20);
       setShowChartTotals(viewingUserSettings.show_chart_totals ?? true);
     }
   }, [viewingUserId, viewingUserSettings, currentUser?.id]);
@@ -131,7 +131,7 @@ export default function SidebarLayout() {
       return;
     }
     const effectiveSettings = viewingUserSettings || userSettings;
-    const preferredYears = effectiveSettings?.projection_years ?? 30;
+    const preferredYears = effectiveSettings?.projection_years ?? 20;
     if (preferredYears !== projectionYears) {
       setProjectionYears(preferredYears);
     }

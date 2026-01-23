@@ -12,6 +12,9 @@ import logging
 from openai import OpenAI
 import json
 
+
+DEFAULT_PROJECTION_YEARS = schemas.UserSettingsBase.model_fields['projection_years'].default
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -98,7 +101,7 @@ def get_financial_summary(db: Session, user_id: int) -> dict:
     
     # Get user settings
     user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == user_id).first()
-    projection_years = user_settings.projection_years if user_settings else 30
+    projection_years = user_settings.projection_years if user_settings else DEFAULT_PROJECTION_YEARS
     
     return {
         "total_assets": total_assets,

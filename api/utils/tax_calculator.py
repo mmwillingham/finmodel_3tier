@@ -1257,10 +1257,8 @@ def calculate_tax(
         Total federal income tax owed
     """
     import sys
-    print(f"--- DEBUG calculate_tax: taxable_income={taxable_income}, filing_status={filing_status}, current_year={current_year} ---"); sys.stdout.flush()
     
     if taxable_income <= 0:
-        print(f"--- DEBUG calculate_tax: Returning 0.0 because taxable_income <= 0 ---"); sys.stdout.flush()
         return 0.0
     
     if current_year is None:
@@ -1278,7 +1276,6 @@ def calculate_tax(
     
     # Get appropriate tax brackets
     brackets = get_tax_brackets(filing_status)
-    print(f"--- DEBUG calculate_tax: income_to_tax={income_to_tax}, brackets={brackets} ---"); sys.stdout.flush()
     
     # Calculate tax using progressive brackets
     tax = 0.0
@@ -1295,19 +1292,15 @@ def calculate_tax(
                 # Last bracket (top bracket)
                 amount_in_bracket = income_to_tax - previous_bracket
             
-            print(f"--- DEBUG calculate_tax: Bracket {i}: threshold={bracket_threshold}, rate={rate}, previous_bracket={previous_bracket}, amount_in_bracket={amount_in_bracket} ---"); sys.stdout.flush()
             
             if amount_in_bracket > 0:
                 bracket_tax = amount_in_bracket * rate
                 tax += bracket_tax
-                print(f"--- DEBUG calculate_tax: Bracket {i}: bracket_tax={bracket_tax}, cumulative_tax={tax} ---"); sys.stdout.flush()
                 previous_bracket = brackets[i + 1][0] if i < len(brackets) - 1 else income_to_tax
         else:
-            print(f"--- DEBUG calculate_tax: Breaking at bracket {i} because income_to_tax <= previous_bracket ---"); sys.stdout.flush()
             break
     
     final_tax = round(tax, 2)
-    print(f"--- DEBUG calculate_tax: Final tax={final_tax} ---"); sys.stdout.flush()
     return final_tax
 
 
@@ -1330,10 +1323,8 @@ def calculate_state_tax(
         Total state income tax owed (0.0 if state has no income tax)
     """
     import sys
-    print(f"--- DEBUG calculate_state_tax: taxable_income={taxable_income}, state={state}, filing_status={filing_status}, current_year={current_year} ---"); sys.stdout.flush()
     
     if taxable_income <= 0:
-        print(f"--- DEBUG calculate_state_tax: Returning 0.0 because taxable_income <= 0 ---"); sys.stdout.flush()
         return 0.0
     
     if current_year is None:
@@ -1341,28 +1332,23 @@ def calculate_state_tax(
     
     normalized_state = normalize_state_name(state)
     if not normalized_state:
-        print(f"--- DEBUG calculate_state_tax: Returning 0.0 because state is invalid/empty ---"); sys.stdout.flush()
         return 0.0
     
     # Check if state has no income tax
     if normalized_state.upper() in [s.upper() for s in NO_INCOME_TAX_STATES]:
-        print(f"--- DEBUG calculate_state_tax: Returning 0.0 because {normalized_state} has no income tax ---"); sys.stdout.flush()
         return 0.0
     
     # Get state tax brackets
     brackets = get_state_tax_brackets(normalized_state, filing_status)
     if not brackets:
-        print(f"--- DEBUG calculate_state_tax: Returning 0.0 because no brackets found for {normalized_state} ---"); sys.stdout.flush()
         return 0.0
     
     # California: For Married Filing Jointly, divide income by 2 (community property state)
     income_to_tax = taxable_income
     if normalized_state == "California" and filing_status == "Married Filing Jointly":
         income_to_tax = taxable_income / 2.0
-        print(f"--- DEBUG calculate_state_tax: California MFJ - dividing income by 2: {taxable_income} -> {income_to_tax} ---"); sys.stdout.flush()
     
     income_to_tax = max(0, income_to_tax)  # Ensure non-negative
-    print(f"--- DEBUG calculate_state_tax: income_to_tax={income_to_tax}, brackets={brackets} ---"); sys.stdout.flush()
     
     # Calculate tax using progressive brackets
     tax = 0.0
@@ -1379,24 +1365,19 @@ def calculate_state_tax(
                 # Last bracket (top bracket)
                 amount_in_bracket = income_to_tax - previous_bracket
             
-            print(f"--- DEBUG calculate_state_tax: Bracket {i}: threshold={bracket_threshold}, rate={rate}, previous_bracket={previous_bracket}, amount_in_bracket={amount_in_bracket} ---"); sys.stdout.flush()
             
             if amount_in_bracket > 0:
                 bracket_tax = amount_in_bracket * rate
                 tax += bracket_tax
-                print(f"--- DEBUG calculate_state_tax: Bracket {i}: bracket_tax={bracket_tax}, cumulative_tax={tax} ---"); sys.stdout.flush()
                 previous_bracket = brackets[i + 1][0] if i < len(brackets) - 1 else income_to_tax
         else:
-            print(f"--- DEBUG calculate_state_tax: Breaking at bracket {i} because income_to_tax <= previous_bracket ---"); sys.stdout.flush()
             break
     
     # California: Multiply by 2 for MFJ (since we divided by 2 earlier)
     if normalized_state == "California" and filing_status == "Married Filing Jointly":
         tax = tax * 2.0
-        print(f"--- DEBUG calculate_state_tax: California MFJ - multiplying tax by 2: {tax} ---"); sys.stdout.flush()
     
     final_tax = round(tax, 2)
-    print(f"--- DEBUG calculate_state_tax: Final tax={final_tax} ---"); sys.stdout.flush()
     return final_tax
 
 
@@ -1477,7 +1458,6 @@ def calculate_taxable_income(
         Tuple of (taxable_income, standard_deduction, tax_owed)
     """
     import sys
-    print(f"--- DEBUG calculate_taxable_income: total_income={total_income}, tax_deductible_expenses={tax_deductible_expenses}, filing_status={filing_status}, current_year={current_year}, qualified_dividends={qualified_dividends} ---"); sys.stdout.flush()
     
     if current_year is None:
         current_year = datetime.now().year
@@ -1485,30 +1465,23 @@ def calculate_taxable_income(
     # Calculate ages
     person1_age = calculate_age_from_birthdate(person1_birthdate, current_year)
     person2_age = calculate_age_from_birthdate(person2_birthdate, current_year) if person2_birthdate else 0
-    print(f"--- DEBUG calculate_taxable_income: person1_age={person1_age}, person2_age={person2_age} ---"); sys.stdout.flush()
     
     # Get standard deduction
     standard_deduction = get_standard_deduction(filing_status, person1_age, person2_age)
-    print(f"--- DEBUG calculate_taxable_income: standard_deduction={standard_deduction} ---"); sys.stdout.flush()
     
     # Calculate Adjusted Gross Income (AGI) = total income - tax deductible expenses
     agi = max(0, total_income - tax_deductible_expenses)
-    print(f"--- DEBUG calculate_taxable_income: agi={agi} ---"); sys.stdout.flush()
     
     # Taxable income = AGI - standard deduction
     taxable_income = max(0, agi - standard_deduction)
-    print(f"--- DEBUG calculate_taxable_income: taxable_income={taxable_income} ---"); sys.stdout.flush()
     
     # Separate ordinary income and qualified dividends
     # Note: qualified_dividends is already included in total_income, so we subtract it to get ordinary income
     ordinary_income = max(0, taxable_income - qualified_dividends)
     qualified_dividend_income = min(qualified_dividends, taxable_income)
-    print(f"--- DEBUG calculate_taxable_income: ordinary_income={ordinary_income}, qualified_dividend_income={qualified_dividend_income} ---"); sys.stdout.flush()
     
     # Calculate tax on ordinary income
-    print(f"--- DEBUG calculate_taxable_income: Calling calculate_tax with ordinary_income={ordinary_income} ---"); sys.stdout.flush()
     ordinary_tax = calculate_tax(ordinary_income, filing_status, person1_birthdate, person2_birthdate, current_year)
-    print(f"--- DEBUG calculate_taxable_income: ordinary_tax={ordinary_tax} ---"); sys.stdout.flush()
     
     # Calculate tax on qualified dividends (if any)
     qualified_tax = 0.0
@@ -1519,11 +1492,9 @@ def calculate_taxable_income(
             filing_status,
             current_year
         )
-        print(f"--- DEBUG calculate_taxable_income: qualified_tax={qualified_tax} ---"); sys.stdout.flush()
     
     # Total tax = tax on ordinary income + tax on qualified dividends
     tax_owed = ordinary_tax + qualified_tax
-    print(f"--- DEBUG calculate_taxable_income: Final tax_owed={tax_owed} (ordinary_tax={ordinary_tax} + qualified_tax={qualified_tax}) ---"); sys.stdout.flush()
     
     return (taxable_income, standard_deduction, tax_owed)
 
@@ -1555,33 +1526,27 @@ def calculate_state_taxable_income(
         Tuple of (state_taxable_income, state_standard_deduction, state_tax_owed)
     """
     import sys
-    print(f"--- DEBUG calculate_state_taxable_income: total_income={total_income}, tax_deductible_expenses={tax_deductible_expenses}, state={state}, filing_status={filing_status}, federal_tax_owed={federal_tax_owed}, current_year={current_year} ---"); sys.stdout.flush()
     
     if current_year is None:
         current_year = datetime.now().year
     
     normalized_state = normalize_state_name(state)
     if not normalized_state:
-        print(f"--- DEBUG calculate_state_taxable_income: Returning zeros because state is invalid/empty ---"); sys.stdout.flush()
         return (0.0, 0.0, 0.0)
     
     # Check if state has no income tax
     if normalized_state.upper() in [s.upper() for s in NO_INCOME_TAX_STATES]:
-        print(f"--- DEBUG calculate_state_taxable_income: Returning zeros because {normalized_state} has no income tax ---"); sys.stdout.flush()
         return (0.0, 0.0, 0.0)
     
     # Get state standard deduction
     state_standard_deduction = get_state_standard_deduction(normalized_state, filing_status)
-    print(f"--- DEBUG calculate_state_taxable_income: state_standard_deduction={state_standard_deduction} ---"); sys.stdout.flush()
     
     # Calculate Adjusted Gross Income (AGI) = total income - tax deductible expenses
     agi = max(0, total_income - tax_deductible_expenses)
-    print(f"--- DEBUG calculate_state_taxable_income: agi={agi} ---"); sys.stdout.flush()
     
     # State taxable income = AGI - state standard deduction
     # Note: Some states allow deducting federal tax, but we'll keep it simple for now
     state_taxable_income = max(0, agi - state_standard_deduction)
-    print(f"--- DEBUG calculate_state_taxable_income: state_taxable_income={state_taxable_income} ---"); sys.stdout.flush()
     
     # Calculate state tax
     state_tax_owed = calculate_state_tax(
@@ -1590,6 +1555,5 @@ def calculate_state_taxable_income(
         filing_status,
         current_year
     )
-    print(f"--- DEBUG calculate_state_taxable_income: Final state_tax_owed={state_tax_owed} ---"); sys.stdout.flush()
     
     return (state_taxable_income, state_standard_deduction, state_tax_owed)

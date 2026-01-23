@@ -1,12 +1,8 @@
 import json
-import logging
-import random
 import traceback
-import sys
 
 # Disabled verbose debug logging - only keeping tax-related logs
 # # Disabled verbose debug logging - only keeping tax-related logs
-# print(f"--- DEBUG: api/routers/custom_charts.py LOADED ---"); sys.stdout.flush()
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -21,7 +17,7 @@ from utils.permissions import check_permission
 # Removed: from api import calculations # This will now be lazy-loaded inside functions
 
 
-logger = logging.getLogger(__name__)
+DEFAULT_PROJECTION_YEARS = schemas.UserSettingsBase.model_fields['projection_years'].default
 
 def evaluate_chart_formulas(
     projection_results: dict,
@@ -136,7 +132,7 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
     linked_asset_ids_needed = set()
 
     user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
-    projection_years = user_settings.projection_years if user_settings else 30
+    projection_years = user_settings.projection_years if user_settings else DEFAULT_PROJECTION_YEARS
 
 
     for series_config in expanded_series_configs:
@@ -148,7 +144,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
             try:
                 item_id = int(item_id)
             except (ValueError, TypeError):
-                print(f"--- WARNING: Invalid item_id format: {item_id}, skipping ---"); sys.stdout.flush()
                 continue
         category = series_config.get('category')
 
@@ -167,7 +162,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
                         elif item.linked_item_id:
                             linked_asset_ids_needed.add(item.linked_item_id)
             else:
-                print(f"--- WARNING: Could not find item {item_id} of type {item_type} for user {current_user.id} during projection build. ---"); sys.stdout.flush()
         elif item_type:
             selected_account_ids = _normalize_selected_account_ids(series_config.get('selected_account_ids', []))
 
@@ -307,9 +301,7 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
                     if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
                         linked_asset_ids_needed.add(item.linked_item_id)
             else:
-                print(f"--- WARNING: Unsupported aggregate item type: {item_type} for user {current_user.id} ---"); sys.stdout.flush()
         else:
-            print(f"--- WARNING: Invalid series config (missing data_type): {series_config} ---"); sys.stdout.flush()
 
     for linked_asset_id in linked_asset_ids_needed:
         linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_asset_id, models.Asset.owner_id == current_user.id).first()
@@ -524,9 +516,7 @@ try:
         responses={404: {"description": "Not found"}},
     )
     # Disabled verbose debug logging
-    # print(f"--- DEBUG: Custom Charts Router instantiated with prefix: {router.prefix} ---"); sys.stdout.flush()
 except Exception as e:
-    print(f"--- CRITICAL ERROR: Failed to instantiate Custom Charts Router: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
     raise
 
 def fetch_and_convert_item(db: Session, current_user: models.User, item_type: str, item_id: int) -> Optional[schemas.ProjectedAccountCreate]:
@@ -544,7 +534,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 start_date=item.start_date, end_date=item.end_date
             )
         else:
-            print(f"--- WARNING: Asset with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()
     elif item_type == 'liabilities':
         item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
         if item:
@@ -563,7 +552,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 start_date=item.start_date, end_date=item.end_date
             )
         else:
-            print(f"--- WARNING: Liability with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()
     elif item_type in ['income', 'expenses']:
         is_income_item = (item_type == 'income')
         item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
@@ -622,7 +610,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                 cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
             )
         else:
-            print(f"--- WARNING: CashFlowItem with ID {item_id} not found for user {current_user.id} ---"); sys.stdout.flush()
     return None
 
 @router.post("", response_model=schemas.CustomChartOut, status_code=status.HTTP_201_CREATED)
@@ -735,7 +722,7 @@ def create_custom_chart(
         linked_asset_ids_needed = set()
         
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
-        projection_years = user_settings.projection_years if user_settings else 30
+        projection_years = user_settings.projection_years if user_settings else DEFAULT_PROJECTION_YEARS
 
         
         # First pass: Add all selected accounts and track dynamic items that need linked assets
@@ -753,7 +740,6 @@ def create_custom_chart(
                 try:
                     item_id = int(item_id)
                 except (ValueError, TypeError):
-                    print(f"--- WARNING: Invalid item_id format: {item_id}, skipping ---"); sys.stdout.flush()
                     continue
             category = series_config.get('category')
 
@@ -770,7 +756,6 @@ def create_custom_chart(
                         if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
                             linked_asset_ids_needed.add(item.linked_item_id)
                 else:
-                    print(f"--- WARNING: Could not find item {item_id} of type {item_type} for user {current_user.id} ---"); sys.stdout.flush()
             elif item_type and item_id is None: # Aggregate type selected (e.g., "all income" or "all items in a category")
                 # Get selected account IDs from series config
                 selected_account_ids = series_config.get('selected_account_ids', [])
@@ -922,9 +907,7 @@ def create_custom_chart(
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                 else:
-                    print(f"--- WARNING: Unsupported aggregate item type: {item_type} for user {current_user.id} ---"); sys.stdout.flush()
             else:
-                print(f"--- WARNING: Invalid series config: {series_config} ---"); sys.stdout.flush()
 
         # Auto-include any linked assets that are needed by dynamic items but not already in projection
         for linked_asset_id in linked_asset_ids_needed:
@@ -1144,7 +1127,6 @@ def create_custom_chart(
                 ))
                 included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
             elif not federal_tax_expense:
-                print(f"--- WARNING: Federal Tax expense not found in database for user {current_user.id} ---"); sys.stdout.flush()
             elif FEDERAL_TAX_EXPENSE_DESCRIPTION in included_expense_names:
                 pass
         elif not user_settings:
@@ -1174,8 +1156,6 @@ def create_custom_chart(
                 included_expense_names.add(STATE_TAX_EXPENSE_DESCRIPTION)
 
         # Disabled verbose debug logging - JSON dumps are very large
-        # print(f"--- DEBUG: Accounts prepared for projection (after loop): {json.dumps([acc.model_dump() for acc in accounts_for_projection], indent=2)} ---"); sys.stdout.flush()
-        # print(f"--- DEBUG: Attempting to call calculate_projection for chart {chart.name} ---"); sys.stdout.flush()
         
         import calculations # Lazy import (absolute import like liabilities.py uses)
         projection_results = calculations.calculate_projection(
@@ -1209,9 +1189,6 @@ def create_custom_chart(
         )
         
         # Disabled verbose debug logging - data_json dumps are huge
-        # print(f"--- DEBUG: Projection calculation successful. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
-        # print(f"--- DEBUG: data_json content after calculation, before model assignment: {projection_results.get('data_json')} ---"); sys.stdout.flush()
-        # print(f"--- DEBUG: data_json content before saving in create_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush()
 
         # Explicitly assign each field to ensure data_json is not missed
         db_chart = models.CustomChart(
@@ -1232,10 +1209,8 @@ def create_custom_chart(
         db.commit()
         db.refresh(db_chart)
         # Disabled verbose debug logging
-        # print(f"--- DEBUG: Custom chart {db_chart.name} created with ID {db_chart.id} and projection results. ---"); sys.stdout.flush()
         return db_chart
     except Exception as e:
-        print(f"--- CRITICAL ERROR in create_custom_chart: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
 
 @router.get("", response_model=List[schemas.CustomChartOut])
@@ -1289,7 +1264,6 @@ def read_custom_chart(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this chart")
     
     # Disabled verbose debug logging - data_json dumps are huge
-    # print(f"--- DEBUG: data_json content AFTER retrieval from DB in read_custom_chart (ID: {chart_id}): {chart.data_json} ---"); sys.stdout.flush()
     return chart
 
 @router.put("/{chart_id}", response_model=schemas.CustomChartOut)
@@ -1392,7 +1366,6 @@ def update_custom_chart(
             db_chart.total_contributed = projection_results["total_contributed"]
             db_chart.total_growth = projection_results["total_growth"]
         except Exception as e:
-            print(f"--- CRITICAL ERROR: Error during projection calculation for chart update {db_chart.name}: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed during update: {e}")
 
 
@@ -1406,7 +1379,7 @@ def update_custom_chart(
             linked_asset_ids_needed = set()
 
             user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
-            projection_years = user_settings.projection_years if user_settings else 30
+            projection_years = user_settings.projection_years if user_settings else DEFAULT_PROJECTION_YEARS
 
             # Reuse the same logic from above to build accounts_for_projection
             # (This is a simplified version - in production, extract to a helper function)
@@ -1747,7 +1720,6 @@ def update_custom_chart(
                 db_chart.total_contributed = projection_results["total_contributed"]
                 db_chart.total_growth = projection_results["total_growth"]
             except Exception as e:
-                print(f"--- CRITICAL ERROR: Error during projection calculation for chart recalculation {db_chart.name}: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed during recalculation: {e}")
 
     update_data = chart_update.model_dump(exclude_unset=True)
@@ -1814,10 +1786,8 @@ def recalculate_all_charts(
                 db.add(db_chart)
                 recalculated_count += 1
             else:
-                print(f"--- WARNING: Chart '{db_chart.name}' (ID: {db_chart.id}) has no series_configurations, skipping ---"); sys.stdout.flush()
         except Exception as e:
             error_msg = f"Error recalculating chart '{db_chart.name}' (ID: {db_chart.id}): {str(e)}"
-            print(f"--- ERROR: {error_msg} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
             errors.append(error_msg)
     
     db.commit()
@@ -1892,7 +1862,6 @@ def recalculate_chart(
             db.commit()
             db.refresh(db_chart)
         except Exception as e:
-            print(f"--- CRITICAL ERROR: Error during projection calculation for chart recalculation {db_chart.name}: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chart has no series configurations to recalculate")

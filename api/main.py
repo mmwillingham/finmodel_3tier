@@ -1231,7 +1231,6 @@ def create_cashflow(
     if payload.is_income:
         reinvest_dividends_val = getattr(payload, 'reinvest_dividends', False)
         reinvestment_account_id_val = getattr(payload, 'reinvestment_account_id', None)
-        print(f"--- DEBUG: Creating income item '{item.description}' - is_income={payload.is_income}, reinvest_dividends={reinvest_dividends_val}, reinvestment_account_id={reinvestment_account_id_val}, contributes_to_asset_id={item.contributes_to_asset_id} ---"); sys.stdout.flush()
     
     db.add(item)
     db.commit()
@@ -1322,7 +1321,6 @@ def update_cashflow(
         if reinvest_dividends and reinvestment_account_id:
             # Map reinvestment_account_id to contributes_to_asset_id for income items
             update_dict['contributes_to_asset_id'] = reinvestment_account_id
-            print(f"--- DEBUG: Updating income item {item_id} - Mapping reinvestment_account_id {reinvestment_account_id} to contributes_to_asset_id ---"); sys.stdout.flush()
         elif not reinvest_dividends:
             # If reinvest_dividends is being set to False, clear contributes_to_asset_id
             if 'reinvest_dividends' in update_dict:
