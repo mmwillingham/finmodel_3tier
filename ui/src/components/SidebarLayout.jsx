@@ -126,6 +126,17 @@ export default function SidebarLayout() {
     }
   }, [viewingUserId, viewingUserSettings, currentUser?.id]);
 
+  useEffect(() => {
+    if (viewingUserId && viewingUserId !== currentUser?.id) {
+      return;
+    }
+    const effectiveSettings = viewingUserSettings || userSettings;
+    const preferredYears = effectiveSettings?.projection_years ?? 30;
+    if (preferredYears !== projectionYears) {
+      setProjectionYears(preferredYears);
+    }
+  }, [viewingUserId, viewingUserSettings, userSettings, currentUser?.id, projectionYears]);
+
   // Handle password change completion - refresh user data from context
   const handlePasswordChangeComplete = () => {
     // The password change endpoint already clears must_change_password flag

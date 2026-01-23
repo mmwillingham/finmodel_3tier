@@ -114,7 +114,6 @@ def expand_series_configurations(series_configs, db: Session, current_user: mode
                 items = query.all()
 
             if items:
-                print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 for idx, item in enumerate(items):
                     new_series = series_config.copy()
                     new_series['selected_item_id'] = item.id
@@ -139,7 +138,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
     user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
     projection_years = user_settings.projection_years if user_settings else 30
 
-    print(f"--- DEBUG: Parsed series configurations for projection (after expansion): {expanded_series_configs} ---"); sys.stdout.flush()
 
     for series_config in expanded_series_configs:
         item_type = series_config.get('data_type')
@@ -285,7 +283,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
                         if linked_income:
                             linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
                             account_name = item.description + linked_marker
-                            print(f"--- DEBUG: Dynamic expense {item.description} linked to income {linked_income.description} with {item.percentage}% ---"); sys.stdout.flush()
                         else:
                             account_name = item.description
                     else:
@@ -317,7 +314,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
     for linked_asset_id in linked_asset_ids_needed:
         linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_asset_id, models.Asset.owner_id == current_user.id).first()
         if linked_asset and linked_asset.name not in added_account_names:
-            print(f"--- DEBUG: Auto-including linked asset '{linked_asset.name}' (ID: {linked_asset_id}) ---"); sys.stdout.flush()
             accounts_for_projection.append(schemas.ProjectedAccountCreate(
                 name=linked_asset.name,
                 account_type='asset',
@@ -344,7 +340,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
     ).all()
     for item in all_income_items:
         if item.description not in included_income_names:
-            print(f"--- DEBUG: Auto-including income item '{item.description}' ---"); sys.stdout.flush()
             contribution = 0.0
             account_name = item.description
             if item.linked_item_type == "asset" and item.percentage is not None:
@@ -392,7 +387,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
     ).all()
     for item in all_expense_items:
         if item.description not in included_expense_names:
-            print(f"--- DEBUG: Auto-including expense item '{item.description}' ---"); sys.stdout.flush()
             contribution = 0.0
             account_name = item.description
             if item.linked_item_type == "asset" and item.percentage is not None:
@@ -428,7 +422,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
                 if linked_income:
                     linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
                     account_name = item.description + linked_marker
-                    print(f"--- DEBUG: Dynamic expense {item.description} linked to income {linked_income.description} with {item.percentage}% ---"); sys.stdout.flush()
                 else:
                     account_name = item.description
             else:
@@ -455,7 +448,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
         source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
         target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
         if source_asset and source_asset.name not in added_account_names:
-            print(f"--- DEBUG: Auto-including source asset '{source_asset.name}' from auto-disbursement '{disbursement.name}' ---"); sys.stdout.flush()
             accounts_for_projection.append(schemas.ProjectedAccountCreate(
                 name=source_asset.name,
                 account_type='asset',
@@ -467,7 +459,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
             ))
             added_account_names.add(source_asset.name)
         if target_asset and target_asset.name not in added_account_names:
-            print(f"--- DEBUG: Auto-including target asset '{target_asset.name}' from auto-disbursement '{disbursement.name}' ---"); sys.stdout.flush()
             accounts_for_projection.append(schemas.ProjectedAccountCreate(
                 name=target_asset.name,
                 account_type='asset',
@@ -487,7 +478,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
             models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
         ).first()
         if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
-            print(f"--- DEBUG: Auto-including Federal Tax expense ---"); sys.stdout.flush()
             accounts_for_projection.append(schemas.ProjectedAccountCreate(
                 name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
                 account_type='expense',
@@ -507,7 +497,6 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
             models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
         ).first()
         if state_tax_expense and STATE_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
-            print(f"--- DEBUG: Auto-including State Tax expense ---"); sys.stdout.flush()
             accounts_for_projection.append(schemas.ProjectedAccountCreate(
                 name=STATE_TAX_EXPENSE_DESCRIPTION,
                 account_type='expense',
@@ -541,11 +530,9 @@ except Exception as e:
     raise
 
 def fetch_and_convert_item(db: Session, current_user: models.User, item_type: str, item_id: int) -> Optional[schemas.ProjectedAccountCreate]:
-    print(f"--- DEBUG: Attempting to fetch item_type: {item_type}, item_id: {item_id} ---"); sys.stdout.flush()
     if item_type == 'assets':
         item = db.query(models.Asset).filter(models.Asset.id == item_id, models.Asset.owner_id == current_user.id).first()
         if item:
-            print(f"--- DEBUG: Found asset: {item.name} (ID: {item.id}, Value: {item.value}) ---"); sys.stdout.flush()
             # Contributions from expenses are now handled by backend calculations.py
             return schemas.ProjectedAccountCreate(
                 name=item.name,
@@ -561,7 +548,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
     elif item_type == 'liabilities':
         item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
         if item:
-            print(f"--- DEBUG: Found liability: {item.name} (ID: {item.id}, Value: {item.value}) ---"); sys.stdout.flush()
             return schemas.ProjectedAccountCreate(
                 name=item.name,
                 account_type='liability',
@@ -582,7 +568,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
         is_income_item = (item_type == 'income')
         item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
         if item:
-            print(f"--- DEBUG: Found cashflow item: {item.description} (ID: {item.id}, Yearly Value: {item.yearly_value}, Is Dynamic: {bool(item.linked_item_id)}) ---"); sys.stdout.flush()
             account_type = 'income' if is_income_item else 'expense'
             # For dynamic items (linked to asset or income), contribution will be recalculated each year in projection
             # Store initial contribution as 0 for dynamic items - it will be recalculated based on linked asset/income
@@ -598,7 +583,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                         asset_names = [asset.name for asset in linked_assets]
                         linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
                         account_name = item.description + linked_marker
-                        print(f"--- DEBUG: Dynamic item {item.description} linked to multiple assets {asset_names} with {item.percentage}% ---"); sys.stdout.flush()
                     else:
                         account_name = item.description
                 elif item.linked_item_id:
@@ -609,7 +593,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                         # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
                         linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
                         account_name = item.description + linked_marker
-                        print(f"--- DEBUG: Dynamic item {item.description} linked to asset {linked_asset.name} with {item.percentage}% ---"); sys.stdout.flush()
                     else:
                         account_name = item.description
                 else:
@@ -622,7 +605,6 @@ def fetch_and_convert_item(db: Session, current_user: models.User, item_type: st
                     # Format: "ItemName|LINKED_INCOME:IncomeName|PERCENTAGE:10.0"
                     linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
                     account_name = item.description + linked_marker
-                    print(f"--- DEBUG: Dynamic item {item.description} linked to income {linked_income.description} with {item.percentage}% ---"); sys.stdout.flush()
                 else:
                     account_name = item.description
             else:
@@ -649,9 +631,7 @@ def create_custom_chart(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    print(f"--- DEBUG: TOP OF create_custom_chart function. User ID: {current_user.id} ---"); sys.stdout.flush()
     try:
-        print(f"--- DEBUG: Entering create_custom_chart for user {current_user.id} ---"); sys.stdout.flush()
 
         # Check for duplicate chart name
         existing_chart = db.query(models.CustomChart).filter(
@@ -693,14 +673,12 @@ def create_custom_chart(
                         query = query.filter(models.Asset.account_id.in_(selected_account_ids))
                     items = query.all()
                     item_name_field = 'name'
-                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 elif item_type == 'liabilities':
                     query = db.query(models.Liability).filter(models.Liability.owner_id == current_user.id)
                     if category:
                         query = query.filter(models.Liability.category == category)
                     items = query.all()
                     item_name_field = 'name'
-                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 elif item_type == 'income':
                     query = db.query(models.CashFlowItem).filter(
                         models.CashFlowItem.owner_id == current_user.id,
@@ -710,7 +688,6 @@ def create_custom_chart(
                         query = query.filter(models.CashFlowItem.category == category)
                     items = query.all()
                     item_name_field = 'description'
-                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 elif item_type == 'expenses':
                     query = db.query(models.CashFlowItem).filter(
                         models.CashFlowItem.owner_id == current_user.id,
@@ -720,7 +697,6 @@ def create_custom_chart(
                         query = query.filter(models.CashFlowItem.category == category)
                     items = query.all()
                     item_name_field = 'description'
-                    print(f"--- DEBUG: Expanding itemized series for {item_type}: found {len(items)} items ---"); sys.stdout.flush()
                 
                 if items:
                     # Predefined color palette for better visual distinction
@@ -761,8 +737,6 @@ def create_custom_chart(
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
         projection_years = user_settings.projection_years if user_settings else 30
 
-        print(f"--- DEBUG: Parsed series configurations (after expansion): {series_configs} ---"); sys.stdout.flush()
-        print(f"--- DEBUG: Projection years from user settings: {projection_years} ---"); sys.stdout.flush()
         
         # First pass: Add all selected accounts and track dynamic items that need linked assets
         dynamic_items_needing_assets = []
@@ -795,7 +769,6 @@ def create_custom_chart(
                         item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
                         if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
                             linked_asset_ids_needed.add(item.linked_item_id)
-                            print(f"--- DEBUG: Dynamic item {item.description} needs linked asset ID {item.linked_item_id} ---"); sys.stdout.flush()
                 else:
                     print(f"--- WARNING: Could not find item {item_id} of type {item_type} for user {current_user.id} ---"); sys.stdout.flush()
             elif item_type and item_id is None: # Aggregate type selected (e.g., "all income" or "all items in a category")
@@ -813,9 +786,7 @@ def create_custom_chart(
                         query = query.filter(models.Asset.category == category)
                     if selected_account_ids:  # Filter by account if specified
                         query = query.filter(models.Asset.account_id.in_(selected_account_ids))
-                        print(f"--- DEBUG: Filtering assets by category: {category} ---"); sys.stdout.flush()
                     items = query.all()
-                    print(f"--- DEBUG: Found {len(items)} assets for item_type={item_type}, category={category} ---"); sys.stdout.flush()
                     for item in items:
                         accounts_for_projection.append(schemas.ProjectedAccountCreate(
                             name=item.name,
@@ -899,9 +870,7 @@ def create_custom_chart(
                     )
                     if category:  # Filter by category if specified
                         query = query.filter(models.CashFlowItem.category == category)
-                        print(f"--- DEBUG: Filtering expense items by category: {category} ---"); sys.stdout.flush()
                     items = query.all()
-                    print(f"--- DEBUG: Found {len(items)} expense items for item_type={item_type}, category={category} ---"); sys.stdout.flush()
                     for item in items:
                         # Handle dynamic items (linked to asset or income)
                         contribution = 0.0
@@ -937,7 +906,6 @@ def create_custom_chart(
                                 # Format: "ItemName|LINKED_INCOME:IncomeName|PERCENTAGE:10.0"
                                 linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
                                 account_name = item.description + linked_marker
-                                print(f"--- DEBUG: Dynamic expense {item.description} linked to income {linked_income.description} with {item.percentage}% ---"); sys.stdout.flush()
                             else:
                                 account_name = item.description
                         else:
@@ -962,7 +930,6 @@ def create_custom_chart(
         for linked_asset_id in linked_asset_ids_needed:
             linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_asset_id, models.Asset.owner_id == current_user.id).first()
             if linked_asset and linked_asset.name not in added_account_names:
-                print(f"--- DEBUG: Auto-including linked asset '{linked_asset.name}' (ID: {linked_asset_id}) for dynamic item calculation ---"); sys.stdout.flush()
                 asset_account = schemas.ProjectedAccountCreate(
                     name=linked_asset.name,
                     account_type='asset',
@@ -994,7 +961,6 @@ def create_custom_chart(
         ).all()
         for item in all_income_items:
             if item.description not in included_income_names:
-                print(f"--- DEBUG: Auto-including income item '{item.description}' for accurate calculations ---"); sys.stdout.flush()
                 contribution = 0.0
                 account_name = item.description
                 if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
@@ -1035,7 +1001,6 @@ def create_custom_chart(
         ).all()
         for item in all_expense_items:
             if item.description not in included_expense_names:
-                print(f"--- DEBUG: Auto-including expense item '{item.description}' for accurate calculations ---"); sys.stdout.flush()
                 contribution = 0.0
                 account_name = item.description
                 # Check for multi-select linked assets first (newer format)
@@ -1136,7 +1101,6 @@ def create_custom_chart(
             source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
             target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
             if source_asset and source_asset.name not in added_account_names:
-                print(f"--- DEBUG: Auto-including source asset '{source_asset.name}' from auto-disbursement '{disbursement.name}' ---"); sys.stdout.flush()
                 asset_account = schemas.ProjectedAccountCreate(
                     name=source_asset.name,
                     account_type='asset',
@@ -1148,7 +1112,6 @@ def create_custom_chart(
                 accounts_for_projection.append(asset_account)
                 added_account_names.add(source_asset.name)
             if target_asset and target_asset.name not in added_account_names:
-                print(f"--- DEBUG: Auto-including target asset '{target_asset.name}' from auto-disbursement '{disbursement.name}' ---"); sys.stdout.flush()
                 asset_account = schemas.ProjectedAccountCreate(
                     name=target_asset.name,
                     account_type='asset',
@@ -1162,16 +1125,13 @@ def create_custom_chart(
         
         # Auto-include Federal Tax expense if tax calculation is enabled
         FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
-        print(f"--- DEBUG: Checking Federal Tax auto-include - user_settings exists: {user_settings is not None}, calculate_federal_tax: {user_settings.calculate_federal_tax if user_settings else 'N/A'} ---"); sys.stdout.flush()
         if user_settings and user_settings.calculate_federal_tax:
             federal_tax_expense = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.owner_id == current_user.id,
                 models.CashFlowItem.is_income == False,
                 models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
             ).first()
-            print(f"--- DEBUG: Federal Tax expense query result: {federal_tax_expense.description if federal_tax_expense else 'NOT FOUND'}, already in included_expense_names: {FEDERAL_TAX_EXPENSE_DESCRIPTION in included_expense_names} ---"); sys.stdout.flush()
             if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
-                print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation ---"); sys.stdout.flush()
                 accounts_for_projection.append(schemas.ProjectedAccountCreate(
                     name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
                     account_type='expense',
@@ -1186,11 +1146,9 @@ def create_custom_chart(
             elif not federal_tax_expense:
                 print(f"--- WARNING: Federal Tax expense not found in database for user {current_user.id} ---"); sys.stdout.flush()
             elif FEDERAL_TAX_EXPENSE_DESCRIPTION in included_expense_names:
-                print(f"--- DEBUG: Federal Tax expense already included in accounts_for_projection ---"); sys.stdout.flush()
         elif not user_settings:
             print(f"--- WARNING: user_settings is None, cannot check calculate_federal_tax ---"); sys.stdout.flush()
         elif not user_settings.calculate_federal_tax:
-            print(f"--- DEBUG: calculate_federal_tax is disabled in user_settings ---"); sys.stdout.flush()
         
         # Auto-include State Tax expense if tax calculation is enabled
         STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
@@ -1201,7 +1159,6 @@ def create_custom_chart(
                 models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
             ).first()
             if state_tax_expense and STATE_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
-                print(f"--- DEBUG: Auto-including State Tax expense for chart calculation (create) ---"); sys.stdout.flush()
                 accounts_for_projection.append(schemas.ProjectedAccountCreate(
                     name=STATE_TAX_EXPENSE_DESCRIPTION,
                     account_type='expense',
@@ -1341,7 +1298,6 @@ def update_custom_chart(
     current_user: models.User = Depends(get_current_user)
 ):
     """Update a custom chart (requires edit permission)."""
-    print(f"--- DEBUG: Entering update_custom_chart for chart ID {chart_id}, user {current_user.id} ---"); sys.stdout.flush()
 
     db_chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id).first()
 
@@ -1429,8 +1385,6 @@ def update_custom_chart(
                 liability_names=liability_names
             )
             
-            print(f"--- DEBUG: Projection calculation successful for chart update. Final Value: {projection_results['final_value']} ---"); sys.stdout.flush()
-            print(f"--- DEBUG: data_json content before saving in update_custom_chart: {projection_results.get('data_json')} ---"); sys.stdout.flush()
             db_chart.data_json = projection_results["data_json"]
             db_chart.final_value = projection_results["final_value"]
             db_chart.total_contributed = projection_results["total_contributed"]
@@ -1444,7 +1398,6 @@ def update_custom_chart(
         # Even if series_configurations wasn't updated, recalculate the chart with existing configuration
         # This ensures charts are always up-to-date when saved
         if db_chart.series_configurations:
-            print(f"--- DEBUG: Recalculating chart {db_chart.name} (ID: {db_chart.id}) with existing series_configurations ---"); sys.stdout.flush()
             series_configs = json.loads(db_chart.series_configurations)
             accounts_for_projection = []
             added_account_names = set()
@@ -1582,7 +1535,6 @@ def update_custom_chart(
                                     # Format: "ItemName|LINKED_INCOME:IncomeName|PERCENTAGE:10.0"
                                     linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
                                     account_name = item.description + linked_marker
-                                    print(f"--- DEBUG: Dynamic expense {item.description} linked to income {linked_income.description} with {item.percentage}% (update_custom_chart) ---"); sys.stdout.flush()
                                 else:
                                     account_name = item.description
                             else:
@@ -1741,7 +1693,6 @@ def update_custom_chart(
                     models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
                 ).first()
                 if federal_tax_expense and FEDERAL_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
-                    print(f"--- DEBUG: Auto-including Federal Tax expense for chart calculation (recalculate_all) ---"); sys.stdout.flush()
                     accounts_for_projection.append(schemas.ProjectedAccountCreate(
                         name=FEDERAL_TAX_EXPENSE_DESCRIPTION,
                         account_type='expense',
@@ -1762,7 +1713,6 @@ def update_custom_chart(
                     models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
                 ).first()
                 if state_tax_expense and STATE_TAX_EXPENSE_DESCRIPTION not in included_expense_names:
-                    print(f"--- DEBUG: Auto-including State Tax expense for chart calculation (recalculate_all) ---"); sys.stdout.flush()
                     accounts_for_projection.append(schemas.ProjectedAccountCreate(
                         name=STATE_TAX_EXPENSE_DESCRIPTION,
                         account_type='expense',
@@ -1806,7 +1756,6 @@ def update_custom_chart(
     db.add(db_chart)
     db.commit()
     db.refresh(db_chart)
-    print(f"--- DEBUG: Custom chart {db_chart.name} (ID: {db_chart.id}) updated with projection results. ---"); sys.stdout.flush()
     return db_chart
 
 @router.post("/recalculate-all", response_model=dict, tags=["Custom Charts"])
@@ -1819,7 +1768,6 @@ def recalculate_all_charts(
     This updates data_json, final_value, total_contributed, and total_growth for each chart
     based on current underlying data (assets, liabilities, income, expenses).
     """
-    print(f"--- DEBUG: Entering recalculate_all_charts for user {current_user.id} ---"); sys.stdout.flush()
     
     charts = db.query(models.CustomChart).filter(models.CustomChart.user_id == current_user.id).all()
     recalculated_count = 0
@@ -1863,7 +1811,6 @@ def recalculate_all_charts(
                 db_chart.total_growth = projection_results["total_growth"]
                 db.add(db_chart)
                 recalculated_count += 1
-                print(f"--- DEBUG: Recalculated chart '{db_chart.name}' (ID: {db_chart.id}) ---"); sys.stdout.flush()
             else:
                 print(f"--- WARNING: Chart '{db_chart.name}' (ID: {db_chart.id}) has no series_configurations, skipping ---"); sys.stdout.flush()
         except Exception as e:
@@ -1872,7 +1819,6 @@ def recalculate_all_charts(
             errors.append(error_msg)
     
     db.commit()
-    print(f"--- DEBUG: Recalculated {recalculated_count} charts for user {current_user.id} ---"); sys.stdout.flush()
     
     return {
         "recalculated_count": recalculated_count,
@@ -1887,7 +1833,6 @@ def recalculate_chart(
     current_user: models.User = Depends(get_current_user)
 ):
     """Recalculate a single custom chart (requires edit permission)."""
-    print(f"--- DEBUG: Entering recalculate_chart for chart ID {chart_id}, user {current_user.id} ---"); sys.stdout.flush()
     
     db_chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id).first()
     if not db_chart:
@@ -1944,7 +1889,6 @@ def recalculate_chart(
             db.add(db_chart)
             db.commit()
             db.refresh(db_chart)
-            print(f"--- DEBUG: Chart '{db_chart.name}' (ID: {db_chart.id}) recalculated successfully ---"); sys.stdout.flush()
         except Exception as e:
             print(f"--- CRITICAL ERROR: Error during projection calculation for chart recalculation {db_chart.name}: {e} (Traceback: {traceback.format_exc()}) ---"); sys.stdout.flush()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
@@ -1960,7 +1904,6 @@ def delete_custom_chart(
     current_user: models.User = Depends(get_current_user)
 ):
     """Delete a custom chart (requires edit permission)."""
-    print(f"--- DEBUG: Entering delete_custom_chart for chart ID {chart_id}, user {current_user.id} ---"); sys.stdout.flush()
     db_chart = db.query(models.CustomChart).filter(models.CustomChart.id == chart_id).first()
     if not db_chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Custom chart not found")
@@ -1978,5 +1921,4 @@ def delete_custom_chart(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to delete this chart")
     db.delete(db_chart)
     db.commit()
-    print(f"--- DEBUG: Custom chart {chart_id} deleted. ---"); sys.stdout.flush()
     return {"ok": True}
