@@ -1,9 +1,13 @@
 import api from './api.service';
 
 const AutoDisbursementService = {
-  async getAllAutoDisbursements() {
+  async getAllAutoDisbursements(viewingUserId = null) {
     try {
-      const response = await api.get('/auto-disbursements/');
+      const config = {};
+      if (viewingUserId !== null && viewingUserId !== undefined) {
+        config.params = { viewing_user_id: viewingUserId };
+      }
+      const response = await api.get('/auto-disbursements/', config);
       return response.data;
     } catch (error) {
       console.error('Error fetching auto-disbursements:', error);

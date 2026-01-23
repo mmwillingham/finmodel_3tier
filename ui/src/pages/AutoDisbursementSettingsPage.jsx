@@ -4,6 +4,7 @@ import AutoDisbursementService from '../services/auto_disbursement.service';
 import AssetService from '../services/asset.service';
 import SettingsService from '../services/settings.service';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
+import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -32,13 +33,15 @@ const AutoDisbursementSettingsPage = () => {
     end_date: '',
   });
   const { refreshSettings } = useSettingsContext();
+  const isViewingOther = viewingUserId && viewingUserId !== currentUser?.id;
+  const { refreshSettings } = useSettingsContext();
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [autoDisbursementsData, assetsRes, settingsRes] = await Promise.all([
-        AutoDisbursementService.getAllAutoDisbursements().catch((err) => {
+        AutoDisbursementService.getAllAutoDisbursements(viewingUserId).catch((err) => {
           console.error('Error loading auto-disbursements:', err);
           return [];
         }),
@@ -46,7 +49,7 @@ const AutoDisbursementSettingsPage = () => {
           console.error('Error loading assets:', err);
           return { data: [] };
         }),
-        SettingsService.getSettings().catch((err) => {
+        SettingsService.getSettings(viewingUserId).catch((err) => {
           console.error('Error loading settings:', err);
           return { data: {} };
         }),
@@ -63,13 +66,18 @@ const AutoDisbursementSettingsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewingUserId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   const handleCreateAutoDisbursement = async () => {
+    if (isViewingOther) {
+      setMessage('Automatic transfers are read-only when viewing another account.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     if (!newAutoDisbursement.name || !newAutoDisbursement.source_asset_id || !newAutoDisbursement.target_asset_id) {
       setMessage('Error: Name, Source Asset, and Target Asset are required');
       setTimeout(() => setMessage(''), 3000);
@@ -128,6 +136,11 @@ const AutoDisbursementSettingsPage = () => {
   };
 
   const handleUpdateAutoDisbursement = async (id, updatedAutoDisbursement) => {
+    if (isViewingOther) {
+      setMessage('Automatic transfers are read-only when viewing another account.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     if (!updatedAutoDisbursement.name || !updatedAutoDisbursement.source_asset_id || !updatedAutoDisbursement.target_asset_id) {
       setMessage('Error: Name, Source Asset, and Target Asset are required');
       setTimeout(() => setMessage(''), 3000);
@@ -178,6 +191,11 @@ const AutoDisbursementSettingsPage = () => {
   };
 
   const handleDeleteAutoDisbursement = async (id) => {
+    if (isViewingOther) {
+      setMessage('Automatic transfers are read-only when viewing another account.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Auto-Disbursement',
@@ -204,6 +222,11 @@ const AutoDisbursementSettingsPage = () => {
   };
 
   const handleSaveSurplusAsset = async () => {
+    if (isViewingOther) {
+      setMessage('Surplus asset is read-only when viewing another account.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     setMessage('');
     try {
       await SettingsService.updateSettings({
@@ -236,6 +259,11 @@ const AutoDisbursementSettingsPage = () => {
   return (
     <div className="settings-page-container auto-disbursements-page">
       <h2>Automatic Transfers</h2>
+      {isViewingOther && (
+        <div className="message" style={{ backgroundColor: '#e2e3ff', color: '#1e1b4b', border: '1px solid #b3b7ff', marginBottom: '20px' }}>
+          You are viewing another account. Automatic transfers are shown for reference only and cannot be modified.
+        </div>
+      )}
       {message && <div className={`message ${message.includes('Error') ? 'error' : ''}`}>{message}</div>}
 
       {assets.length === 0 && !loading && (

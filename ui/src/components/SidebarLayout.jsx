@@ -15,6 +15,7 @@ import LiabilityView from "./LiabilityView";
 import BalanceSheetProjection from "./BalanceSheetProjection";
 import CashFlowOverview from "./CashFlowOverview";
 import "./SidebarLayout.css";
+import SettingsService from "../services/settings.service";
 import { useSettingsContext } from "../context/SettingsContext.jsx";
 import CustomChartList from "./CustomChartList";
 import CustomChartForm from "./CustomChartForm";
@@ -73,6 +74,22 @@ export default function SidebarLayout() {
   const [chartToViewId, setChartToViewId] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(null); // 'profile', 'categories', 'accounts', or null
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [viewingUserSettings, setViewingUserSettings] = useState(null);
+
+  const loadViewingUserSettings = useCallback(async () => {
+    if (!viewingUserId) {
+      setViewingUserSettings(null);
+      return;
+    }
+
+    try {
+      const response = await SettingsService.getSettings(viewingUserId);
+      setViewingUserSettings(response.data);
+    } catch (error) {
+      console.error("Failed to load viewing user settings", error);
+      setViewingUserSettings(null);
+    }
+  }, [viewingUserId]);
 
   // Check if password change is required on mount or when currentUser changes
   useEffect(() => {
@@ -86,6 +103,20 @@ export default function SidebarLayout() {
       setShowPasswordChangeModal(true);
     }
   }, [location.state, currentUser, navigate, location.pathname]);
+
+  useEffect(() => {
+    loadViewingUserSettings();
+  }, [loadViewingUserSettings]);
+
+  useEffect(() => {
+    if (!viewingUserId || viewingUserId === currentUser?.id) {
+      return;
+    }
+    if (viewingUserSettings) {
+      setProjectionYears(viewingUserSettings.projection_years || 30);
+      setShowChartTotals(viewingUserSettings.show_chart_totals ?? true);
+    }
+  }, [viewingUserId, viewingUserSettings, currentUser?.id]);
 
   // Handle password change completion - refresh user data from context
   const handlePasswordChangeComplete = () => {
@@ -119,7 +150,7 @@ export default function SidebarLayout() {
         AssetService.list(viewingUserId),
         LiabilityService.list(viewingUserId),
         AccountService.getAllAccounts(viewingUserId).catch(() => []), // Don't fail if accounts endpoint doesn't exist yet
-        AutoDisbursementService.getAllAutoDisbursements().catch(() => []), // NEW: Load auto-disbursements
+        AutoDisbursementService.getAllAutoDisbursements(viewingUserId).catch(() => []), // NEW: Load auto-disbursements
       ]);
 
       setIncomeItems(inc.data || []);
@@ -733,7 +764,7 @@ export default function SidebarLayout() {
               projectionYears={projectionYears}
               formatCurrency={formatCurrency}
               assets={assets}
-              userSettings={userSettings}
+            userSettings={viewingUserSettings || userSettings}
               autoDisbursements={autoDisbursements}
               liabilities={liabilities}
             />

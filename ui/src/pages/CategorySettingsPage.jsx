@@ -19,6 +19,7 @@ const CategorySettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { refreshSettings } = useSettingsContext();
+  const isViewingOther = viewingUserId && viewingUserId !== currentUser?.id;
 
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
@@ -41,13 +42,18 @@ const CategorySettingsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [viewingUserId]);
 
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
 
   const handleSaveCategories = async (categoryType, updatedCategories) => {
+    if (isViewingOther) {
+      setMessage('Categories are read-only when viewing another account.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     setMessage('');
     try {
         const settingsToUpdate = {
@@ -87,6 +93,11 @@ const CategorySettingsPage = () => {
     setMessage('');
     setLoadingDefaults(true);
     try {
+      if (isViewingOther) {
+        setMessage('Categories are read-only when viewing another account.');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
       await SettingsService.loadDefaultCategories();
       await refreshSettings();
       setMessage('Default categories loaded successfully!');
@@ -116,7 +127,15 @@ const CategorySettingsPage = () => {
     <div className="category-section-item">
         <div className="category-header">
             <label style={{ fontWeight: 700, fontSize: '1.1em', color: 'var(--color-heading)' }}>{title}</label>
-            <button type="button" className="category-manage-button" onClick={() => setIsModalOpen(true)}>Manage</button>
+            <button
+              type="button"
+              className="category-manage-button"
+              onClick={() => !isViewingOther && setIsModalOpen(true)}
+              disabled={isViewingOther}
+              style={{ cursor: isViewingOther ? 'not-allowed' : 'pointer' }}
+            >
+              Manage
+            </button>
         </div>
         <div className="category-tags-display">
             {categories.length > 0 ? (
@@ -156,6 +175,11 @@ const CategorySettingsPage = () => {
   return (
     <div className="settings-page-container">
       <h2>My Categories</h2>
+      {isViewingOther && (
+        <div className="message" style={{ backgroundColor: '#e2e3ff', color: '#1e1b4b', border: '1px solid #b3b7ff', marginBottom: '20px' }}>
+          You are viewing another account. Categories are shown for reference only and cannot be modified.
+        </div>
+      )}
       {message && <div className="message">{message}</div>}
 
       <div style={{ marginBottom: '20px' }}>

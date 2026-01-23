@@ -1,11 +1,11 @@
 import ApiService from "./api.service";
 
 const getSettings = (viewingUserId = null) => {
-  const params = {};
+  const config = {};
   if (viewingUserId !== null && viewingUserId !== undefined) {
-    params.viewing_user_id = viewingUserId;
+    config.params = { viewing_user_id: viewingUserId };
   }
-  return ApiService.get("/settings", params.viewing_user_id ? { params } : undefined);
+  return ApiService.get("/settings", config);
 };
 const updateSettings = (data) => ApiService.put("/settings", data);
 

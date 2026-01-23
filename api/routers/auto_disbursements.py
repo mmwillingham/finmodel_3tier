@@ -6,6 +6,7 @@ import schemas
 import auth
 import database
 import logging
+from utils.permission_dependencies import get_accessible_user_ids
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +18,24 @@ router = APIRouter(
 
 @router.get("/", response_model=List[schemas.AutoDisbursementOut])
 def list_auto_disbursements(
+    viewing_user_id: int | None = None,
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """List all auto-disbursement rules for the current user."""
+    """List auto-disbursement rules for the specified user (or current user)."""
+    target_user = current_user.id
+    if viewing_user_id:
+        accessible_ids = get_accessible_user_ids(
+            db=db,
+            current_user_id=current_user.id,
+            permission_type="financial_data",
+        )
+        if viewing_user_id not in accessible_ids:
+            raise HTTPException(status_code=403, detail="Not authorized to view those auto-disbursements.")
+        target_user = viewing_user_id
+
     disbursements = db.query(models.AutoDisbursement).filter(
-        models.AutoDisbursement.owner_id == current_user.id
+        models.AutoDisbursement.owner_id == target_user
     ).order_by(models.AutoDisbursement.name).all()
     return disbursements
 
