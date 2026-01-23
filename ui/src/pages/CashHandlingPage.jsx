@@ -24,7 +24,7 @@ const CashHandlingPage = () => {
     setError(null);
     try {
       const [settingsRes, assetsRes, incomeRes, expenseRes] = await Promise.all([
-        SettingsService.getSettings(),
+        SettingsService.getSettings(viewingUserId),
         AssetService.list(viewingUserId || null).catch(() => ({ data: [] })),
         CashFlowService.list(true, viewingUserId).catch(() => ({ data: [] })),
         CashFlowService.list(false, viewingUserId).catch(() => ({ data: [] }))

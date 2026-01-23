@@ -9,6 +9,7 @@ import schemas
 import database
 import auth
 from utils.social_security import calculate_fra, fra_to_date, calculate_monthly_benefit, calculate_spousal_benefit
+from utils.permission_dependencies import get_accessible_user_ids
 
 # Constant to identify the federal tax expense item (must match frontend)
 FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
@@ -25,10 +26,22 @@ router = APIRouter(
 
 @router.get("", response_model=schemas.UserSettingsOut)
 def get_user_settings(
+    viewing_user_id: int | None = None,
     current_user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
+    target_user_id = viewing_user_id or current_user.id
+
+    if viewing_user_id:
+        accessible_ids = get_accessible_user_ids(
+            db=db,
+            current_user_id=current_user.id,
+            permission_type="financial_data",
+        )
+        if viewing_user_id not in accessible_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view those settings.")
+
+    user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == target_user_id).first()
     
     if not user_settings:
         # If user-specific settings don't exist, try to get global defaults
@@ -84,7 +97,7 @@ def update_user_settings(
         db.refresh(user_settings)
 
     # Detect category renames and update all related items
-    update_data = settings_update.model_dump(exclude_unset=True)
+        update_data = settings_update.model_dump(exclude_unset=True)
     
     # Helper function to find category renames by comparing old and new lists
     def find_category_renames(old_list, new_list):

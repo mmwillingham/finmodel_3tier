@@ -8,7 +8,7 @@ import './SettingsPages.css'; // General CSS for settings pages
 import { useSettingsContext } from '../context/SettingsContext.jsx';
 
 const CategorySettingsPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, viewingUserId } = useAuth();
   const navigate = useNavigate();
   useSettingsBackButton(); // Fix browser back button navigation
   const [assetCategoriesState, setAssetCategoriesState] = useState([]);
@@ -30,7 +30,7 @@ const CategorySettingsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await SettingsService.getSettings();
+      const res = await SettingsService.getSettings(viewingUserId);
       setAssetCategoriesState(res.data.asset_categories || []);
       setLiabilityCategoriesState(res.data.liability_categories || []);
       setIncomeCategoriesState(res.data.income_categories || []);
