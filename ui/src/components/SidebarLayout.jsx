@@ -636,7 +636,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3, delay: 0.25 }}
                 >
                   <h4>📉 Setup Liabilities</h4>
-                  <p>Add your liabilities (mortgages, loans, credit cards, etc.).</p>
+                  <p>Add your debts (loans, credit cards, etc.)</p>
                 </motion.div>
                 
                 <motion.div 
@@ -649,7 +649,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3, delay: 0.3 }}
                 >
                   <h4>💵 Setup Income</h4>
-                  <p>Add your income sources (salary, rental income, investments, etc.).</p>
+                  <p>Add your income (salary, interest, etc.)</p>
                 </motion.div>
                 
                 <motion.div 
@@ -662,7 +662,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3, delay: 0.35 }}
                 >
                   <h4>💸 Setup Expenses</h4>
-                  <p>Add your expenses (housing, food, transportation, etc.).</p>
+                  <p>Add your expenses (housing, food, fuel, etc.)</p>
                 </motion.div>
                 
                 <motion.div 
@@ -675,7 +675,7 @@ export default function SidebarLayout() {
                   transition={{ duration: 0.3, delay: 0.4 }}
                 >
                   <h4>🔄 Setup Automatic Transfers</h4>
-                  <p>Set up automatic transfers between accounts and surplus asset handling.</p>
+                  <p>Set up automatic transfers between accounts</p>
                 </motion.div>
               </div>
             </motion.div>
