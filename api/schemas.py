@@ -371,6 +371,12 @@ class PublicContentResponse(BaseModel):
     help_content: Optional[str] = None
     about_content: Optional[str] = None
 
+class StateTaxResult(BaseModel):
+    state_taxable_income: float
+    state_standard_deduction: float
+    state_tax: float
+    model_config = ConfigDict(from_attributes=True)
+
 
 # --- BROKERAGE SCHEMAS ---
 

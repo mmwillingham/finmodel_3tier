@@ -39,6 +39,7 @@ from routers.documents import router as documents_router
 from routers.authorized_users import router as authorized_users_router
 from routers.plaid import router as plaid_router
 from routers.what_if import router as what_if_router
+from routers.tax import router as tax_router
 from utils.email import send_email
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
@@ -84,6 +85,7 @@ app.include_router(documents_router)
 app.include_router(authorized_users_router)
 app.include_router(plaid_router)
 app.include_router(what_if_router)
+app.include_router(tax_router)
 
 # New router for admin global settings
 admin_router = APIRouter()
