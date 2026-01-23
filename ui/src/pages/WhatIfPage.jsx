@@ -11,6 +11,14 @@ const exampleQuestions = [
   "How will a 20% decline in year 2030 in my investment and retirement accounts affect my net worth in 2040?"
 ];
 
+const descriptionSentences = [
+  "Ask questions about your financial scenarios and get AI-powered insights based on your actual financial data.",
+  "IMPORTANT",
+  "- This is a beta feature and may not be accurate.",
+  "- This feature will soon only be available for users with a paid subscription.",
+  "- No Personal Information will be shared with the AI model."
+];
+
 const WhatIfPage = () => {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
@@ -52,7 +60,12 @@ const WhatIfPage = () => {
       <div className="what-if-container">
         <h1>What If?</h1>
         <p className="what-if-description">
-          Ask questions about your financial scenarios and get AI-powered insights based on your actual financial data.
+          {descriptionSentences.map((sentence, index) => (
+            <React.Fragment key={sentence}>
+              {sentence}
+              {index < descriptionSentences.length - 1 && <br />}
+            </React.Fragment>
+          ))}
         </p>
 
         <div className="examples-section">

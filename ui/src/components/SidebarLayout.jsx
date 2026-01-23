@@ -215,7 +215,8 @@ export default function SidebarLayout() {
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
     
     // Listen for navigation to home from Header
-    const handleNavigateToHome = () => {
+    const handleNavigateToHome = (event) => {
+      if (event?.detail === 'prevent-reset') return;
       setView('new-home');
       setCashFlowView(null);
       setCustomChartView(null);
@@ -363,10 +364,11 @@ export default function SidebarLayout() {
               Accounts
             </button>
             <button
-              className={`nav-btn ${view === 'settings-categories' ? 'active' : ''}`}
+              className={`nav-btn ${view === 'settings-categories' || location.pathname === '/settings/categories' ? 'active' : ''}`}
               onClick={() => { 
                 setView('settings-categories');
                 navigate('/settings/categories', { replace: true });
+                window.dispatchEvent(new CustomEvent('navigateToHome', { detail: 'prevent-reset' }));
               }}
             >
               Categories
@@ -470,7 +472,7 @@ export default function SidebarLayout() {
         )}
 
         {/* Settings Pages */}
-        {!loading && view === "settings-categories" && (
+        {!loading && (view === "settings-categories" || location.pathname.startsWith("/settings/categories")) && (
           <CategorySettingsPage />
         )}
 
@@ -514,7 +516,7 @@ export default function SidebarLayout() {
           <DefaultCategoriesPage />
         )}
 
-        {!loading && (view === "new-home" || view === null || view === undefined) && (
+        {!loading && (view === "new-home" || view === null || view === undefined) && location.pathname === "/" && (
           <motion.div 
             className="dashboard-welcome"
             initial={{ opacity: 0, y: 20 }}
