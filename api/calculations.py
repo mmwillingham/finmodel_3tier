@@ -593,7 +593,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         growth_on_balance = current_balance * (projected_account.growth_rate / 100.0)
                         growth_on_contributions = adjusted_annual_contribution * (projected_account.growth_rate / 100.0) * 0.5
                         account_current_balances[projected_account.name] = new_balance
+
                 else:
+                    pass
+                    pass
+                    pass
                     # Standard projection logic for non-amortized accounts
                     # Ensure liabilities start as negative for consistent calculation logic
                     if projected_account.account_type == "liability" and current_balance > 0:
@@ -883,6 +887,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     # Disabled verbose debug logging (keeping tax-related logs)
                                     pass
                                 else:
+                                    pass
                             
                             # Fallback to description-based lookup for backward compatibility (old projections without cash_flow_item_id)
                             if not cash_flow_item and projected_account.account_type in ["income", "expense"]:
@@ -894,7 +899,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         break
                                 
                                 if not cash_flow_item:
-                            
+                                    pass
                             if cash_flow_item:
                                 if projected_account.account_type == "income" and cash_flow_item.is_income:
                                     if cash_flow_item.taxable:
@@ -909,12 +914,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     else:
                                         lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
                                         # Disabled verbose debug logging (tax-related but verbose - uncomment if needed)
-                                elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
-                                    # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
-                                    if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
-                                        # Use the absolute value (new_balance is negative for expenses)
-                                        current_year_tax_deductible_expenses += abs(new_balance)
+                            elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
+                                # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
+                                if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
+                                    # Use the absolute value (new_balance is negative for expenses)
+                                    current_year_tax_deductible_expenses += abs(new_balance)
                             else:
+                                pass
                         
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
@@ -1001,9 +1007,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         current_year_total_income_flow += abs(new_balance)  # new_balance is positive for income, but use abs() to be safe
                         # Debug logging for income flow accumulation
                         if year == 1:  # Only log for first year to avoid spam
+                            pass
                     else:
                         # Debug logging for excluded reinvested dividends
                         if year == 1:  # Only log for first year to avoid spam
+                            pass
                 elif projected_account.account_type == "expense":
                     # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
                     # new_balance is negative for expenses, and we want to accumulate the absolute value for expense flow
@@ -1169,7 +1177,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     )
                 ).all()
             else:
-            
+                pass
             for income_item in contributing_income:
                 # Check if income is active for this year and calculate proration
                 current_projection_year = current_year + year - 1
@@ -1210,6 +1218,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         beginning_balance = current_balance / pow(1 + effective_growth_rate, 1.0)  # Full year growth
                         income_amount = beginning_balance * (income_item.percentage / 100.0) * income_year_fraction
                     else:
+                        pass
                 else:
                     # Fixed income item - calculate with growth
                     base_yearly_value = income_item.yearly_value
@@ -1234,7 +1243,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     # This ensures balance sheet projections show correct totals
                     current_year_total_assets += income_amount
                 else:
-            
+                    pass
             # Calculate federal income tax if enabled
             federal_tax_expense_value = 0.0
             federal_tax_expense_account_name = None
@@ -1329,11 +1338,18 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     annual_flow_values[display_name_for_tax] = federal_tax_value
                                 else:
                                     # Account name not found, but we still stored the value with the constant key
+                                    pass
+                                    pass
+                                    pass
+                                    pass
+                                    pass
                                 
                                 # Update expense flow total
                                 current_year_total_expense_flow -= federal_tax_expense_value  # Subtract because expenses are negative
                             except Exception as e:
+                                pass
                         else:
+                            pass
             
             # Calculate state income tax if enabled (similar to federal tax)
             state_tax_expense_value = 0.0
@@ -1427,11 +1443,14 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                     annual_flow_values[display_name_for_tax] = state_tax_value
                                 else:
                                     # Account name not found, but we still stored the value with the constant key
-                                
+                                    pass
+
                                 # Update expense flow total
                                 current_year_total_expense_flow -= state_tax_expense_value  # Subtract because expenses are negative
                             except Exception as e:
+                                pass
                         else:
+                            pass
             
             # Calculate and apply surplus/deficit transfer AFTER growth calculations
             # Surplus/deficit transfers happen at the end of the year, after all assets have grown
@@ -1511,11 +1530,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         account_values[f"{display_name}_Value"] = balance_value
                         # Debug logging for checking balance issue
                         if acc.name == "Comp Test Checking" or "Checking" in acc.name:
+                            pass
                     else:
                         # Fallback: try account_values_for_year if account_current_balances doesn't have it
                         fallback_value = account_values_for_year.get(f"{acc.name}_Value", 0.0)
                         account_values[f"{display_name}_Value"] = fallback_value
                         if acc.name == "Comp Test Checking" or "Checking" in acc.name:
+                            pass
             
             # Add principal/interest breakdown values (for loans) and any other breakdown values
             # BUT: Don't overwrite asset/liability _Value keys that we just set from account_current_balances
@@ -1528,6 +1549,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 elif key.endswith("_Value") and key in account_values:
                     # Debug logging for checking balance issue - this should NOT happen (we shouldn't overwrite)
                     if "Checking" in key:
+                        pass
             
             # Ensure Federal Income Tax is always stored with the exact key the frontend expects
             # This handles cases where the Federal Tax expense item might have a different display_name
