@@ -450,7 +450,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   };
 
   if (loading) {
-    return <div>Loading projections. Please be patiend...</div>;
+    return <div>Loading projections. Please be patient...</div>;
   }
 
   if (error) {
