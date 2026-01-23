@@ -4,7 +4,6 @@ import AutoDisbursementService from '../services/auto_disbursement.service';
 import AssetService from '../services/asset.service';
 import SettingsService from '../services/settings.service';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
-import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -32,7 +31,6 @@ const AutoDisbursementSettingsPage = () => {
     start_date: '',
     end_date: '',
   });
-  const { refreshSettings } = useSettingsContext();
   const isViewingOther = viewingUserId && viewingUserId !== currentUser?.id;
   const { refreshSettings } = useSettingsContext();
 
