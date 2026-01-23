@@ -115,7 +115,7 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
               <h3>Step 1: Add Accounts</h3>
               <p className="wizard-hint">
                 Accounts represent your financial institutions (e.g., banks, brokerages). 
-                You can link assets to these accounts later.
+                You can link assets to these accounts later. To retrieve your accounts directly from your financial institution, click on Accounts in the sidebar.
               </p>
               
               <div className="wizard-form">

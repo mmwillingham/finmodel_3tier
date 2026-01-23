@@ -1155,7 +1155,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   );
 }
 
-export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [], liabilities = [] }) {
+export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [], liabilities = [], compact = false }) {
   const { currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
@@ -2293,6 +2293,44 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       },
     },
   };
+
+  const compactCashFlowChartOptions = {
+    ...chartOptions,
+    maintainAspectRatio: false,
+    plugins: {
+      ...chartOptions.plugins,
+      legend: {
+        ...chartOptions.plugins.legend,
+        position: "bottom",
+      },
+      title: {
+        ...chartOptions.plugins.title,
+        display: false,
+      },
+    },
+    scales: {
+      ...chartOptions.scales,
+      x: {
+        ...(chartOptions.scales.x || {}),
+        grid: {
+          ...(chartOptions.scales.x?.grid || {}),
+          display: false,
+        },
+      },
+      y: {
+        ...(chartOptions.scales.y || {}),
+        beginAtZero: true,
+      },
+    },
+  };
+
+  if (compact) {
+    return (
+      <div className="cashflow-compact-chart">
+        <Line data={cashFlowChartData} options={compactCashFlowChartOptions} height={200} />
+      </div>
+    );
+  }
 
   // Show all years in tables
   const displayYears = cashFlowProjection?.years || [];

@@ -367,6 +367,12 @@ export default function SidebarLayout() {
           <section className="nav-section">
             <h3>MY DATA</h3>
             <NavLink
+              to="/"
+              className={({ isActive }) => `nav-btn ${isActive || view === 'new-home' ? 'active' : ''}`}
+            >
+              Home
+            </NavLink>
+            <NavLink
               to="/documents"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
@@ -529,33 +535,6 @@ export default function SidebarLayout() {
 
         {!loading && (view === "new-home" || view === null || view === undefined) && location.pathname === "/" && (
           <>
-            <div className="dashboard-metrics">
-              <div className="metric-card">
-                <div className="metric-link">
-                  <NavLink to="/balance-sheet-projection" className="metric-link-anchor">
-                    View Net Worth Projection →
-                  </NavLink>
-                </div>
-                <div className="metric-title">Net Worth</div>
-                <div className="metric-value">{formatCurrency(netWorth)}</div>
-                <div className="metric-bar">
-                  <div className="metric-bar-fill" style={{ width: netWorthPercent + '%' }} />
-                </div>
-              </div>
-              <div className="metric-card">
-                <div className="metric-link">
-                  <NavLink to="/cashflow-projection" className="metric-link-anchor">
-                    View Cash Flow Projection →
-                  </NavLink>
-                </div>
-                <div className="metric-title">Cash Flow</div>
-                <div className="metric-value">{formatCurrency(cashFlowNet)}</div>
-                <div className="metric-subtext">Income {formatCurrency(totalIncome)} · Expenses {formatCurrency(totalExpenses)}</div>
-                <div className="metric-bar">
-                  <div className="metric-bar-fill" style={{ width: expenseRatio + '%' }} />
-                </div>
-              </div>
-            </div>
             <motion.div 
               className="dashboard-welcome"
               initial={{ opacity: 0, y: 20 }}
@@ -690,6 +669,56 @@ export default function SidebarLayout() {
               </div>
             </motion.div>
           </motion.div>
+          <div className="dashboard-metrics">
+              <div className="metric-card metric-card--chart">
+                <div className="metric-link">
+                  <NavLink to="/balance-sheet-projection" className="metric-link-anchor">
+                    View Net Worth Projection →
+                  </NavLink>
+                </div>
+                <div className="metric-title">Net Worth</div>
+                <div className="metric-chart">
+                  <BalanceSheetProjection
+                    assets={assets}
+                    liabilities={liabilities}
+                    incomeItems={incomeItems}
+                    expenseItems={expenseItems}
+                    projectionYears={projectionYears}
+                    formatCurrency={formatCurrency}
+                    showChartTotals={showChartTotals}
+                    compact
+                  />
+                </div>
+                <div className="metric-summary">
+                  <div className="metric-value">{formatCurrency(netWorth)}</div>
+                </div>
+              </div>
+              <div className="metric-card metric-card--chart">
+                <div className="metric-link">
+                  <NavLink to="/cashflow-projection" className="metric-link-anchor">
+                    View Cash Flow Projection →
+                  </NavLink>
+                </div>
+                <div className="metric-title">Cash Flow</div>
+                <div className="metric-chart">
+                  <CashFlowOverview
+                    incomeItems={incomeItems}
+                    expenseItems={expenseItems}
+                    projectionYears={projectionYears}
+                    formatCurrency={formatCurrency}
+                    assets={assets}
+                    userSettings={viewingUserSettings || userSettings}
+                    autoDisbursements={autoDisbursements}
+                    liabilities={liabilities}
+                    compact
+                  />
+                </div>
+                <div className="metric-summary">
+                  <div className="metric-value">{formatCurrency(cashFlowNet)}</div>
+                  <div className="metric-subtext">Income {formatCurrency(totalIncome)} · Expenses {formatCurrency(totalExpenses)}</div>
+                </div>
+              </div>
+            </div>
           </>
         )}
         

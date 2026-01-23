@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line, Pie } from "react-chartjs-2";
 import ProjectionService from '../services/projection.service';
 
-export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals }) {
+export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals, compact = false }) {
   const { userSettings, currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const overallChartRef = useRef(null);
@@ -516,6 +516,68 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   const liabilityPieData = prepareLiabilityPieData();
   const lastYear = years.length > 0 ? years[years.length - 1] : currentYear;
 
+  const overallChartData = {
+    labels: years,
+    datasets: [
+      {
+        label: "Total Assets",
+        data: totalAssetValues,
+        borderColor: "rgb(75, 192, 192)",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+      },
+      {
+        label: "Total Liabilities",
+        data: totalLiabilityValues,
+        borderColor: "rgb(255, 99, 132)",
+        backgroundColor: "rgba(255, 99, 132, 0.2)",
+      },
+      {
+        label: "Net Worth",
+        data: netWorthValues,
+        borderColor: "rgb(54, 162, 235)",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+      },
+    ],
+  };
+
+  const compactChartOptions = {
+    ...chartOptions,
+    maintainAspectRatio: false,
+    plugins: {
+      ...chartOptions.plugins,
+      legend: {
+        ...chartOptions.plugins.legend,
+        position: "bottom",
+      },
+      title: {
+        ...chartOptions.plugins.title,
+        display: false,
+      },
+    },
+    scales: {
+      ...chartOptions.scales,
+      x: {
+        ...(chartOptions.scales.x || {}),
+        grid: {
+          ...(chartOptions.scales.x?.grid || {}),
+          display: false,
+        },
+      },
+      y: {
+        ...(chartOptions.scales.y || {}),
+        beginAtZero: true,
+      },
+    },
+  };
+
+  if (compact) {
+    return (
+      <div className="balance-sheet-compact-chart">
+        <Line data={overallChartData} options={compactChartOptions} height={180} />
+      </div>
+    );
+  }
+
   return (
     <div className="balance-sheet-projection">
       <div style={{ marginBottom: '15px' }}>
@@ -534,29 +596,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         </div>
         <Line
           ref={overallChartRef}
-          data={{
-            labels: years,
-            datasets: [
-              {
-                label: "Total Assets",
-                data: totalAssetValues,
-                borderColor: "rgb(75, 192, 192)",
-                backgroundColor: "rgba(75, 192, 192, 0.2)",
-              },
-              {
-                label: "Total Liabilities",
-                data: totalLiabilityValues,
-                borderColor: "rgb(255, 99, 132)",
-                backgroundColor: "rgba(255, 99, 132, 0.2)",
-              },
-              {
-                label: "Net Worth",
-                data: netWorthValues,
-                borderColor: "rgb(54, 162, 235)",
-                backgroundColor: "rgba(54, 162, 235, 0.2)",
-              },
-            ],
-          }}
+          data={overallChartData}
           options={chartOptions}
         />
       </div>
