@@ -75,6 +75,14 @@ export default function SidebarLayout() {
   const [wizardOpen, setWizardOpen] = useState(null); // 'profile', 'categories', 'accounts', or null
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const [viewingUserSettings, setViewingUserSettings] = useState(null);
+  const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
+  const totalLiabilitiesValue = liabilities.reduce((sum, liability) => sum + ((liability.value || liability.principal_amount) || 0), 0);
+  const netWorth = totalAssets - totalLiabilitiesValue;
+  const totalIncome = incomeItems.reduce((sum, item) => sum + (item.yearly_value || 0), 0);
+  const totalExpenses = expenseItems.reduce((sum, item) => sum + (item.yearly_value || 0), 0);
+  const cashFlowNet = totalIncome - totalExpenses;
+  const netWorthPercent = totalAssets ? Math.min(100, Math.max(0, (netWorth / totalAssets) * 100)) : 0;
+  const expenseRatio = totalIncome ? Math.min(100, Math.max(0, (totalExpenses / totalIncome) * 100)) : 0;
 
   const loadViewingUserSettings = useCallback(async () => {
     if (!viewingUserId) {
@@ -520,12 +528,40 @@ export default function SidebarLayout() {
         )}
 
         {!loading && (view === "new-home" || view === null || view === undefined) && location.pathname === "/" && (
-          <motion.div 
-            className="dashboard-welcome"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <>
+            <div className="dashboard-metrics">
+              <div className="metric-card">
+                <div className="metric-link">
+                  <NavLink to="/balance-sheet-projection" className="metric-link-anchor">
+                    View Net Worth Projection →
+                  </NavLink>
+                </div>
+                <div className="metric-title">Net Worth</div>
+                <div className="metric-value">{formatCurrency(netWorth)}</div>
+                <div className="metric-bar">
+                  <div className="metric-bar-fill" style={{ width: netWorthPercent + '%' }} />
+                </div>
+              </div>
+              <div className="metric-card">
+                <div className="metric-link">
+                  <NavLink to="/cashflow-projection" className="metric-link-anchor">
+                    View Cash Flow Projection →
+                  </NavLink>
+                </div>
+                <div className="metric-title">Cash Flow</div>
+                <div className="metric-value">{formatCurrency(cashFlowNet)}</div>
+                <div className="metric-subtext">Income {formatCurrency(totalIncome)} · Expenses {formatCurrency(totalExpenses)}</div>
+                <div className="metric-bar">
+                  <div className="metric-bar-fill" style={{ width: expenseRatio + '%' }} />
+                </div>
+              </div>
+            </div>
+            <motion.div 
+              className="dashboard-welcome"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
             <h2>Welcome to Estate Springboard!</h2>
             <p>Use the navigation on the left to explore your financial data.</p>
             
@@ -654,6 +690,7 @@ export default function SidebarLayout() {
               </div>
             </motion.div>
           </motion.div>
+          </>
         )}
         
         {/* Wizard Modals */}

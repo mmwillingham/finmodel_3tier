@@ -97,7 +97,7 @@ def update_user_settings(
         db.refresh(user_settings)
 
     # Detect category renames and update all related items
-        update_data = settings_update.model_dump(exclude_unset=True)
+    update_data = settings_update.model_dump(exclude_unset=True)
     
     # Helper function to find category renames by comparing old and new lists
     def find_category_renames(old_list, new_list):

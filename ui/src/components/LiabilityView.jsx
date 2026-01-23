@@ -189,7 +189,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
             <th className="cashflow-table-cell sortable" style={{ width: '13%' }} onClick={() => handleSort('name')}>
               Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('loan_type')}>
+            <th className="cashflow-table-cell sortable type-column" style={{ width: '11%' }} onClick={() => handleSort('loan_type')}>
               Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
             <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('category')}>
