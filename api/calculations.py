@@ -842,6 +842,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 new_balance = -new_balance
                             # Debug logging for dynamic items with 0 value
                             if projected_account.account_type == "income" and new_balance == 0.0 and linked_asset_names:
+                                pass
                         else:
                             # For fixed cashflow items, apply growth each year: yearly_value * (1 + growth_rate)^(year-1)
                             # adjusted_annual_contribution is the base yearly value (year 1), we need to apply compound growth
