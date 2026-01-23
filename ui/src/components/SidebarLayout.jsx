@@ -127,20 +127,6 @@ export default function SidebarLayout() {
     }
   };
 
-  const [viewingUserSettings, setViewingUserSettings] = useState(null);
-  useEffect(() => {
-    if (!settings) {
-      return;
-    }
-    if (!viewingUserId || viewingUserId === currentUser?.id) {
-      setProjectionYears(settings.projection_years || 30);
-      setShowChartTotals(settings.show_chart_totals ?? true);
-      setViewingUserSettings(settings);
-    } else {
-      setViewingUserSettings(null);
-    }
-  }, [settings, viewingUserId, currentUser?.id]);
-
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     try {
