@@ -3,19 +3,19 @@ import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line, Bar, Chart } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
 import ProjectionService from '../services/projection.service';
 
 // Register Chart.js components for combo charts
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement);
 
 // Constant to identify the federal tax expense item (must match backend)
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
 
 // Simplified Sankey Diagram Component
-function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [] }) {
+function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [], viewMode = 'sankey' }) {
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
@@ -520,6 +520,140 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   const calculatedHeight = Math.max(600, expenseHeight);
   
   const height = calculatedHeight;
+
+  const piePalette = ['#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0', '#00BCD4', '#FF9800', '#E53935', '#00897B', '#7E57C2'];
+
+  const buildPieChartData = (categoryTotals, colorMapper) => {
+    const entries = Object.entries(categoryTotals || {})
+      .map(([label, value]) => ({
+        label: label || 'Other',
+        value: Math.max(value || 0, 0),
+      }))
+      .filter(entry => entry.value > 0);
+
+    if (entries.length === 0) {
+      return null;
+    }
+
+    const labels = entries.map(entry => entry.label);
+    const data = entries.map(entry => entry.value);
+    const backgroundColor = labels.map((label, index) => {
+      const defaultColor = piePalette[index % piePalette.length];
+      return typeof colorMapper === 'function' ? colorMapper(label, index, defaultColor) : defaultColor;
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor,
+          borderColor: '#fff',
+          borderWidth: 2,
+        },
+      ],
+    };
+  };
+
+  const pieChartOptions = {
+    maintainAspectRatio: false,
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          boxWidth: 12,
+          padding: 12,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const value = Number(context.raw) || 0;
+            const dataset = context.dataset?.data || [];
+            const total = dataset.reduce((sum, datum) => sum + (Number(datum) || 0), 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+            return `${context.label || 'Value'}: ${safeFormatCurrency(value)} (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
+
+  const extendTotalsWithTransfers = (totals, transfers) => {
+    const combined = { ...(totals || {}) };
+    Object.entries(transfers || {}).forEach(([label, amount]) => {
+      const value = Number(amount) || 0;
+      if (value <= 0) {
+        return;
+      }
+      combined[label] = (combined[label] || 0) + value;
+    });
+    return combined;
+  };
+
+  const getIncomeSliceColor = (label, index, defaultColor) => {
+    if (typeof label === 'string' && label.toLowerCase().includes('surplus transfer')) {
+      return '#9E9E9E';
+    }
+    return defaultColor;
+  };
+
+  const getExpenseSliceColor = (label, index, defaultColor) => {
+    if (typeof label === 'string' && label.toLowerCase().includes('deficit')) {
+      return '#9E9E9E';
+    }
+    return defaultColor;
+  };
+
+  const incomePieTotals = extendTotalsWithTransfers(incomeCategoryTotals, transferSources);
+  const expensePieTotals = extendTotalsWithTransfers(expenseCategoryTotals, transferSinks);
+
+  const incomePieChartData = buildPieChartData(incomePieTotals, getIncomeSliceColor);
+  const expensePieChartData = buildPieChartData(expensePieTotals, getExpenseSliceColor);
+
+  if (viewMode === 'pie') {
+    const paneStyle = {
+      flex: '1 1 320px',
+      minWidth: '300px',
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      border: '1px solid #e0e0e0',
+      padding: '20px',
+      boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
+    };
+
+    return (
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={paneStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+            <h4 style={{ margin: 0 }}>Cash In Categories</h4>
+            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(totalCashIn || 0)}</span>
+          </div>
+        {incomePieChartData ? (
+            <div style={{ minHeight: '320px' }}>
+            <Chart type="pie" data={incomePieChartData} options={pieChartOptions} />
+            </div>
+          ) : (
+            <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No cash in data available for this year.</p>
+          )}
+        </div>
+        <div style={paneStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+            <h4 style={{ margin: 0 }}>Cash Out Categories</h4>
+            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(totalCashOut || 0)}</span>
+          </div>
+        {expensePieChartData ? (
+            <div style={{ minHeight: '320px' }}>
+            <Chart type="pie" data={expensePieChartData} options={pieChartOptions} />
+            </div>
+          ) : (
+            <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No expenses available for this year.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
   
   // Early return if no data
   if (incomeCategories.length === 0 && expenseCategories.length === 0) {
@@ -912,6 +1046,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const tableRef = useRef(null);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'base', 'sankey'
   const [sankeyYear, setSankeyYear] = useState(0); // Year offset for Sankey diagram (0 = current year)
+  const [sankeyViewMode, setSankeyViewMode] = useState('pie'); // Toggle between Sankey and Pie charts
   const [projectionData, setProjectionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -2331,7 +2466,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
               transition: 'all 0.3s ease'
             }}
           >
-            Sankey Diagram
+            Category View
           </button>
         </div>
       </div>
@@ -2465,7 +2600,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       {activeTab === 'sankey' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h3 style={{ margin: 0 }}>Sankey Diagram</h3>
+            <h3 style={{ margin: 0 }}>Category View</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <label htmlFor="sankey-year-select" style={{ fontWeight: '500' }}>Year:</label>
               <select
@@ -2486,6 +2621,23 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                     {currentYear + i}
                   </option>
                 ))}
+              </select>
+              <label htmlFor="sankey-view-select" style={{ fontWeight: '500' }}>View:</label>
+              <select
+                id="sankey-view-select"
+                value={sankeyViewMode}
+                onChange={(e) => setSankeyViewMode(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '0.9em',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="sankey">Sankey Diagram</option>
+                <option value="pie">Pie Charts</option>
               </select>
             </div>
           </div>
@@ -2529,6 +2681,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                         projectionYears={projectionYears}
                         selectedYear={sankeyYear}
                         autoDisbursements={autoDisbursements || []}
+                      viewMode={sankeyViewMode}
                       />
                     );
                 } catch (innerError) {
@@ -2560,15 +2713,17 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             })()}
             </div>
           </div>
-          <div style={{ marginTop: '20px', fontSize: '0.9em', color: '#666', padding: '0 10px' }}>
-            <p><strong>How to read:</strong></p>
-            <ul style={{ marginLeft: '20px' }}>
-              <li>Left side shows cash sources (income) grouped by category</li>
-              <li>Center shows your wallet/main account (total cash)</li>
-              <li>Right side shows where cash goes (expenses by category and available cash/savings)</li>
-              <li>Line thickness represents the flow amount</li>
-            </ul>
-          </div>
+          {sankeyViewMode !== 'pie' && (
+            <div style={{ marginTop: '20px', fontSize: '0.9em', color: '#666', padding: '0 10px' }}>
+              <p><strong>How to read:</strong></p>
+              <ul style={{ marginLeft: '20px' }}>
+                <li>Left side shows cash sources (income) grouped by category</li>
+                <li>Center shows your wallet/main account (total cash)</li>
+                <li>Right side shows where cash goes (expenses by category and available cash/savings)</li>
+                <li>Line thickness represents the flow amount</li>
+              </ul>
+            </div>
+          )}
         </>
       )}
     </div>
