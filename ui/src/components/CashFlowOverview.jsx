@@ -285,8 +285,8 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       // Get surplus asset name
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
-      transferSources[`Transfer to ${surplusAssetName}`] = netCashFlow;
-      console.log('Sankey Diagram - Added surplus transfer:', `Transfer to ${surplusAssetName}`, netCashFlow);
+      transferSources[`Surplus Transfer to ${surplusAssetName}`] = netCashFlow;
+      console.log('Sankey Diagram - Added surplus transfer:', `Surplus Transfer to ${surplusAssetName}`, netCashFlow);
       // Don't add to totalCashIn - this is already included in the net cash flow
     } else if (netCashFlow < 0) {
       // Negative surplus (deficit) - cash goes out
@@ -571,7 +571,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const nodeWidth = columnWidth;
           
           // Check if this is a Surplus transfer (gray) or Auto-Disbursement (orange)
-          const isSurplusTransfer = transferLabel.startsWith('Transfer to');
+          const isSurplusTransfer = transferLabel.startsWith('Surplus Transfer to');
           const nodeFill = isSurplusTransfer ? "#9E9E9E" : "#FF9800"; // Gray for surplus, orange for auto-disbursements
           const nodeStroke = isSurplusTransfer ? "#616161" : "#F57C00"; // Darker gray for surplus, darker orange for auto-disbursements
           
@@ -773,7 +773,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const value = transferSources[transferLabel] || 0;
           
           // Check if this is a Surplus transfer (gray) or Auto-Disbursement (orange)
-          const isSurplusTransfer = transferLabel.startsWith('Transfer to');
+          const isSurplusTransfer = transferLabel.startsWith('Surplus Transfer to');
           const flowColor = isSurplusTransfer ? "#9E9E9E" : "#FF9800"; // Gray for surplus, orange for auto-disbursements
           
           // Calculate proportional width: scale based on maxIncomeValue
