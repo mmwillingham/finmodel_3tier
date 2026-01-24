@@ -94,6 +94,22 @@
     position: relative;
 }
 
+.header-public-links {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.header-public-links a {
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 0.95em;
+}
+
+.header-public-links a:hover {
+    text-decoration: underline;
+}
+
 .header-right-menu .user-info {
     font-size: 0.9em;
     flex-shrink: 0;
@@ -193,7 +209,7 @@
 
 /* Nav links for unauthenticated users (direct children of .nav-links) */
 .nav-links a {
-    color: white;
+    color: #ffffff !important;
     text-decoration: none;
     font-size: 1em;
     transition: color 0.2s ease;
@@ -210,7 +226,8 @@
 
     .header-right-menu .user-info,
     .header-right-menu .points-button,
-    .account-switcher-wrapper {
+    .account-switcher-wrapper,
+    .header-public-links {
         display: none;
     }
 

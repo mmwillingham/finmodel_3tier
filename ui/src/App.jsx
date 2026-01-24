@@ -30,6 +30,8 @@ import ReferAFriendPage from './pages/ReferAFriendPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
 import AuthorizedUsersPage from './pages/AuthorizedUsersPage.jsx';
 import AccountSwitcherPage from './pages/AccountSwitcherPage.jsx';
+import FeaturesPage from './pages/FeaturesPage.jsx';
+import PricingPage from './pages/PricingPage.jsx';
 
 // The Main Application Structure
 function App() {
@@ -49,6 +51,8 @@ function App() {
                             <Route path="/reset-password" element={<ResetPasswordPage />} />
                             <Route path="/confirm-email" element={<EmailConfirmationPage />} />
                             <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+                            <Route path="/features" element={<FeaturesPage />} />
+                            <Route path="/pricing" element={<PricingPage />} />
 
                             {/* Protected Routes (Require JWT) */}
                             <Route

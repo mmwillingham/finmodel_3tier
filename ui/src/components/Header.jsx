@@ -84,6 +84,10 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                 <div className="nav-links">
                     {currentUser ? (
                         <div className="header-right-menu">
+                            <div className="header-public-links">
+                                <Link to="/features">Features</Link>
+                                <Link to="/pricing">Pricing</Link>
+                            </div>
                             <div className="user-info">
                                 Logged in as: <strong>{currentUser.email}</strong>
                             </div>
@@ -99,9 +103,6 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                             >
                                 ⭐
                             </button>
-                            <button onClick={handleLogout} className="logout-button">
-                                Logout
-                            </button>
                             <div className="hamburger-menu" onClick={toggleDropdown}>
                                 <div className="bar"></div>
                                 <div className="bar"></div>
@@ -111,12 +112,15 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                                         currentUser={currentUser} 
                                         onSelect={handleNavigation} 
                                         onClose={() => setShowDropdown(false)}
+                                        onLogout={handleLogout}
                                     />
                                 )}
                             </div>
                         </div>
                     ) : (
                         <>
+                            <Link to="/features">Features</Link>
+                            <Link to="/pricing">Pricing</Link>
                             <Link to="/login">Login</Link>
                             <Link to="/signup">Sign Up</Link>
                         </>

@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import './SettingsDropdownMenu.css'; // New CSS file for the dropdown
 
-const SettingsDropdownMenu = ({ onSelect, onClose }) => {
+const SettingsDropdownMenu = ({ onSelect, onClose, onLogout }) => {
     const { currentUser, viewingUserId } = useAuth();
 
     const handleItemClick = (e, path) => {
@@ -34,6 +34,16 @@ const SettingsDropdownMenu = ({ onSelect, onClose }) => {
                     )}
                 </>
             )}
+            <button
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                    onLogout();
+                }}
+            >
+                Logout
+            </button>
         </div>
     );
 };
