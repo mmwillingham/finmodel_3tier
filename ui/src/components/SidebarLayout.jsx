@@ -417,13 +417,13 @@ export default function SidebarLayout() {
               to="/cashflow/income"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
-              Income (Cash In)
+              Income
             </NavLink>
             <NavLink
               to="/cashflow/expense"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
             >
-              Expenses (Cash Out)
+              Expenses
             </NavLink>
             <NavLink
               to="/automatic-transfers"
@@ -568,7 +568,7 @@ export default function SidebarLayout() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
             >
-              <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#282c34' }}>Walk Me Through</h3>
+              {/*<h3 style={{ marginTop: 0, marginBottom: '20px', color: '#282c34' }}>Walk Me Through</h3> */}
               <p style={{ marginBottom: '25px', color: '#666' }}>
                 New to Estate Springboard? Follow these guided wizards to set up your profile and organize your financial data.
               </p>
