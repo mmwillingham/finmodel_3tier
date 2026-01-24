@@ -34,7 +34,6 @@ import './Wizard.css';
       setIncomeCategories(res.data.income_categories || []);
       setExpenseCategories(res.data.expense_categories || []);
     } catch (e) {
-      console.error('Failed to load categories', e);
     }
   };
 
@@ -75,7 +74,6 @@ import './Wizard.css';
       
       setTimeout(() => setMessage(''), 1500);
     } catch (e) {
-      console.error(`Failed to save ${categoryType} categories`, e);
       setMessage(e.response?.data?.detail || 'Error saving categories');
     }
   };
@@ -90,7 +88,6 @@ import './Wizard.css';
       setMessage('Default categories loaded successfully!');
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
-      console.error('Failed to load default categories', e);
       setMessage(e.response?.data?.detail || 'Error loading default categories');
     } finally {
       setLoading(false);

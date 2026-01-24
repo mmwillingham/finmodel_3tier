@@ -9,7 +9,6 @@ const ReferralService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error creating referral:', error);
       throw error;
     }
   },
@@ -19,7 +18,6 @@ const ReferralService = {
       const response = await api.get('/referrals/');
       return response.data;
     } catch (error) {
-      console.error('Error fetching referrals:', error);
       throw error;
     }
   },
@@ -29,7 +27,6 @@ const ReferralService = {
       const response = await api.get('/referrals/stats');
       return response.data;
     } catch (error) {
-      console.error('Error fetching referral stats:', error);
       throw error;
     }
   }

@@ -184,8 +184,6 @@ Please provide a detailed answer to their "What If?" question, using their actua
         # Send completion event
         yield f"data: {json.dumps({'done': True})}\n\n"
         
-        logger.info(f"What If question answered for user {user_id}: {request.question[:50]}...")
-        
     except Exception as e:
         logger.error(f"Error processing What If question: {e}", exc_info=True)
         yield f"data: {json.dumps({'error': f'Failed to process question: {str(e)}'})}\n\n"

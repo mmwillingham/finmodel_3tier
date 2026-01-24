@@ -23,7 +23,6 @@ export default function EmailConfirmationPage() {
           }, 3000);
         })
         .catch(error => {
-          console.error("Email confirmation failed:", error.response?.data?.detail || error.message);
           setMessage(error.response?.data?.detail || "Failed to confirm email. The link may be invalid or expired.");
           setIsSuccess(false);
         });

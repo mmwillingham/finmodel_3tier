@@ -37,7 +37,6 @@ const CategorySettingsPage = () => {
       setIncomeCategoriesState(res.data.income_categories || []);
       setExpenseCategoriesState(res.data.expense_categories || []);
     } catch (e) {
-      console.error('Failed to load categories settings', e);
       setError('Failed to load categories settings.');
     } finally {
       setLoading(false);
@@ -65,7 +64,6 @@ const CategorySettingsPage = () => {
         // Update the specific category type
         settingsToUpdate[`${categoryType}_categories`] = updatedCategories;
 
-        console.log(`Saving ${categoryType} categories:`, {
           old: categoryType === 'expense' ? expenseCategoriesState : 
                categoryType === 'income' ? incomeCategoriesState :
                categoryType === 'asset' ? assetCategoriesState : liabilityCategoriesState,
@@ -83,7 +81,6 @@ const CategorySettingsPage = () => {
             setMessage('');
         }, 3000);
     } catch (e) {
-        console.error(`Failed to save ${categoryType} categories`, e);
         const errorMessage = e.response?.data?.detail || 'Error saving categories';
         setMessage(errorMessage);
     }
@@ -107,7 +104,6 @@ const CategorySettingsPage = () => {
         setMessage('');
       }, 2000);
     } catch (e) {
-      console.error('Failed to load default categories', e);
       const errorMessage = e.response?.data?.detail || 'Error loading default categories';
       setMessage(errorMessage);
     } finally {

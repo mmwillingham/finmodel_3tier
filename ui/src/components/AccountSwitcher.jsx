@@ -16,7 +16,6 @@ const AccountSwitcher = ({ compact = false }) => {
             try {
                 // Get list of primary users that have granted access
                 const receivedAccess = await AuthorizedUsersService.listReceivedAccess();
-                console.log('DEBUG AccountSwitcher - receivedAccess:', receivedAccess);
                 
                 // Build list: own account + authorized accounts
                 const accounts = [
@@ -31,7 +30,6 @@ const AccountSwitcher = ({ compact = false }) => {
                 // Add authorized accounts
                 if (receivedAccess && Array.isArray(receivedAccess)) {
                     receivedAccess.forEach(access => {
-                        console.log('DEBUG AccountSwitcher - processing access:', access);
                         const email = access.primary_user_email || (access.primary_user && access.primary_user.email);
                         if (email && access.primary_user_id) {
                             // Only include users where we have financial_data_permission
@@ -49,11 +47,8 @@ const AccountSwitcher = ({ compact = false }) => {
                     });
                 }
                 
-                console.log('DEBUG AccountSwitcher - final accounts list:', accounts);
                 setAccessibleAccounts(accounts);
             } catch (error) {
-                console.error('Error loading accessible accounts:', error);
-                console.error('Error details:', error.response?.data || error.message);
                 // On error, at least show own account
                 setAccessibleAccounts([{
                     id: currentUser.id,
@@ -81,8 +76,6 @@ const AccountSwitcher = ({ compact = false }) => {
     
     // Show debug info if only one account - but still show it
     if (accessibleAccounts.length <= 1) {
-        console.log('DEBUG AccountSwitcher - Only one account found. Accounts:', accessibleAccounts);
-        console.log('DEBUG AccountSwitcher - Current user:', currentUser);
         // Still show switcher but disabled/readonly when only one account
         return (
             <div className={`account-switcher ${compact ? 'compact' : ''}`} style={{ opacity: accessibleAccounts.length === 1 ? 0.7 : 1 }}>

@@ -53,7 +53,6 @@ const AccountSwitcherPage = () => {
                 
                 setAccessibleAccounts(accounts);
             } catch (error) {
-                console.error('Error loading accessible accounts:', error);
                 setMessage('Failed to load accessible accounts. Please try again.');
                 setMessageType('error');
             } finally {
@@ -99,8 +98,6 @@ const AccountSwitcherPage = () => {
     const currentAccount = accessibleAccounts.find(acc => acc.id === currentViewingId) || accessibleAccounts.find(acc => acc.id === currentUser?.id) || accessibleAccounts[0];
     
     // Debug: log the values to see what's happening
-    console.log('AccountSwitcher - viewingUserId:', viewingUserId, 'currentUser?.id:', currentUser?.id, 'currentViewingId:', currentViewingId, 'accessibleAccounts:', accessibleAccounts);
-    console.log('AccountSwitcher - Select value will be:', viewingUserId === null || viewingUserId === undefined ? (currentUser?.id || accessibleAccounts[0]?.id || '') : (viewingUserId || currentUser?.id || ''));
 
     return (
         <div className="settings-page-container">

@@ -68,7 +68,6 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }) => {
       setZipCode(res.data.zip_code || "");
       setTaxFilingStatus(res.data.tax_filing_status || "Single");
     } catch (e) {
-      console.error('Failed to load settings', e);
     }
   };
 
@@ -114,7 +113,6 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }) => {
         onClose();
       }, 1000);
     } catch (e) {
-      console.error('Failed to save profile', e);
       setMessage(e.response?.data?.detail || 'Error saving profile');
     } finally {
       setLoading(false);

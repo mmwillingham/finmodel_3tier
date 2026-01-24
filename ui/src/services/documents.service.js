@@ -14,7 +14,6 @@ const DocumentsService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error creating folder:', error);
       throw error;
     }
   },
@@ -34,7 +33,6 @@ const DocumentsService = {
       const response = await api.get('/documents/folders', { params });
       return response.data;
     } catch (error) {
-      console.error('Error listing folders:', error);
       throw error;
     }
   },
@@ -47,7 +45,6 @@ const DocumentsService = {
       const response = await api.get(`/documents/folders/${folderId}`);
       return response.data;
     } catch (error) {
-      console.error('Error getting folder:', error);
       throw error;
     }
   },
@@ -60,7 +57,6 @@ const DocumentsService = {
       const response = await api.put(`/documents/folders/${folderId}`, updates);
       return response.data;
     } catch (error) {
-      console.error('Error updating folder:', error);
       throw error;
     }
   },
@@ -72,7 +68,6 @@ const DocumentsService = {
     try {
       await api.delete(`/documents/folders/${folderId}`);
     } catch (error) {
-      console.error('Error deleting folder:', error);
       throw error;
     }
   },
@@ -97,7 +92,6 @@ const DocumentsService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error uploading document:', error);
       throw error;
     }
   },
@@ -117,7 +111,6 @@ const DocumentsService = {
       const response = await api.get('/documents/', { params });
       return response.data;
     } catch (error) {
-      console.error('Error listing documents:', error);
       throw error;
     }
   },
@@ -130,7 +123,6 @@ const DocumentsService = {
       const response = await api.get(`/documents/${documentId}`);
       return response.data;
     } catch (error) {
-      console.error('Error getting document:', error);
       throw error;
     }
   },
@@ -154,7 +146,6 @@ const DocumentsService = {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error downloading document:', error);
       throw error;
     }
   },
@@ -169,7 +160,6 @@ const DocumentsService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error getting document URL:', error);
       throw error;
     }
   },
@@ -182,7 +172,6 @@ const DocumentsService = {
       const response = await api.put(`/documents/${documentId}`, updates);
       return response.data;
     } catch (error) {
-      console.error('Error updating document:', error);
       throw error;
     }
   },
@@ -194,7 +183,6 @@ const DocumentsService = {
     try {
       await api.delete(`/documents/${documentId}`);
     } catch (error) {
-      console.error('Error deleting document:', error);
       throw error;
     }
   }

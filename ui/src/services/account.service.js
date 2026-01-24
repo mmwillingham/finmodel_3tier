@@ -7,7 +7,6 @@ const AccountService = {
       const response = await api.get('/accounts/', { params });
       return response.data;
     } catch (error) {
-      console.error('Error fetching accounts:', error);
       throw error;
     }
   },
@@ -17,7 +16,6 @@ const AccountService = {
       const response = await api.get(`/accounts/${accountId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching account:', error);
       throw error;
     }
   },
@@ -27,7 +25,6 @@ const AccountService = {
       const response = await api.post('/accounts/', account);
       return response.data;
     } catch (error) {
-      console.error('Error creating account:', error);
       throw error;
     }
   },
@@ -37,7 +34,6 @@ const AccountService = {
       const response = await api.put(`/accounts/${accountId}`, account);
       return response.data;
     } catch (error) {
-      console.error('Error updating account:', error);
       throw error;
     }
   },
@@ -47,7 +43,6 @@ const AccountService = {
       const params = cascade ? { cascade: 'true' } : {};
       await api.delete(`/accounts/${accountId}`, { params });
     } catch (error) {
-      console.error('Error deleting account:', error);
       throw error;
     }
   },

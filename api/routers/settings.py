@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List
-import logging
 
 import models
 import schemas
@@ -16,7 +15,6 @@ FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
 STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)"
 SOCIAL_SECURITY_INCOME_DESCRIPTION_PREFIX = "Social Security - "
 
-logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/settings",
@@ -154,29 +152,20 @@ def update_user_settings(
         elif len(old_list) == len(new_list):
             # Lengths match - compare by position (simple in-place rename)
             # This handles the most common case: renaming a category in place
-            logger.info(f"Position-based rename detection: old_list length={len(old_list)}, new_list length={len(new_list)}")
-            logger.info(f"Old list: {old_list}")
-            logger.info(f"New list: {new_list}")
-            logger.info(f"Removed cats (in old but not new): {removed_cats}")
-            logger.info(f"Added cats (in new but not old): {added_cats}")
-            
             for i, (old_cat, new_cat) in enumerate(zip(old_list, new_list)):
                 if old_cat != new_cat:
                     # If the old category is not in the new list and the new category is not in the old list,
                     # it's definitely a rename (not a deletion + addition)
                     old_in_new = old_cat in new_set
                     new_in_old = new_cat in old_set
-                    logger.info(f"Index {i}: '{old_cat}' -> '{new_cat}', old_in_new={old_in_new}, new_in_old={new_in_old}")
                     if old_cat not in new_set and new_cat not in old_set:
                         renames[old_cat] = new_cat
-                        logger.info(f"✓ Detected position-based rename at index {i}: '{old_cat}' -> '{new_cat}'")
                     else:
-                        logger.warning(f"✗ Skipped rename at index {i}: '{old_cat}' -> '{new_cat}' (old_in_new={old_in_new}, new_in_old={new_in_old})")
+                        pass
             
             # Also check if we have unmatched removed/added categories that could be renames
             # This handles cases where position-based matching might have missed something
             if removed_cats and added_cats:
-                logger.info(f"Additional rename check: {len(removed_cats)} removed, {len(added_cats)} added")
                 # If we have equal numbers and they weren't matched by position, try 1-to-1 matching
                 if len(removed_cats) == len(added_cats):
                     # Match by closest position
@@ -195,7 +184,6 @@ def update_user_settings(
                                         closest_new_cat = new_cat
                             if closest_new_cat:
                                 renames[old_cat] = closest_new_cat
-                                logger.info(f"✓ Matched additional rename by position: '{old_cat}' -> '{closest_new_cat}' (distance={min_distance})")
         
         # Final fallback: if we still have unmatched removed/added categories with same count, match them
         remaining_removed = removed_cats - set(renames.keys())
@@ -205,7 +193,6 @@ def update_user_settings(
             remaining_removed_cat = remaining_removed.pop()
             remaining_added_cat = remaining_added.pop()
             renames[remaining_removed_cat] = remaining_added_cat
-            logger.info(f"Fallback rename detection: '{remaining_removed_cat}' -> '{remaining_added_cat}'")
         
         return renames
     
@@ -220,7 +207,6 @@ def update_user_settings(
                     models.Asset.owner_id == current_user.id,
                     models.Asset.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
-                logger.info(f"Updated {updated_count} assets: category '{old_name}' -> '{new_name}' for user {current_user.id}")
     
     if "liability_categories" in update_data:
         old_liability_cats = user_settings.liability_categories or []
@@ -232,7 +218,6 @@ def update_user_settings(
                     models.Liability.owner_id == current_user.id,
                     models.Liability.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
-                logger.info(f"Updated {updated_count} liabilities: category '{old_name}' -> '{new_name}' for user {current_user.id}")
     
     if "income_categories" in update_data:
         old_income_cats = user_settings.income_categories or []
@@ -245,13 +230,11 @@ def update_user_settings(
                     models.CashFlowItem.is_income == True,
                     models.CashFlowItem.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
-                logger.info(f"Updated {updated_count} income items: category '{old_name}' -> '{new_name}' for user {current_user.id}")
     
     if "expense_categories" in update_data:
         old_expense_cats = user_settings.expense_categories or []
         new_expense_cats = update_data["expense_categories"] or []
         expense_renames = find_category_renames(old_expense_cats, new_expense_cats)
-        logger.info(f"Expense category rename detection: old={old_expense_cats}, new={new_expense_cats}, renames={expense_renames}")
         if expense_renames:
             for old_name, new_name in expense_renames.items():
                 updated_count = db.query(models.CashFlowItem).filter(
@@ -259,7 +242,6 @@ def update_user_settings(
                     models.CashFlowItem.is_income == False,
                     models.CashFlowItem.category == old_name
                 ).update({"category": new_name}, synchronize_session=False)
-                logger.info(f"Updated {updated_count} expense items: category '{old_name}' -> '{new_name}' for user {current_user.id}")
                 db.flush()  # Ensure the update is processed before commit
     
     # Handle calculate_federal_tax setting
@@ -299,7 +281,6 @@ def update_user_settings(
                 expense_categories.append("Taxes")
                 user_settings.expense_categories = expense_categories
                 flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
-                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
             
             federal_tax_expense = models.CashFlowItem(
                 owner_id=current_user.id,
@@ -314,7 +295,6 @@ def update_user_settings(
             )
             db.add(federal_tax_expense)
             db.flush()  # Flush to ensure the expense is available for commit
-            logger.info(f"Created federal tax expense item for user {current_user.id} with category 'Taxes'")
         elif calculate_federal_tax_enabled and federal_tax_expense:
             # Update existing federal tax expense to ensure it has "Taxes" category
             expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
@@ -322,15 +302,12 @@ def update_user_settings(
                 expense_categories.append("Taxes")
                 user_settings.expense_categories = expense_categories
                 flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
-                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
             
             if federal_tax_expense.category != "Taxes":
                 federal_tax_expense.category = "Taxes"
-                logger.info(f"Updated federal tax expense category to 'Taxes' for user {current_user.id}")
         elif not calculate_federal_tax_enabled and federal_tax_expense:
             # Delete the federal tax expense item
             db.delete(federal_tax_expense)
-            logger.info(f"Deleted federal tax expense item for user {current_user.id}")
 
     # Handle calculate_state_tax setting
     calculate_state_tax_enabled = update_data.get("calculate_state_tax")
@@ -370,7 +347,6 @@ def update_user_settings(
                 expense_categories.append("Taxes")
                 user_settings.expense_categories = expense_categories
                 flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
-                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
             
             state_tax_expense = models.CashFlowItem(
                 owner_id=current_user.id,
@@ -385,7 +361,6 @@ def update_user_settings(
             )
             db.add(state_tax_expense)
             db.flush()  # Flush to ensure the expense is available for commit
-            logger.info(f"Created state tax expense item for user {current_user.id} with category 'Taxes'")
         elif calculate_state_tax_enabled and state_tax_expense:
             # Update existing state tax expense to ensure it has "Taxes" category
             expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
@@ -393,15 +368,12 @@ def update_user_settings(
                 expense_categories.append("Taxes")
                 user_settings.expense_categories = expense_categories
                 flag_modified(user_settings, "expense_categories")  # Mark JSON column as modified
-                logger.info(f"Added 'Taxes' category to expense_categories for user {current_user.id}")
             
             if state_tax_expense.category != "Taxes":
                 state_tax_expense.category = "Taxes"
-                logger.info(f"Updated state tax expense category to 'Taxes' for user {current_user.id}")
         elif not calculate_state_tax_enabled and state_tax_expense:
             # Delete the state tax expense item
             db.delete(state_tax_expense)
-            logger.info(f"Deleted state tax expense item for user {current_user.id}")
 
     # Update fields only if provided in the payload
     # IMPORTANT: Update category fields AFTER rename detection and updates, so old values are preserved for comparison
@@ -465,7 +437,6 @@ def update_user_settings(
                 ss_income.start_date = person1_ss_retirement_date
                 ss_income.person = person1_first_name or "Person 1"
                 ss_income.category = ss_category
-                logger.info(f"Updated Social Security income item for Person 1 (yearly_value: {ss_income.yearly_value}, allow_overwrite: {ss_income.allow_value_overwrite})")
             else:
                 # Create new item
                 ss_income = models.CashFlowItem(
@@ -482,7 +453,6 @@ def update_user_settings(
                     allow_value_overwrite=False,  # By default, system controls the value (user hasn't checked "Allow Overwrite")
                 )
                 db.add(ss_income)
-                logger.info(f"Created Social Security income item for Person 1: {yearly_value}")
         else:
             # If required fields are missing, clear benefit and delete income item
             user_settings.person1_ss_monthly_benefit = None
@@ -494,7 +464,6 @@ def update_user_settings(
             ).first()
             if ss_income:
                 db.delete(ss_income)
-                logger.info(f"Deleted Social Security income item for Person 1")
     
     # Person 2 Social Security
     if any(key in update_data for key in ["person2_ss_pia", "person2_ss_retirement_date", "person2_birthdate", "person1_ss_pia", "person1_birthdate"]):
@@ -546,7 +515,6 @@ def update_user_settings(
                 ss_income.start_date = person2_ss_retirement_date
                 ss_income.person = person2_first_name or "Person 2"
                 ss_income.category = ss_category
-                logger.info(f"Updated Social Security income item for Person 2 (yearly_value: {ss_income.yearly_value}, allow_overwrite: {ss_income.allow_value_overwrite})")
             else:
                 # Create new item
                 ss_income = models.CashFlowItem(
@@ -563,7 +531,6 @@ def update_user_settings(
                     allow_value_overwrite=False,  # By default, system controls the value (user hasn't checked "Allow Overwrite")
                 )
                 db.add(ss_income)
-                logger.info(f"Created Social Security income item for Person 2: {yearly_value}")
         else:
             # If required fields are missing, clear benefit and delete income item
             user_settings.person2_ss_monthly_benefit = None
@@ -575,7 +542,6 @@ def update_user_settings(
             ).first()
             if ss_income:
                 db.delete(ss_income)
-                logger.info(f"Deleted Social Security income item for Person 2")
 
     db.commit()
     db.refresh(user_settings)

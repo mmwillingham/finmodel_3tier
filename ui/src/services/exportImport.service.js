@@ -39,7 +39,6 @@ const ExportImportService = {
       window.URL.revokeObjectURL(url);
       return { success: true };
     } catch (error) {
-      console.error('Error exporting data:', error);
       throw error;
     }
   },
@@ -56,7 +55,6 @@ const ExportImportService = {
       const response = await api.get(`/export-import/export?${params.toString()}`);
       return response.data;
     } catch (error) {
-      console.error('Error exporting data as JSON:', error);
       throw error;
     }
   },
@@ -66,7 +64,6 @@ const ExportImportService = {
       const response = await api.post('/export-import/import', importData);
       return response.data;
     } catch (error) {
-      console.error('Error importing data:', error);
       throw error;
     }
   }

@@ -21,7 +21,6 @@ const PointsModal = ({ isOpen, onClose }) => {
       setPoints(data);
     } catch (err) {
       setError('Failed to load points. Please try again.');
-      console.error('Error fetching points:', err);
     } finally {
       setLoading(false);
     }

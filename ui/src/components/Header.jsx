@@ -37,7 +37,6 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
 
     // Placeholder for handling navigation to different settings sections
     const handleNavigation = (path) => {
-        console.log(`Navigating to: ${path}`); // Debug log
         
         // Handle About and Help modals separately - don't navigate, just show modal
         if (path === '/settings/about') {

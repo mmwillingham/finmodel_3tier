@@ -27,7 +27,6 @@ function PlaidLinkButton({ onSuccess, onError }) {
         const response = await PlaidService.getLinkToken();
         setLinkToken(response.data.link_token);
       } catch (err) {
-        console.error("Error fetching Plaid link token:", err);
         // Check if Plaid is not configured (503 error)
         if (err.response?.status === 503) {
           // Plaid not configured - component will show a message instead of button
@@ -70,7 +69,6 @@ function PlaidLinkButton({ onSuccess, onError }) {
         }
       }
     } catch (err) {
-      console.error("Error connecting Plaid account:", err);
       const errorMessage = err.response?.data?.detail || "Failed to connect account. Please try again.";
       setError(errorMessage);
       if (onError) {
@@ -104,7 +102,6 @@ function PlaidLinkButton({ onSuccess, onError }) {
     onSuccess: handleSuccess,
     onExit: (err, metadata) => {
       if (err) {
-        console.error("Plaid Link exited with error:", err);
         setError(err.error_message || "Connection cancelled.");
       }
       setLoading(false);

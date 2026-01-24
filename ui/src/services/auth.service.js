@@ -53,7 +53,6 @@ const AuthService = {
             });
             return response.data;
         } catch (error) {
-            console.error("Failed to fetch current user:", error);
             AuthService.logout(); // Clear token if fetching user fails
             return null;
         }

@@ -37,7 +37,6 @@ const UserManagementPage = () => {
       const fetchedUsers = await AuthService.getAllManageableUsers();
       setUsers(fetchedUsers);
     } catch (error) {
-      console.error("Failed to fetch users:", error);
       setError(`Failed to load users: ${error.response?.data?.detail || error.message}`);
     } finally {
       setLoading(false);
@@ -62,7 +61,6 @@ const UserManagementPage = () => {
           setMessage(`User ${userName} deleted successfully.`);
           fetchUsers(); // Refresh the list
         } catch (error) {
-          console.error("Failed to delete user:", error);
           setMessage(`Failed to delete user ${userName}: ${error.response?.data?.detail || error.message}`);
         } finally {
           setLoading(false);
@@ -85,7 +83,6 @@ const UserManagementPage = () => {
           setMessage(`User ${userName} ${isAdmin ? 'made' : 'admin status revoked for'} successfully.`);
           fetchUsers(); // Refresh the list
         } catch (error) {
-          console.error("Failed to update admin status:", error);
           setMessage(`Failed to update admin status for user ${userName}: ${error.response?.data?.detail || error.message}`);
         } finally {
           setLoading(false);
@@ -112,7 +109,6 @@ const UserManagementPage = () => {
       setNewUserMustChangePassword(true);
       fetchUsers(); // Refresh the list
     } catch (error) {
-      console.error("Failed to create user:", error);
       setMessage(`Failed to create user: ${error.response?.data?.detail || error.message}`);
     } finally {
       setLoading(false);

@@ -85,7 +85,6 @@ export default function LiabilityFormModal({
         if (isOpen) {
         if (itemToEdit) {
           // If editing, populate with existing item data
-            console.log("Loading item to edit:", itemToEdit);
           setNewItem({
             name: itemToEdit.name || '',
             category: itemToEdit.category || '',
@@ -107,7 +106,6 @@ export default function LiabilityFormModal({
           });
         } else {
           // If adding a new item, reset to initial state and set default category
-            console.log("Resetting form for new liability.");
           setNewItem(prev => ({
             ...getInitialNewItemState(),
             category: cats[0] || "Other",
@@ -115,7 +113,6 @@ export default function LiabilityFormModal({
           }
         }
       } catch (e) {
-        console.error("Failed to load settings", e);
         setCategories(["Other"]);
         if (!itemToEdit) {
           setNewItem(prev => ({ ...getInitialNewItemState(), category: "Other" }));
@@ -243,17 +240,13 @@ export default function LiabilityFormModal({
     }
 
     try {
-      console.log("Attempting to save liability with payload:", payload);
       if (itemToEdit) {
         await LiabilityService.update(itemToEdit.id, payload);
-        console.log("Liability updated successfully.");
       } else {
         await LiabilityService.create(payload);
-        console.log("Liability created successfully.");
       }
       onSaveSuccess();
     } catch (error) {
-      console.error("Failed to save liability item. Full error object:", error);
       
       // Extract helpful error message from response
       let errorMessage = "Failed to save liability. Please try again.";

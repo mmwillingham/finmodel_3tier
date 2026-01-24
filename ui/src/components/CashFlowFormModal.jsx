@@ -192,7 +192,6 @@ export default function CashFlowFormModal({
           setAllowValueOverwrite(false); // NEW: Reset allow value overwrite (default to false - system controls)
         }
       } catch (e) {
-        console.error("Failed to load settings or item", e);
         const defaultCategories = type === "income"
           ? ["Salary", "Bonus", "Investment Income", "Other"]
           : ["Housing", "Transportation", "Food", "Healthcare", "Entertainment", "Other"];
@@ -211,7 +210,6 @@ export default function CashFlowFormModal({
     
     // Listen for category updates
     const handleCategoryUpdate = () => {
-      console.log("Categories updated event received in CashFlowFormModal, reloading settings...");
       loadSettingsAndItem();
     };
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
@@ -239,7 +237,6 @@ export default function CashFlowFormModal({
           });
           setAssets(assetsRes.data || []); // NEW: Set assets for reinvestment account selection
         } catch (error) {
-          console.error("Failed to fetch linked items:", error);
         }
       };
       fetchLinkedItems();
@@ -300,7 +297,6 @@ export default function CashFlowFormModal({
       onSaveSuccess(); // Notify parent of successful save
       onClose(); // Close the modal
     } catch (error) {
-      console.error("Failed to save cash flow item:", error);
       
       // Extract helpful error message from response
       let errorMessage = "Failed to save item. Please try again.";
@@ -342,9 +338,7 @@ export default function CashFlowFormModal({
 
   // Helper to get linked item options based on selected type
     const getLinkedItemOptions = () => {
-    console.log("Current linkedItemType:", linkedItemType);
     const lowerCaseType = linkedItemType.toLowerCase();
-    console.log("Lowercase linkedItemType:", lowerCaseType);
     const typeToKeyMap = {
       "asset": "assets",
       "liability": "liabilities",
@@ -487,7 +481,6 @@ export default function CashFlowFormModal({
                       
                       currentYearTaxValue = Math.round(taxResult.taxOwed || 0);
                     } catch (error) {
-                      console.error('Error calculating current year tax:', error);
                     }
                   }
                   

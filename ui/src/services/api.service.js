@@ -4,7 +4,6 @@ import AuthService from "./auth.service";
 // IMPORTANT: This MUST match your FastAPI server address/port
 const API_URL = process.env.REACT_APP_API_URL;
 
-console.log("Frontend API_URL (runtime check):", API_URL);
 
 // Create a custom Axios instance
 const ApiService = axios.create({

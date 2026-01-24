@@ -27,7 +27,6 @@ export function calculateYearFraction(startDate, endDate, projectionYear) {
       }
     } catch (e) {
       // Fall through to normal calculation if date parsing fails
-      console.warn(`Failed to parse one-time date: ${startDate}`, e);
     }
   }
   

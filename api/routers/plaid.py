@@ -567,7 +567,6 @@ def apply_plaid_mappings(
     # Create mapping lookup - key is the Plaid account_id
     mapping_by_account_id = {m.account_id: m for m in mappings_request.mappings}
     logger.info(f"Received {len(mappings_request.mappings)} mappings for item {item_id}")
-    logger.debug(f"Mapping keys: {list(mapping_by_account_id.keys())}")
     
     # Get institution name
     institution_name = plaid_item.institution_name or "Connected Institution"
@@ -600,7 +599,6 @@ def apply_plaid_mappings(
             continue
         
         mapping = mapping_by_account_id[account_id]
-        logger.debug(f"Processing account {account_id} with mapping: category='{mapping.category}', type='{mapping.type}'")
         account_name = plaid_account.get('official_name') or plaid_account['name']
         account_type = plaid_account['type']
         account_subtype = plaid_account.get('subtype', '')

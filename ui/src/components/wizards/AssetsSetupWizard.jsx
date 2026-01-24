@@ -42,7 +42,6 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }) => {
         setNewAsset(prev => ({ ...prev, category: categories[0] }));
       }
     } catch (e) {
-      console.error('Failed to load data', e);
     }
   };
 

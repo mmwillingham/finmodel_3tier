@@ -186,7 +186,6 @@ export default function AssetFormModal({
           setDividendRate("");
         }
       } catch (e) {
-        console.error("Failed to load settings", e);
         setCategories([]);
         setAccounts([]);
         setIncomeItems([]);
@@ -280,15 +279,11 @@ export default function AssetFormModal({
         // Axios response structure: response.data contains the actual response body
         assetId = savedAsset.data?.id;
         if (!assetId) {
-          console.error("Failed to get asset ID from response:", savedAsset);
           alert("Failed to create asset. Please try again.");
           return;
         }
       }
 
-      console.log("Asset saved with ID:", assetId);
-      console.log("Track Interest:", trackInterestAsIncome, "Rate:", interestRate);
-      console.log("Track Dividends:", trackDividendsAsIncome, "Rate:", dividendRate);
 
       // Only create income items for non-retirement accounts
       // For retirement accounts, interest/dividends are already included in the asset's growth rate
@@ -321,16 +316,12 @@ export default function AssetFormModal({
 
         if (existingLinkedInterestId) {
           // Update existing income item
-          console.log("Updating existing interest income item:", existingLinkedInterestId);
           await CashFlowService.update(existingLinkedInterestId, incomePayload);
         } else {
           // Create new income item
-          console.log("Creating new interest income item with payload:", incomePayload);
           try {
             const result = await CashFlowService.create(incomePayload);
-            console.log("Interest income item created:", result);
           } catch (error) {
-            console.error("Failed to create interest income item:", error);
             alert(`Failed to create interest income item: ${error.response?.data?.detail || error.message}`);
             throw error; // Re-throw to prevent continuing
           }
@@ -340,7 +331,6 @@ export default function AssetFormModal({
         try {
           await CashFlowService.delete(existingLinkedInterestId);
         } catch (deleteError) {
-          console.warn("Failed to delete linked interest income item:", deleteError);
           // Continue even if deletion fails - user can delete manually
         }
       }
@@ -375,16 +365,12 @@ export default function AssetFormModal({
 
         if (existingLinkedDividendId) {
           // Update existing income item
-          console.log("Updating existing dividend income item:", existingLinkedDividendId);
           await CashFlowService.update(existingLinkedDividendId, incomePayload);
         } else {
           // Create new income item
-          console.log("Creating new dividend income item with payload:", incomePayload);
           try {
             const result = await CashFlowService.create(incomePayload);
-            console.log("Dividend income item created:", result);
           } catch (error) {
-            console.error("Failed to create dividend income item:", error);
             alert(`Failed to create dividend income item: ${error.response?.data?.detail || error.message}`);
             throw error; // Re-throw to prevent continuing
           }
@@ -394,7 +380,6 @@ export default function AssetFormModal({
         try {
           await CashFlowService.delete(existingLinkedDividendId);
         } catch (deleteError) {
-          console.warn("Failed to delete linked dividend income item:", deleteError);
           // Continue even if deletion fails - user can delete manually
         }
       }
@@ -403,7 +388,6 @@ export default function AssetFormModal({
       onSaveSuccess();
       onClose();
     } catch (error) {
-      console.error("Failed to save asset item:", error);
       
       // Extract helpful error message from response
       let errorMessage = "Failed to save asset. Please try again.";

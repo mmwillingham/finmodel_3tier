@@ -118,7 +118,6 @@ const ProfileSettingsPage = () => {
         navigate('/'); // Navigate to home after successful save
       }, 1000);
     } catch (e) {
-      console.error('Failed to save profile settings', e);
       const errorMessage = e.response?.data?.detail || 'Error saving settings';
       setMessage(errorMessage);
     } finally {

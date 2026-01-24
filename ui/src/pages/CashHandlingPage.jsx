@@ -36,7 +36,6 @@ const CashHandlingPage = () => {
       setIncomeItems(incomeRes.data || []);
       setExpenseItems(expenseRes.data || []);
     } catch (e) {
-      console.error('Failed to load cash handling settings', e);
       setError('Failed to load cash handling settings.');
     } finally {
       setLoading(false);
@@ -60,7 +59,6 @@ const CashHandlingPage = () => {
       setMessage('Cash handling settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (e) {
-      console.error('Failed to save cash handling settings', e);
       setError('Failed to save cash handling settings: ' + (e.response?.data?.detail || e.message));
     }
   };

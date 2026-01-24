@@ -94,7 +94,6 @@ export default function SidebarLayout() {
       const response = await SettingsService.getSettings(viewingUserId);
       setViewingUserSettings(response.data);
     } catch (error) {
-      console.error("Failed to load viewing user settings", error);
       setViewingUserSettings(null);
     }
   }, [viewingUserId]);
@@ -178,7 +177,6 @@ export default function SidebarLayout() {
       setExpenseCategories(uniqueExpenseCategories);
 
     } catch (e) {
-      console.error("Failed to load initial data", e);
     } finally {
       setLoading(false);
     }
@@ -236,7 +234,6 @@ export default function SidebarLayout() {
     
     // Listen for category updates from CategorySettingsPage
     const handleCategoryUpdate = () => {
-      console.log("Categories updated event received, refreshing all data.");
       refreshAllData(); // Refresh all data when categories are updated
     };
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
@@ -951,7 +948,6 @@ export default function SidebarLayout() {
               await login();
             }
           } catch (error) {
-            console.error("Error checking user data:", error);
             // If we can't check, assume password was changed
             setShowPasswordChangeModal(false);
           }

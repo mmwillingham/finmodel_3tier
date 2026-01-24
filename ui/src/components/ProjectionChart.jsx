@@ -50,7 +50,6 @@ export default function ProjectionChart({ projection, projectionId }) {
         if (!mounted) return;
         setProj(res.data || null);
       } catch (e) {
-        console.error("Error fetching projection details:", e);
         setProj(null);
       } finally {
         if (mounted) setLoading(false);
@@ -71,7 +70,6 @@ export default function ProjectionChart({ projection, projectionId }) {
         if (inst?.chart && typeof inst.chart.resize === "function") inst.chart.resize();
         if (typeof inst?.resize === "function") inst.resize();
       } catch (e) {
-        console.error("Error resizing chart:", e);
       }
     });
     ro.observe(el);
@@ -87,7 +85,6 @@ export default function ProjectionChart({ projection, projectionId }) {
         if (inst?.chart && typeof inst.chart.resize === "function") inst.chart.resize();
         if (typeof inst?.resize === "function") inst.resize();
       } catch (e) {
-        console.error("Error resizing chart on timeout:", e);
       }
     }, 150);
     return () => clearTimeout(t);
@@ -101,7 +98,6 @@ export default function ProjectionChart({ projection, projectionId }) {
     try {
       chartData = JSON.parse(proj.data_json);
     } catch (e) {
-      console.error("Error parsing data_json:", e);
     }
   }
   

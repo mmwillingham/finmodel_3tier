@@ -157,7 +157,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     const selectedItemId = series.selected_item_id || series.item_id;
 
     // Debug logging (disabled by default)
-    const DEBUG_MODE = true; // Temporarily enabled to debug Federal Tax issue
 
     // Get the appropriate array of items based on data type
     let items = [];
@@ -218,25 +217,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       const itemName = item.description || item.name;
       const value = findValueInDataPoint(itemName, dataPoint, item);
       
-      if (DEBUG_MODE && targetDataType === 'expenses' && itemName === "Federal Income Tax (Calculated)") {
-        const exactKey = `${itemName}_Value`;
-        const rawValue = dataPoint[exactKey];
-        const isNegativeZero = Object.is(rawValue, -0);
-        console.log(`DEBUG getAggregatedValue: Federal Tax - itemName: "${itemName}", exactKey: "${exactKey}", value from findValueInDataPoint: ${value}, raw dataPoint[exactKey]:`, rawValue, `(type: ${typeof rawValue}, is -0: ${isNegativeZero}, is negative: ${rawValue < 0})`);
-        console.log(`DEBUG getAggregatedValue: Federal Tax - Year: ${dataPoint.Year}, all keys:`, Object.keys(dataPoint));
-        // Check all keys containing "Federal" or "Tax"
-        const allTaxKeys = Object.keys(dataPoint).filter(k => (k.includes('Federal') || k.includes('Tax')) && k.endsWith('_Value'));
-        console.log(`DEBUG getAggregatedValue: Federal Tax - All keys with 'Federal' or 'Tax':`, allTaxKeys);
-        allTaxKeys.forEach(key => {
-          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]} (type: ${typeof dataPoint[key]}, is negative: ${dataPoint[key] < 0})`);
-        });
-        // Also check if there's taxable income in the data
-        const incomeKeys = Object.keys(dataPoint).filter(k => k.includes('income') && k.endsWith('_Value') && !k.includes('Total'));
-        console.log(`DEBUG getAggregatedValue: Federal Tax - Income keys found:`, incomeKeys);
-        incomeKeys.forEach(key => {
-          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
-        });
-      }
       
       // Add the value (expenses are negative, will be converted to positive at the end)
       sum += value;
@@ -251,16 +231,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
     if (filteredItems.length === 0 && selectedItemId && targetLabel) {
       const directValue = findValueInDataPoint(targetLabel, dataPoint, itemForLookup);
-      if (DEBUG_MODE && targetDataType === 'expenses' && targetLabel === "Federal Income Tax (Calculated)") {
-        const exactKey = `${targetLabel}_Value`;
-        console.log(`DEBUG getAggregatedValue: Federal Tax direct lookup - targetLabel: "${targetLabel}", exactKey: "${exactKey}", directValue: ${directValue}, raw dataPoint[exactKey]:`, dataPoint[exactKey]);
-        // Check all keys containing "Federal" or "Tax"
-        const allTaxKeys = Object.keys(dataPoint).filter(k => (k.includes('Federal') || k.includes('Tax')) && k.endsWith('_Value'));
-        console.log(`DEBUG getAggregatedValue: Federal Tax - All keys with 'Federal' or 'Tax':`, allTaxKeys);
-        allTaxKeys.forEach(key => {
-          console.log(`DEBUG getAggregatedValue: Federal Tax - ${key}: ${dataPoint[key]}`);
-        });
-      }
       if (directValue !== 0 || dataPoint[`${targetLabel}_Value`] !== undefined) {
         return targetDataType === 'expenses' ? Math.abs(directValue) : directValue;
       }
@@ -281,9 +251,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       if (!hasFederalTax) {
         const federalTaxValue = findValueInDataPoint(FEDERAL_TAX_EXPENSE_DESCRIPTION, dataPoint);
         if (federalTaxValue !== 0 || dataPoint[`${FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value`] !== undefined) {
-          if (DEBUG_MODE) {
-            console.log(`DEBUG getAggregatedValue: Federal Tax fallback - found value ${federalTaxValue} for year ${dataPoint.Year}, adding to sum`);
-          }
           sum += federalTaxValue;
         }
       }
@@ -300,9 +267,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     let parsedDataJson = [];
     try {
       parsedDataJson = JSON.parse(fetchedConfig.data_json);
-      console.log("DEBUG (CustomChartView.jsx): Parsed data_json inside prepareChartData:", parsedDataJson); // RE-ADDED LOG
     } catch (e) {
-      console.error("Error parsing data_json in prepareChartData:", e);
       setMessage("Error processing chart data from the server.");
       setChartData({ labels: [], datasets: [] });
       return;
@@ -319,10 +284,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
     try {
       const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
-      console.log("DEBUG (CustomChartView.jsx): Parsed series_configurations:", seriesConfigurations); // RE-ADDED LOG
-
       seriesConfigurations.forEach((series) => {
-        console.log("DEBUG (CustomChartView.jsx): Processing series:", series.label, "(Category:", series.category, ")"); // RE-ADDED LOG
 
         const dataValues = parsedDataJson.map(dataPoint => {
           const valueForSeries = getAggregatedValue(dataPoint, series);
@@ -370,13 +332,11 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       }
 
     } catch (e) {
-      console.error("Error parsing series configurations or preparing data:", e);
       setMessage("Error preparing chart data.");
       datasets = []; // Ensure datasets is empty on error
     }
 
     setChartData({ labels, datasets });
-    console.log("DEBUG (CustomChartView.jsx): Chart data prepared (labels, datasets):", { labels, datasets }); // RE-ADDED LOG
   }, [showChartTotals, getAggregatedValue, assets, liabilities, incomeItems, expenseItems]); // Added all necessary dependencies
 
   useEffect(() => {
@@ -388,13 +348,9 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         const fetchedConfig = response.data;
         setChartConfig(fetchedConfig);
         setCurrentDisplayType(fetchedConfig.display_type || "chart"); // Set display type from fetched config
-        console.log("DEBUG (CustomChartView.jsx): currentDisplayType set to:", fetchedConfig.display_type || "chart"); // RE-ADDED LOG
-        console.log("DEBUG (CustomChartView.jsx): Fetched chart config:", fetchedConfig);
         try {
           const parsedDataJson = JSON.parse(fetchedConfig.data_json);
-          console.log("DEBUG (CustomChartView.jsx): Parsed data_json in useEffect:", parsedDataJson); // RE-ADDED LOG
         } catch (parseError) {
-          console.error("DEBUG (CustomChartView.jsx): Error parsing data_json in useEffect:", parseError);
         }
         // Check if series have different data types - if so, disable totals
         // Also check if chart has itemized series (series with selected_item_id)
@@ -440,12 +396,10 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           
           setHasItemizedSeries(hasItemized || hasDuplicates);
         } catch (e) {
-          console.error("Error parsing series configurations for totals check:", e);
           setHasItemizedSeries(false);
         }
         prepareChartData(fetchedConfig); // Call the memoized function
       } catch (error) {
-        console.error("Error fetching custom chart:", error);
         setMessage("Failed to load chart configuration.");
       } finally {
         setLoading(false);
@@ -592,7 +546,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
 
   const handleDownloadCsv = (filename) => {
     if (chartData.datasets.length === 0) {
-      console.warn("No data available for CSV download.");
       return;
     }
 
@@ -629,7 +582,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       link.href = chartRef.current.toBase64Image('image/png', 1);
       link.click();
     } else {
-      console.error("Chart ref is not available for PNG download.");
       setMessage("Error: Chart not ready for download.");
     }
   };
@@ -647,7 +599,6 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Ref is not available for PDF download.");
       setMessage("Error: Element not ready for download.");
     }
   };

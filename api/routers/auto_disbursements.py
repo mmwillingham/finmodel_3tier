@@ -5,10 +5,8 @@ import models
 import schemas
 import auth
 import database
-import logging
 from utils.permission_dependencies import get_accessible_user_ids
 
-logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/auto-disbursements",

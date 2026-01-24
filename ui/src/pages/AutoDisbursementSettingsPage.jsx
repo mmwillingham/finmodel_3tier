@@ -40,26 +40,19 @@ const AutoDisbursementSettingsPage = () => {
     try {
       const [autoDisbursementsData, assetsRes, settingsRes] = await Promise.all([
         AutoDisbursementService.getAllAutoDisbursements(viewingUserId).catch((err) => {
-          console.error('Error loading auto-disbursements:', err);
           return [];
         }),
         AssetService.list(viewingUserId || null).catch((err) => {
-          console.error('Error loading assets:', err);
           return { data: [] };
         }),
         SettingsService.getSettings(viewingUserId).catch((err) => {
-          console.error('Error loading settings:', err);
           return { data: {} };
         }),
       ]);
-      console.log('Auto-disbursements loaded:', autoDisbursementsData);
-      console.log('Assets response:', assetsRes);
-      console.log('Assets data:', assetsRes?.data);
       setAutoDisbursements(autoDisbursementsData || []);
       setAssets(assetsRes?.data || []);
       setSurplusAssetId(settingsRes.data.surplus_asset_id || null);
     } catch (e) {
-      console.error('Failed to load data', e);
       setError('Failed to load data.');
     } finally {
       setLoading(false);
@@ -126,7 +119,6 @@ const AutoDisbursementSettingsPage = () => {
         navigate('/'); // Close the page after successful save
       }, 1000);
     } catch (e) {
-      console.error('Failed to create auto-disbursement', e);
       const errorMessage = e.response?.data?.detail || 'Error creating auto-disbursement';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
@@ -181,7 +173,6 @@ const AutoDisbursementSettingsPage = () => {
         navigate('/'); // Close the page after successful save
       }, 1000);
     } catch (e) {
-      console.error('Failed to update auto-disbursement', e);
       const errorMessage = e.response?.data?.detail || 'Error updating auto-disbursement';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
@@ -205,7 +196,6 @@ const AutoDisbursementSettingsPage = () => {
           loadData();
           setTimeout(() => setMessage(''), 2000);
         } catch (e) {
-          console.error('Failed to delete auto-disbursement', e);
           const errorMessage = e.response?.data?.detail || 'Error deleting auto-disbursement';
           setMessage(errorMessage);
           setTimeout(() => setMessage(''), 3000);
@@ -237,7 +227,6 @@ const AutoDisbursementSettingsPage = () => {
         navigate('/'); // Close the page after successful save
       }, 1000);
     } catch (e) {
-      console.error('Failed to save surplus asset', e);
       const errorMessage = e.response?.data?.detail || 'Error saving surplus asset';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);

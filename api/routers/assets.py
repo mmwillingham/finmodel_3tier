@@ -9,16 +9,12 @@ import auth
 import database
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
-import logging
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/assets",
     tags=["assets"],
     responses={404: {"description": "Not found"}},
 )
-logger.info("Assets router initialized.")
 
 @router.post("/", response_model=schemas.AssetOut, status_code=status.HTTP_201_CREATED)
 def create_asset(
@@ -47,7 +43,6 @@ def list_assets(
     """List all assets the current user can access.
     If viewing_user_id is None, only show the current user's own assets.
     If viewing_user_id is provided, filter to that specific user's assets (must be accessible)."""
-    logger.debug(f"list_assets: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
     
     # Default to only showing current user's assets when viewingUserId is None
     if viewing_user_id is None:
@@ -60,7 +55,6 @@ def list_assets(
         accessible_user_ids = [viewing_user_id]
     
     assets = db.query(models.Asset).filter(models.Asset.owner_id.in_(accessible_user_ids)).all()
-    logger.debug(f"list_assets: Found {len(assets)} assets for user {current_user.id}")
     return assets
 
 @router.get("/{asset_id}", response_model=schemas.AssetOut)

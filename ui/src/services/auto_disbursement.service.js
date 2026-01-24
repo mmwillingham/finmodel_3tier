@@ -10,7 +10,6 @@ const AutoDisbursementService = {
       const response = await api.get('/auto-disbursements/', config);
       return response.data;
     } catch (error) {
-      console.error('Error fetching auto-disbursements:', error);
       throw error;
     }
   },
@@ -20,7 +19,6 @@ const AutoDisbursementService = {
       const response = await api.get(`/auto-disbursements/${autoDisbursementId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching auto-disbursement:', error);
       throw error;
     }
   },
@@ -30,7 +28,6 @@ const AutoDisbursementService = {
       const response = await api.post('/auto-disbursements/', autoDisbursement);
       return response.data;
     } catch (error) {
-      console.error('Error creating auto-disbursement:', error);
       throw error;
     }
   },
@@ -40,7 +37,6 @@ const AutoDisbursementService = {
       const response = await api.put(`/auto-disbursements/${autoDisbursementId}`, autoDisbursement);
       return response.data;
     } catch (error) {
-      console.error('Error updating auto-disbursement:', error);
       throw error;
     }
   },
@@ -49,7 +45,6 @@ const AutoDisbursementService = {
     try {
       await api.delete(`/auto-disbursements/${autoDisbursementId}`);
     } catch (error) {
-      console.error('Error deleting auto-disbursement:', error);
       throw error;
     }
   },

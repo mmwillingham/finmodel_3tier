@@ -243,7 +243,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           totalCashOut += federalTax;
         }
       } catch (error) {
-        console.error('Error calculating taxes in SankeyDiagram:', error);
       }
     }
   }
@@ -271,14 +270,10 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   
   // Surplus transfer to cash asset (positive surplus adds to cash)
   // Debug logging for Sankey surplus transfer
-  console.log('Sankey Diagram - surplus_asset_id:', userSettings?.surplus_asset_id);
-  console.log('Sankey Diagram - cashAssetIds:', cashAssetIds);
   const netCashFlow = totalCashIn - totalCashOut;
-  console.log('Sankey Diagram - netCashFlow:', netCashFlow, '(cashIn:', totalCashIn, ', cashOut:', totalCashOut, ')');
   
   // Check if surplus asset is configured and is a cash asset
   const hasSurplusAsset = userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id);
-  console.log('Sankey Diagram - hasSurplusAsset:', hasSurplusAsset, '(surplus_asset_id:', userSettings?.surplus_asset_id, ', in cashAssetIds:', hasSurplusAsset, ')');
   
   if (hasSurplusAsset) {
     if (netCashFlow > 0) {
@@ -286,25 +281,19 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
       transferSources[`Surplus Transfer to ${surplusAssetName}`] = netCashFlow;
-      console.log('Sankey Diagram - Added surplus transfer:', `Surplus Transfer to ${surplusAssetName}`, netCashFlow);
       // Don't add to totalCashIn - this is already included in the net cash flow
     } else if (netCashFlow < 0) {
       // Negative surplus (deficit) - cash goes out
       const surplusAsset = assets.find(a => a.id === userSettings.surplus_asset_id);
       const surplusAssetName = surplusAsset ? surplusAsset.name : 'Surplus Asset';
       transferSinks[`Deficit from ${surplusAssetName}`] = Math.abs(netCashFlow);
-      console.log('Sankey Diagram - Added deficit (negative surplus):', `Deficit from ${surplusAssetName}`, Math.abs(netCashFlow));
       // Don't add to totalCashOut - this is already included in the net cash flow
     } else {
-      console.log('Sankey Diagram - netCashFlow is 0, no surplus transfer');
     }
   } else {
-    console.log('Sankey Diagram - Surplus transfer conditions not met: surplus_asset_id exists?', !!userSettings?.surplus_asset_id, ', in cashAssetIds?', cashAssetIds.includes(userSettings?.surplus_asset_id || -1));
   }
   
   // Debug: Log transferSources to verify surplus transfer is being added
-  console.log('Sankey Diagram - transferSources keys:', Object.keys(transferSources));
-  console.log('Sankey Diagram - transferSources values:', transferSources);
   
   // Auto-disbursements that target cash assets
   // Calculate the same way as BASE model for consistency
@@ -385,7 +374,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         }
       });
     } catch (error) {
-      console.error('Error processing auto-disbursements in SankeyDiagram:', error);
     }
   }
   
@@ -425,9 +413,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   if (allIncomeValues.length > 0) {
     try {
       maxIncomeValue = Math.max(...allIncomeValues);
-      console.log('Sankey maxIncomeValue calculated:', { incomeValues, transferSources, allIncomeValues, maxIncomeValue });
     } catch (e) {
-      console.error('Error calculating maxIncomeValue:', e);
       maxIncomeValue = allIncomeValues[0] || 1;
     }
   }
@@ -437,9 +423,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   if (expenseValues.length > 0) {
     try {
       maxExpenseValue = Math.max(...expenseValues);
-      console.log('Sankey maxExpenseValue calculated:', { expenseValues, maxExpenseValue });
     } catch (e) {
-      console.error('Error calculating maxExpenseValue:', e);
       maxExpenseValue = expenseValues[0] || 1;
     }
   }
@@ -1061,7 +1045,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
           
           // Debug logging for all flows
-          console.log(`Sankey Income Flow [${category}]:`, {
             value,
             maxIncomeValue,
             flowProportion: flowProportion.toFixed(4),
@@ -1126,7 +1109,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
           
           // Debug logging for all flows
-          console.log(`Sankey Expense Flow [${category}]:`, {
             value,
             maxExpenseValue,
             flowProportion: flowProportion.toFixed(4),
@@ -1341,7 +1323,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           }
         }
       } catch (e) {
-        console.log("Could not check for existing projection, will create new one");
       }
 
       let projection;
@@ -1350,7 +1331,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
         } catch (err) {
           // If update fails for any reason, create a new one
-          console.log("Update failed, creating new projection:", err);
           projection = await ProjectionService.createProjection(projectionRequest);
         }
       } else {
@@ -1369,7 +1349,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         }
       }
     } catch (err) {
-      console.error("Error fetching projection data:", err);
       setError(err.message || "Failed to calculate projections");
     } finally {
       setLoading(false);
@@ -1741,7 +1720,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             // Add taxes to total expenses
             totalExpenses += federalTax;
           } catch (error) {
-            console.error('Error calculating taxes in calculateCashFlowProjection:', error);
           }
         }
       }
@@ -1812,9 +1790,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     const cashAssets = assets.filter(a => cashAssetIds.includes(a.id));
     
     // Debug logging for BASE model cash assets
-    console.log('BASE Model - cashAssetIds:', cashAssetIds);
-    console.log('BASE Model - All assets:', assets.map(a => ({ id: a.id, name: a.name, value: a.value })));
-    console.log('BASE Model - Filtered cash assets:', cashAssets.map(a => ({ id: a.id, name: a.name, value: a.value })));
     
     // Calculate initial cash balance (Beginning Balance for year 0)
     let beginningBalance = 0;
@@ -1822,7 +1797,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       beginningBalance += asset.value || 0;
     });
     
-    console.log('BASE Model - Initial beginning balance:', beginningBalance);
     
     const years = [];
     const beginningBalances = [];
@@ -2075,7 +2049,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
             // Add taxes to cash out
             cashOut += federalTax;
           } catch (error) {
-            console.error('Error calculating taxes:', error);
           }
         }
       }
@@ -2343,7 +2316,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       link.href = chartRef.current.toBase64Image('image/png', 1);
       link.click();
     } else {
-      console.error("Chart ref is not available for PNG download.");
     }
   };
 
@@ -2358,7 +2330,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       pdf.addImage(chartImage, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Chart ref is not available for PDF download.");
     }
   };
 
@@ -2374,7 +2345,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Table ref is not available for PDF download.");
     }
   };
 
@@ -2452,7 +2422,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       link.download = `${filename.replace(/\s/g, '_')}.csv`;
       link.click();
     } else {
-      console.warn("No data available for Cash Flow CSV download.");
     }
   };
 
@@ -2851,9 +2820,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                       />
                     );
                 } catch (innerError) {
-                  console.error('Error in SankeyDiagram component:', innerError);
-                  console.error('Error stack:', innerError?.stack);
-                  console.error('Data:', { incomeItems, expenseItems, assets, userSettings });
                   return (
                     <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
                       <strong>Error:</strong> Failed to render Sankey Diagram.
@@ -2867,7 +2833,6 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                   );
                 }
               } catch (error) {
-                console.error('Error rendering Sankey Diagram:', error);
                 return (
                   <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
                     <strong>Error:</strong> Failed to render Sankey Diagram. Please check the console for details.

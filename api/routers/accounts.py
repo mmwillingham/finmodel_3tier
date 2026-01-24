@@ -8,9 +8,7 @@ import auth
 import database
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
-import logging
 
-logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/accounts",
@@ -27,7 +25,6 @@ def list_accounts(
     """List all accounts the current user can access (own or authorized).
     If viewing_user_id is None, only show the current user's own accounts.
     If viewing_user_id is provided, filter to that specific user's accounts (must be accessible)."""
-    logger.debug(f"list_accounts: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
     
     # Default to only showing current user's accounts when viewingUserId is None
     if viewing_user_id is None:

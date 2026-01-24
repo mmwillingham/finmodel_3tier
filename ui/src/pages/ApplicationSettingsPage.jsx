@@ -45,7 +45,6 @@ const ApplicationSettingsPage = () => {
       await refreshSettings();
       navigate('/');
     } catch (e) {
-      console.error('Failed to save application settings', e);
       const errorMessage = e.response?.data?.detail || 'Error saving settings';
       setMessage(errorMessage);
     }

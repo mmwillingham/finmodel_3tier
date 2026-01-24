@@ -75,7 +75,6 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }) => {
         setNewLiability(prev => ({ ...prev, category: cats[0] }));
       }
     } catch (e) {
-      console.error('Failed to load data', e);
     }
   };
 

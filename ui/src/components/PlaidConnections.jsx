@@ -30,7 +30,6 @@ function PlaidConnections({ onSyncSuccess }) {
       const response = await PlaidService.listItems();
       setItems(response.data || []);
     } catch (err) {
-      console.error("Error loading Plaid items:", err);
       // If Plaid is not configured (503), just return empty list
       if (err.response?.status === 503) {
         setItems([]);
@@ -61,7 +60,6 @@ function PlaidConnections({ onSyncSuccess }) {
         alert("No accounts found to sync.");
       }
     } catch (err) {
-      console.error("Error syncing accounts:", err);
       const errorMessage = err.response?.data?.detail || "Failed to sync accounts. Please try again.";
       setError(errorMessage);
       alert(errorMessage);
@@ -101,7 +99,6 @@ function PlaidConnections({ onSyncSuccess }) {
       setItems((prev) => prev.filter((item) => item.item_id !== itemId));
       alert("Account disconnected successfully.");
     } catch (err) {
-      console.error("Error disconnecting account:", err);
       const errorMessage = err.response?.data?.detail || "Failed to disconnect account.";
       alert(errorMessage);
     }

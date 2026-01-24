@@ -45,7 +45,6 @@ const AuthorizedUsersPage = () => {
       }
     } catch (err) {
       setError('Failed to load data');
-      console.error(err);
     } finally {
       setLoading(false);
     }

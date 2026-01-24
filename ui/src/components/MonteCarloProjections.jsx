@@ -254,7 +254,6 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
                 // Add taxes to total expenses
                 totalExpenses += federalTax;
               } catch (error) {
-                console.error('Error calculating taxes in Monte Carlo:', error);
               }
             }
           }
@@ -405,7 +404,6 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
       pdf.save(`monte-carlo-projection-${currentYear}.pdf`);
     } catch (error) {
-      console.error('Error exporting to PDF:', error);
     }
   };
 

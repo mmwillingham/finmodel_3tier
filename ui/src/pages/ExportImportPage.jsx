@@ -49,7 +49,6 @@ const ExportImportPage = () => {
       setExportMessage(`Data exported successfully as ${exportFormat.toUpperCase()}! Check your downloads folder.`);
       setTimeout(() => setExportMessage(''), 3000);
     } catch (error) {
-      console.error('Export failed:', error);
       setExportMessage('Error exporting data. Please try again.');
       setTimeout(() => setExportMessage(''), 5000);
     } finally {
@@ -122,7 +121,6 @@ const ExportImportPage = () => {
         setImportResult(null);
       }, 10000);
     } catch (error) {
-      console.error('Import failed:', error);
       setImportMessage('Error importing data. Please check the file format and try again.');
       setTimeout(() => setImportMessage(''), 5000);
     } finally {

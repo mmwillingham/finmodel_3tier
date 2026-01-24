@@ -59,7 +59,6 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }) => {
             expenses: expensesRes.data,
           });
         } catch (error) {
-          console.error('Failed to fetch linked items:', error);
         }
       };
       fetchLinkedItems();
@@ -88,7 +87,6 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }) => {
       }
       setPersonOptions(newPersonOptions);
     } catch (e) {
-      console.error('Failed to load data', e);
     }
   };
 

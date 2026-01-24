@@ -1,6 +1,7 @@
 import os
 import time
 import re
+import logging
 from functools import lru_cache
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
@@ -9,6 +10,7 @@ from typing import Any, Generator
 from sqlalchemy.exc import OperationalError
 
 _unix_socket_path: str | None = None # Global to store unix socket path if used
+logger = logging.getLogger(__name__)
 
 def sanitize_database_url(url: str) -> str:
     """Remove password from database URL for safe logging."""
@@ -28,20 +30,15 @@ def get_database_url() -> str:
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
         use_cloud_sql_proxy_tcp = os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true" # NEW: Check for TCP proxy
 
-        print(f"DEBUG (database.py): CLOUD_SQL_CONNECTION_NAME (from os.getenv): '{cloud_sql_connection_name}'")
-        print(f"DEBUG (database.py): USE_CLOUD_SQL_PROXY_TCP: {use_cloud_sql_proxy_tcp}") # NEW DEBUG
-
         if not all([db_user, db_password, db_name]):
             raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
 
         if cloud_sql_connection_name and not use_cloud_sql_proxy_tcp: # Use Unix socket by default for Cloud SQL
-            print("DEBUG (database.py): Entering Cloud SQL Proxy SYNC connection path (Unix socket).")
             _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
             database_url = (
                 f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={_unix_socket_path}"
             )
         elif cloud_sql_connection_name and use_cloud_sql_proxy_tcp: # NEW: Use TCP for local Cloud SQL Proxy
-            print("DEBUG (database.py): Entering Cloud SQL Proxy SYNC connection path (TCP).")
             _unix_socket_path = None # Explicitly set to None for TCP connections
             local_db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to 127.0.0.1 for proxy
             local_db_port = os.getenv("DB_PORT", "5432")     # Default to 5432 for proxy
@@ -49,7 +46,6 @@ def get_database_url() -> str:
                 f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
             )
         else: # Regular local database connection
-            print("DEBUG (database.py): Entering local TCP SYNC connection path.")
             local_db_host = os.getenv("DB_HOST", "localhost")
             local_db_port = os.getenv("DB_PORT", "5432")
             database_url = (
@@ -59,16 +55,13 @@ def get_database_url() -> str:
     if database_url is None:
         raise ValueError("DATABASE_URL could not be determined from environment variables.")
 
-    print(f"DEBUG (database.py): Constructed SYNC SQLALCHEMY_DATABASE_URL: {sanitize_database_url(database_url)}")
     return database_url
 
 def get_engine_instance():
     global _unix_socket_path # Access global variable
     DATABASE_URL = get_database_url()
-    print(f"DEBUG (database.py): Using DATABASE_URL for engine: {sanitize_database_url(DATABASE_URL)}")
 
     connect_args = {}
-    print(f"DEBUG (database.py): Current _unix_socket_path before connect_args: {_unix_socket_path}") # NEW DEBUG
     # Only add unix_sock to connect_args if _unix_socket_path is set (i.e., we are using Unix socket)
     # The TCP connection will not use this.
     if _unix_socket_path and "unix_sock" in DATABASE_URL and not os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true": # Ensure it's explicitly for unix_sock in URL and not TCP
@@ -88,10 +81,9 @@ def get_engine_instance():
             )
             with engine.connect() as connection:
                 connection.execute(text("SELECT 1"))
-            print("DEBUG (database.py): Database engine created and connection tested successfully.")
             return engine
         except OperationalError as e:
-            print(f"ERROR (database.py): Database connection failed (attempt {i+1}/{retries}): {e}")
+            logger.error("Database connection failed (attempt %s/%s): %s", i + 1, retries, e)
             if i < retries - 1:
                 time.sleep(delay)
             else:
@@ -150,5 +142,4 @@ def get_async_database_url() -> str:
             )
     if database_url is None:
         raise ValueError("ASYNC DATABASE_URL could not be determined from environment variables.")
-    print(f"DEBUG (database.py): Constructed ASYNC SQLALCHEMY_DATABASE_URL: {sanitize_database_url(database_url)}")
     return database_url

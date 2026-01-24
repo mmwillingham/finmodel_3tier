@@ -89,7 +89,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
       link.href = chartRef.current.toBase64Image('image/png', 1);
       link.click();
     } else {
-      console.error("Chart ref is not available for PNG download.");
     }
   };
 
@@ -104,7 +103,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
       pdf.addImage(chartImage, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${projection.name.replace(/\s/g, '_') || 'projection'}_chart.pdf`);
     } else {
-      console.error("Chart ref is not available for PDF download.");
     }
   };
 
@@ -120,7 +118,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Table ref is not available for PDF download.");
     }
   };
 
@@ -158,7 +155,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
       link.download = `${filename.replace(/\s/g, '_')}.csv`;
       link.click();
     } else {
-      console.warn("No data available for Year-by-Year CSV download.");
     }
   };
 
@@ -180,7 +176,6 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
       link.download = `${filename.replace(/\s/g, '_')}.csv`;
       link.click();
     } else {
-      console.warn("No data available for Account Details CSV download.");
     }
   };
 

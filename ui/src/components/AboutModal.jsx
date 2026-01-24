@@ -20,7 +20,6 @@ const AboutModal = ({ isOpen, onClose }) => {
       const content = await globalSettingsService.getHelpAboutContent();
       setAboutContent(content.about_content || '<h1>About</h1><p>This is a placeholder for about content. Administrators can edit this content.</p>');
     } catch (err) {
-      console.error('Failed to fetch about content:', err);
       setError('Failed to load about content.');
       setAboutContent('<h1>About</h1><p>This is a placeholder for about content. Administrators can edit this content.</p>'); // Fallback content
     } finally {
@@ -49,7 +48,6 @@ const AboutModal = ({ isOpen, onClose }) => {
       setIsEditing(false);
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      console.error('Failed to save about content:', err);
       setMessage('Failed to save about content.');
     }
   };

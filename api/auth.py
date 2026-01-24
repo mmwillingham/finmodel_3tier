@@ -79,9 +79,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             algorithms=[settings.ALGORITHM] # 🌟 FIXED
         )
         user_id: int = payload.get("sub")
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"DEBUG (auth.py): User ID from JWT payload: {user_id}")
         if user_id is None:
             raise credentials_exception
     except JWTError:
@@ -125,7 +122,6 @@ def authenticate_or_create_google_user(db: Session, google_id: str, email: str):
     )
     db.add(new_user)
     db.commit()
-    print(f"DEBUG (auth.py): User committed successfully: {new_user.email}") # NEW DEBUG PRINT
     db.refresh(new_user)
     return new_user
 

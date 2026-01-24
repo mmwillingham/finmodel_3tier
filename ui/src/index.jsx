@@ -4,6 +4,16 @@ import './index.css';
 import App from './App.jsx';
 import reportWebVitals from './reportWebVitals';
 
+const isProd = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD) ||
+  process.env.NODE_ENV === 'production';
+if (isProd) {
+  const noop = () => {};
+  console.log = noop;
+  console.debug = noop;
+  console.warn = noop;
+  console.error = noop;
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

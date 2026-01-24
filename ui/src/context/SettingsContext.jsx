@@ -14,7 +14,6 @@ export function SettingsProvider({ children }) {
       setSettings(response.data);
       return response.data;
     } catch (error) {
-      console.error("Failed to load settings from context:", error);
       throw error;
     } finally {
       setLoading(false);

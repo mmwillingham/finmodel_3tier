@@ -7,7 +7,6 @@ const BrokerageService = {
       const response = await ApiService.get('/brokerages/', { params });
       return response.data;
     } catch (error) {
-      console.error('Error fetching brokerages:', error);
       throw error;
     }
   },
@@ -17,7 +16,6 @@ const BrokerageService = {
       const response = await ApiService.get(`/brokerages/${brokerageId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching brokerage:', error);
       throw error;
     }
   },
@@ -27,7 +25,6 @@ const BrokerageService = {
       const response = await ApiService.post('/brokerages/', brokerage);
       return response.data;
     } catch (error) {
-      console.error('Error creating brokerage:', error);
       throw error;
     }
   },
@@ -37,7 +34,6 @@ const BrokerageService = {
       const response = await ApiService.put(`/brokerages/${brokerageId}`, brokerage);
       return response.data;
     } catch (error) {
-      console.error('Error updating brokerage:', error);
       throw error;
     }
   },
@@ -52,7 +48,6 @@ const BrokerageService = {
       }
       await ApiService.delete(`/brokerages/${brokerageId}`, { params });
     } catch (error) {
-      console.error('Error deleting brokerage:', error);
       throw error;
     }
   },
@@ -62,7 +57,6 @@ const BrokerageService = {
       const response = await ApiService.get(`/brokerages/${brokerageId}/usage`);
       return response.data;
     } catch (error) {
-      console.error('Error checking brokerage usage:', error);
       throw error;
     }
   },

@@ -152,7 +152,6 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Table ref is not available for PDF download.");
     }
   };
 
@@ -209,7 +208,6 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
       link.download = `${filename.replace(/\s/g, '_')}.csv`;
       link.click();
     } else {
-      console.warn(`No ${type} items available for CSV download.`);
     }
   };
 
@@ -228,7 +226,6 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         }
       })
       .catch(error => {
-        console.error('Failed to fetch state tax:', error);
         if (!cancelled) {
           setStateTaxValue(null);
         }
@@ -388,7 +385,6 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
                 
                 calculatedYearlyValue = Math.round(taxResult.taxOwed || 0);
               } catch (error) {
-                console.error('Error calculating current year tax in CashFlowView:', error);
                 calculatedYearlyValue = item.yearly_value || 0;
               }
             } else if (isStateTaxItem) {

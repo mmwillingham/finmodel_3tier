@@ -73,7 +73,6 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                     setAccounts(reconstructedAccounts);
                 }
             } catch (e) {
-                console.error("Failed to parse projection data", e);
             }
         }
     }, [editingProjection]);
@@ -147,7 +146,6 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
         } catch (error) {
             const errorMsg = error.response?.data?.detail || "An unexpected error occurred.";
             setMessage(`${isEditing ? 'Update' : 'Calculation'} Failed: ${errorMsg}`);
-            console.error(error);
         }
     };
 

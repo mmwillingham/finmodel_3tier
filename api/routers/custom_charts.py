@@ -1,8 +1,4 @@
 import json
-import traceback
-
-# Disabled verbose debug logging - only keeping tax-related logs
-# # Disabled verbose debug logging - only keeping tax-related logs
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -130,12 +126,13 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
     accounts_for_projection = []
     added_account_names = set()
     linked_asset_ids_needed = set()
+    warnings = []
 
     user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
     projection_years = user_settings.projection_years if user_settings else DEFAULT_PROJECTION_YEARS
 
 
-    for series_config in expanded_series_configs:
+    for idx, series_config in enumerate(expanded_series_configs):
         item_type = series_config.get('data_type')
         item_id = series_config.get('item_id') or series_config.get('selected_item_id')
         if item_id == "" or item_id == 0:
@@ -144,24 +141,26 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
             try:
                 item_id = int(item_id)
             except (ValueError, TypeError):
+                warnings.append(f"Series[{idx}] has invalid item_id: {series_config.get('item_id')}")
                 continue
         category = series_config.get('category')
 
         if item_type and item_id:
             account = fetch_and_convert_item(db, current_user, item_type, item_id)
-            if account:
-                accounts_for_projection.append(account)
-                added_name = account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name
-                added_account_names.add(added_name)
-                if item_type in ['income', 'expenses']:
-                    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
-                    if item:
-                        if item.linked_asset_ids:
-                            for asset_id in item.linked_asset_ids:
-                                linked_asset_ids_needed.add(asset_id)
-                        elif item.linked_item_id:
-                            linked_asset_ids_needed.add(item.linked_item_id)
-            else:
+            if not account:
+                warnings.append(f"Series[{idx}] references missing {item_type} id={item_id}")
+                continue
+            accounts_for_projection.append(account)
+            added_name = account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name
+            added_account_names.add(added_name)
+            if item_type in ['income', 'expenses']:
+                item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
+                if item:
+                    if item.linked_asset_ids:
+                        for asset_id in item.linked_asset_ids:
+                            linked_asset_ids_needed.add(asset_id)
+                    elif item.linked_item_id:
+                        linked_asset_ids_needed.add(item.linked_item_id)
         elif item_type:
             selected_account_ids = _normalize_selected_account_ids(series_config.get('selected_account_ids', []))
 
@@ -301,11 +300,20 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
                     if item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
                         linked_asset_ids_needed.add(item.linked_item_id)
             else:
+                warnings.append(f"Series[{idx}] has unsupported data_type: {item_type}")
+                continue
         else:
+            warnings.append(f"Series[{idx}] missing data_type")
+            continue
 
-    for linked_asset_id in linked_asset_ids_needed:
-        linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_asset_id, models.Asset.owner_id == current_user.id).first()
-        if linked_asset and linked_asset.name not in added_account_names:
+    if linked_asset_ids_needed:
+        linked_assets = db.query(models.Asset).filter(
+            models.Asset.owner_id == current_user.id,
+            models.Asset.id.in_(linked_asset_ids_needed)
+        ).all()
+        for linked_asset in linked_assets:
+            if linked_asset.name in added_account_names:
+                continue
             accounts_for_projection.append(schemas.ProjectedAccountCreate(
                 name=linked_asset.name,
                 account_type='asset',
@@ -505,7 +513,8 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
         accounts_for_projection,
         projection_years,
         all_income_items,
-        all_expense_items
+        all_expense_items,
+        warnings
     )
 
 
@@ -515,101 +524,100 @@ try:
         tags=["Custom Charts"],
         responses={404: {"description": "Not found"}},
     )
-    # Disabled verbose debug logging
 except Exception as e:
     raise
 
 def fetch_and_convert_item(db: Session, current_user: models.User, item_type: str, item_id: int) -> Optional[schemas.ProjectedAccountCreate]:
     if item_type == 'assets':
         item = db.query(models.Asset).filter(models.Asset.id == item_id, models.Asset.owner_id == current_user.id).first()
-        if item:
-            # Contributions from expenses are now handled by backend calculations.py
-            return schemas.ProjectedAccountCreate(
-                name=item.name,
-                account_type='asset',
-                initial_value=item.value,
-                contribution=0.0,  # Contributions from expenses are now handled by backend
-                growth_rate=item.annual_increase_percent,
-                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                start_date=item.start_date, end_date=item.end_date
-            )
-        else:
+        if not item:
+            return None
+        # Contributions from expenses are now handled by backend calculations.py
+        return schemas.ProjectedAccountCreate(
+            name=item.name,
+            account_type='asset',
+            initial_value=item.value,
+            contribution=0.0,  # Contributions from expenses are now handled by backend
+            growth_rate=item.annual_increase_percent,
+            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+            start_date=item.start_date, end_date=item.end_date
+        )
     elif item_type == 'liabilities':
         item = db.query(models.Liability).filter(models.Liability.id == item_id, models.Liability.owner_id == current_user.id).first()
-        if item:
-            return schemas.ProjectedAccountCreate(
-                name=item.name,
-                account_type='liability',
-                initial_value=-abs(item.value),
-                contribution=0.0,
-                growth_rate=item.annual_increase_percent,
-                loan_type=item.loan_type,
-                principal_amount=item.principal_amount,
-                interest_rate=item.interest_rate,
-                loan_term_months=item.loan_term_months,
-                loan_start_date=item.loan_start_date,
-                monthly_payment=item.monthly_payment,
-                start_date=item.start_date, end_date=item.end_date
-            )
-        else:
+        if not item:
+            return None
+        return schemas.ProjectedAccountCreate(
+            name=item.name,
+            account_type='liability',
+            initial_value=-abs(item.value),
+            contribution=0.0,
+            growth_rate=item.annual_increase_percent,
+            loan_type=item.loan_type,
+            principal_amount=item.principal_amount,
+            interest_rate=item.interest_rate,
+            loan_term_months=item.loan_term_months,
+            loan_start_date=item.loan_start_date,
+            monthly_payment=item.monthly_payment,
+            start_date=item.start_date, end_date=item.end_date
+        )
     elif item_type in ['income', 'expenses']:
         is_income_item = (item_type == 'income')
         item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
-        if item:
-            account_type = 'income' if is_income_item else 'expense'
-            # For dynamic items (linked to asset or income), contribution will be recalculated each year in projection
-            # Store initial contribution as 0 for dynamic items - it will be recalculated based on linked asset/income
-            contribution = 0.0
-            if item.linked_item_type == "asset" and item.percentage is not None:
-                # Check for multi-select linked assets first
-                if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
-                    # Multi-select: Get all linked asset names
-                    linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
-                    if linked_assets:
-                        # Store linked asset names (comma-separated) in account name with special marker
-                        # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0"
-                        asset_names = [asset.name for asset in linked_assets]
-                        linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
-                        account_name = item.description + linked_marker
-                    else:
-                        account_name = item.description
-                elif item.linked_item_id:
-                    # Single linked asset (backward compatibility)
-                    linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
-                    if linked_asset:
-                        # Store linked asset name in account name with special marker for projection calculation
-                        # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
-                        linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
-                        account_name = item.description + linked_marker
-                    else:
-                        account_name = item.description
+        if not item:
+            return None
+        account_type = 'income' if is_income_item else 'expense'
+        # For dynamic items (linked to asset or income), contribution will be recalculated each year in projection
+        # Store initial contribution as 0 for dynamic items - it will be recalculated based on linked asset/income
+        contribution = 0.0
+        if item.linked_item_type == "asset" and item.percentage is not None:
+            # Check for multi-select linked assets first
+            if item.linked_asset_ids and len(item.linked_asset_ids) > 0:
+                # Multi-select: Get all linked asset names
+                linked_assets = db.query(models.Asset).filter(models.Asset.id.in_(item.linked_asset_ids)).all()
+                if linked_assets:
+                    # Store linked asset names (comma-separated) in account name with special marker
+                    # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0"
+                    asset_names = [asset.name for asset in linked_assets]
+                    linked_marker = f"|LINKED:{','.join(asset_names)}|PERCENTAGE:{item.percentage}"
+                    account_name = item.description + linked_marker
                 else:
                     account_name = item.description
-            elif item.linked_item_type == "income" and item.percentage is not None:
-                # Linked to income - add marker so calculations.py recognizes it
-                linked_income = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item.linked_item_id, models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == True).first()
-                if linked_income:
-                    # Store linked income name in account name with special marker for projection calculation
-                    # Format: "ItemName|LINKED_INCOME:IncomeName|PERCENTAGE:10.0"
-                    linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
+            elif item.linked_item_id:
+                # Single linked asset (backward compatibility)
+                linked_asset = db.query(models.Asset).filter(models.Asset.id == item.linked_item_id).first()
+                if linked_asset:
+                    # Store linked asset name in account name with special marker for projection calculation
+                    # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0"
+                    linked_marker = f"|LINKED:{linked_asset.name}|PERCENTAGE:{item.percentage}"
                     account_name = item.description + linked_marker
                 else:
                     account_name = item.description
             else:
                 account_name = item.description
-                contribution = item.yearly_value / 12 if is_income_item else -(item.yearly_value / 12)
-            
-            return schemas.ProjectedAccountCreate(
-                name=account_name,
-                account_type=account_type,
-                initial_value=0.0,
-                contribution=contribution,
-                growth_rate=item.annual_increase_percent if is_income_item else item.inflation_percent,
-                loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
-                start_date=item.start_date, end_date=item.end_date,
-                cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
-            )
+        elif item.linked_item_type == "income" and item.percentage is not None:
+            # Linked to income - add marker so calculations.py recognizes it
+            linked_income = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item.linked_item_id, models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.is_income == True).first()
+            if linked_income:
+                # Store linked income name in account name with special marker for projection calculation
+                # Format: "ItemName|LINKED_INCOME:IncomeName|PERCENTAGE:10.0"
+                linked_marker = f"|LINKED_INCOME:{linked_income.description}|PERCENTAGE:{item.percentage}"
+                account_name = item.description + linked_marker
+            else:
+                account_name = item.description
         else:
+            account_name = item.description
+            contribution = item.yearly_value / 12 if is_income_item else -(item.yearly_value / 12)
+        
+        return schemas.ProjectedAccountCreate(
+            name=account_name,
+            account_type=account_type,
+            initial_value=0.0,
+            contribution=contribution,
+            growth_rate=item.annual_increase_percent if is_income_item else item.inflation_percent,
+            loan_type=None, principal_amount=None, interest_rate=None, loan_term_months=None, loan_start_date=None, monthly_payment=None,
+            start_date=item.start_date, end_date=item.end_date,
+            cash_flow_item_id=item.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
+        )
     return None
 
 @router.post("", response_model=schemas.CustomChartOut, status_code=status.HTTP_201_CREATED)
@@ -724,6 +732,7 @@ def create_custom_chart(
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
         projection_years = user_settings.projection_years if user_settings else DEFAULT_PROJECTION_YEARS
 
+        warnings = []
         
         # First pass: Add all selected accounts and track dynamic items that need linked assets
         dynamic_items_needing_assets = []
@@ -740,23 +749,29 @@ def create_custom_chart(
                 try:
                     item_id = int(item_id)
                 except (ValueError, TypeError):
+                    warnings.append(f"Series config has invalid item_id: {series_config.get('item_id')}")
                     continue
             category = series_config.get('category')
 
-            if item_type and item_id: # Specific item selected
+            if not item_type:
+                warnings.append("Series config missing data_type")
+                continue
+
+            if item_id: # Specific item selected
                 account = fetch_and_convert_item(db, current_user, item_type, item_id)
-                if account:
-                    accounts_for_projection.append(account)
-                    # Clean account name (remove LINKED marker if present) before adding to set
-                    clean_account_name = account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name
-                    added_account_names.add(clean_account_name)
-                    # If this is a dynamic cashflow item linked to an asset, track it
-                    if item_type in ['income', 'expenses']:
-                        item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
-                        if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                            linked_asset_ids_needed.add(item.linked_item_id)
-                else:
-            elif item_type and item_id is None: # Aggregate type selected (e.g., "all income" or "all items in a category")
+                if not account:
+                    warnings.append(f"Series config references missing {item_type} id={item_id}")
+                    continue
+                accounts_for_projection.append(account)
+                # Clean account name (remove LINKED marker if present) before adding to set
+                clean_account_name = account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name
+                added_account_names.add(clean_account_name)
+                # If this is a dynamic cashflow item linked to an asset, track it
+                if item_type in ['income', 'expenses']:
+                    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
+                    if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                        linked_asset_ids_needed.add(item.linked_item_id)
+            elif item_id is None: # Aggregate type selected (e.g., "all income" or "all items in a category")
                 # Get selected account IDs from series config
                 selected_account_ids = series_config.get('selected_account_ids', [])
                 if isinstance(selected_account_ids, str):
@@ -907,12 +922,18 @@ def create_custom_chart(
                         ))
                         added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
                 else:
-            else:
+                    warnings.append(f"Series config has unsupported data_type: {item_type}")
+                    continue
 
         # Auto-include any linked assets that are needed by dynamic items but not already in projection
-        for linked_asset_id in linked_asset_ids_needed:
-            linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_asset_id, models.Asset.owner_id == current_user.id).first()
-            if linked_asset and linked_asset.name not in added_account_names:
+        if linked_asset_ids_needed:
+            linked_assets = db.query(models.Asset).filter(
+                models.Asset.owner_id == current_user.id,
+                models.Asset.id.in_(linked_asset_ids_needed)
+            ).all()
+            for linked_asset in linked_assets:
+                if linked_asset.name in added_account_names:
+                    continue
                 asset_account = schemas.ProjectedAccountCreate(
                     name=linked_asset.name,
                     account_type='asset',
@@ -1126,7 +1147,6 @@ def create_custom_chart(
                     cash_flow_item_id=federal_tax_expense.id  # NEW: Store cash_flow_item_id for reliable ID-based lookups
                 ))
                 included_expense_names.add(FEDERAL_TAX_EXPENSE_DESCRIPTION)
-            elif not federal_tax_expense:
             elif FEDERAL_TAX_EXPENSE_DESCRIPTION in included_expense_names:
                 pass
         elif not user_settings:
@@ -1155,7 +1175,12 @@ def create_custom_chart(
                 ))
                 included_expense_names.add(STATE_TAX_EXPENSE_DESCRIPTION)
 
-        # Disabled verbose debug logging - JSON dumps are very large
+
+        if warnings:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"message": "Invalid series configuration", "issues": warnings}
+            )
         
         import calculations # Lazy import (absolute import like liabilities.py uses)
         projection_results = calculations.calculate_projection(
@@ -1188,7 +1213,6 @@ def create_custom_chart(
             liability_names=liability_names
         )
         
-        # Disabled verbose debug logging - data_json dumps are huge
 
         # Explicitly assign each field to ensure data_json is not missed
         db_chart = models.CustomChart(
@@ -1208,7 +1232,6 @@ def create_custom_chart(
         db.add(db_chart)
         db.commit()
         db.refresh(db_chart)
-        # Disabled verbose debug logging
         return db_chart
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
@@ -1263,7 +1286,6 @@ def read_custom_chart(
     if not has_permission:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this chart")
     
-    # Disabled verbose debug logging - data_json dumps are huge
     return chart
 
 @router.put("/{chart_id}", response_model=schemas.CustomChartOut)
@@ -1328,7 +1350,13 @@ def update_custom_chart(
             projection_years,
             all_income_items,
             all_expense_items
+            , warnings
         ) = build_projection_accounts(series_configs, db, current_user)
+        if warnings:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"message": "Invalid series configuration", "issues": warnings}
+            )
         series_configs = expanded_series_configs
         chart_update.series_configurations = json.dumps(series_configs)
 
@@ -1374,6 +1402,7 @@ def update_custom_chart(
         # This ensures charts are always up-to-date when saved
         if db_chart.series_configurations:
             series_configs = json.loads(db_chart.series_configurations)
+            warnings = []
             accounts_for_projection = []
             added_account_names = set()
             linked_asset_ids_needed = set()
@@ -1385,6 +1414,9 @@ def update_custom_chart(
             # (This is a simplified version - in production, extract to a helper function)
             for series_config in series_configs:
                 item_type = series_config.get('data_type')
+                if not item_type:
+                    warnings.append("Series config missing data_type")
+                    continue
                 item_id = series_config.get('item_id') or series_config.get('selected_item_id')
                 if item_id == "" or item_id == 0:
                     item_id = None
@@ -1392,6 +1424,7 @@ def update_custom_chart(
                     try:
                         item_id = int(item_id)
                     except (ValueError, TypeError):
+                        warnings.append(f"Series config has invalid item_id: {series_config.get('item_id')}")
                         continue
                 category = series_config.get('category')
                 selected_account_ids = series_config.get('selected_account_ids', [])
@@ -1403,13 +1436,15 @@ def update_custom_chart(
                 
                 if item_type and item_id:
                     account = fetch_and_convert_item(db, current_user, item_type, item_id)
-                    if account:
-                        accounts_for_projection.append(account)
-                        added_account_names.add(account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name)
-                        if item_type in ['income', 'expenses']:
-                            item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
-                            if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
-                                linked_asset_ids_needed.add(item.linked_item_id)
+                    if not account:
+                        warnings.append(f"Series config references missing {item_type} id={item_id}")
+                        continue
+                    accounts_for_projection.append(account)
+                    added_account_names.add(account.name.split("|LINKED:")[0] if "|LINKED:" in account.name else account.name)
+                    if item_type in ['income', 'expenses']:
+                        item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id, models.CashFlowItem.owner_id == current_user.id).first()
+                        if item and item.linked_item_id and item.linked_item_type == "asset" and item.percentage is not None:
+                            linked_asset_ids_needed.add(item.linked_item_id)
                 elif item_type and item_id is None:
                     # Handle aggregate items (all items of a type/category)
                     if item_type == 'assets':
@@ -1524,15 +1559,19 @@ def update_custom_chart(
                                 start_date=item.start_date, end_date=item.end_date
                             ))
                             added_account_names.add(account_name.split("|LINKED:")[0] if "|LINKED:" in account_name else account_name)
-                            # Extract base name for LINKED_INCOME markers too
-                            if "|LINKED_INCOME:" in account_name:
-                                base_name = account_name.split("|LINKED_INCOME:")[0]
-                                added_account_names.add(base_name)
+                    else:
+                        warnings.append(f"Series config has unsupported data_type: {item_type}")
+                        continue
 
             # Auto-include linked assets
-            for linked_asset_id in linked_asset_ids_needed:
-                linked_asset = db.query(models.Asset).filter(models.Asset.id == linked_asset_id, models.Asset.owner_id == current_user.id).first()
-                if linked_asset and linked_asset.name not in added_account_names:
+            if linked_asset_ids_needed:
+                linked_assets = db.query(models.Asset).filter(
+                    models.Asset.owner_id == current_user.id,
+                    models.Asset.id.in_(linked_asset_ids_needed)
+                ).all()
+                for linked_asset in linked_assets:
+                    if linked_asset.name in added_account_names:
+                        continue
                     asset_account = schemas.ProjectedAccountCreate(
                         name=linked_asset.name,
                         account_type='asset',
@@ -1699,6 +1738,12 @@ def update_custom_chart(
                     ))
                     included_expense_names.add(STATE_TAX_EXPENSE_DESCRIPTION)
 
+            if warnings:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"message": "Invalid series configuration", "issues": warnings}
+                )
+
             try:
                 import calculations
                 projection_results = calculations.calculate_projection(
@@ -1748,44 +1793,49 @@ def recalculate_all_charts(
     errors = []
     
     for db_chart in charts:
+        if not db_chart.series_configurations:
+            continue
         try:
             # Recalculate the chart by rebuilding the projection from its series_configurations
             # We reuse the logic from update_custom_chart by directly updating the chart
-            if db_chart.series_configurations:
-                series_configs = json.loads(db_chart.series_configurations)
-
-                (
-                    expanded_series_configs,
-                    accounts_for_projection,
-                    projection_years,
-                    _,
-                    _
-                ) = build_projection_accounts(series_configs, db, current_user)
-                series_configs = expanded_series_configs
-
-                import calculations
-                projection_results = calculations.calculate_projection(
-                    years=projection_years,
-                    accounts=accounts_for_projection,
-                    db=db,
-                    owner_id=current_user.id
+            series_configs = json.loads(db_chart.series_configurations)
+            (
+                expanded_series_configs,
+                accounts_for_projection,
+                projection_years,
+                _,
+                _,
+                warnings
+            ) = build_projection_accounts(series_configs, db, current_user)
+            if warnings:
+                errors.append(
+                    f"Chart '{db_chart.name}' (ID: {db_chart.id}) has invalid series configs: {warnings}"
                 )
-                
-                # Evaluate formulas for formula-based series
-                projection_results = evaluate_chart_formulas(
-                    projection_results,
-                    series_configs,
-                    projection_years
-                )
-                
-                # Update chart
-                db_chart.data_json = projection_results["data_json"]
-                db_chart.final_value = projection_results["final_value"]
-                db_chart.total_contributed = projection_results["total_contributed"]
-                db_chart.total_growth = projection_results["total_growth"]
-                db.add(db_chart)
-                recalculated_count += 1
-            else:
+                continue
+            series_configs = expanded_series_configs
+
+            import calculations
+            projection_results = calculations.calculate_projection(
+                years=projection_years,
+                accounts=accounts_for_projection,
+                db=db,
+                owner_id=current_user.id
+            )
+            
+            # Evaluate formulas for formula-based series
+            projection_results = evaluate_chart_formulas(
+                projection_results,
+                series_configs,
+                projection_years
+            )
+            
+            # Update chart
+            db_chart.data_json = projection_results["data_json"]
+            db_chart.final_value = projection_results["final_value"]
+            db_chart.total_contributed = projection_results["total_contributed"]
+            db_chart.total_growth = projection_results["total_growth"]
+            db.add(db_chart)
+            recalculated_count += 1
         except Exception as e:
             error_msg = f"Error recalculating chart '{db_chart.name}' (ID: {db_chart.id}): {str(e)}"
             errors.append(error_msg)
@@ -1833,8 +1883,14 @@ def recalculate_chart(
             accounts_for_projection,
             projection_years,
             _,
-            _
+        _,
+        warnings
         ) = build_projection_accounts(series_configs, db, current_user)
+    if warnings:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "Invalid series configuration", "issues": warnings}
+        )
         series_configs = expanded_series_configs
 
         # Recalculate projection

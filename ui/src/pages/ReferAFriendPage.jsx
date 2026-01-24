@@ -32,7 +32,6 @@ const ReferAFriendPage = () => {
       setReferrals(referralsRes || []);
       setStats(statsRes || { total_referrals: 0, registered_referrals: 0, pending_referrals: 0 });
     } catch (error) {
-      console.error('Failed to load referrals', error);
       setReferrals([]);
       setStats({ total_referrals: 0, registered_referrals: 0, pending_referrals: 0 });
     } finally {
@@ -68,7 +67,6 @@ const ReferAFriendPage = () => {
       loadReferrals(); // Reload the list
       setTimeout(() => setMessage(''), 5000);
     } catch (error) {
-      console.error('Failed to create referral', error);
       const errorMessage = error.response?.data?.detail || 'Error submitting referral. Please try again.';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 5000);

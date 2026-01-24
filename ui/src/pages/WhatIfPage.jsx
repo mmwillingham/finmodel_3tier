@@ -42,7 +42,6 @@ const WhatIfPage = () => {
         setAnswer(fullAnswer);
       });
     } catch (err) {
-      console.error('Error asking question:', err);
       setError(err.message || 'Failed to get answer. Please try again.');
     } finally {
       setLoading(false);

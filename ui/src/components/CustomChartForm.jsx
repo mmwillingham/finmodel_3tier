@@ -102,7 +102,6 @@ export default function CustomChartForm({
           setYAxisLabel(chart.y_axis_label || "");
         })
         .catch(error => {
-          console.error("Error loading chart for edit:", error);
           setMessage("Failed to load chart data.");
         })
         .finally(() => setLoading(false));
@@ -245,7 +244,6 @@ export default function CustomChartForm({
       }
       onChartSaved();
     } catch (error) {
-      console.error("Error saving chart:", error.response?.data?.detail || error.message);
       setMessage("Failed to save chart: " + (error.response?.data?.detail || error.message));
     } finally {
       setLoading(false);
@@ -377,7 +375,6 @@ export default function CustomChartForm({
       setMessage('Itemization removed. All series now show aggregated data.');
       setTimeout(() => setMessage(''), 5000);
     } catch (error) {
-      console.error('Error removing itemization:', error);
       setMessage(`Failed to remove itemization: ${error.response?.data?.detail || error.message}`);
       setTimeout(() => setMessage(''), 5000);
     } finally {

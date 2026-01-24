@@ -28,7 +28,6 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
       const accountsData = await AccountService.getAllAccounts();
       setAccounts(accountsData);
     } catch (e) {
-      console.error('Failed to load accounts', e);
     }
   };
 
@@ -67,7 +66,6 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }) => {
       await loadAccounts();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
-      console.error('Failed to create account', e);
       setMessage(e.response?.data?.detail || 'Error creating account');
       setTimeout(() => setMessage(''), 3000);
     } finally {

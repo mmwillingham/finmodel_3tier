@@ -115,7 +115,6 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Table ref is not available for PDF download.");
     }
   };
 
@@ -166,7 +165,6 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
       link.download = `${filename.replace(/\s/g, '_')}.csv`;
       link.click();
     } else {
-      console.warn("No data available for Liabilities CSV download.");
     }
   };
 

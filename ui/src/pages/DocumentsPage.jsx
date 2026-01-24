@@ -54,7 +54,6 @@ const DocumentsPage = ({ hideSidebar = false }) => {
       setDocuments(documentsData);
     } catch (err) {
       setError('Failed to load folder contents');
-      console.error(err);
     } finally {
       setLoading(false);
     }

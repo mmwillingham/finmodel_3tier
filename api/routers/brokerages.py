@@ -6,9 +6,7 @@ import schemas
 import auth
 import database
 from utils.permission_dependencies import get_accessible_user_ids
-import logging
 
-logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/brokerages",
@@ -25,7 +23,6 @@ def list_brokerages(
     """List all brokerages the current user can access.
     If viewing_user_id is None, only show the current user's own brokerages.
     If viewing_user_id is provided, filter to that specific user's brokerages (must be accessible)."""
-    logger.debug(f"list_brokerages: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
     
     # Default to only showing current user's brokerages when viewingUserId is None
     if viewing_user_id is None:

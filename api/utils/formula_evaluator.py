@@ -5,8 +5,7 @@ Evaluates formulas using projection data to create derived series.
 
 import logging
 import re
-from typing import Dict, List, Any, Optional
-from typing import Union
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -84,13 +83,6 @@ def evaluate_formula(
     num_years = len(projection_data)
     results = []
     
-    # Log series values for debugging (only once, before the loop)
-    if num_years > 0:
-        logger.info(f"Formula evaluator: Formula='{formula}', Available series_values keys: {list(series_values.keys())}")
-        for key, values in series_values.items():
-            if len(values) >= 2:
-                logger.info(f"  {key}: [{values[0]:.2f}, {values[1]:.2f}, ...] (first 2 years)")
-    
     # Build a context dictionary for each year
     for year_index in range(num_years):
         year_data = projection_data[year_index]
@@ -101,9 +93,6 @@ def evaluate_formula(
             if year_index < len(values):
                 # Use the series reference as-is (label or ID)
                 context[series_ref] = values[year_index]
-                # Log context values for first 2 years
-                if year_index < 2:
-                    logger.info(f"  Year {year_index} context[{series_ref}] = {values[year_index]:.2f}")
         
         # Add projection fields to context (replace spaces with underscores for formula access)
         for key, value in year_data.items():
@@ -158,10 +147,6 @@ def evaluate_formula(
             # Now remove spaces for easier parsing (after quoted strings are replaced)
             evaluated_formula = evaluated_formula.replace(' ', '')
             
-            # Log context keys for debugging (first 2 years only)
-            if year_index < 2:
-                logger.info(f"  Year {year_index} context keys: {list(context.keys())}")
-                logger.info(f"  Year {year_index} formula before Series_X replacement: {evaluated_formula}")
             
             # Replace Series_X references (case-insensitive lookup)
             # Collect all matches first, then replace in reverse order to avoid position shifts
@@ -178,7 +163,6 @@ def evaluate_formula(
                 
                 if series_id_key and series_id_key in context:
                     replacement_value = str(context[series_id_key])
-                    logger.info(f"  Replacing {series_id_matched} with {replacement_value} (from context key: {series_id_key})")
                     series_replacements.append((series_id_matched, replacement_value))
                 else:
                     logger.error(f"  ERROR: Could not find {series_id_matched} in context! Available keys: {list(context.keys())}")
@@ -190,10 +174,6 @@ def evaluate_formula(
                     series_id_matched,
                     replacement_value
                 )
-            
-            # Log formula after Series_X replacement (for first 2 years)
-            if year_index < 2:
-                logger.info(f"  Year {year_index} formula after Series_X replacement: {evaluated_formula}")
             
             # Replace field references (but not quoted strings - already processed)
             # Also skip Series_X keys since we already processed them
@@ -211,17 +191,8 @@ def evaluate_formula(
                     continue
                 # Replace all occurrences of the key (as a whole word)
                 pattern = r'\b' + re.escape(str(key)) + r'\b'
-                # Check if replacement would happen and log it
                 if re.search(pattern, evaluated_formula, flags=re.IGNORECASE):
-                    if year_index < 2:
-                        logger.info(f"  Year {year_index} Would replace field reference '{key}' (value: {value}) in formula")
                     evaluated_formula = re.sub(pattern, str(value), evaluated_formula, flags=re.IGNORECASE)
-                    if year_index < 2:
-                        logger.info(f"  Year {year_index} After replacing '{key}': {evaluated_formula}")
-            
-            # Log the final formula before evaluation (for first 2 years only)
-            if year_index < 2:
-                logger.info(f"  Year {year_index} formula after replacements: {evaluated_formula}")
             
             # Evaluate the formula safely
             # Only allow math operations and function calls
@@ -242,10 +213,6 @@ def evaluate_formula(
                 continue
             
             result = eval(safe_formula, allowed_names)
-            
-            # Log the result (for first 2 years only)
-            if year_index < 2:
-                logger.info(f"  Year {year_index} formula result: {result}")
             
             # Convert result to float
             if isinstance(result, (int, float)):

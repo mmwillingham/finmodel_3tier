@@ -20,7 +20,6 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
       const response = await CustomChartService.getAll(viewingUserId);
       setCharts(response.data);
     } catch (error) {
-      console.error("Error fetching custom charts:", error);
       setMessage("Failed to load custom charts.");
     } finally {
       setLoading(false);
@@ -41,7 +40,6 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
       // Dispatch event to notify CustomChartView to refresh
       window.dispatchEvent(new CustomEvent('chartRecalculated', { detail: { chartId } }));
     } catch (error) {
-      console.error("Error recalculating chart:", error);
       setMessage("Failed to recalculate chart.");
     } finally {
       setRecalculatingChartId(null);
@@ -59,7 +57,6 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
           setMessage("Chart deleted successfully!");
           fetchCharts(); // Refresh the list
         } catch (error) {
-          console.error("Error deleting custom chart:", error);
           setMessage("Failed to delete chart.");
         }
       }
@@ -84,7 +81,6 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
           // Dispatch event to notify CustomChartView to refresh all charts
           window.dispatchEvent(new CustomEvent('chartRecalculated', { detail: { chartId: 'all' } }));
         } catch (error) {
-          console.error("Error recalculating charts:", error);
           setMessage("Failed to recalculate charts. Please try again.");
         } finally {
           setRecalculating(false);

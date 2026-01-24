@@ -52,7 +52,6 @@ const AccountsSettingsPage = () => {
       setAccounts(accountsData || []);
       setBrokerages(brokeragesData || []);
     } catch (e) {
-      console.error('Failed to load data', e);
       setError('Failed to load data.');
     } finally {
       setLoading(false);
@@ -78,7 +77,6 @@ const AccountsSettingsPage = () => {
       loadData();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
-      console.error('Failed to create brokerage', e);
       const errorMessage = e.response?.data?.detail || 'Error creating brokerage';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
@@ -104,7 +102,6 @@ const AccountsSettingsPage = () => {
       loadData();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
-      console.error('Failed to create account', e);
       const errorMessage = e.response?.data?.detail || 'Error creating account';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
@@ -133,7 +130,6 @@ const AccountsSettingsPage = () => {
       loadData();
       setTimeout(() => setMessage(''), 2000);
     } catch (e) {
-      console.error('Failed to update account', e);
       const errorMessage = e.response?.data?.detail || 'Error updating account';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
@@ -155,7 +151,6 @@ const AccountsSettingsPage = () => {
           setTimeout(() => setMessage(''), 3000);
           setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
         } catch (e) {
-          console.error('Failed to delete account', e);
           const errorMessage = e.response?.data?.detail || 'Error deleting account';
           setMessage(errorMessage);
           setTimeout(() => setMessage(''), 3000);
@@ -189,7 +184,6 @@ const AccountsSettingsPage = () => {
               setTimeout(() => setMessage(''), 3000);
               setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
             } catch (e) {
-              console.error('Failed to delete brokerage', e);
               const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
               setMessage(errorMessage);
               setTimeout(() => setMessage(''), 3000);
@@ -203,7 +197,6 @@ const AccountsSettingsPage = () => {
               setTimeout(() => setMessage(''), 3000);
               setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
             } catch (e) {
-              console.error('Failed to delete brokerage', e);
               const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
               setMessage(errorMessage);
               setTimeout(() => setMessage(''), 3000);
@@ -232,7 +225,6 @@ const AccountsSettingsPage = () => {
             setTimeout(() => setMessage(''), 2000);
             setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
           } catch (e) {
-            console.error('Failed to delete brokerage', e);
             const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
             setMessage(errorMessage);
             setTimeout(() => setMessage(''), 3000);
@@ -243,7 +235,6 @@ const AccountsSettingsPage = () => {
         showCascadeOption: false
       });
     } catch (e) {
-      console.error('Failed to check brokerage usage', e);
       const errorMessage = e.response?.data?.detail || 'Error checking brokerage usage';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
@@ -273,7 +264,6 @@ const AccountsSettingsPage = () => {
       handleCancelRename();
       loadData();
     } catch (e) {
-      console.error('Failed to rename brokerage', e);
       const errorMessage = e.response?.data?.detail || 'Error renaming brokerage';
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);

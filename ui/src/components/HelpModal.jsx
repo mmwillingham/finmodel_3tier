@@ -20,7 +20,6 @@ const HelpModal = ({ isOpen, onClose }) => {
       const content = await globalSettingsService.getHelpAboutContent();
       setHelpContent(content.help_content || '<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>');
     } catch (err) {
-      console.error('Failed to fetch help content:', err);
       setError('Failed to load help content.');
       setHelpContent('<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>'); // Fallback content
     } finally {
@@ -56,7 +55,6 @@ const HelpModal = ({ isOpen, onClose }) => {
       setIsEditing(false);
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      console.error('Failed to save help content:', err);
       setMessage('Failed to save help content.');
     }
   };

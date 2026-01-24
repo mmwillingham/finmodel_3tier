@@ -1,21 +1,31 @@
 import json
-import logging
-import traceback
-import sys
-# Disabled verbose debug logging - only keeping tax-related logs
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from sqlalchemy.orm import Session
 import models
 import schemas # Import schemas for type hinting
-from datetime import date, datetime # Import datetime for parsing loan_start_date
+from datetime import date
 from math import pow # NEW: For amortization calculation
 from utils.tax_calculator import calculate_taxable_income, calculate_state_taxable_income # NEW: For federal and state tax calculation
+from calculation_helpers import (
+    apply_contributing_expenses_for_year,
+    apply_reinvestment_for_year,
+    apply_surplus_transfer_for_year,
+    apply_taxes_for_year,
+    build_account_values_for_year,
+    compute_dynamic_cashflow,
+    build_asset_name_by_id,
+    build_assets_by_id,
+    build_items_by_description,
+    build_items_by_id,
+    build_liabilities_by_name,
+    recalculate_total_assets,
+    build_year_bounds,
+    calculate_year_fraction_dates,
+    parse_date_value,
+)
 
-
-logger = logging.getLogger(__name__)
-
-def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optional[str], projection_year: int) -> float:
+def calculate_year_fraction(start_date_str: Optional[Union[str, date]], end_date_str: Optional[Union[str, date]], projection_year: int) -> float:
     """
     Calculate the fraction of a year an item is active based on start_date and end_date.
     Returns a value between 0 and 1 representing the fraction of the year.
@@ -29,109 +39,13 @@ def calculate_year_fraction(start_date_str: Optional[str], end_date_str: Optiona
     Returns:
         Fraction of the year (0 to 1), e.g., 0.5833 for 7 months, 1.0 for one-time items
     """
-    # Convert to string if not already (handles date objects) and normalize
-    if start_date_str is not None:
-        if not isinstance(start_date_str, str):
-            start_date_str = str(start_date_str) if hasattr(start_date_str, 'isoformat') else None
-        else:
-            start_date_str = start_date_str.strip() if start_date_str.strip() else None
-    if end_date_str is not None:
-        if not isinstance(end_date_str, str):
-            end_date_str = str(end_date_str) if hasattr(end_date_str, 'isoformat') else None
-        else:
-            end_date_str = end_date_str.strip() if end_date_str.strip() else None
-    
-    # Log input values for debugging (using info level to ensure visibility)
-    logger.info(f"calculate_year_fraction CALLED: start_date={start_date_str}, end_date={end_date_str}, year={projection_year}")
-    
-    year_start = date(projection_year, 1, 1)  # January 1 of the year
-    year_end = date(projection_year, 12, 31)  # December 31 of the year
-    
-    # Parse dates first to check for one-time items
-    start_date_obj = None
-    end_date_obj = None
-    
-    if start_date_str:
-        try:
-            start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-        except (ValueError, TypeError) as e:
-            logger.debug(f"Failed to parse start_date '{start_date_str}': {e}")
-            pass
-    
-    if end_date_str:
-        try:
-            end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-        except (ValueError, TypeError) as e:
-            logger.debug(f"Failed to parse end_date '{end_date_str}': {e}")
-            pass
-    
-    item_start = year_start  # Default to start of year if no start_date
-    item_end = year_end  # Default to end of year if no end_date
-    
-    if start_date_obj:
-        # If item starts during the year, use that date; otherwise use year start
-        item_start = start_date_obj if start_date_obj > year_start else year_start
-    
-    if end_date_obj:
-        # If item ends during the year, use that date; otherwise use year end
-        item_end = end_date_obj if end_date_obj < year_end else year_end
-    
-    # Special handling for one-time items (start_date == end_date)
-    # Check using parsed date objects first (more reliable)
-    if start_date_obj is not None and end_date_obj is not None and start_date_obj == end_date_obj:
-        # This is a one-time item - return 1.0 for the year it falls in
-        if year_start <= start_date_obj <= year_end:
-            logger.debug(f"One-time item detected (date object match): start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 1.0")
-            return 1.0
-        else:
-            logger.debug(f"One-time item outside year: start_date={start_date_str}, end_date={end_date_str}, date={start_date_obj}, year={projection_year}, returning 0.0")
-            return 0.0
-    
-    # Also check string comparison as fallback
-    if start_date_str and end_date_str and start_date_str == end_date_str:
-        try:
-            one_time_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-            if year_start <= one_time_date <= year_end:
-                logger.debug(f"One-time item detected (string match): start_date={start_date_str}, end_date={end_date_str}, year={projection_year}, returning 1.0")
-                return 1.0
-            else:
-                return 0.0
-        except (ValueError, TypeError) as e:
-            logger.debug(f"One-time string check failed: start_date={start_date_str}, end_date={end_date_str}, error={e}")
-            pass
-    
-    # If item ends before year starts or starts after year ends, return 0
-    if item_end < year_start or item_start > year_end:
-        return 0.0
-    
-    # Note: One-time check is now done at the top of the function using parsed date objects
-    
-    # Calculate the overlap period
-    overlap_start = item_start if item_start > year_start else year_start
-    overlap_end = item_end if item_end < year_end else year_end
-    
-    # Final check: if overlap_start == overlap_end and both are within the year,
-    # this is a one-time item - return 1.0 for the full year
-    if overlap_start == overlap_end and year_start <= overlap_start <= year_end:
-        logger.debug(f"One-time item detected (overlap check): start_date={start_date_str}, end_date={end_date_str}, overlap_start={overlap_start}, overlap_end={overlap_end}, year={projection_year}, returning 1.0")
-        return 1.0
-    
-    # Calculate days in overlap (add 1 to include both start and end days)
-    overlap_days = (overlap_end - overlap_start).days + 1
-    
-    # Debug logging for one-time items that fall through to day calculation
-    if start_date_str and end_date_str and start_date_str == end_date_str:
-        logger.warning(f"WARNING - One-time item falling through to day calculation: start_date={start_date_str}, end_date={end_date_str}, overlap_days={overlap_days}, year={projection_year}, item_start={item_start}, item_end={item_end}, overlap_start={overlap_start}, overlap_end={overlap_end}")
-    
-    # Calculate fraction (days / days in year)
-    days_in_year = (year_end - year_start).days + 1
-    
-    if days_in_year == 0:
-        return 0.0
-    
-    fraction = overlap_days / days_in_year
-    
-    return max(0.0, min(1.0, fraction))  # Clamp between 0 and 1
+    year_start = date(projection_year, 1, 1)
+    year_end = date(projection_year, 12, 31)
+
+    start_date_obj = parse_date_value(start_date_str)
+    end_date_obj = parse_date_value(end_date_str)
+
+    return calculate_year_fraction_dates(start_date_obj, end_date_obj, year_start, year_end)
 
 def calculate_monthly_payment(
     principal: float,
@@ -291,9 +205,6 @@ def calculate_annual_principal_interest(
 
 def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCreate], db: Session, owner_id: int) -> dict:
     try:
-        logger.info(f"calculate_projection called for owner {owner_id}, years={years}, accounts_count={len(accounts)}")
-        logger.debug(f"Accounts received: {[a.name for a in accounts if hasattr(a, 'name')]}")
-
         # Load user settings for surplus asset and other settings
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == owner_id).first()
         surplus_asset_id = user_settings.surplus_asset_id if user_settings else None
@@ -315,18 +226,14 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Pre-load CashFlowItems for tax calculation (keyed by ID for reliable lookup)
         # This replaces the fragile description-based matching with ID-based lookups
         cash_flow_items_by_id = {}
+        cash_flow_items_by_description = {}
+        all_cash_flow_items = []
         if db:
             all_cash_flow_items = db.query(models.CashFlowItem).filter(
                 models.CashFlowItem.owner_id == owner_id
             ).all()
-            for item in all_cash_flow_items:
-                cash_flow_items_by_id[item.id] = item
-            # Debug: Log what income items are loaded
-            income_items_loaded = [f"{item.id}:{item.description}(taxable={item.taxable})" for item in all_cash_flow_items if item.is_income]
-            # Disabled verbose debug logging
-            # Also log all cash flow items for debugging
-            all_items_loaded = [f"{item.id}:{item.description}(is_income={item.is_income},taxable={item.taxable if item.is_income else 'N/A'})" for item in all_cash_flow_items]
-            # Disabled verbose debug logging
+            cash_flow_items_by_id = build_items_by_id(all_cash_flow_items)
+            cash_flow_items_by_description = build_items_by_description(all_cash_flow_items)
 
         # Load auto-disbursement rules
         auto_disbursements = db.query(models.AutoDisbursement).filter(
@@ -335,6 +242,11 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
         # Load assets to get account information (for retirement account rules)
         all_assets = db.query(models.Asset).filter(models.Asset.owner_id == owner_id).all() if db else []
+        assets_by_id = build_assets_by_id(all_assets)
+        asset_name_by_id = build_asset_name_by_id(all_assets)
+        assets_by_name = {asset.name: asset for asset in all_assets}
+        all_liabilities = db.query(models.Liability).filter(models.Liability.owner_id == owner_id).all() if db else []
+        liabilities_by_name = build_liabilities_by_name(all_liabilities)
         asset_to_account_map = {}
         account_to_retirement_map = {}
         if all_assets:
@@ -350,7 +262,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Prepare initial projected accounts based on input
         # These will be associated with the Projection after it's created and has an ID
         for acc_schema in accounts:
-            # Disabled verbose debug logging
             projected_account = models.ProjectedAccount(
                 name=acc_schema.name,
                 account_type=acc_schema.account_type,
@@ -373,8 +284,57 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             )
             projected_accounts_for_db.append(projected_account)
 
+        projected_account_dates = {}
+        projected_account_loan_start_dates = {}
+        for projected_account in projected_accounts_for_db:
+            projected_account_dates[projected_account.name] = (
+                parse_date_value(projected_account.start_date),
+                parse_date_value(projected_account.end_date),
+            )
+            projected_account_loan_start_dates[projected_account.name] = parse_date_value(
+                projected_account.loan_start_date
+            )
+
+        cash_flow_item_dates_by_id = {}
+        for item in all_cash_flow_items:
+            cash_flow_item_dates_by_id[item.id] = (
+                parse_date_value(item.start_date),
+                parse_date_value(item.end_date),
+            )
+
+        auto_disbursements_prepared = []
+        for disbursement in auto_disbursements:
+            source_name = asset_name_by_id.get(disbursement.source_asset_id)
+            target_name = asset_name_by_id.get(disbursement.target_asset_id)
+            if not source_name or not target_name:
+                continue
+            auto_disbursements_prepared.append(
+                (
+                    source_name,
+                    target_name,
+                    disbursement.transfer_type,
+                    disbursement.transfer_value,
+                    parse_date_value(disbursement.start_date),
+                    parse_date_value(disbursement.end_date),
+                )
+            )
+
+        contributing_expenses = [
+            item for item in all_cash_flow_items if not item.is_income and item.contributes_to_asset_id
+        ]
+        contributing_income = [
+            item
+            for item in all_cash_flow_items
+            if item.is_income
+            and (
+                item.contributes_to_asset_id
+                or (item.reinvest_dividends and item.reinvestment_account_id)
+            )
+        ]
+
         # Get current year for accurate loan balance calculations
         current_year = date.today().year
+        year_bounds = build_year_bounds(current_year, years)
         
         # Dictionary to hold current balances for each account, updated yearly
         # For income/expense items, initial_value is 0 (they don't have balances)
@@ -383,17 +343,13 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         for acc in projected_accounts_for_db:
             if acc.account_type in ["asset", "liability"] and acc.start_date:
                 # Check if start_date is after the projection start year
-                try:
-                    start_date_obj = datetime.strptime(acc.start_date, "%Y-%m-%d").date()
-                    projection_start_year = date(current_year, 1, 1)
-                    if start_date_obj > projection_start_year:
-                        # Asset/liability starts mid-year, initialize with 0
-                        account_current_balances[acc.name] = 0.0
-                    else:
-                        # Asset/liability starts in first year, use initial_value
-                        account_current_balances[acc.name] = acc.initial_value
-                except (ValueError, TypeError):
-                    # Invalid date format, use initial_value as fallback
+                start_date_obj = projected_account_dates.get(acc.name, (None, None))[0]
+                projection_start_year = date(current_year, 1, 1)
+                if start_date_obj and start_date_obj > projection_start_year:
+                    # Asset/liability starts mid-year, initialize with 0
+                    account_current_balances[acc.name] = 0.0
+                else:
+                    # Asset/liability starts in first year or invalid date, use initial_value
                     account_current_balances[acc.name] = acc.initial_value
             else:
                 # No start_date or not asset/liability, use initial_value
@@ -406,7 +362,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
         # Main Projection Loop
         for year in range(1, years + 1):
-            # Disabled verbose debug logging
 
             # Yearly aggregates
             current_year_total_assets = 0.0
@@ -430,68 +385,54 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             # Apply auto-disbursement transfers BEFORE growth calculations
             # Auto-disbursements happen at the beginning of the year, before assets grow
             # NOTE: Surplus/deficit transfers happen AFTER growth (at end of year) - see below
-            year_start_date = date(current_year + year - 1, 1, 1)  # Start of current projection year (Jan 1)
-            year_end_date = date(current_year + year - 1, 12, 31)  # End of current projection year (Dec 31)
+            current_projection_year, year_start_date, year_end_date = year_bounds[year - 1]
             
             # Apply auto-disbursements BEFORE growth
-            for disbursement in auto_disbursements:
+            for (
+                source_name,
+                target_name,
+                transfer_type,
+                transfer_value,
+                disbursement_start_date,
+                disbursement_end_date,
+            ) in auto_disbursements_prepared:
                 # Check if disbursement is active for this year
                 active = True
-                if disbursement.start_date:
-                    try:
-                        start_date_obj = datetime.strptime(disbursement.start_date, "%Y-%m-%d").date()
-                        # Disbursement is not active if the year ends before the start_date
-                        if year_end_date < start_date_obj:
-                            active = False
-                    except ValueError:
-                        pass
-                if disbursement.end_date and active:
-                    try:
-                        end_date_obj = datetime.strptime(disbursement.end_date, "%Y-%m-%d").date()
-                        # Disbursement is not active if the year starts after the end_date
-                        if year_start_date > end_date_obj:
-                            active = False
-                    except ValueError:
-                        pass
+                if disbursement_start_date and year_end_date < disbursement_start_date:
+                    active = False
+                if disbursement_end_date and year_start_date > disbursement_end_date:
+                    active = False
                 
                 if active:
                     # Find source and target asset names in projection
-                    source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id).first()
-                    target_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.target_asset_id).first()
-                    
-                    if source_asset and target_asset:
-                        source_name = source_asset.name
-                        target_name = target_asset.name
+                    if source_name in account_current_balances and target_name in account_current_balances:
+                        source_balance = account_current_balances[source_name]
                         
-                        if source_name in account_current_balances and target_name in account_current_balances:
-                            source_balance = account_current_balances[source_name]
-                            
-                            # Calculate transfer amount
-                            if disbursement.transfer_type == "percentage":
-                                transfer_amount = abs(source_balance) * (disbursement.transfer_value / 100.0)
-                            else:  # dollar_amount
-                                transfer_amount = abs(disbursement.transfer_value)
-                            
-                            # Apply transfer (only if source has sufficient balance)
-                            # This happens BEFORE growth, so source_balance is the beginning-of-year balance
-                            if abs(source_balance) >= transfer_amount:
-                                account_current_balances[source_name] -= transfer_amount
-                                account_current_balances[target_name] += transfer_amount
-                                # Disabled verbose debug logging
+                        # Calculate transfer amount
+                        if transfer_type == "percentage":
+                            transfer_amount = abs(source_balance) * (transfer_value / 100.0)
+                        else:  # dollar_amount
+                            transfer_amount = abs(transfer_value)
+                        
+                        # Apply transfer (only if source has sufficient balance)
+                        # This happens BEFORE growth, so source_balance is the beginning-of-year balance
+                        if abs(source_balance) >= transfer_amount:
+                            account_current_balances[source_name] -= transfer_amount
+                            account_current_balances[target_name] += transfer_amount
 
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
                 
                 # Check if item is active for this year and calculate proration fraction
                 # This check must happen BEFORE calculating contributions so inactive items are skipped
-                current_projection_year = current_year + year - 1
                 year_fraction = 1.0  # Default to full year if no dates
                 is_active_for_year = True
                 if projected_account.account_type in ["income", "expense", "asset", "liability"]:
-                    year_fraction = calculate_year_fraction(
-                        projected_account.start_date,
-                        projected_account.end_date,
-                        current_projection_year
+                    start_date_obj, end_date_obj = projected_account_dates.get(
+                        projected_account.name, (None, None)
+                    )
+                    year_fraction = calculate_year_fraction_dates(
+                        start_date_obj, end_date_obj, year_start_date, year_end_date
                     )
                     is_active_for_year = year_fraction > 0.0
                 
@@ -503,9 +444,9 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 
                 # Special handling for amortized loans
                 if projected_account.account_type == "liability" and projected_account.loan_type == "amortized" and projected_account.principal_amount is not None and projected_account.interest_rate is not None and projected_account.loan_term_months is not None and projected_account.loan_start_date is not None:
-                    try:
-                        loan_start_date_obj = datetime.strptime(projected_account.loan_start_date, "%Y-%m-%d").date()
-                        calculation_date_obj = date(current_year + year -1, 12, 31) # End of current projection year
+                    loan_start_date_obj = projected_account_loan_start_dates.get(projected_account.name)
+                    if loan_start_date_obj:
+                        calculation_date_obj = year_end_date  # End of current projection year
                         
                         # Calculate principal/interest breakdown for this year
                         breakdown = calculate_annual_principal_interest(
@@ -517,12 +458,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         )
                         
                         # Get liability model to check options
-                        liability = None
-                        if db:
-                            liability = db.query(models.Liability).filter(
-                                models.Liability.owner_id == owner_id,
-                                models.Liability.name == projected_account.name
-                            ).first()
+                        liability = liabilities_by_name.get(projected_account.name)
                         
                         decrease_by_principal = liability.decrease_by_principal_yearly if liability else False
                         create_payment_expense = liability.create_payment_expense if liability else False
@@ -568,7 +504,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                 if projected_account.name not in annual_flow_values:
                                     annual_flow_values[projected_account.name + "_Payment"] = -payment_expense  # Negative for expense
                                     current_year_total_expense_flow += payment_expense
-                                    # Disabled verbose debug logging
                             
                             # Store principal/interest breakdown for this year
                             account_values_for_year[f"{projected_account.name}_Principal"] = breakdown['principal_paid']
@@ -585,8 +520,7 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             # Update balance for next year
                             account_current_balances[projected_account.name] = new_balance
 
-                    except ValueError:
-                        # Disabled verbose debug logging (errors still logged)
+                    else:
                         # Fallback to standard projection logic if date is invalid
                         new_balance = current_balance + (current_balance * (projected_account.growth_rate / 100.0)) + (projected_account.contribution * 12)
                         adjusted_annual_contribution = projected_account.contribution * 12
@@ -595,216 +529,30 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         account_current_balances[projected_account.name] = new_balance
 
                 else:
-                    pass
-                    pass
-                    pass
                     # Standard projection logic for non-amortized accounts
                     # Ensure liabilities start as negative for consistent calculation logic
                     if projected_account.account_type == "liability" and current_balance > 0:
                         current_balance = -abs(current_balance)
                     
-                    # Check if this is a dynamic cashflow item (linked to an asset or income)
-                    # Format: "ItemName|LINKED:AssetName|PERCENTAGE:10.0" (single asset)
-                    # Format: "ItemName|LINKED:Asset1,Asset2,Asset3|PERCENTAGE:10.0" (multiple assets)
-                    # Format: "ItemName|LINKED_INCOME:IncomeItemName|PERCENTAGE:10.0" (linked to income)
-                    linked_asset_names = []
-                    linked_percentage = None
-                    linked_income_name = None
-                    base_account_name = projected_account.name
-                    
-                    # Check for expense linked to income
-                    if "|LINKED_INCOME:" in projected_account.name and "|PERCENTAGE:" in projected_account.name and projected_account.account_type == "expense":
-                        # Disabled verbose debug logging
-                        parts = projected_account.name.split("|LINKED_INCOME:")
-                        if len(parts) == 2:
-                            base_account_name = parts[0]
-                            rest = parts[1]
-                            percent_parts = rest.split("|PERCENTAGE:")
-                            if len(percent_parts) == 2:
-                                linked_income_name = percent_parts[0].strip()
-                                try:
-                                    linked_percentage = float(percent_parts[1])
-                                    # Disabled verbose debug logging
-                                except ValueError:
-                                    linked_percentage = None
-                    
-                    # Check for item linked to asset(s)
-                    elif "|LINKED:" in projected_account.name and "|PERCENTAGE:" in projected_account.name:
-                        # Extract linked asset name(s) and percentage
-                        parts = projected_account.name.split("|LINKED:")
-                        if len(parts) == 2:
-                            base_account_name = parts[0]
-                            rest = parts[1]
-                            percent_parts = rest.split("|PERCENTAGE:")
-                            if len(percent_parts) == 2:
-                                linked_asset_names_str = percent_parts[0]
-                                # Split by comma to handle multiple assets
-                                linked_asset_names = [name.strip() for name in linked_asset_names_str.split(",") if name.strip()]
-                                try:
-                                    linked_percentage = float(percent_parts[1])
-                                except ValueError:
-                                    linked_percentage = None
-                    
-                    # Calculate contribution for this year
-                    # Skip calculation if item is not active for this year (for income/expense items)
-                    if not is_active_for_year and projected_account.account_type in ["income", "expense"]:
-                        adjusted_annual_contribution = 0.0
-                    elif linked_income_name and linked_percentage is not None and projected_account.account_type == "expense":
-                        # Expense linked to income - always recalculate income value (don't rely on annual_flow_values which might be stale)
-                        # This ensures the expense adjusts correctly when income changes or ends
-                        linked_income_flow_value = 0.0
-                        
-                        # Query the linked income item from database
-                        linked_income_item = None
-                        if db:
-                            linked_income_item = db.query(models.CashFlowItem).filter(
-                                models.CashFlowItem.owner_id == owner_id,
-                                models.CashFlowItem.is_income == True,
-                                models.CashFlowItem.description == linked_income_name
-                            ).first()
-                        else:
-                            # Fallback: search in cash_flow_items_by_description if available
-                            if linked_income_name in cash_flow_items_by_description:
-                                item = cash_flow_items_by_description[linked_income_name]
-                                if item.is_income:
-                                    linked_income_item = item
-                        
-                        if linked_income_item:
-                            income_year_fraction = calculate_year_fraction(
-                                linked_income_item.start_date,
-                                linked_income_item.end_date,
-                                current_projection_year
-                            )
-                            
-                            if income_year_fraction > 0.0:
-                                # Check if it's a dynamic income item
-                                if linked_income_item.linked_item_type == "asset" and linked_income_item.percentage is not None:
-                                    # Recalculate from linked assets (for current year)
-                                    linked_asset_ids = []
-                                    if hasattr(linked_income_item, 'linked_asset_ids') and linked_income_item.linked_asset_ids:
-                                        linked_asset_ids = linked_income_item.linked_asset_ids
-                                    if linked_income_item.linked_item_id:
-                                        if linked_income_item.linked_item_id not in linked_asset_ids:
-                                            linked_asset_ids = [linked_income_item.linked_item_id] + linked_asset_ids
-                                    
-                                    if linked_asset_ids:
-                                        total_linked_asset_value = 0.0
-                                        for asset_id in linked_asset_ids:
-                                            for asset in all_assets:
-                                                if asset.id == asset_id and asset.name in account_current_balances:
-                                                    total_linked_asset_value += abs(account_current_balances[asset.name])
-                                                    break
-                                        
-                                        if total_linked_asset_value > 0:
-                                            linked_income_flow_value = total_linked_asset_value * (linked_income_item.percentage / 100.0) * income_year_fraction
-                                else:
-                                    # Fixed income - calculate with growth for this specific year
-                                    base_yearly_value = linked_income_item.yearly_value
-                                    effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
-                                    growth_factor = pow(1 + effective_growth_rate, year - 1)
-                                    linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
-                        
-                        # Calculate expense as percentage of income
-                        expense_amount = abs(linked_income_flow_value) * (linked_percentage / 100.0)
-                        adjusted_annual_contribution = -expense_amount  # Negative for expense
-                        # Disabled verbose debug logging
-                    elif linked_asset_names and len(linked_asset_names) > 0 and linked_percentage is not None and projected_account.account_type in ["income", "expense"]:
-                        # Dynamic item: recalculate contribution based on linked asset(s) current value
-                        # Only calculate if item is active for this year
-                        # Sum up values from all linked assets
-                        total_linked_asset_value = 0.0
-                        linked_assets_found = []
-                        
-                        for linked_asset_name in linked_asset_names:
-                            if linked_asset_name in account_current_balances:
-                                asset_value = account_current_balances[linked_asset_name]
-                                total_linked_asset_value += abs(asset_value)
-                                
-                                # Find the linked asset to check if it's in a retirement account
-                                for asset in all_assets:
-                                    if asset.name == linked_asset_name:
-                                        linked_assets_found.append(asset)
-                                        break
-                        
-                        if total_linked_asset_value > 0:
-                            # Calculate yearly value as percentage of total linked asset values
-                            yearly_value = total_linked_asset_value * (linked_percentage / 100.0)
-                            
-                            # Check if any linked asset is in a retirement account
-                            # If any asset is retirement, the income stays in those accounts
-                            has_retirement_assets = False
-                            retirement_assets = []
-                            non_retirement_assets = []
-                            
-                            for linked_asset in linked_assets_found:
-                                is_retirement = False
-                                if linked_asset.account_id and linked_asset.account_id in account_to_retirement_map:
-                                    is_retirement = account_to_retirement_map[linked_asset.account_id]
-                                
-                                if is_retirement:
-                                    has_retirement_assets = True
-                                    retirement_assets.append(linked_asset)
-                                else:
-                                    non_retirement_assets.append(linked_asset)
-                            
-                            if projected_account.account_type == "income":
-                                if has_retirement_assets:
-                                    # For retirement accounts, dividends/interest stay in the accounts
-                                    # Distribute proportionally to retirement assets only
-                                    retirement_total_value = sum([abs(account_current_balances[asset.name]) for asset in retirement_assets])
-                                    if retirement_total_value > 0:
-                                        for asset in retirement_assets:
-                                            asset_value = abs(account_current_balances[asset.name])
-                                            asset_portion = (asset_value / retirement_total_value) * yearly_value
-                                            account_current_balances[asset.name] += asset_portion
-                                    
-                                    # Income available for spending is based on non-retirement assets only
-                                    if non_retirement_assets:
-                                        non_retirement_total_value = sum([abs(account_current_balances[asset.name]) for asset in non_retirement_assets])
-                                        if total_linked_asset_value > 0:
-                                            adjusted_annual_contribution = (non_retirement_total_value / total_linked_asset_value) * yearly_value
-                                        else:
-                                            adjusted_annual_contribution = 0.0
-                                    else:
-                                        adjusted_annual_contribution = 0.0
-                                    
-                                else:
-                                    # For non-retirement accounts, dividends/interest are available for spending
-                                    adjusted_annual_contribution = yearly_value
-                                    # Disabled verbose debug logging
-                            else:
-                                # Expenses (shouldn't normally be dynamic, but handle if needed)
-                                adjusted_annual_contribution = -yearly_value
-                        else:
-                            # Linked assets not found in projection, use 0
-                            adjusted_annual_contribution = 0.0
-                    else:
-                        # Fixed contribution item
-                        # Skip calculation if item is not active for this year (for income/expense items)
-                        if not is_active_for_year and projected_account.account_type in ["income", "expense"]:
-                            adjusted_annual_contribution = 0.0
-                        else:
-                            # Check if this is a one-time expense/income (start_date == end_date)
-                            is_one_time = (projected_account.start_date and 
-                                         projected_account.end_date and 
-                                         projected_account.start_date == projected_account.end_date and
-                                         projected_account.account_type in ["income", "expense"])
-                            
-                            if is_one_time:
-                                # For one-time items, contribution is already set to yearly_value/12 by frontend,
-                                # but we should treat it as the full amount for that year
-                                # Multiply by 12 to get the full amount (since frontend divides by 12)
-                                # This will then be multiplied by year_fraction (1.0 for one-time) to get the full value
-                                adjusted_annual_contribution = projected_account.contribution * 12
-                            else:
-                                # For recurring items (monthly/yearly), contribution is monthly, multiply by 12 to get annual
-                                adjusted_annual_contribution = projected_account.contribution * 12
-                            
-                            # Contributions to liabilities/expenses are negative cash flow
-                            if projected_account.account_type in ["liability", "expense"]:
-                                adjusted_annual_contribution = -abs(adjusted_annual_contribution) if adjusted_annual_contribution > 0 else adjusted_annual_contribution
-                            elif projected_account.account_type == "income":
-                                 adjusted_annual_contribution = abs(adjusted_annual_contribution)
+                    (
+                        linked_asset_names,
+                        linked_percentage,
+                        linked_income_name,
+                        base_account_name,
+                        adjusted_annual_contribution,
+                    ) = compute_dynamic_cashflow(
+                        projected_account=projected_account,
+                        is_active_for_year=is_active_for_year,
+                        year_index=year,
+                        year_start_date=year_start_date,
+                        year_end_date=year_end_date,
+                        account_current_balances=account_current_balances,
+                        assets_by_id=assets_by_id,
+                        assets_by_name=assets_by_name,
+                        account_to_retirement_map=account_to_retirement_map,
+                        cash_flow_items_by_description=cash_flow_items_by_description,
+                        cash_flow_item_dates_by_id=cash_flow_item_dates_by_id,
+                    )
 
                     # Annual increase/decrease rate
                     effective_growth_rate = projected_account.growth_rate / 100.0
@@ -844,9 +592,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             # Restore sign: expenses are negative, income is positive
                             if projected_account.account_type == "expense":
                                 new_balance = -new_balance
-                            # Debug logging for dynamic items with 0 value
-                            if projected_account.account_type == "income" and new_balance == 0.0 and linked_asset_names:
-                                pass
                         else:
                             # For fixed cashflow items, apply growth each year: yearly_value * (1 + growth_rate)^(year-1)
                             # adjusted_annual_contribution is the base yearly value (year 1), we need to apply compound growth
@@ -876,30 +621,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                             base_item_name = base_account_name
                             
                             cash_flow_item = None
-                            
-                            # Debug: Log what we're looking for
-                            # Disabled verbose debug logging
-                            
+
                             # Try ID-based lookup first (preferred method)
                             if projected_account.cash_flow_item_id:
                                 cash_flow_item = cash_flow_items_by_id.get(projected_account.cash_flow_item_id)
-                                if cash_flow_item:
-                                    # Disabled verbose debug logging (keeping tax-related logs)
-                                    pass
-                                else:
-                                    pass
                             
                             # Fallback to description-based lookup for backward compatibility (old projections without cash_flow_item_id)
                             if not cash_flow_item and projected_account.account_type in ["income", "expense"]:
                                 # Use base account name (remove LINKED markers) for lookup
-                                # Build description-based lookup map by searching through cash_flow_items_by_id
-                                for item in cash_flow_items_by_id.values():
-                                    if item.description == base_item_name:
-                                        cash_flow_item = item
-                                        break
-                                
-                                if not cash_flow_item:
-                                    pass
+                                cash_flow_item = cash_flow_items_by_description.get(base_item_name)
                             if cash_flow_item:
                                 if projected_account.account_type == "income" and cash_flow_item.is_income:
                                     if cash_flow_item.taxable:
@@ -907,20 +637,16 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                                         income_amount = abs(new_balance)
                                         current_year_taxable_income += income_amount
                                         lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
-                                        # Keeping this log - it's tax-related but might be verbose. Uncomment if needed for debugging
                                         # Track qualified dividends separately if applicable
                                         if cash_flow_item.is_qualified_dividend:
                                             current_year_qualified_dividends += income_amount
                                     else:
                                         lookup_method = f"ID:{projected_account.cash_flow_item_id}" if projected_account.cash_flow_item_id else f"description:{base_item_name}"
-                                        # Disabled verbose debug logging (tax-related but verbose - uncomment if needed)
-                            elif projected_account.account_type == "expense" and not cash_flow_item.is_income:
-                                # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
-                                if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
-                                    # Use the absolute value (new_balance is negative for expenses)
-                                    current_year_tax_deductible_expenses += abs(new_balance)
-                            else:
-                                pass
+                                if projected_account.account_type == "expense" and not cash_flow_item.is_income:
+                                    # Skip federal tax expense item itself (check by description for now, will be removed once frontend passes ID)
+                                    if cash_flow_item.description != FEDERAL_TAX_EXPENSE_DESCRIPTION and cash_flow_item.tax_deductible:
+                                        # Use the absolute value (new_balance is negative for expenses)
+                                        current_year_tax_deductible_expenses += abs(new_balance)
                         
                         # For next year's calculation, we still use 0 as starting balance for cashflow items
                         account_current_balances[projected_account.name] = 0.0
@@ -935,17 +661,12 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # If asset/liability ends mid-year, store 0 (asset no longer exists at end of year)
                         # Otherwise, store the calculated balance
                         value_to_store = 0.0
+                        _, end_date_obj = projected_account_dates.get(projected_account.name, (None, None))
                         if projected_account.account_type in ["asset", "liability"] and projected_account.end_date:
-                            try:
-                                end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
-                                year_end_date = date(current_projection_year, 12, 31)
-                                # If end_date is in this year and before year end, store 0 (asset ends mid-year)
-                                if end_date_obj.year == current_projection_year and end_date_obj < year_end_date:
-                                    value_to_store = 0.0
-                                else:
-                                    value_to_store = new_balance
-                            except (ValueError, TypeError):
-                                # If end_date parsing fails, use new_balance
+                            # If end_date is in this year and before year end, store 0 (asset ends mid-year)
+                            if end_date_obj and end_date_obj.year == current_projection_year and end_date_obj < year_end_date:
+                                value_to_store = 0.0
+                            else:
                                 value_to_store = new_balance
                         else:
                             value_to_store = new_balance
@@ -962,16 +683,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # If item ends this year (year_fraction < 1.0 and end_date is in this year), 
                         # set balance to 0 for next year since asset no longer exists after end_date
                         if projected_account.account_type in ["asset", "liability"] and projected_account.end_date:
-                            try:
-                                end_date_obj = datetime.strptime(projected_account.end_date, "%Y-%m-%d").date()
-                                year_end_date = date(current_projection_year, 12, 31)
-                                # If end_date is in this year and before year end, balance should be 0 next year
-                                if end_date_obj.year == current_projection_year and end_date_obj < year_end_date:
-                                    account_current_balances[projected_account.name] = 0.0
-                                else:
-                                    account_current_balances[projected_account.name] = new_balance
-                            except (ValueError, TypeError):
-                                # If end_date parsing fails, use new_balance
+                            # If end_date is in this year and before year end, balance should be 0 next year
+                            if end_date_obj and end_date_obj.year == current_projection_year and end_date_obj < year_end_date:
+                                account_current_balances[projected_account.name] = 0.0
+                            else:
                                 account_current_balances[projected_account.name] = new_balance
                         else:
                             account_current_balances[projected_account.name] = new_balance
@@ -1005,13 +720,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
                         # new_balance is already prorated at lines 791 and 807 based on year_fraction
                         current_year_total_income_flow += abs(new_balance)  # new_balance is positive for income, but use abs() to be safe
-                        # Debug logging for income flow accumulation
-                        if year == 1:  # Only log for first year to avoid spam
-                            pass
-                    else:
-                        # Debug logging for excluded reinvested dividends
-                        if year == 1:  # Only log for first year to avoid spam
-                            pass
                 elif projected_account.account_type == "expense":
                     # Use new_balance (prorated by year_fraction) instead of adjusted_annual_contribution (full year)
                     # new_balance is negative for expenses, and we want to accumulate the absolute value for expense flow
@@ -1030,452 +738,65 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
 
             # Apply expenses that contribute to assets (must happen after expense flows are calculated)
-            # Query for expenses that contribute to assets and add their amounts to asset balances
-            contributing_expenses = db.query(models.CashFlowItem).filter(
-                models.CashFlowItem.owner_id == owner_id,
-                models.CashFlowItem.is_income == False,
-                models.CashFlowItem.contributes_to_asset_id.isnot(None)
-            ).all() if db else []
-            
-            for exp_item in contributing_expenses:
-                # Check if expense is active for this year and calculate proration
-                current_projection_year = current_year + year - 1
-                expense_year_fraction = calculate_year_fraction(
-                    exp_item.start_date,
-                    exp_item.end_date,
-                    current_projection_year
-                )
-                
-                if expense_year_fraction <= 0.0:
-                    continue  # Skip this expense for this year
-                
-                # Find the target asset
-                target_asset = db.query(models.Asset).filter(models.Asset.id == exp_item.contributes_to_asset_id).first()
-                if target_asset and target_asset.name in account_current_balances:
-                    # Calculate the expense amount for this year
-                    expense_amount = 0.0
-                    
-                    # Check if this expense is in the projection accounts (for dynamic items)
-                    expense_account_name = exp_item.description
-                    if exp_item.linked_item_id and exp_item.linked_item_type and exp_item.percentage is not None:
-                        # This is a dynamic expense
-                        if exp_item.linked_item_type == "asset":
-                            # Linked to asset - find the expense in annual_flow_values
-                            # The expense name might have a |LINKED: marker
-                            for flow_name, flow_value in annual_flow_values.items():
-                                base_name = flow_name.split("|LINKED:")[0]
-                                if base_name == exp_item.description:
-                                    expense_amount = abs(flow_value)  # Use absolute value (flow_value is negative for expenses)
-                                    break
-                        elif exp_item.linked_item_type == "income":
-                            # Linked to income - calculate based on linked income item's annual flow value
-                            linked_income_item = db.query(models.CashFlowItem).filter(
-                                models.CashFlowItem.id == exp_item.linked_item_id,
-                                models.CashFlowItem.owner_id == owner_id,
-                                models.CashFlowItem.is_income == True
-                            ).first()
-                            if linked_income_item:
-                                # Check if income item is active for this year first
-                                current_projection_year = current_year + year - 1
-                                income_year_fraction = calculate_year_fraction(
-                                    linked_income_item.start_date,
-                                    linked_income_item.end_date,
-                                    current_projection_year
-                                )
-                                
-                                if income_year_fraction <= 0.0:
-                                    # Income item is not active for this year, so expense should be 0
-                                    linked_income_flow_value = 0.0
-                                else:
-                                    # Always recalculate the income value for this year (don't rely on annual_flow_values which might be stale)
-                                    # This ensures the expense adjusts correctly when income changes or ends
-                                    linked_income_flow_value = 0.0
-                                    
-                                    # Check if this is a dynamic income item (linked to assets)
-                                    if linked_income_item.linked_item_type == "asset" and linked_income_item.percentage is not None:
-                                        # This is a dynamic income item - recalculate it based on current asset values for this year
-                                        linked_asset_ids = []
-                                        if hasattr(linked_income_item, 'linked_asset_ids') and linked_income_item.linked_asset_ids:
-                                            linked_asset_ids = linked_income_item.linked_asset_ids
-                                        if linked_income_item.linked_item_id:
-                                            if linked_income_item.linked_item_id not in linked_asset_ids:
-                                                linked_asset_ids = [linked_income_item.linked_item_id] + linked_asset_ids
-                                        
-                                        if linked_asset_ids:
-                                            total_linked_asset_value = 0.0
-                                            for asset_id in linked_asset_ids:
-                                                linked_asset = db.query(models.Asset).filter(models.Asset.id == asset_id, models.Asset.owner_id == owner_id).first()
-                                                if linked_asset and linked_asset.name in account_current_balances:
-                                                    total_linked_asset_value += abs(account_current_balances[linked_asset.name])
-                                            
-                                            if total_linked_asset_value > 0:
-                                                linked_income_flow_value = total_linked_asset_value * (linked_income_item.percentage / 100.0) * income_year_fraction
-                                    else:
-                                        # Fixed income item - calculate with growth for this specific year
-                                        base_yearly_value = linked_income_item.yearly_value
-                                        effective_growth_rate = (linked_income_item.annual_increase_percent or 0) / 100.0
-                                        growth_factor = pow(1 + effective_growth_rate, year - 1)
-                                        linked_income_flow_value = base_yearly_value * growth_factor * income_year_fraction
-                                        # Disabled verbose debug logging
-                                
-                                # Calculate expense as percentage of income (already prorated by income_year_fraction)
-                                expense_amount = abs(linked_income_flow_value) * (exp_item.percentage / 100.0)
-                                # Apply expense_year_fraction to further restrict the expense if it has its own start/end dates
-                                # This ensures the expense is prorated by its own active period, which may be more restrictive than the income's period
-                                expense_amount = expense_amount * expense_year_fraction
-                                # Disabled verbose debug logging
-                                
-                                # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
-                                annual_flow_values[exp_item.description] = -expense_amount
-                    else:
-                        # Fixed expense - calculate with growth
-                        base_yearly_value = exp_item.yearly_value
-                        effective_growth_rate = (exp_item.inflation_percent or 0) / 100.0
-                        growth_factor = pow(1 + effective_growth_rate, year - 1)
-                        expense_amount = base_yearly_value * growth_factor
-                        # Prorate based on how many months the expense is active in this year
-                        current_projection_year = current_year + year - 1
-                        expense_year_fraction = calculate_year_fraction(
-                            exp_item.start_date,
-                            exp_item.end_date,
-                            current_projection_year
-                        )
-                        expense_amount = expense_amount * expense_year_fraction
-                        
-                        # Store the expense amount in annual_flow_values for charts (as negative value for expenses)
-                        annual_flow_values[exp_item.description] = -expense_amount
-                    
-                    # Add the expense amount to the asset balance
-                    if expense_amount > 0:
-                        balance_before_expense = account_current_balances.get(target_asset.name, 0.0)
-                        account_current_balances[target_asset.name] += expense_amount
-                        balance_after_expense = account_current_balances[target_asset.name]
-                        # Update the stored value for this asset in account_values_for_year to include the contribution
-                        # This ensures charts show the correct end-of-year balance including contributions
-                        asset_value_key = f"{target_asset.name}_Value"
-                        if asset_value_key in account_values_for_year:
-                            account_values_for_year[asset_value_key] = balance_after_expense
-                        # Update current_year_total_assets to include the contribution
-                        # This ensures balance sheet projections show correct totals
-                        current_year_total_assets += expense_amount
-                        # Disabled verbose debug logging
-            
+            current_year_total_assets = apply_contributing_expenses_for_year(
+                contributing_expenses=contributing_expenses,
+                assets_by_id=assets_by_id,
+                cash_flow_items_by_id=cash_flow_items_by_id,
+                cash_flow_item_dates_by_id=cash_flow_item_dates_by_id,
+                annual_flow_values=annual_flow_values,
+                account_current_balances=account_current_balances,
+                account_values_for_year=account_values_for_year,
+                current_year_total_assets=current_year_total_assets,
+                year_start_date=year_start_date,
+                year_end_date=year_end_date,
+                year_index=year,
+            )
+
             # Apply income that contributes to assets (must happen after income flows are calculated and asset growth has been applied)
             # This handles dividend reinvestment where dividends are reinvested back into the asset
-            
-            contributing_income = []
-            if db:
-                # Query for income items with contributes_to_asset_id set (preferred method)
-                # Also include items with reinvestment_account_id set (fallback for existing items)
-                from sqlalchemy import or_
-                contributing_income = db.query(models.CashFlowItem).filter(
-                    models.CashFlowItem.owner_id == owner_id,
-                    models.CashFlowItem.is_income == True,
-                    or_(
-                        models.CashFlowItem.contributes_to_asset_id.isnot(None),
-                        (models.CashFlowItem.reinvest_dividends == True) & (models.CashFlowItem.reinvestment_account_id.isnot(None))
-                    )
-                ).all()
-            else:
-                pass
-            for income_item in contributing_income:
-                # Check if income is active for this year and calculate proration
-                current_projection_year = current_year + year - 1
-                income_year_fraction = calculate_year_fraction(
-                    income_item.start_date,
-                    income_item.end_date,
-                    current_projection_year
-                )
-                
-                if income_year_fraction <= 0.0:
-                    continue  # Skip this income for this year
-                
-                
-                # Find the target asset - prefer contributes_to_asset_id, fallback to reinvestment_account_id
-                target_asset_id = income_item.contributes_to_asset_id or income_item.reinvestment_account_id
-                if not target_asset_id:
-                    continue
-                
-                target_asset = db.query(models.Asset).filter(models.Asset.id == target_asset_id).first()
-                if not target_asset:
-                    continue
-                if target_asset.name not in account_current_balances:
-                    continue
-                
-                
-                # Calculate the income amount for this year
-                # For dividend reinvestment, dividends are calculated from the beginning-of-year asset balance
-                # At this point, account_current_balances has the end-of-year balance (after growth)
-                # We reverse the growth to get the beginning-of-year balance, then calculate dividend
-                income_amount = 0.0
-                
-                if income_item.linked_item_type == "asset" and income_item.percentage is not None:
-                    # Dynamic dividend item: Calculate from beginning-of-year asset balance
-                    # Reverse the growth to get beginning balance: beginning = current / (1 + growth_rate)
-                    current_balance = account_current_balances.get(target_asset.name, 0.0)
-                    if current_balance > 0:
-                        effective_growth_rate = (target_asset.annual_increase_percent or 0) / 100.0
-                        beginning_balance = current_balance / pow(1 + effective_growth_rate, 1.0)  # Full year growth
-                        income_amount = beginning_balance * (income_item.percentage / 100.0) * income_year_fraction
-                    else:
-                        pass
-                else:
-                    # Fixed income item - calculate with growth
-                    base_yearly_value = income_item.yearly_value
-                    effective_growth_rate = (income_item.annual_increase_percent or 0) / 100.0
-                    growth_factor = pow(1 + effective_growth_rate, year - 1)
-                    income_amount = base_yearly_value * growth_factor
-                    # Prorate based on how many months the income is active in this year
-                    income_amount = income_amount * income_year_fraction
-                
-                # Add the income amount to the asset balance (dividend reinvestment)
-                
-                if income_amount > 0:
-                    balance_before_income = account_current_balances.get(target_asset.name, 0.0)
-                    account_current_balances[target_asset.name] += income_amount
-                    balance_after_income = account_current_balances[target_asset.name]
-                    # Update the stored value for this asset in account_values_for_year to include the contribution
-                    # This ensures charts show the correct end-of-year balance including dividend reinvestment
-                    asset_value_key = f"{target_asset.name}_Value"
-                    if asset_value_key in account_values_for_year:
-                        account_values_for_year[asset_value_key] = balance_after_income
-                    # Update current_year_total_assets to include the contribution
-                    # This ensures balance sheet projections show correct totals
-                    current_year_total_assets += income_amount
-                else:
-                    pass
-            # Calculate federal income tax if enabled
-            federal_tax_expense_value = 0.0
-            federal_tax_expense_account_name = None
-            if calculate_federal_tax and user_settings:
-                # Find the federal tax expense item (NEW: Use ID-based lookup where possible)
-                # First try to find it in projected_accounts_for_db by cash_flow_item_id
-                federal_tax_expense_item_id = None
-                for acc in projected_accounts_for_db:
-                    if acc.account_type == "expense" and acc.cash_flow_item_id:
-                        cash_flow_item = cash_flow_items_by_id.get(acc.cash_flow_item_id)
-                        if cash_flow_item and cash_flow_item.description == FEDERAL_TAX_EXPENSE_DESCRIPTION:
-                            federal_tax_expense_item_id = acc.cash_flow_item_id
-                            federal_tax_expense_account_name = acc.name
-                            break
-                
-                # Fallback: query by description if not found in projected_accounts_for_db (shouldn't happen)
-                federal_tax_expense_item = None
-                if federal_tax_expense_item_id:
-                    federal_tax_expense_item = cash_flow_items_by_id.get(federal_tax_expense_item_id)
-                else:
-                    federal_tax_expense_item = db.query(models.CashFlowItem).filter(
-                        models.CashFlowItem.owner_id == owner_id,
-                        models.CashFlowItem.is_income == False,
-                        models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
-                    ).first()
-                
-                if federal_tax_expense_item:
-                    # Check if expense is active for this year
-                    current_projection_year = current_year + year - 1
-                    start_year = federal_tax_expense_item.start_date
-                    end_year = federal_tax_expense_item.end_date
-                    
-                    if start_year:
-                        try:
-                            start_year_obj = datetime.strptime(start_year, "%Y-%m-%d").date()
-                            if current_projection_year < start_year_obj.year:
-                                federal_tax_expense_item = None  # Not active yet
-                        except ValueError:
-                            pass
-                    if end_year and federal_tax_expense_item:
-                        try:
-                            end_year_obj = datetime.strptime(end_year, "%Y-%m-%d").date()
-                            if current_projection_year > end_year_obj.year:
-                                federal_tax_expense_item = None  # No longer active
-                        except ValueError:
-                            pass
-                    
-                    if federal_tax_expense_item:
-                        # Calculate federal tax using the taxable income and tax-deductible expenses
-                        # we tracked during the projection loop
-                        if current_year_taxable_income > 0:
-                            try:
-                                # Use tax_year from settings, or default to projection year if not set
-                                # Note: Only 2025 tax brackets are currently implemented
-                                tax_year_for_calc = user_settings.tax_year if user_settings and user_settings.tax_year else current_projection_year
-                                taxable_income_result, standard_deduction_result, tax_owed = calculate_taxable_income(
-                                    current_year_taxable_income,
-                                    current_year_tax_deductible_expenses,
-                                    user_settings.tax_filing_status or "Single",
-                                    user_settings.person1_birthdate,
-                                    user_settings.person2_birthdate,
-                                    tax_year_for_calc,  # Use tax_year from settings
-                                    qualified_dividends=current_year_qualified_dividends
-                                )
-                                federal_tax_expense_value = tax_owed or 0.0
-                                
-                                # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
-                                federal_tax_value = -federal_tax_expense_value if federal_tax_expense_value != 0.0 else 0.0
-                                
-                                # Use the account name we found earlier, or find it by name as fallback
-                                if not federal_tax_expense_account_name:
-                                    for acc in projected_accounts_for_db:
-                                        if acc.account_type == "expense":
-                                            display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
-                                            if display_name == FEDERAL_TAX_EXPENSE_DESCRIPTION:
-                                                federal_tax_expense_account_name = acc.name
-                                                break
-                                
-                                # Always store the tax value with the constant key first (ensures it's always available)
-                                annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION] = federal_tax_value
-                                
-                                # Update annual_flow_values for federal tax expense (negative for expenses)
-                                # Store with account name if we found it (helps with lookup)
-                                if federal_tax_expense_account_name:
-                                    # Store with the account name (full name from projected_accounts_for_db)
-                                    annual_flow_values[federal_tax_expense_account_name] = federal_tax_value
-                                    # Also store with display_name (cleaned name) as fallback for chart matching
-                                    display_name_for_tax = federal_tax_expense_account_name.split("|LINKED:")[0] if "|LINKED:" in federal_tax_expense_account_name else federal_tax_expense_account_name
-                                    if "|LINKED_INCOME:" in display_name_for_tax:
-                                        display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
-                                    # Always store with display_name as well (even if same as account_name) to ensure lookup works
-                                    annual_flow_values[display_name_for_tax] = federal_tax_value
-                                else:
-                                    # Account name not found, but we still stored the value with the constant key
-                                    pass
-                                    pass
-                                    pass
-                                    pass
-                                    pass
-                                
-                                # Update expense flow total
-                                current_year_total_expense_flow -= federal_tax_expense_value  # Subtract because expenses are negative
-                            except Exception as e:
-                                pass
-                        else:
-                            pass
-            
-            # Calculate state income tax if enabled (similar to federal tax)
-            state_tax_expense_value = 0.0
-            state_tax_expense_account_name = None
-            if calculate_state_tax and user_settings and user_state:
-                # Find the state tax expense item (similar to federal tax)
-                state_tax_expense_item_id = None
-                for acc in projected_accounts_for_db:
-                    if acc.account_type == "expense" and acc.cash_flow_item_id:
-                        cash_flow_item = cash_flow_items_by_id.get(acc.cash_flow_item_id)
-                        if cash_flow_item and cash_flow_item.description == STATE_TAX_EXPENSE_DESCRIPTION:
-                            state_tax_expense_item_id = acc.cash_flow_item_id
-                            state_tax_expense_account_name = acc.name
-                            break
-                
-                # Fallback: query by description if not found in projected_accounts_for_db
-                state_tax_expense_item = None
-                if state_tax_expense_item_id:
-                    state_tax_expense_item = cash_flow_items_by_id.get(state_tax_expense_item_id)
-                else:
-                    state_tax_expense_item = db.query(models.CashFlowItem).filter(
-                        models.CashFlowItem.owner_id == owner_id,
-                        models.CashFlowItem.is_income == False,
-                        models.CashFlowItem.description == STATE_TAX_EXPENSE_DESCRIPTION
-                    ).first()
-                
-                if state_tax_expense_item:
-                    # Check if expense is active for this year
-                    current_projection_year = current_year + year - 1
-                    start_year = state_tax_expense_item.start_date
-                    end_year = state_tax_expense_item.end_date
-                    
-                    if start_year:
-                        try:
-                            start_year_obj = datetime.strptime(start_year, "%Y-%m-%d").date()
-                            if current_projection_year < start_year_obj.year:
-                                state_tax_expense_item = None  # Not active yet
-                        except ValueError:
-                            pass
-                    if end_year and state_tax_expense_item:
-                        try:
-                            end_year_obj = datetime.strptime(end_year, "%Y-%m-%d").date()
-                            if current_projection_year > end_year_obj.year:
-                                state_tax_expense_item = None  # No longer active
-                        except ValueError:
-                            pass
-                    
-                    if state_tax_expense_item:
-                        # Calculate state tax using the taxable income and tax-deductible expenses
-                        # we tracked during the projection loop (same as federal tax)
-                        if current_year_taxable_income > 0:
-                            try:
-                                # Use tax_year from settings, or default to projection year if not set
-                                # Note: Only 2025 tax brackets are currently implemented
-                                tax_year_for_state_calc = user_settings.tax_year if user_settings and user_settings.tax_year else current_year + year - 1
-                                (state_taxable_income_result, state_standard_deduction_result, state_tax_owed) = calculate_state_taxable_income(
-                                    total_income=current_year_taxable_income + current_year_tax_deductible_expenses,  # Add back deductions to get total income
-                                    tax_deductible_expenses=current_year_tax_deductible_expenses,
-                                    state=user_state,
-                                    filing_status=user_settings.tax_filing_status if user_settings else "Single",
-                                    federal_tax_owed=federal_tax_expense_value,  # Pass federal tax for states that allow deduction
-                                    current_year=tax_year_for_state_calc  # Use tax_year from settings
-                                )
-                                state_tax_expense_value = state_tax_owed or 0.0
-                                
-                                # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
-                                state_tax_value = -state_tax_expense_value if state_tax_expense_value != 0.0 else 0.0
-                                
-                                # Use the account name we found earlier, or find it by name as fallback
-                                if not state_tax_expense_account_name:
-                                    for acc in projected_accounts_for_db:
-                                        if acc.account_type == "expense":
-                                            display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
-                                            if display_name == STATE_TAX_EXPENSE_DESCRIPTION:
-                                                state_tax_expense_account_name = acc.name
-                                                break
-                                
-                                # Always store the tax value with the constant key first (ensures it's always available)
-                                annual_flow_values[STATE_TAX_EXPENSE_DESCRIPTION] = state_tax_value
-                                
-                                # Update annual_flow_values for state tax expense (negative for expenses)
-                                # Store with account name if we found it (helps with lookup)
-                                if state_tax_expense_account_name:
-                                    # Store with the account name (full name from projected_accounts_for_db)
-                                    annual_flow_values[state_tax_expense_account_name] = state_tax_value
-                                    # Also store with display_name (cleaned name) as fallback for chart matching
-                                    display_name_for_tax = state_tax_expense_account_name.split("|LINKED:")[0] if "|LINKED:" in state_tax_expense_account_name else state_tax_expense_account_name
-                                    if "|LINKED_INCOME:" in display_name_for_tax:
-                                        display_name_for_tax = display_name_for_tax.split("|LINKED_INCOME:")[0]
-                                    # Always store with display_name as well (even if same as account_name) to ensure lookup works
-                                    annual_flow_values[display_name_for_tax] = state_tax_value
-                                else:
-                                    # Account name not found, but we still stored the value with the constant key
-                                    pass
+            current_year_total_assets = apply_reinvestment_for_year(
+                contributing_income=contributing_income,
+                assets_by_id=assets_by_id,
+                cash_flow_item_dates_by_id=cash_flow_item_dates_by_id,
+                account_current_balances=account_current_balances,
+                account_values_for_year=account_values_for_year,
+                current_year_total_assets=current_year_total_assets,
+                year_start_date=year_start_date,
+                year_end_date=year_end_date,
+                year_index=year,
+            )
 
-                                # Update expense flow total
-                                current_year_total_expense_flow -= state_tax_expense_value  # Subtract because expenses are negative
-                            except Exception as e:
-                                pass
-                        else:
-                            pass
+            current_year_total_expense_flow, federal_tax_expense_value = apply_taxes_for_year(
+                calculate_federal_tax=calculate_federal_tax,
+                calculate_state_tax=calculate_state_tax,
+                user_settings=user_settings,
+                user_state=user_state,
+                projected_accounts_for_db=projected_accounts_for_db,
+                cash_flow_items_by_id=cash_flow_items_by_id,
+                cash_flow_items_by_description=cash_flow_items_by_description,
+                cash_flow_item_dates_by_id=cash_flow_item_dates_by_id,
+                current_projection_year=current_projection_year,
+                current_year_taxable_income=current_year_taxable_income,
+                current_year_tax_deductible_expenses=current_year_tax_deductible_expenses,
+                current_year_qualified_dividends=current_year_qualified_dividends,
+                annual_flow_values=annual_flow_values,
+                current_year_total_expense_flow=current_year_total_expense_flow,
+                federal_tax_expense_description=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+                state_tax_expense_description=STATE_TAX_EXPENSE_DESCRIPTION,
+                calculate_taxable_income=calculate_taxable_income,
+                calculate_state_taxable_income=calculate_state_taxable_income,
+            )
             
             # Calculate and apply surplus/deficit transfer AFTER growth calculations
             # Surplus/deficit transfers happen at the end of the year, after all assets have grown
             # This represents the cash flow surplus/deficit for the year being moved to the surplus asset
-            net_cash_flow = current_year_total_income_flow + current_year_total_expense_flow
-            surplus_deficit = current_year_total_income_flow - abs(current_year_total_expense_flow)
-            
-            # Debug logging for surplus calculation
-            
-            # Apply surplus/deficit to designated asset AFTER growth
-            # NOTE: This happens after growth, so the surplus asset has already grown on its beginning balance
-            # The surplus/deficit is then added to the end-of-year balance
-            if surplus_asset_name and surplus_asset_name in account_current_balances:
-                balance_before_surplus = account_current_balances[surplus_asset_name]
-                account_current_balances[surplus_asset_name] += surplus_deficit
-                balance_after_surplus = account_current_balances[surplus_asset_name]
-                
-                # Update the stored value in account_values_for_year to include the surplus/deficit
-                # This ensures charts show the correct end-of-year balance after surplus/deficit transfer
-                surplus_value_key = f"{surplus_asset_name}_Value"
-                # Always set/update the surplus asset value in account_values_for_year, even if key doesn't exist
-                # This handles cases where the asset might not have been set during the growth loop (e.g., partial year assets)
-                account_values_for_year[surplus_value_key] = account_current_balances[surplus_asset_name]
-                
-                # Debug logging to investigate checking balance discrepancy
+            net_cash_flow, surplus_deficit = apply_surplus_transfer_for_year(
+                surplus_asset_name=surplus_asset_name,
+                account_current_balances=account_current_balances,
+                account_values_for_year=account_values_for_year,
+                current_year_total_income_flow=current_year_total_income_flow,
+                current_year_total_expense_flow=current_year_total_expense_flow,
+            )
 
             # Note: The calculation sequence is:
             # 1. Beginning of year: Apply auto-disbursements (transfers between assets before growth)
@@ -1489,10 +810,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
 
             # Recalculate totals after surplus/deficit (auto-disbursements already applied before growth)
             # This ensures assets reflect the transfers
-            current_year_total_assets = 0.0
-            for acc in projected_accounts_for_db:
-                if acc.account_type == "asset" and acc.name in account_current_balances:
-                    current_year_total_assets += account_current_balances[acc.name]
+            current_year_total_assets = recalculate_total_assets(
+                projected_accounts_for_db=projected_accounts_for_db,
+                account_current_balances=account_current_balances,
+            )
 
             # Update overall totals
             total_contributed_overall += current_year_contributions_sum
@@ -1502,72 +823,15 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
             current_year_net_worth = current_year_total_assets + current_year_total_liabilities
 
             # Build yearly data points, cleaning up account names for display (remove LINKED markers)
-            account_values = {}
-            for acc in projected_accounts_for_db:
-                # Clean account name for display (remove LINKED markers)
-                display_name = acc.name.split("|LINKED:")[0] if "|LINKED:" in acc.name else acc.name
-                # Also check for LINKED_INCOME marker
-                if "|LINKED_INCOME:" in display_name:
-                    display_name = display_name.split("|LINKED_INCOME:")[0]
-                # For income/expense items, use annual flow value; for others, use account balance
-                if acc.account_type in ["income", "expense"]:
-                    # Try to get value using acc.name first, then try display_name as fallback
-                    # This handles cases where the value might be stored with the cleaned name
-                    value = annual_flow_values.get(acc.name, annual_flow_values.get(display_name, 0.0))
-                    # Special case: If this is Federal Income Tax and value is still 0, try direct lookup
-                    if value == 0.0 and display_name == FEDERAL_TAX_EXPENSE_DESCRIPTION:
-                        # Try to find the value using any key that contains the description
-                        for key, val in annual_flow_values.items():
-                            if FEDERAL_TAX_EXPENSE_DESCRIPTION in key or key == FEDERAL_TAX_EXPENSE_DESCRIPTION:
-                                value = val
-                                break
-                    account_values[f"{display_name}_Value"] = value
-                else:
-                    # For assets/liabilities, use account_current_balances (which has the final balance after surplus)
-                    # Only use account_values_for_year if the account isn't in account_current_balances (shouldn't happen)
-                    if acc.name in account_current_balances:
-                        balance_value = account_current_balances[acc.name]
-                        account_values[f"{display_name}_Value"] = balance_value
-                        # Debug logging for checking balance issue
-                        if acc.name == "Comp Test Checking" or "Checking" in acc.name:
-                            pass
-                    else:
-                        # Fallback: try account_values_for_year if account_current_balances doesn't have it
-                        fallback_value = account_values_for_year.get(f"{acc.name}_Value", 0.0)
-                        account_values[f"{display_name}_Value"] = fallback_value
-                        if acc.name == "Comp Test Checking" or "Checking" in acc.name:
-                            pass
+            account_values = build_account_values_for_year(
+                projected_accounts_for_db=projected_accounts_for_db,
+                annual_flow_values=annual_flow_values,
+                account_current_balances=account_current_balances,
+                account_values_for_year=account_values_for_year,
+                calculate_federal_tax=calculate_federal_tax,
+                federal_tax_expense_description=FEDERAL_TAX_EXPENSE_DESCRIPTION,
+            )
             
-            # Add principal/interest breakdown values (for loans) and any other breakdown values
-            # BUT: Don't overwrite asset/liability _Value keys that we just set from account_current_balances
-            # Only add keys that aren't already in account_values (like _Principal, _Interest, _Payment)
-            for key, value in account_values_for_year.items():
-                # Only add keys that are not _Value keys for assets/liabilities (to avoid overwriting correct balances)
-                # Keep _Principal, _Interest, _Payment, and other breakdown values
-                if not key.endswith("_Value") or key not in account_values:
-                    account_values[key] = value
-                elif key.endswith("_Value") and key in account_values:
-                    # Debug logging for checking balance issue - this should NOT happen (we shouldn't overwrite)
-                    if "Checking" in key:
-                        pass
-            
-            # Ensure Federal Income Tax is always stored with the exact key the frontend expects
-            # This handles cases where the Federal Tax expense item might have a different display_name
-            if calculate_federal_tax:
-                if FEDERAL_TAX_EXPENSE_DESCRIPTION in annual_flow_values:
-                    federal_tax_value = annual_flow_values[FEDERAL_TAX_EXPENSE_DESCRIPTION]
-                    # Ensure we don't store -0.0 (negative zero) - convert to 0.0 for consistency
-                    if federal_tax_value == 0.0 or federal_tax_value == -0.0:
-                        federal_tax_value = 0.0
-                    federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
-                    account_values[federal_tax_key] = federal_tax_value
-                else:
-                    # Tax calculation is enabled but value not found in annual_flow_values
-                    # This might happen if tax calculation failed or wasn't executed
-                    federal_tax_key = f"{FEDERAL_TAX_EXPENSE_DESCRIPTION}_Value"
-                    account_values[federal_tax_key] = 0.0
-            
-            # Debug logging for checking balance - check final value being stored
             checking_value_key = "Comp Test Checking_Value"
             if checking_value_key in account_values:
                 checking_final_value = account_values[checking_value_key]
@@ -1583,7 +847,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 **account_values # Individual account balances with _Value suffix
             }
             
-            # Debug logging - check what was actually stored
             if checking_value_key in yearly_data_points[year]:
                 stored_value = yearly_data_points[year][checking_value_key]
 
@@ -1591,7 +854,6 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
         # Final value is the net worth at the end of the last projected year
         final_value_projection = current_year_net_worth if years > 0 else sum(acc.initial_value for acc in projected_accounts_for_db)
 
-        # Disabled verbose debug logging
         
         # Convert yearly_data_points to a list of dicts for JSON serialization
         data_for_json = [yearly_data_points[year] for year in sorted(yearly_data_points.keys())]

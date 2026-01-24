@@ -9,7 +9,6 @@ const AuthorizedUsersService = {
       const response = await api.post('/authorized-users/', data);
       return response.data;
     } catch (error) {
-      console.error('Error creating authorized user:', error);
       throw error;
     }
   },
@@ -22,7 +21,6 @@ const AuthorizedUsersService = {
       const response = await api.get('/authorized-users/');
       return response.data;
     } catch (error) {
-      console.error('Error listing authorized users:', error);
       throw error;
     }
   },
@@ -35,7 +33,6 @@ const AuthorizedUsersService = {
       const response = await api.get('/authorized-users/received');
       return response.data;
     } catch (error) {
-      console.error('Error listing received access:', error);
       throw error;
     }
   },
@@ -48,7 +45,6 @@ const AuthorizedUsersService = {
       const response = await api.get(`/authorized-users/${authorizedUserId}`);
       return response.data;
     } catch (error) {
-      console.error('Error getting authorized user:', error);
       throw error;
     }
   },
@@ -61,7 +57,6 @@ const AuthorizedUsersService = {
       const response = await api.put(`/authorized-users/${authorizedUserId}`, updates);
       return response.data;
     } catch (error) {
-      console.error('Error updating authorized user:', error);
       throw error;
     }
   },
@@ -73,7 +68,6 @@ const AuthorizedUsersService = {
     try {
       await api.delete(`/authorized-users/${authorizedUserId}`);
     } catch (error) {
-      console.error('Error deleting authorized user:', error);
       throw error;
     }
   }

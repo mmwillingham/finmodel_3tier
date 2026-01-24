@@ -25,14 +25,12 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
     const fetchGlobalSettings = useCallback(async () => {
         const currentToken = AuthService.getToken();
         if (!currentToken || !user || !user.is_admin) {
-            console.error('GlobalSettings: Access Denied. User is not admin or token is missing.');
             setError('Access Denied: Only administrators can view global settings.');
             setLoading(false);
             return;
         }
         setLoading(true);
         setError(null);
-        console.log('GlobalSettings: Attempting to fetch global settings...');
         try {
             const data = await globalSettingsService.getGlobalSettings(currentToken);
             setAssetCategories(data.asset_categories || []);
@@ -40,10 +38,8 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
             setIncomeCategories(data.income_categories || []);
             setExpenseCategories(data.expense_categories || []);
             setMessage('');
-            console.log('GlobalSettings: Successfully fetched global settings:', data);
         } catch (err) {
             setError('Failed to fetch global settings.');
-            console.error('GlobalSettings: Error fetching global settings:', err);
         } finally {
             setLoading(false);
         }
@@ -84,7 +80,6 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
             }
         } catch (err) {
             setError(`Failed to update global ${categoryType} categories.`);
-            console.error(`Error updating global ${categoryType} categories:`, err);
         } finally {
             setLoading(false);
             setTimeout(() => setMessage(''), 3000); // Clear message after 3 seconds

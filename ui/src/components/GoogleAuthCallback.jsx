@@ -15,7 +15,6 @@ export default function GoogleAuthCallback() {
             const error = params.get('error');
 
             if (error) {
-                console.error("Google OAuth error:", error);
                 // Redirect to login with an error message
                 navigate('/login', { state: { error: `Google login failed: ${error}` } });
                 return;
@@ -29,11 +28,9 @@ export default function GoogleAuthCallback() {
                     await login();
                     navigate('/'); // Redirect to dashboard
                 } catch (e) {
-                    console.error("Failed to process Google login token:", e);
                     navigate('/login', { state: { error: 'Failed to log in after Google authentication.' } });
                 }
             } else {
-                console.error("No token received from Google OAuth callback.");
                 navigate('/login', { state: { error: 'Google login callback did not return a token.' } });
             }
         };

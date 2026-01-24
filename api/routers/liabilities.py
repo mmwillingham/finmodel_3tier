@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date, datetime, timedelta
-import logging
 
 import models
 import schemas
@@ -12,14 +11,11 @@ from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
 from calculations import calculate_amortized_loan_balance
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(
     prefix="/liabilities",
     tags=["liabilities"],
     responses={404: {"description": "Not found"}},
 )
-logger.info("Liabilities router initialized.")
 
 @router.post("/", response_model=schemas.LiabilityOut, status_code=status.HTTP_201_CREATED)
 async def create_liability(
@@ -100,7 +96,6 @@ def list_liabilities(
     """List all liabilities the current user can access.
     If viewing_user_id is None, only show the current user's own liabilities.
     If viewing_user_id is provided, filter to that specific user's liabilities (must be accessible)."""
-    logger.debug(f"list_liabilities: User ID: {current_user.id}, viewing_user_id: {viewing_user_id}")
     
     # Default to only showing current user's liabilities when viewingUserId is None
     if viewing_user_id is None:
@@ -113,7 +108,6 @@ def list_liabilities(
         accessible_user_ids = [viewing_user_id]
     
     liabilities = db.query(models.Liability).filter(models.Liability.owner_id.in_(accessible_user_ids)).all()
-    logger.debug(f"list_liabilities: Found {len(liabilities)} liabilities for user {current_user.id}")
     return liabilities
 
 @router.get("/{liability_id}", response_model=schemas.LiabilityOut)

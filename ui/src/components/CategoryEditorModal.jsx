@@ -63,14 +63,12 @@ export default function CategoryEditorModal({ isOpen, onClose, onSave, categorie
     const categoryType = title.split(' ')[0].toLowerCase(); // e.g., "Asset Categories" -> "asset"
     try {
       const response = await SettingsService.checkCategoryUsage(categoryToDelete, categoryType);
-      console.log('Raw response from checkCategoryUsage:', response);
       const isInUse = response.data;
       if (isInUse) {
         alert(`Cannot delete "${categoryToDelete}" as it is currently in use.`);
         return;
       }
     } catch (error) {
-      console.error('Error checking category usage:', error);
       alert('Failed to check category usage. Please try again.');
       return;
     }

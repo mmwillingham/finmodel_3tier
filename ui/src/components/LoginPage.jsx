@@ -69,7 +69,6 @@ const LoginPage = () => {
             // Redirect the user to the main application page upon successful login
             navigate('/');
         } catch (err) {
-            console.error("Login failed:", err);
             
             // Handle specific network or API error messages
             let errorMessage = "Login failed: Network Error or server issue.";

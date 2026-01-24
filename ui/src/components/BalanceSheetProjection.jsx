@@ -24,9 +24,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
 
   // Convert assets and liabilities to ProjectedAccountCreate format and call backend
   const fetchProjectionData = useCallback(async () => {
-    console.log("=== BALANCE SHEET PROJECTION: fetchProjectionData called ===");
     if (!assets || !liabilities) {
-      console.log("No assets or liabilities, returning early");
       return;
     }
     
@@ -34,7 +32,6 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
     setError(null);
     
     try {
-      console.log("About to prepare projection request...");
       // Convert assets to ProjectedAccountCreate format
       // Note: Expenses that contribute to assets are now handled by the backend
       // We no longer need to pre-calculate contributions here for fixed expenses
@@ -204,45 +201,34 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       };
 
       // Check if a "Balance Sheet Projection" already exists and update it, otherwise create new
-      console.log("Checking for existing projections...");
       let projectionId = null;
       let canUpdate = false;
       try {
         const existingProjections = await ProjectionService.getProjections();
-        console.log("Got existing projections:", existingProjections);
         const existing = existingProjections.find(p => p.name === "Balance Sheet Projection");
         if (existing) {
-          console.log("Found existing projection:", existing.id);
           // Only attempt update if we own the projection
           if (existing.owner_id === currentUser?.id) {
             projectionId = existing.id;
             canUpdate = true;
           } else {
-            console.log("Projection belongs to another user, will create new one");
           }
         }
       } catch (e) {
-        console.log("Could not check for existing projection, will create new one");
       }
 
       let projection;
       if (projectionId && canUpdate) {
         try {
-          console.log(`=== CALLING updateProjection with id=${projectionId} ===`);
           // Try to update existing projection
           projection = await ProjectionService.updateProjection(projectionId, projectionRequest);
-          console.log("updateProjection completed:", projection);
         } catch (err) {
-          console.error("Update failed, creating new projection:", err);
           // If update fails for any reason, create a new one
           projection = await ProjectionService.createProjection(projectionRequest);
-          console.log("createProjection (fallback) completed:", projection);
         }
       } else {
         // Create new projection
-        console.log(`=== CALLING createProjection (new) ===`);
         projection = await ProjectionService.createProjection(projectionRequest);
-        console.log("createProjection (new) completed:", projection);
       }
 
       // Parse the data_json
@@ -258,7 +244,6 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         }
       }
     } catch (err) {
-      console.error("Error fetching projection data:", err);
       setError(err.message || "Failed to calculate projections");
     } finally {
       setLoading(false);
@@ -365,7 +350,6 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       link.href = chartRef.current.toBase64Image('image/png', 1);
       link.click();
     } else {
-      console.error("Chart ref is not available for PNG download.");
     }
   };
 
@@ -380,7 +364,6 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       pdf.addImage(chartImage, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Chart ref is not available for PDF download.");
     }
   };
 
@@ -396,7 +379,6 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Table ref is not available for PDF download.");
     }
   };
 

@@ -114,18 +114,13 @@ async def run_migrations_online() -> None:
         async with connectable.connect() as connection:
             await connection.run_sync(do_run_migrations)
     else:
-        print(f"DEBUG (alembic/env.py): Using synchronous engine for URL: {sanitize_url(connectable_url)}") # NEW DEBUG
         connectable = engine_from_config(
             {'sqlalchemy.url': connectable_url},
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
         )
-        print(f"DEBUG (alembic/env.py): Connectable type: {type(connectable)}") # NEW DEBUG
-        print("DEBUG (alembic/env.py): Attempting to establish connection for migrations...") # NEW DEBUG
         with connectable.connect() as connection:
-            print("DEBUG (alembic/env.py): Connection established for migrations. Running migrations...") # NEW DEBUG
             do_run_migrations(connection)
-            print("DEBUG (alembic/env.py): Migrations finished. Closing connection.") # NEW DEBUG
 
 
 if context.is_offline_mode():

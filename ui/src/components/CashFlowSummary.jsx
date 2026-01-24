@@ -36,7 +36,6 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
         const res = await SettingsService.getSettings();
         setDefaultInflation(res.data.default_inflation_percent);
       } catch (e) {
-        console.error("Failed to load settings", e);
       }
     };
     loadSettings();

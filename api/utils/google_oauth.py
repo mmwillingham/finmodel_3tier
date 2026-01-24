@@ -16,7 +16,6 @@ def get_google_auth_url():
     """
     # CRITICAL FIX: Use FRONTEND_URL for the redirect_uri
     redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback"
-    logger.debug(f"Google OAuth: Constructed redirect_uri for authorization: {redirect_uri}") # NEW DEBUG LOG
 
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
@@ -34,11 +33,6 @@ async def get_google_oauth_token(code: str):
     """
     # CRITICAL FIX: Use FRONTEND_URL for the redirect_uri
     redirect_uri = settings.PUBLIC_BACKEND_URL + "/auth/google/callback" # Re-declare for scope to ensure it's evaluated here
-    logger.debug(f"Google OAuth: Constructed redirect_uri for token exchange: {redirect_uri}")
-    
-    logger.debug(f"Google OAuth: Sending client_id: {settings.GOOGLE_CLIENT_ID}")
-    logger.debug(f"Google OAuth: Sending client_secret (first 5 chars): {settings.GOOGLE_CLIENT_SECRET[:5]}*****") # Log only first few chars for security
-
     async with httpx.AsyncClient() as client: # Corrected indentation
         try: # NEW: Add try-except block
             response = await client.post(
@@ -57,7 +51,6 @@ async def get_google_oauth_token(code: str):
             response.raise_for_status() # Raise an exception for bad status codes
             return response.json()
         except httpx.HTTPStatusError as e: # Catch HTTP errors specifically
-            # Log the full response text for detailed debugging
             logger.error(f"Google OAuth: Token exchange failed. Status: {e.response.status_code}, Response: {e.response.text}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

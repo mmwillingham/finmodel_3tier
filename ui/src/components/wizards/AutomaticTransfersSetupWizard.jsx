@@ -41,7 +41,6 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }) => {
       setTransfers(transfersRes || []);
       setSurplusAssetId(settingsRes.data.surplus_asset_id || null);
     } catch (e) {
-      console.error('Failed to load data', e);
     }
   };
 

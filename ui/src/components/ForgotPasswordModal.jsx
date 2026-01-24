@@ -20,7 +20,6 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
         onClose();
       }, 3000);
     } catch (error) {
-      console.error("Error requesting password reset:", error.response?.data?.detail || error.message);
       setMessage(error.response?.data?.detail || "Failed to request password reset.");
     } finally {
       setLoading(false);

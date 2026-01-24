@@ -122,7 +122,6 @@ export default function AssetView({ assets, refreshAssets, refreshCashflow, acco
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
     } else {
-      console.error("Table ref is not available for PDF download.");
     }
   };
 
@@ -163,7 +162,6 @@ export default function AssetView({ assets, refreshAssets, refreshCashflow, acco
       link.download = `${filename.replace(/\s/g, '_')}.csv`;
       link.click();
     } else {
-      console.warn("No data available for Assets CSV download.");
     }
   };
 

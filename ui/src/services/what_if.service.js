@@ -56,7 +56,6 @@ const askQuestion = async (question, onChunk) => {
               throw new Error(data.error);
             }
           } catch (e) {
-            console.error('Error parsing SSE data:', e);
           }
         }
       }
@@ -64,7 +63,6 @@ const askQuestion = async (question, onChunk) => {
 
     return { answer: fullAnswer };
   } catch (error) {
-    console.error('Error asking What If question:', error);
     throw error;
   }
 };
