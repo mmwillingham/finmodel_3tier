@@ -1101,13 +1101,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const sqrtProportion = Math.sqrt(flowProportion); // Square root makes smaller values more distinguishable
           const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
           
-          // Debug logging for all flows
-            value,
-            maxExpenseValue,
-            flowProportion: flowProportion.toFixed(4),
-            calculatedStrokeWidth: strokeWidth.toFixed(2)
-          });
-          
           // Attach to the left edge of the expense category box
           const sinkLeftEdge = sinkPos.x - columnWidth;
           
