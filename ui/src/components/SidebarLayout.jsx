@@ -49,6 +49,7 @@ import AccountSwitcherPage from "../pages/AccountSwitcherPage";
 import WhatIfPage from "../pages/WhatIfPage";
 
 export default function SidebarLayout() {
+  const MOBILE_BREAKPOINT = 768;
   const { viewingUserId, userSettings, currentUser, login } = useAuth();
   const { settings } = useSettingsContext();
   const location = useLocation();
@@ -75,6 +76,8 @@ export default function SidebarLayout() {
   const [wizardOpen, setWizardOpen] = useState(null); // 'profile', 'categories', 'accounts', or null
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const [viewingUserSettings, setViewingUserSettings] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
   const totalLiabilitiesValue = liabilities.reduce((sum, liability) => sum + ((liability.value || liability.principal_amount) || 0), 0);
   const netWorth = totalAssets - totalLiabilitiesValue;
@@ -114,6 +117,101 @@ export default function SidebarLayout() {
   useEffect(() => {
     loadViewingUserSettings();
   }, [loadViewingUserSettings]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+    const media = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const updateFromMedia = () => {
+      const mobile = media.matches;
+      setIsMobile(mobile);
+      setIsSidebarOpen(!mobile);
+    };
+    updateFromMedia();
+    if (media.addEventListener) {
+      media.addEventListener("change", updateFromMedia);
+    } else if (media.addListener) {
+      media.addListener(updateFromMedia);
+    }
+    return () => {
+      if (media.removeEventListener) {
+        media.removeEventListener("change", updateFromMedia);
+      } else if (media.removeListener) {
+        media.removeListener(updateFromMedia);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      return;
+    }
+    document.body.style.overflow = isSidebarOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobile, isSidebarOpen]);
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsSidebarOpen((prev) => !prev);
+    };
+    const handleClose = () => {
+      setIsSidebarOpen(false);
+    };
+    window.addEventListener("sidebar:toggle", handleToggle);
+    window.addEventListener("sidebar:close", handleClose);
+    return () => {
+      window.removeEventListener("sidebar:toggle", handleToggle);
+      window.removeEventListener("sidebar:close", handleClose);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      return;
+    }
+    const handleEdgeTouchStart = (e) => {
+      if (isSidebarOpen) {
+        return;
+      }
+      const touch = e.touches[0];
+      if (touch.clientX > 20) {
+        return;
+      }
+      touchStartXRef.current = touch.clientX;
+      touchCurrentXRef.current = touch.clientX;
+    };
+
+    const handleEdgeTouchMove = (e) => {
+      if (touchStartXRef.current === null) {
+        return;
+      }
+      touchCurrentXRef.current = e.touches[0].clientX;
+    };
+
+    const handleEdgeTouchEnd = () => {
+      if (touchStartXRef.current === null) {
+        return;
+      }
+      const deltaX = touchCurrentXRef.current - touchStartXRef.current;
+      touchStartXRef.current = null;
+      touchCurrentXRef.current = null;
+      if (deltaX > 60) {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener("touchstart", handleEdgeTouchStart);
+    window.addEventListener("touchmove", handleEdgeTouchMove);
+    window.addEventListener("touchend", handleEdgeTouchEnd);
+    return () => {
+      window.removeEventListener("touchstart", handleEdgeTouchStart);
+      window.removeEventListener("touchmove", handleEdgeTouchMove);
+      window.removeEventListener("touchend", handleEdgeTouchEnd);
+    };
+  }, [isMobile, isSidebarOpen]);
 
   useEffect(() => {
     if (!viewingUserId || viewingUserId === currentUser?.id) {
@@ -230,6 +328,12 @@ export default function SidebarLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [isMobile, location.pathname]);
+
+  useEffect(() => {
     refreshAllData();
     
     // Listen for category updates from CategorySettingsPage
@@ -325,6 +429,8 @@ export default function SidebarLayout() {
   const sidebarRef = useRef(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const touchStartXRef = useRef(null);
+  const touchCurrentXRef = useRef(null);
 
   const handleMouseDown = (e) => {
     if (!sidebarRef.current) return;
@@ -333,6 +439,35 @@ export default function SidebarLayout() {
     startWidthRef.current = sidebarRef.current.offsetWidth;
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  const handleTouchStart = (e) => {
+    if (!isMobile || !isSidebarOpen) {
+      return;
+    }
+    const touch = e.touches[0];
+    touchStartXRef.current = touch.clientX;
+    touchCurrentXRef.current = touch.clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobile || !isSidebarOpen || touchStartXRef.current === null) {
+      return;
+    }
+    const touch = e.touches[0];
+    touchCurrentXRef.current = touch.clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!isMobile || !isSidebarOpen || touchStartXRef.current === null) {
+      return;
+    }
+    const deltaX = touchCurrentXRef.current - touchStartXRef.current;
+    touchStartXRef.current = null;
+    touchCurrentXRef.current = null;
+    if (deltaX < -60) {
+      setIsSidebarOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -364,9 +499,25 @@ export default function SidebarLayout() {
     }
   }, [isResizing]);
 
+  const handleNavSelection = () => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   return (
-    <div className="sidebar-layout">
-      <aside className="sidebar" ref={sidebarRef} style={{ width: `${sidebarWidth}px` }}>
+    <div className={`sidebar-layout ${isMobile ? "sidebar-layout--mobile" : ""}`}>
+      {isMobile && isSidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />
+      )}
+      <aside
+        className={`sidebar ${isMobile ? "sidebar--mobile" : ""} ${isSidebarOpen ? "sidebar--open" : "sidebar--closed"}`}
+        ref={sidebarRef}
+        style={!isMobile ? { width: `${sidebarWidth}px` } : undefined}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <div 
           className="sidebar-resize-handle"
           onMouseDown={handleMouseDown}
@@ -377,60 +528,69 @@ export default function SidebarLayout() {
             <NavLink
               to="/"
               className={({ isActive }) => `nav-btn ${isActive || view === 'new-home' ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Home
             </NavLink>
             <NavLink
               to="/documents"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Document Vault
             </NavLink>
             <NavLink
               to="/accounts"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Accounts
             </NavLink>
             <NavLink
               to="/categories"
               className={({ isActive }) => `nav-btn ${isActive || view === 'settings-categories' ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Categories
             </NavLink>
             <NavLink
               to="/assets"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Assets
             </NavLink>
             <NavLink
               to="/liabilities"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Liabilities / Debts
             </NavLink>
             <NavLink
               to="/cashflow/income"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Income
             </NavLink>
             <NavLink
               to="/cashflow/expense"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Expenses
             </NavLink>
             <NavLink
               to="/automatic-transfers"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
+              onClick={handleNavSelection}
             >
               Automatic Transfers
             </NavLink>
             <button
               className={`nav-btn ${view === 'cash-handling' ? 'active' : ''}`}
-              onClick={() => { setView('cash-handling'); }}
+              onClick={() => { setView('cash-handling'); handleNavSelection(); }}
             >
               Cash Handling
             </button>
@@ -440,32 +600,32 @@ export default function SidebarLayout() {
             <h3>DASHBOARD</h3>
             <button
               className={`nav-btn ${view === 'balance-sheet-projection' ? 'active' : ''}`}
-              onClick={() => { setView('balance-sheet-projection'); setCashFlowView(null); }}
+              onClick={() => { setView('balance-sheet-projection'); setCashFlowView(null); handleNavSelection(); }}
             >
               Net Worth
             </button>
             
             <button
               className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); }}
+              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); handleNavSelection(); }}
             >
               Cash Flow
             </button>
             <button
               className={`nav-btn ${view === 'monte-carlo' ? 'active' : ''}`}
-              onClick={() => { setView('monte-carlo'); setCashFlowView(null); }}
+              onClick={() => { setView('monte-carlo'); setCashFlowView(null); handleNavSelection(); }}
             >
               Monte Carlo
             </button>
             <button 
               className={`nav-btn ${view === 'custom-charts' && customChartView === 'list' ? 'active' : ''}`} 
-              onClick={() => { setView('custom-charts'); setCustomChartView('list'); }}
+              onClick={() => { setView('custom-charts'); setCustomChartView('list'); handleNavSelection(); }}
             >
               Custom
             </button>
             <button 
               className={`nav-btn ${view === 'what-if' ? 'active' : ''}`} 
-              onClick={() => { setView('what-if'); setCashFlowView(null); }}
+              onClick={() => { setView('what-if'); setCashFlowView(null); handleNavSelection(); }}
             >
               What If?
             </button>

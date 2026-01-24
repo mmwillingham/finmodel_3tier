@@ -245,56 +245,60 @@ const ProjectionDetail = ({ projectionId, onEdit, onDelete }) => {
         <button onClick={() => handleDownloadTablePdf(yearByYearTableRef, `${projection.name}_Year_by_Year_Table`)}>Download PDF</button>
         <button onClick={() => handleDownloadYearByYearCsv(`${projection.name}_Year_by_Year_Table`)}>Download CSV</button>
       </div>
-      <table ref={yearByYearTableRef} className="projection-table">
-        <thead>
-          <tr>
-            <th>Year</th>
-            <th>Starting Value</th>
-            <th>Contributions</th>
-            <th>Growth</th>
-            <th>Final Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((year, idx) => (
-            <tr key={idx}>
-              <td>{getCurrentYear() + idx}</td>
-              <td>{formatCurrency(year.StartingValue)}</td>
-              <td>{formatCurrency(year.Total_Contribution)}</td>
-              <td>{formatCurrency(year.Total_Growth)}</td>
-              <td>{formatCurrency(year.Total_Value)}</td>
+      <div className="table-scroll">
+        <table ref={yearByYearTableRef} className="projection-table">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Starting Value</th>
+              <th>Contributions</th>
+              <th>Growth</th>
+              <th>Final Value</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((year, idx) => (
+              <tr key={idx}>
+                <td>{getCurrentYear() + idx}</td>
+                <td>{formatCurrency(year.StartingValue)}</td>
+                <td>{formatCurrency(year.Total_Contribution)}</td>
+                <td>{formatCurrency(year.Total_Growth)}</td>
+                <td>{formatCurrency(year.Total_Value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <h3>Account Details</h3>
       <div className="table-actions">
         <button onClick={() => handleDownloadTablePdf(accountDetailsTableRef, `${projection.name}_Account_Details_Table`)}>Download PDF</button>
         <button onClick={() => handleDownloadAccountDetailsCsv(`${projection.name}_Account_Details_Table`)}>Download CSV</button>
       </div>
-      <table ref={accountDetailsTableRef} className="projection-table">
-        <thead>
-          <tr>
-            <th>Year</th>
-            {accountNames.map(name => (
-              <th key={name}>{name}</th>
-            ))}
-            <th>Final Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {accountDetails.map((year, idx) => (
-            <tr key={idx}>
-              <td>{getCurrentYear() + idx}</td>
+      <div className="table-scroll">
+        <table ref={accountDetailsTableRef} className="projection-table">
+          <thead>
+            <tr>
+              <th>Year</th>
               {accountNames.map(name => (
-                <td key={name}>{formatCurrency(year[name])}</td>
+                <th key={name}>{name}</th>
               ))}
-              <td>{formatCurrency(year.Total_Value)}</td>
+              <th>Final Value</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {accountDetails.map((year, idx) => (
+              <tr key={idx}>
+                <td>{getCurrentYear() + idx}</td>
+                {accountNames.map(name => (
+                  <td key={name}>{formatCurrency(year[name])}</td>
+                ))}
+                <td>{formatCurrency(year.Total_Value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

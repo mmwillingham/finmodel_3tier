@@ -282,3 +282,18 @@
   margin-bottom: 2rem;
   max-height: 400px;
 }
+
+@media (max-width: 768px) {
+  .projection-detail {
+    padding: 1rem;
+  }
+
+  .projection-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-container {
+    max-height: 260px;
+  }
+}

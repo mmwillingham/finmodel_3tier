@@ -185,40 +185,42 @@ const AuthorizedUsersPage = () => {
                 </button>
               </div>
             ) : (
-              <table className="users-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Financial Data</th>
-                    <th>Document Vault</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {authorizedUsers.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <div>{user.authorized_user_email}</div>
-                        {user.authorized_user_id && (
-                          <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                            User ID: {user.authorized_user_id}
-                          </div>
-                        )}
-                      </td>
-                      <td>{user.financial_data_permission || '-'}</td>
-                      <td>{user.document_vault_permission || '-'}</td>
-                      <td className="actions-cell">
-                        <button onClick={() => handleEditUser(user)} className="btn-icon" title="Edit">
-                          ✏️
-                        </button>
-                        <button onClick={() => handleDeleteUser(user)} className="btn-icon" title="Remove">
-                          🗑️
-                        </button>
-                      </td>
+              <div className="table-scroll">
+                <table className="users-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Financial Data</th>
+                      <th>Document Vault</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {authorizedUsers.map((user) => (
+                      <tr key={user.id}>
+                        <td>
+                          <div>{user.authorized_user_email}</div>
+                          {user.authorized_user_id && (
+                            <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
+                              User ID: {user.authorized_user_id}
+                            </div>
+                          )}
+                        </td>
+                        <td>{user.financial_data_permission || '-'}</td>
+                        <td>{user.document_vault_permission || '-'}</td>
+                        <td className="actions-cell">
+                          <button onClick={() => handleEditUser(user)} className="btn-icon" title="Edit">
+                            ✏️
+                          </button>
+                          <button onClick={() => handleDeleteUser(user)} className="btn-icon" title="Remove">
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )
           ) : (
             receivedAccess.length === 0 ? (
@@ -227,33 +229,35 @@ const AuthorizedUsersPage = () => {
                 <p>Other users can grant you access to their data</p>
               </div>
             ) : (
-              <table className="users-table">
-                <thead>
-                  <tr>
-                    <th>Primary User</th>
-                    <th>Financial Data</th>
-                    <th>Document Vault</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {receivedAccess.map((access) => (
-                    <tr key={access.id}>
-                      <td>
-                        {(access.primary_user_email || access.primary_user?.email) && (
-                          <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-                            {access.primary_user_email || access.primary_user?.email}
-                          </div>
-                        )}
-                        <div style={{ fontSize: '0.9em', color: '#666' }}>
-                          User ID: {access.primary_user_id}
-                        </div>
-                      </td>
-                      <td>{access.financial_data_permission || '-'}</td>
-                      <td>{access.document_vault_permission || '-'}</td>
+              <div className="table-scroll">
+                <table className="users-table">
+                  <thead>
+                    <tr>
+                      <th>Primary User</th>
+                      <th>Financial Data</th>
+                      <th>Document Vault</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {receivedAccess.map((access) => (
+                      <tr key={access.id}>
+                        <td>
+                          {(access.primary_user_email || access.primary_user?.email) && (
+                            <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                              {access.primary_user_email || access.primary_user?.email}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.9em', color: '#666' }}>
+                            User ID: {access.primary_user_id}
+                          </div>
+                        </td>
+                        <td>{access.financial_data_permission || '-'}</td>
+                        <td>{access.document_vault_permission || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )
           )}
         </div>

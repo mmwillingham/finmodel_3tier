@@ -237,6 +237,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
           {folders.length > 0 && (
             <div className="folders-section">
               <h3>Folders</h3>
+              <div className="table-scroll">
               <table className="documents-table" style={{ marginBottom: '20px' }}>
                 <thead>
                   <tr>
@@ -285,6 +286,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -292,6 +294,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
           {documents.length > 0 && (
             <div className="documents-section">
               <h3>Documents</h3>
+              <div className="table-scroll">
               <table className="documents-table">
                 <thead>
                   <tr>
@@ -328,6 +331,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 

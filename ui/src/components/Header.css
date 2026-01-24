@@ -21,6 +21,31 @@
     margin: 0 auto;
 }
 
+.mobile-menu-button {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    cursor: pointer;
+    margin-right: 12px;
+}
+
+.mobile-menu-bar {
+    width: 18px;
+    height: 2px;
+    background: #fff;
+    display: block;
+    border-radius: 2px;
+}
+
+.mobile-menu-bar + .mobile-menu-bar {
+    margin-top: 4px;
+}
+
 .app-header .logo a {
     color: white;
     text-decoration: none;
@@ -163,4 +188,24 @@
     text-decoration: none;
     font-size: 1em;
     transition: color 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .app-header nav {
+        padding: 0 8px;
+    }
+
+    .mobile-menu-button {
+        display: inline-flex;
+    }
+
+    .header-right-menu .user-info,
+    .header-right-menu .points-button,
+    .account-switcher-wrapper {
+        display: none;
+    }
+
+    .header-right-menu {
+        gap: 8px;
+    }
 }

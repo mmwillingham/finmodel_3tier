@@ -296,55 +296,57 @@ const UserManagementPage = () => {
       ) : (
         <>
           <div className="user-table-container">
-            <table className="user-management-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th onClick={() => handleSort('email')} className="sortable-header">
-                    User name {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th onClick={() => handleSort('created_at')} className="sortable-header">
-                    Date Created {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th onClick={() => handleSort('is_admin')} className="sortable-header">
-                    Admin {sortField === 'is_admin' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentUsers.length > 0 ? (
-                  currentUsers.map(user => (
-                    <tr key={user.id}>
-                      <td>{user.id}</td>
-                      <td>{user.email || 'N/A'}</td>
-                      <td>{formatDate(user.created_at)}</td>
-                      <td>{user.is_admin ? 'Yes' : 'No'}</td>
-                      <td>
-                        <div className="user-actions">
-                          <button 
-                            onClick={() => handleDeleteUser(user.id, user.email)}
-                            className="delete-user-btn"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            onClick={() => handleSetAdminStatus(user.id, user.email, !user.is_admin)}
-                            className="set-admin-status-btn"
-                          >
-                            {user.is_admin ? 'Revoke Admin' : 'Make Admin'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+            <div className="table-scroll">
+              <table className="user-management-table">
+                <thead>
                   <tr>
-                    <td colSpan="5">No other users found.</td>
+                    <th>ID</th>
+                    <th onClick={() => handleSort('email')} className="sortable-header">
+                      User name {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('created_at')} className="sortable-header">
+                      Date Created {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('is_admin')} className="sortable-header">
+                      Admin {sortField === 'is_admin' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th>Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {currentUsers.length > 0 ? (
+                    currentUsers.map(user => (
+                      <tr key={user.id}>
+                        <td>{user.id}</td>
+                        <td>{user.email || 'N/A'}</td>
+                        <td>{formatDate(user.created_at)}</td>
+                        <td>{user.is_admin ? 'Yes' : 'No'}</td>
+                        <td>
+                          <div className="user-actions">
+                            <button 
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                              className="delete-user-btn"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              onClick={() => handleSetAdminStatus(user.id, user.email, !user.is_admin)}
+                              className="set-admin-status-btn"
+                            >
+                              {user.is_admin ? 'Revoke Admin' : 'Make Admin'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5">No other users found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {totalPages > 1 && (

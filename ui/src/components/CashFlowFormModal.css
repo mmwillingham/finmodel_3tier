@@ -138,3 +138,22 @@
 .cashflow-form-modal-content .cancel-btn:hover {
   background-color: #444;
 }
+
+@media (max-width: 768px) {
+  .cashflow-form-modal-content .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cashflow-form-modal-content .form-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cashflow-form-modal-content #add-cashflow-item-button,
+  .cashflow-form-modal-content .cancel-btn {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}

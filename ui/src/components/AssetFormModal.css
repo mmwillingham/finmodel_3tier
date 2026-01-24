@@ -136,3 +136,22 @@
 .asset-form-modal-content .cancel-btn:hover {
   background-color: #444;
 }
+
+@media (max-width: 768px) {
+  .asset-form-modal-content .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-form-modal-content .form-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .asset-form-modal-content #add-asset-item-button,
+  .asset-form-modal-content .cancel-btn {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}

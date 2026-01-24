@@ -350,3 +350,44 @@
   margin-bottom: 20px;
 }
 
+@media (max-width: 768px) {
+  .wizard-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 12px;
+  }
+
+  .wizard-header,
+  .wizard-progress {
+    padding: 12px 16px;
+  }
+
+  .wizard-content {
+    padding: 16px;
+  }
+
+  .wizard-steps {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .wizard-steps::before {
+    display: none;
+  }
+
+  .wizard-step {
+    flex: 1 1 80px;
+  }
+
+  .wizard-step-title {
+    max-width: 90px;
+    font-size: 0.75em;
+  }
+
+  .wizard-actions {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+}
+

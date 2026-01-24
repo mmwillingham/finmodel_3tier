@@ -181,27 +181,28 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
         <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(tableRef, "Liabilities_Table")}>Download PDF</button>
         <button className="btn-primary-modern" onClick={() => handleDownloadLiabilitiesCsv("Liabilities_Table")}>Download CSV</button>
       </div>
-      <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
-        <thead>
-          <tr>
-            <th className="cashflow-table-cell sortable" style={{ width: '13%' }} onClick={() => handleSort('name')}>
-              Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable type-column" style={{ width: '11%' }} onClick={() => handleSort('loan_type')}>
-              Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('category')}>
-              Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
-              Curr Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('annual_increase_percent')}>
-              Ann Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
-              Principal {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
+      <div className="table-scroll">
+        <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
+          <thead>
+            <tr>
+              <th className="cashflow-table-cell sortable" style={{ width: '13%' }} onClick={() => handleSort('name')}>
+                Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="cashflow-table-cell sortable type-column" style={{ width: '11%' }} onClick={() => handleSort('loan_type')}>
+                Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('category')}>
+                Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
+                Curr Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('annual_increase_percent')}>
+                Ann Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
+                Principal {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
             <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('interest_rate')}>
               Int Rate {sortConfig.key === 'interest_rate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
@@ -268,6 +269,7 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
           })}
         </tbody>
       </table>
+      </div>
 
       <div className="total">
         <strong>Total Liabilities: {formatCurrency(total)}</strong>

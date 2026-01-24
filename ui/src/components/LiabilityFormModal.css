@@ -136,3 +136,22 @@
 .liability-form-modal-content .cancel-btn:hover {
   background-color: #444;
 }
+
+@media (max-width: 768px) {
+  .liability-form-modal-content .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .liability-form-modal-content .form-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .liability-form-modal-content #add-liability-item-button,
+  .liability-form-modal-content .cancel-btn {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}

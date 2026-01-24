@@ -289,7 +289,7 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
           )}
         </div>
       )}
-      <div style={{ width: '100%', maxWidth: '100%' }}>
+      <div className="table-scroll">
         <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
         <thead>
           <tr>

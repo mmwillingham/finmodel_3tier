@@ -166,3 +166,14 @@
 .show-totals-toggle input[type="checkbox"] {
   cursor: pointer;
 }
+
+@media (max-width: 768px) {
+  .custom-chart-view-container {
+    padding: 16px;
+    margin: 12px;
+  }
+
+  .chart-container {
+    height: 260px;
+  }
+}

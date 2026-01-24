@@ -35,6 +35,10 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
         setShowDropdown(prev => !prev);
     };
 
+    const toggleSidebar = () => {
+        window.dispatchEvent(new CustomEvent('sidebar:toggle'));
+    };
+
     // Placeholder for handling navigation to different settings sections
     const handleNavigation = (path) => {
         
@@ -63,6 +67,16 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
     return (
         <header className="app-header">
             <nav>
+                <button
+                    className="mobile-menu-button"
+                    onClick={toggleSidebar}
+                    aria-label="Toggle navigation menu"
+                    type="button"
+                >
+                    <span className="mobile-menu-bar"></span>
+                    <span className="mobile-menu-bar"></span>
+                    <span className="mobile-menu-bar"></span>
+                </button>
                 <div className="logo">
                     <Link to="/" onClick={handleLogoClick}>
                         <img src="/vault-logo.jpg" alt="" style={{ height: '32px', verticalAlign: 'middle', marginRight: '8px' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
@@ -76,7 +90,7 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                                 Logged in as: <strong>{currentUser.email}</strong>
                             </div>
                             {viewingUserId && (
-                                <div style={{ marginLeft: '16px' }}>
+                                <div className="account-switcher-wrapper" style={{ marginLeft: '16px' }}>
                                     <AccountSwitcher compact={true} />
                                 </div>
                             )}

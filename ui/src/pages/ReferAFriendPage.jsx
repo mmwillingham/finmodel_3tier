@@ -159,6 +159,7 @@ const ReferAFriendPage = () => {
             <p>You haven't referred anyone yet. Submit a referral above to get started!</p>
           ) : (
             <div style={{ width: '100%', marginTop: '0', marginLeft: '0', paddingLeft: '0', display: 'block' }}>
+              <div className="table-scroll">
               <table className="accounts-table referrals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'fixed', marginLeft: '0' }}>
                 <thead>
                   <tr>
@@ -192,6 +193,7 @@ const ReferAFriendPage = () => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>

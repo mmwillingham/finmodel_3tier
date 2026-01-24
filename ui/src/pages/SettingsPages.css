@@ -226,6 +226,33 @@
         max-width: 100%;
         padding: 16px;
     }
+
+    .settings-page-container {
+        padding: 16px;
+        margin: 12px 0;
+    }
+
+    .settings-page-container .form-group-horizontal,
+    .application-settings-form .form-group-horizontal,
+    .profile-settings-form .form-group-horizontal {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .settings-page-container .form-group-horizontal input[type="number"],
+    .settings-page-container .form-group-horizontal input[type="text"],
+    .settings-page-container .form-group-horizontal input[type="date"],
+    .settings-page-container .form-group-horizontal input[type="tel"],
+    .settings-page-container .form-group-horizontal select,
+    .application-settings-form .form-group-horizontal input[type="number"],
+    .profile-settings-form .form-group-horizontal input[type="text"],
+    .profile-settings-form .form-group-horizontal input[type="date"],
+    .profile-settings-form .form-group-horizontal input[type="tel"],
+    .profile-settings-form .form-group-horizontal select {
+        width: 100%;
+        margin-left: 0;
+    }
 }
 
 .settings-page-container .form-group-horizontal {

@@ -653,20 +653,21 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                 <button onClick={() => handleDownloadCsv(`${chartConfig.name}_Table`)} className="btn-primary-modern">Download CSV</button>
               </div>
             </div>
-            <table ref={tableRef} className="custom-chart-table">
-              <thead>
-                <tr>
-                  <th>Year</th>
-                  {chartData.datasets.map(dataset => (
-                    <th key={dataset.label}>{dataset.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {chartData.labels.map((year, yearIndex) => {
-                  return { year, yearIndex };
-                })
-                .sort((a, b) => {
+            <div className="table-scroll">
+              <table ref={tableRef} className="custom-chart-table">
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    {chartData.datasets.map(dataset => (
+                      <th key={dataset.label}>{dataset.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartData.labels.map((year, yearIndex) => {
+                    return { year, yearIndex };
+                  })
+                  .sort((a, b) => {
                   // Extract numeric year from "Year 2026" format and sort ascending
                   const yearA = parseInt(a.year.toString().replace(/\D/g, '')) || 0;
                   const yearB = parseInt(b.year.toString().replace(/\D/g, '')) || 0;
@@ -682,6 +683,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>
