@@ -1044,13 +1044,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           const sqrtProportion = Math.sqrt(flowProportion); // Square root makes smaller values more distinguishable
           const strokeWidth = minFlowWidth + (sqrtProportion * (maxFlowWidth - minFlowWidth));
           
-          // Debug logging for all flows
-            value,
-            maxIncomeValue,
-            flowProportion: flowProportion.toFixed(4),
-            calculatedStrokeWidth: strokeWidth.toFixed(2)
-          });
-          
           return (
             <path
               key={`flow_source_${category}`}
