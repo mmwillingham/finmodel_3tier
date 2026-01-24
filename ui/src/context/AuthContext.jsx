@@ -146,14 +146,7 @@ export const AuthProvider = ({ children }) => {
             // Check if this is a new login (user ID changed) or new session
             const isNewLogin = previousUserIdRef.current !== null && previousUserIdRef.current !== currentUserId;
             const isNewSession = lastSessionUserId !== currentUserId.toString();
-            
-                currentUserId,
-                previousUserIdRef: previousUserIdRef.current,
-                lastSessionUserId,
-                isNewLogin,
-                isNewSession,
-                savedViewingUserId: localStorage.getItem('viewingUserId')
-            });
+
             
             if (isNewLogin || isNewSession) {
                 // User ID changed OR new session - this is a fresh login
