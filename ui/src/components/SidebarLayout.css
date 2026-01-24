@@ -343,6 +343,21 @@
   display: none;
 }
 
+.mobile-menu-hint {
+  position: fixed;
+  top: 72px;
+  left: 12px;
+  z-index: 920;
+  background: #0b57d0;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 6px 12px rgba(11, 87, 208, 0.25);
+}
+
 @media (max-width: 768px) {
   .sidebar-layout {
     margin-top: 60px;

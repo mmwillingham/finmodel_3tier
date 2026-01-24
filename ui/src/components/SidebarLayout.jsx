@@ -510,6 +510,15 @@ export default function SidebarLayout() {
       {isMobile && isSidebarOpen && (
         <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />
       )}
+      {isMobile && !isSidebarOpen && (
+        <button
+          type="button"
+          className="mobile-menu-hint"
+          onClick={() => setIsSidebarOpen(true)}
+        >
+          ☰ Menu
+        </button>
+      )}
       <aside
         className={`sidebar ${isMobile ? "sidebar--mobile" : ""} ${isSidebarOpen ? "sidebar--open" : "sidebar--closed"}`}
         ref={sidebarRef}

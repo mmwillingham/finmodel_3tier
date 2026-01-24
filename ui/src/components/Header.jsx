@@ -73,9 +73,7 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                     aria-label="Toggle navigation menu"
                     type="button"
                 >
-                    <span className="mobile-menu-bar"></span>
-                    <span className="mobile-menu-bar"></span>
-                    <span className="mobile-menu-bar"></span>
+                    <span className="mobile-menu-label">Menu</span>
                 </button>
                 <div className="logo">
                     <Link to="/" onClick={handleLogoClick}>

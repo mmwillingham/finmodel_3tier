@@ -109,7 +109,7 @@ const CashHandlingPage = () => {
     <div className="settings-page-container">
       <div className="settings-header">
         <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Cash Handling</h1>
-        <p>Configure which assets and income/expense items are used for BASE Model and Sankey Diagram calculations.</p>
+        <p>Configure which assets and income/expense items are used for Cash Flow calculations.</p>
       </div>
 
       {error && (
@@ -127,7 +127,7 @@ const CashHandlingPage = () => {
       <div className="setting-group">
         <div className="form-group-horizontal" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
           <label htmlFor="cash-assets" style={{ marginBottom: '10px', fontWeight: 600 }}>
-            Cash Assets (for BASE Model and Sankey Diagram)
+            Cash Assets (for Cash Flow Diagrams)
           </label>
           <div style={{ 
             display: 'grid', 
@@ -163,7 +163,7 @@ const CashHandlingPage = () => {
 
         <div className="form-group-horizontal" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
           <label htmlFor="cash-in-sources" style={{ marginBottom: '10px', fontWeight: 600 }}>
-            Cash-In Sources (for BASE Model and Sankey Diagram)
+            Cash-In Sources (for Cash Flow Diagrams)
           </label>
           <div style={{ 
             display: 'grid', 
@@ -202,7 +202,7 @@ const CashHandlingPage = () => {
 
         <div className="form-group-horizontal" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
           <label htmlFor="cash-out-sources" style={{ marginBottom: '10px', fontWeight: 600 }}>
-            Cash-Out Destinations (for BASE Model and Sankey Diagram)
+            Cash-Out Destinations (for Cash Flow Diagrams)
           </label>
           <div style={{ 
             display: 'grid', 

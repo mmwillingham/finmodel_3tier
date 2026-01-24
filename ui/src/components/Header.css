@@ -25,13 +25,15 @@
     display: none;
     align-items: center;
     justify-content: center;
-    width: 36px;
+    width: auto;
     height: 36px;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 6px;
     cursor: pointer;
     margin-right: 12px;
+    gap: 6px;
+    padding: 4px 10px;
 }
 
 .mobile-menu-bar {
@@ -44,6 +46,13 @@
 
 .mobile-menu-bar + .mobile-menu-bar {
     margin-top: 4px;
+}
+
+.mobile-menu-label {
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
 }
 
 .app-header .logo a {
