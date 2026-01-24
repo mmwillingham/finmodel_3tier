@@ -92,21 +92,17 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
 async def startup_event():
     # Configure logging for the application
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_format)
+    logging.basicConfig(level=logging.WARNING, format=log_format)
 
     # Explicitly set log levels for uvicorn and our application modules
-    logging.getLogger("uvicorn").setLevel(logging.INFO)
-    logging.getLogger("uvicorn.access").setLevel(logging.INFO)
-    logging.getLogger("uvicorn.error").setLevel(logging.INFO)
-    logging.getLogger("api.routers.custom_charts").setLevel(logging.INFO)
-    logging.getLogger("api.calculations").setLevel(logging.INFO)
-    logging.getLogger("calculations").setLevel(logging.INFO)  # Also set for 'calculations' module name
-    logging.getLogger("main").setLevel(logging.INFO)  # Set for main module logger
-    logging.getLogger("auth").setLevel(logging.INFO)
-
-    logger.info("FastAPI application started. Logging level set to INFO.")
-
-    logger.info(f"Effective CORS_ORIGINS_REGEX: {settings.CORS_ORIGINS_REGEX}")
+    logging.getLogger("uvicorn").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+    logging.getLogger("api.routers.custom_charts").setLevel(logging.WARNING)
+    logging.getLogger("api.calculations").setLevel(logging.WARNING)
+    logging.getLogger("calculations").setLevel(logging.WARNING)  # Also set for 'calculations' module name
+    logging.getLogger("main").setLevel(logging.WARNING)  # Set for main module logger
+    logging.getLogger("auth").setLevel(logging.WARNING)
 
 app.include_router(custom_charts_router) # MODIFIED: Use the explicitly imported router
 app.include_router(settings_router)
@@ -381,7 +377,6 @@ def delete_user_by_admin(
                 detail="Failed to delete user from database."
             )
         
-        logger.info(f"User {user_id} ({user_to_delete.email}) successfully deleted by admin {current_admin_user.id}")
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         db.rollback()
@@ -476,7 +471,6 @@ def admin_create_user(
     db.commit()
     db.refresh(user_settings)
     
-    logger.info(f"Admin {current_admin_user.id} created user {db_user.id} (email: {db_user.email or 'None'})")
     return db_user
 
 @app.put("/admin/users/{user_id}/set-admin-status", response_model=schemas.UserOut, tags=["admin"])
@@ -515,13 +509,11 @@ def get_global_settings(
     """
     global_settings = db.query(models.GlobalSettings).first()
     if not global_settings:
-        logger.info("No global settings found in DB. Creating default global settings.")
         # Create default global settings if they don't exist
         global_settings = models.GlobalSettings(help_content="<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>") # Initialize with default content
         db.add(global_settings)
         db.commit()
         db.refresh(global_settings)
-        logger.info("Default global settings created and committed with default help content.")
     return global_settings
 
 @admin_router.put("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"], summary="Update global default categories")
@@ -814,17 +806,13 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
-    logger.info(f"=== CREATE_PROJECTION ENDPOINT CALLED for user {user.id} ===")
-    logger.info(f"Projection request: years={projection_data.years}, accounts_count={len(projection_data.accounts)}")
     try:
-        logger.info(f"About to call calculate_projection for user {user.id}")
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
             accounts=projection_data.accounts,
             db=db,
             owner_id=user.id
         )
-        logger.info(f"calculate_projection completed for user {user.id}")
     except Exception as e:
         logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
@@ -900,7 +888,6 @@ def get_projection_details(
     # Only auto-recalculate if we have accounts_data to rebuild from
     try:
         if is_projection_stale(db, projection, current_user.id) and projection.accounts_data and len(projection.accounts_data) > 0:
-            logger.info(f"Projection {projection_id} is stale, auto-recalculating...")
             try:
                 # Rebuild projection from stored accounts_data
                 result = rebuild_projection_from_stored_data(db, projection, current_user.id)
@@ -925,7 +912,6 @@ def get_projection_details(
                 
                 db.commit()
                 db.refresh(projection)
-                logger.info(f"Projection {projection_id} auto-recalculated successfully")
             except Exception as e:
                 logger.error(f"Error auto-recalculating projection {projection_id}: {e}", exc_info=True)
                 # Continue with stale data rather than failing
@@ -976,8 +962,6 @@ def update_projection(
 ):
     """
     Updates an existing projection if user has edit permission."""
-    logger.info(f"=== UPDATE_PROJECTION ENDPOINT CALLED for user {current_user.id}, projection_id={projection_id} ===")
-    logger.info(f"Projection request: years={req.years}, accounts_count={len(req.accounts)}")
     projection = (
         db.query(models.Projection)
         .options(joinedload(models.Projection.accounts_data))
@@ -1000,15 +984,12 @@ def update_projection(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
-    logger.info(f"About to call calculate_projection in update_projection for user {current_user.id}")
-    
     # Delete existing associated data
     db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
     db.commit()
 
     # Recalculate projection
     try:
-        logger.info(f"Calling calculate_projection in update_projection for user {current_user.id}")
         result = calculations.calculate_projection(
             years=req.years,
             accounts=req.accounts,
@@ -1225,7 +1206,6 @@ def create_cashflow(
                     db.commit()  # Commit user_settings changes
                 else:
                     db.commit()  # Commit federal_tax_expense
-                logger.info(f"Auto-created federal tax expense item for user {current_user.id} when income was added")
     
     return item
 

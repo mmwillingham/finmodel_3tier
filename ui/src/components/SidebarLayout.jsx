@@ -328,6 +328,15 @@ export default function SidebarLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!location.state?.dashboardView) {
+      return;
+    }
+    applyDashboardState(location.state);
+    const { dashboardView, cashFlowView, customChartView, selectedChartId, chartToViewId, ...restState } = location.state;
+    navigate(location.pathname, { replace: true, state: restState });
+  }, [location.state, location.pathname, navigate]);
+
+  useEffect(() => {
     if (isMobile) {
       setIsSidebarOpen(false);
     }
@@ -505,6 +514,34 @@ export default function SidebarLayout() {
     }
   };
 
+  const applyDashboardState = (state) => {
+    if (!state?.dashboardView) {
+      return;
+    }
+    setView(state.dashboardView);
+    if (state.cashFlowView !== undefined) {
+      setCashFlowView(state.cashFlowView);
+    }
+    if (state.customChartView !== undefined) {
+      setCustomChartView(state.customChartView);
+    }
+    if (state.selectedChartId !== undefined) {
+      setSelectedChartId(state.selectedChartId);
+    }
+    if (state.chartToViewId !== undefined) {
+      setChartToViewId(state.chartToViewId);
+    }
+  };
+
+  const openDashboardView = (dashboardView, extraState = {}) => {
+    const nextState = { ...(location.state || {}), dashboardView, ...extraState };
+    navigate("/", { state: nextState });
+    if (location.pathname === "/") {
+      applyDashboardState(nextState);
+    }
+    handleNavSelection();
+  };
+
   return (
     <div className={`sidebar-layout ${isMobile ? "sidebar-layout--mobile" : ""}`}>
       {isMobile && isSidebarOpen && (
@@ -536,7 +573,7 @@ export default function SidebarLayout() {
             <h3>MY DATA</h3>
             <NavLink
               to="/"
-              className={({ isActive }) => `nav-btn ${isActive || view === 'new-home' ? 'active' : ''}`}
+              className={() => `nav-btn ${view === 'new-home' ? 'active' : ''}`}
               onClick={handleNavSelection}
             >
               Home
@@ -599,7 +636,7 @@ export default function SidebarLayout() {
             </NavLink>
             <button
               className={`nav-btn ${view === 'cash-handling' ? 'active' : ''}`}
-              onClick={() => { setView('cash-handling'); handleNavSelection(); }}
+              onClick={() => openDashboardView('cash-handling')}
             >
               Cash Handling
             </button>
@@ -609,32 +646,32 @@ export default function SidebarLayout() {
             <h3>DASHBOARD</h3>
             <button
               className={`nav-btn ${view === 'balance-sheet-projection' ? 'active' : ''}`}
-              onClick={() => { setView('balance-sheet-projection'); setCashFlowView(null); handleNavSelection(); }}
+              onClick={() => openDashboardView('balance-sheet-projection', { cashFlowView: null })}
             >
               Net Worth
             </button>
             
             <button
               className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
-              onClick={() => { setView('cashflow-projection'); setCashFlowView(null); handleNavSelection(); }}
+              onClick={() => openDashboardView('cashflow-projection', { cashFlowView: null })}
             >
               Cash Flow
             </button>
             <button
               className={`nav-btn ${view === 'monte-carlo' ? 'active' : ''}`}
-              onClick={() => { setView('monte-carlo'); setCashFlowView(null); handleNavSelection(); }}
+              onClick={() => openDashboardView('monte-carlo', { cashFlowView: null })}
             >
               Monte Carlo
             </button>
             <button 
               className={`nav-btn ${view === 'custom-charts' && customChartView === 'list' ? 'active' : ''}`} 
-              onClick={() => { setView('custom-charts'); setCustomChartView('list'); handleNavSelection(); }}
+              onClick={() => openDashboardView('custom-charts', { customChartView: 'list', selectedChartId: null, chartToViewId: null })}
             >
               Custom
             </button>
             <button 
               className={`nav-btn ${view === 'what-if' ? 'active' : ''}`} 
-              onClick={() => { setView('what-if'); setCashFlowView(null); handleNavSelection(); }}
+              onClick={() => openDashboardView('what-if', { cashFlowView: null })}
             >
               What If?
             </button>

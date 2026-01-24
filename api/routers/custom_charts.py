@@ -1,4 +1,5 @@
 import json
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -516,6 +517,40 @@ def build_projection_accounts(series_configs, db: Session, current_user: models.
         all_expense_items,
         warnings
     )
+
+
+def _prune_invalid_series_configs(series_configs: List[dict], warnings: List[str]):
+    missing_pairs = set()
+    for warning in warnings:
+        match = re.search(r"references missing (\w+) id=(\d+)", warning)
+        if match:
+            missing_pairs.add((match.group(1), int(match.group(2))))
+
+    cleaned_configs = []
+    removed_count = 0
+
+    for series_config in series_configs:
+        data_type = series_config.get("data_type")
+        raw_item_id = series_config.get("item_id") or series_config.get("selected_item_id")
+        item_id = None
+        if raw_item_id not in ("", None):
+            try:
+                item_id = int(raw_item_id)
+            except (ValueError, TypeError):
+                removed_count += 1
+                continue
+
+        if not data_type:
+            removed_count += 1
+            continue
+
+        if item_id is not None and (data_type, item_id) in missing_pairs:
+            removed_count += 1
+            continue
+
+        cleaned_configs.append(series_config)
+
+    return cleaned_configs, removed_count
 
 
 try:
@@ -1808,10 +1843,28 @@ def recalculate_all_charts(
                 warnings
             ) = build_projection_accounts(series_configs, db, current_user)
             if warnings:
-                errors.append(
-                    f"Chart '{db_chart.name}' (ID: {db_chart.id}) has invalid series configs: {warnings}"
-                )
-                continue
+                pruned_configs, removed_count = _prune_invalid_series_configs(series_configs, warnings)
+                if removed_count > 0:
+                    series_configs = pruned_configs
+                    if not series_configs:
+                        errors.append(
+                            f"Chart '{db_chart.name}' (ID: {db_chart.id}) has no valid series after cleanup."
+                        )
+                        continue
+                    db_chart.series_configurations = json.dumps(series_configs)
+                    (
+                        expanded_series_configs,
+                        accounts_for_projection,
+                        projection_years,
+                        _,
+                        _,
+                        warnings
+                    ) = build_projection_accounts(series_configs, db, current_user)
+                if warnings:
+                    errors.append(
+                        f"Chart '{db_chart.name}' (ID: {db_chart.id}) has invalid series configs: {warnings}"
+                    )
+                    continue
             series_configs = expanded_series_configs
 
             import calculations
@@ -1873,54 +1926,68 @@ def recalculate_chart(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to recalculate this chart")
     
     # Reuse the same recalculation logic from recalculate_all_charts
-    if db_chart.series_configurations:
-        # Import the recalculation logic - we'll reuse the same approach as recalculate_all_charts
-        # For now, we'll trigger a recalculation by calling the same projection logic
-        series_configs = json.loads(db_chart.series_configurations)
+    if not db_chart.series_configurations:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chart has no series configurations to recalculate")
 
-        (
-            expanded_series_configs,
-            accounts_for_projection,
-            projection_years,
-            _,
+    series_configs = json.loads(db_chart.series_configurations)
+    (
+        expanded_series_configs,
+        accounts_for_projection,
+        projection_years,
+        _,
         _,
         warnings
-        ) = build_projection_accounts(series_configs, db, current_user)
+    ) = build_projection_accounts(series_configs, db, current_user)
     if warnings:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"message": "Invalid series configuration", "issues": warnings}
-        )
-        series_configs = expanded_series_configs
+        pruned_configs, removed_count = _prune_invalid_series_configs(series_configs, warnings)
+        if removed_count > 0:
+            series_configs = pruned_configs
+            if not series_configs:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"message": "Chart has no valid series after cleanup", "issues": warnings}
+                )
+            db_chart.series_configurations = json.dumps(series_configs)
+            (
+                expanded_series_configs,
+                accounts_for_projection,
+                projection_years,
+                _,
+                _,
+                warnings
+            ) = build_projection_accounts(series_configs, db, current_user)
+        if warnings:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"message": "Invalid series configuration", "issues": warnings}
+            )
 
-        # Recalculate projection
-        try:
-            import calculations
-            projection_results = calculations.calculate_projection(
-                years=projection_years,
-                accounts=accounts_for_projection,
-                db=db,
-                owner_id=current_user.id
-            )
-            
-            # Evaluate formulas for formula-based series
-            projection_results = evaluate_chart_formulas(
-                projection_results,
-                series_configs,
-                projection_years
-            )
-            
-            db_chart.data_json = projection_results["data_json"]
-            db_chart.final_value = projection_results["final_value"]
-            db_chart.total_contributed = projection_results["total_contributed"]
-            db_chart.total_growth = projection_results["total_growth"]
-            db.add(db_chart)
-            db.commit()
-            db.refresh(db_chart)
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
-    else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chart has no series configurations to recalculate")
+    series_configs = expanded_series_configs
+
+    try:
+        import calculations
+        projection_results = calculations.calculate_projection(
+            years=projection_years,
+            accounts=accounts_for_projection,
+            db=db,
+            owner_id=current_user.id
+        )
+        
+        projection_results = evaluate_chart_formulas(
+            projection_results,
+            series_configs,
+            projection_years
+        )
+        
+        db_chart.data_json = projection_results["data_json"]
+        db_chart.final_value = projection_results["final_value"]
+        db_chart.total_contributed = projection_results["total_contributed"]
+        db_chart.total_growth = projection_results["total_growth"]
+        db.add(db_chart)
+        db.commit()
+        db.refresh(db_chart)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Projection calculation failed: {e}")
     
     return db_chart
 

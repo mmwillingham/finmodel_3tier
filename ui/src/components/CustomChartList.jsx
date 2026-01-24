@@ -9,6 +9,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
   const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [recalcErrors, setRecalcErrors] = useState([]);
   const [recalculating, setRecalculating] = useState(false);
   const [recalculatingChartId, setRecalculatingChartId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
@@ -73,10 +74,15 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
       onConfirm: async () => {
         setRecalculating(true);
         setMessage('');
+        setRecalcErrors([]);
         try {
           const response = await CustomChartService.recalculateAll();
           const data = response.data;
-          setMessage(`Successfully recalculated ${data.recalculated_count} of ${data.total_charts} charts.${data.errors.length > 0 ? ` ${data.errors.length} error(s) occurred.` : ''}`);
+          const errorList = Array.isArray(data.errors) ? data.errors : [];
+          setMessage(`Successfully recalculated ${data.recalculated_count} of ${data.total_charts} charts.${errorList.length > 0 ? ` ${errorList.length} error(s) occurred.` : ''}`);
+          if (errorList.length > 0) {
+            setRecalcErrors(errorList);
+          }
           fetchCharts(); // Refresh the list to show updated data
           // Dispatch event to notify CustomChartView to refresh all charts
           window.dispatchEvent(new CustomEvent('chartRecalculated', { detail: { chartId: 'all' } }));
@@ -87,6 +93,26 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
         }
       }
     });
+  };
+
+  const formatRecalcError = (error) => {
+    if (!error) {
+      return 'Unknown error';
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error.detail) {
+      return error.detail;
+    }
+    if (error.message) {
+      return error.message;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch (e) {
+      return 'Unknown error';
+    }
   };
 
   const handleSort = (key) => {
@@ -147,6 +173,16 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
     <div className="custom-chart-list-container">
       <h3>Your Custom Charts and Tables</h3>
       {message && <div className="message">{message}</div>}
+      {recalcErrors.length > 0 && (
+        <div className="message error">
+          <div style={{ fontWeight: 600, marginBottom: '8px' }}>Recalculation errors</div>
+          <ul style={{ margin: 0, paddingLeft: '18px' }}>
+            {recalcErrors.map((error, index) => (
+              <li key={`${index}-${formatRecalcError(error)}`}>{formatRecalcError(error)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
         <button className="create-chart-btn" onClick={onCreateNewChart}>Create</button>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
