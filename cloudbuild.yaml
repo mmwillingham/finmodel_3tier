@@ -42,7 +42,7 @@ steps:
           --service-account app-docs-sa@financial-model-cloud.iam.gserviceaccount.com \
           --set-env-vars='GCS_BUCKET_NAME=finmodel-documents,GCS_PROJECT_ID=financial-model-cloud,PUBLIC_BACKEND_URL=https://api.ordaxium.com,FRONTEND_URL=https://www.ordaxium.com,CORS_ORIGINS_REGEX=^(http://localhost:3000|https://www\.ordaxium\.com|https://finmodel-frontend-service-.*\.run\.app)$,PLAID_ENV=sandbox' \
           --set-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
-          --update-secrets=DB_PASSWORD=_DB_PASSWORD:2,SECRET_KEY=_SECRET_KEY:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,PLAID_SECRET=_PLAID_SECRET:1,PLAID_ENCRYPTION_KEY=_PLAID_ENCRYPTION_KEY:1,PLAID_CLIENT_ID=_PLAID_CLIENT_ID:1,OPENAI_API_KEY=_OPENAI_API_KEY:1,OPENAI_API_KEY_PRO=_OPENAI_API_KEY_PRO:1
+          --update-secrets=DB_PASSWORD=_DB_PASSWORD:2,SECRET_KEY=_SECRET_KEY:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,PLAID_SECRET=_PLAID_SECRET:1,PLAID_ENCRYPTION_KEY=_PLAID_ENCRYPTION_KEY:1,PLAID_CLIENT_ID=_PLAID_CLIENT_ID:1,OPENAI_API_KEY=_OPENAI_API_KEY:1,OPENAI_API_KEY_PRO=_OPENAI_API_KEY_PRO:1 \
           --cpu=1 \
           --memory=512Mi \
           --concurrency=80 \

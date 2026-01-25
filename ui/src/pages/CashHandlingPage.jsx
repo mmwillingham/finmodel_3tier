@@ -157,7 +157,7 @@ const CashHandlingPage = () => {
             )}
           </div>
           <small style={{ marginTop: '5px', color: '#666' }}>
-            Select assets that should be considered as cash for the BASE Model and Sankey Diagram visualizations.
+            Select assets that should be considered as cash for the Csh Flow Diagram visualizations.
           </small>
         </div>
 
