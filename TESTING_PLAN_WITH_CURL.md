@@ -6,8 +6,8 @@ This plan provides complete testing scenarios with cURL commands for setup, expe
 
 ### 1. Set Environment Variables
 ```bash
-export API_BASE="http://localhost:8000"  # Adjust for your environment
-export EMAIL="test@example.com"          # Your test user email
+export API_BASE="https://api.ordaxium.com"  # Adjust for your environment
+export EMAIL="bolauder88@gmail.com"          # Your test user email
 export PASSWORD="testpassword"            # Your test user password
 ```
 
@@ -22,7 +22,6 @@ TOKEN=$(curl -s -X POST "${API_BASE}/token" \
 # Verify token
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
   echo "ERROR: Failed to get token"
-  exit 1
 fi
 
 echo "Token obtained: ${TOKEN:0:20}..."
