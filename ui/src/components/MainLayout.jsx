@@ -14,7 +14,7 @@ const MainLayout = () => {
             <div className="left-pane-nav">
                 <nav className="main-nav">
                     <Link 
-                        to="/" 
+                        to="/app" 
                         className={`nav-link ${isCalculator ? 'active' : ''}`}
                     >
                         Calculator

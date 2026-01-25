@@ -424,7 +424,7 @@ const UserManagementPage = () => {
         </>
       )}
       <div className="settings-page-actions">
-        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
+        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
       </div>
 
       <ConfirmDialog

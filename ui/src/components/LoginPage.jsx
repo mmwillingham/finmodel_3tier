@@ -61,13 +61,13 @@ const LoginPage = () => {
             // The backend returns must_change_password in the token response
             if (loginResponse.must_change_password === true || (userData && userData.must_change_password === true)) {
                 // Show password change modal - redirect to home with flag
-                navigate('/', { state: { mustChangePassword: true } });
+                navigate('/app', { state: { mustChangePassword: true } });
                 setLoading(false);
                 return;
             }
             
             // Redirect the user to the main application page upon successful login
-            navigate('/');
+            navigate('/app');
         } catch (err) {
             
             // Handle specific network or API error messages

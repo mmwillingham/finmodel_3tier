@@ -568,7 +568,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
             <h3>Dashboard</h3>
             <button 
               className="nav-btn" 
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/app')}
             >
               Home
             </button>

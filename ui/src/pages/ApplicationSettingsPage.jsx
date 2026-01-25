@@ -43,7 +43,7 @@ const ApplicationSettingsPage = () => {
         calculate_state_tax: calculateStateTax,
       });
       await refreshSettings();
-      navigate('/');
+      navigate('/app');
     } catch (e) {
       const errorMessage = e.response?.data?.detail || 'Error saving settings';
       setMessage(errorMessage);
@@ -166,7 +166,7 @@ const ApplicationSettingsPage = () => {
         )}
         <div className="settings-page-actions">
           <button onClick={handleSave} className="save-button">Save</button>
-          <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
+          <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
         </div>
       </div>
     </div>

@@ -378,7 +378,7 @@ const ExportImportPage = () => {
       </div>
 
       <div className="settings-page-actions">
-        <button onClick={() => navigate('/')} className="cancel-button">Back</button>
+        <button onClick={() => navigate('/app')} className="cancel-button">Back</button>
       </div>
     </div>
   );

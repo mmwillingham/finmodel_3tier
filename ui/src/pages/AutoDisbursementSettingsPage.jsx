@@ -116,7 +116,7 @@ const AutoDisbursementSettingsPage = () => {
       loadData();
       setTimeout(() => {
         setMessage('');
-        navigate('/'); // Close the page after successful save
+        navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
       const errorMessage = e.response?.data?.detail || 'Error creating auto-disbursement';
@@ -170,7 +170,7 @@ const AutoDisbursementSettingsPage = () => {
       loadData();
       setTimeout(() => {
         setMessage('');
-        navigate('/'); // Close the page after successful save
+        navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
       const errorMessage = e.response?.data?.detail || 'Error updating auto-disbursement';
@@ -224,7 +224,7 @@ const AutoDisbursementSettingsPage = () => {
       setMessage('Surplus Asset saved successfully!');
       setTimeout(() => {
         setMessage('');
-        navigate('/'); // Close the page after successful save
+        navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
       const errorMessage = e.response?.data?.detail || 'Error saving surplus asset';

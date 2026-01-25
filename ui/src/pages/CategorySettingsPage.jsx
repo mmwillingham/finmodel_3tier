@@ -193,7 +193,7 @@ const CategorySettingsPage = () => {
         {renderCategorySection('Expense Categories', expenseCategoriesState, setIsExpenseModalOpen, 'expense')}
       </div>
       <div className="settings-page-actions">
-        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
+        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
       </div>
     </div>
   );

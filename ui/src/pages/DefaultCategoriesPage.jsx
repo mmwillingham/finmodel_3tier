@@ -13,7 +13,7 @@ const DefaultCategoriesPage = () => {
   useEffect(() => {
     if (!currentUser || !currentUser.is_admin) {
       // Redirect non-admins or unauthenticated users
-      navigate('/'); // Redirect to home
+      navigate('/app'); // Redirect to home
     }
   }, [currentUser, navigate]);
 
@@ -25,7 +25,7 @@ const DefaultCategoriesPage = () => {
     <div className="settings-page-container">
       <GlobalSettings onGlobalSettingsSaved={refreshUserSettings} />
       <div className="settings-page-actions">
-        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
+        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export default function GoogleAuthCallback() {
                     AuthService.setToken(token);
                     // After setting the token, check the user session to update context state
                     await login();
-                    navigate('/'); // Redirect to dashboard
+                    navigate('/app'); // Redirect to dashboard
                 } catch (e) {
                     navigate('/login', { state: { error: 'Failed to log in after Google authentication.' } });
                 }

@@ -88,7 +88,7 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                     <span className="mobile-menu-label">Menu</span>
                 </button>
                 <div className="logo">
-                    <Link to="/" onClick={handleLogoClick}>
+                    <Link to={currentUser ? "/app" : "/"} onClick={handleLogoClick}>
                         <img src="/vault-logo.jpg" alt="" style={{ height: '32px', verticalAlign: 'middle', marginRight: '8px' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
                         <span>Model My Retirement</span>
                     </Link>
@@ -162,7 +162,7 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                     setShowAboutModal(false);
                     // Navigate away from /settings/about if we're on that route
                     if (location.pathname === '/settings/about') {
-                        navigate('/', { replace: true });
+                        navigate('/app', { replace: true });
                     }
                 }} 
             />
@@ -172,7 +172,7 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                     setShowHelpModal(false);
                     // Navigate away from /settings/help if we're on that route
                     if (location.pathname === '/settings/help') {
-                        navigate('/', { replace: true });
+                        navigate('/app', { replace: true });
                     }
                 }} 
             />

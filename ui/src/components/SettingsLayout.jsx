@@ -63,7 +63,7 @@ const SettingsPageLayout = ({ children }) => {
     if (viewingUserId && location.pathname.startsWith('/settings')) {
       // Allow account-switcher to switch back to own account
       if (!location.pathname.startsWith('/settings/account-switcher')) {
-        navigate('/');
+        navigate('/app');
       }
     }
   }, [viewingUserId, location.pathname, navigate]);
@@ -82,7 +82,7 @@ const SettingsPageLayout = ({ children }) => {
               <h3>Navigation</h3>
               <button 
                 className={`nav-btn ${location.pathname === '/' ? 'active' : ''}`} 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/app')}
               >
                 Home
               </button>

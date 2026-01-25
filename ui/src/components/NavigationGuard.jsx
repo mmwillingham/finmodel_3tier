@@ -11,16 +11,16 @@ const NavigationGuard = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
-  const isOnHomePageRef = useRef(location.pathname === '/');
+  const isOnHomePageRef = useRef(location.pathname === '/' || location.pathname === '/app');
 
   useEffect(() => {
     // If user is authenticated and tries to navigate to login/signup, redirect to home
     if (currentUser && (location.pathname === '/login' || location.pathname === '/signup')) {
-      navigate('/', { replace: true });
+      navigate('/app', { replace: true });
     }
     
     // Track if we're on home page
-    isOnHomePageRef.current = location.pathname === '/';
+    isOnHomePageRef.current = location.pathname === '/' || location.pathname === '/app';
   }, [location.pathname, currentUser, navigate]);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ const NavigationGuard = ({ children }) => {
 
         // If user is authenticated and back button would take them to login/signup, redirect to home
         if (currentPath === '/login' || currentPath === '/signup') {
-          navigate('/', { replace: true });
+          navigate('/app', { replace: true });
           return;
         }
 
@@ -48,7 +48,7 @@ const NavigationGuard = ({ children }) => {
         if (wasOnHomePage && currentPath.startsWith('/settings')) {
           // Cancel this navigation and stay on home
           window.history.pushState(null, '', currentPath); // Temporarily restore the settings path in history
-          navigate('/', { replace: true }); // Then redirect to home, replacing it
+          navigate('/app', { replace: true }); // Then redirect to home, replacing it
           return;
         }
       }, 10);

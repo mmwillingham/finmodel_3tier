@@ -32,6 +32,7 @@ import AuthorizedUsersPage from './pages/AuthorizedUsersPage.jsx';
 import AccountSwitcherPage from './pages/AccountSwitcherPage.jsx';
 import FeaturesPage from './pages/FeaturesPage.jsx';
 import PricingPage from './pages/PricingPage.jsx';
+import PublicHomePage from './pages/PublicHomePage.jsx';
 
 // The Main Application Structure
 function App() {
@@ -46,6 +47,7 @@ function App() {
                         <main className="container container-with-sidebar">
                             <Routes>
                             {/* Public Routes */}
+                            <Route path="/" element={<PublicHomePage />} />
                             <Route path="/login" element={<LoginPage />} />
                             <Route path="/signup" element={<SignupPage />} />
                             <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -56,7 +58,7 @@ function App() {
 
                             {/* Protected Routes (Require JWT) */}
                             <Route
-                                path="/"
+                                path="/app"
                                 element={
                                     <ProtectedRoute>
                                         <SidebarLayout />
@@ -86,8 +88,8 @@ function App() {
                             <Route path="/settings/about" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
 
                             {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}
-                            <Route path="/my-projections" element={<Navigate to="/" replace />} />
-                            <Route path="/calculator" element={<Navigate to="/" replace />} />
+                            <Route path="/my-projections" element={<Navigate to="/app" replace />} />
+                            <Route path="/calculator" element={<Navigate to="/app" replace />} />
                             </Routes>
                         </main>
                     </SettingsPageLayout>

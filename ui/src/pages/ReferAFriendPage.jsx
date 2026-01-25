@@ -200,7 +200,7 @@ const ReferAFriendPage = () => {
       </div>
 
       <div className="settings-page-actions" style={{ marginTop: '20px' }}>
-        <button onClick={() => navigate('/')} className="cancel-button">Back</button>
+        <button onClick={() => navigate('/app')} className="cancel-button">Back</button>
       </div>
     </div>
   );

@@ -115,7 +115,7 @@ const ProfileSettingsPage = () => {
       setMessage('Profile settings saved successfully!');
       setTimeout(() => {
         setMessage('');
-        navigate('/'); // Navigate to home after successful save
+        navigate('/app'); // Navigate to home after successful save
       }, 1000);
     } catch (e) {
       const errorMessage = e.response?.data?.detail || 'Error saving settings';
@@ -531,7 +531,7 @@ const ProfileSettingsPage = () => {
         <button onClick={handleSave} className="save-button" disabled={loading}>
           {loading ? 'Saving...' : 'Save'}
         </button>
-        <button onClick={() => navigate('/')} className="cancel-button">Cancel</button>
+        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
       </div>
 
       <ChangePasswordModal

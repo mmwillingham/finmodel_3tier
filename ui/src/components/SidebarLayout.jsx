@@ -580,8 +580,8 @@ export default function SidebarLayout() {
 
   const openDashboardView = (dashboardView, extraState = {}) => {
     const nextState = { ...(location.state || {}), dashboardView, ...extraState };
-    navigate("/", { state: nextState });
-    if (location.pathname === "/") {
+    navigate("/app", { state: nextState });
+    if (location.pathname === "/app") {
       applyDashboardState(nextState);
     }
     handleNavSelection();
@@ -617,7 +617,7 @@ export default function SidebarLayout() {
           <section className="nav-section">
             <h3>MY DATA</h3>
             <NavLink
-              to="/"
+              to="/app"
               className={() => `nav-btn ${view === 'new-home' ? 'active' : ''}`}
               onClick={handleNavSelection}
             >
