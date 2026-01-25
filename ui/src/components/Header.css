@@ -85,6 +85,63 @@
     justify-content: flex-end; /* Push content within nav-links to the right */
 }
 
+.contact-menu {
+    position: relative;
+}
+
+.contact-menu-button {
+    background: none;
+    border: none;
+    color: #ffffff !important;
+    font-size: 1em;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 4px;
+}
+
+.contact-menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.contact-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #ffffff !important;
+    color: #333;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    padding: 10px 0;
+    z-index: 1200;
+    border: 1px solid var(--color-border);
+}
+
+.contact-menu-dropdown button {
+    background: none;
+    border: none;
+    color: #333 !important;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 0;
+    font-size: 1em;
+    font-weight: 400;
+    text-align: left;
+    cursor: pointer;
+    display: block;
+    white-space: nowrap;
+}
+
+.contact-menu-dropdown button:hover {
+    background-color: var(--color-primary-light);
+}
+
+.nav-links .contact-menu-dropdown button {
+    color: #333 !important;
+}
+
 /* Styling for authenticated user's right-side menu */
 .header-right-menu {
     display: flex;
@@ -228,6 +285,10 @@
     .header-right-menu .points-button,
     .account-switcher-wrapper,
     .header-public-links {
+        display: none;
+    }
+
+    .contact-menu {
         display: none;
     }
 

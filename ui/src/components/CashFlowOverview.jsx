@@ -2243,7 +2243,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       },
       title: {
         display: true,
-        text: `Estate Springboard - Income & Expense Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Model My Retirement - Income & Expense Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
     },
     scales: {
@@ -2473,7 +2473,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       },
       title: {
         display: true,
-        text: `Estate Springboard - BASE Model (Beginning, Additions, Subtractions, Ending)${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Model My Retirement - BASE Model (Beginning, Additions, Subtractions, Ending)${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
       tooltip: {
         callbacks: {

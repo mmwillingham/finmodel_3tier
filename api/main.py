@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter, Header
+from starlette.requests import Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
@@ -12,7 +13,6 @@ import json
 import traceback
 import os
 from fastapi.responses import JSONResponse
-from starlette.requests import Request
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -690,6 +690,111 @@ def verify_email(
     except HTTPException as e:
         raise e
     return confirmed_user
+
+
+def _get_user_from_header(auth_header: str | None, db: Session):
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+    except JWTError:
+        return None
+    return db.query(models.User).filter(models.User.id == int(user_id)).first()
+
+
+def _get_client_ip(request: Request) -> str | None:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip() or None
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip() or None
+    return request.client.host if request.client else None
+
+
+@app.post("/contact", status_code=status.HTTP_200_OK, tags=["public"])
+def contact_us(
+    payload: schemas.ContactRequest,
+    request: Request,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(database.get_db)
+):
+    contact_map = {
+        "question": "ask@modelmyretirement.com",
+        "feature": "newfeature@modelmyretirement.com",
+        "bug": "bug@modelmyretirement.com",
+        "support": "support@modelmyretirement.com",
+    }
+    contact_type = (payload.contact_type or "").strip().lower()
+    recipient = contact_map.get(contact_type)
+    if not recipient:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contact type.")
+
+    user = _get_user_from_header(authorization, db)
+    rate_limit = settings.CONTACT_RATE_LIMIT_PER_HOUR
+    if rate_limit > 0:
+        window_start = datetime.utcnow() - timedelta(hours=1)
+        query = db.query(models.ContactRequestLog).filter(
+            models.ContactRequestLog.created_at >= window_start
+        )
+        if user:
+            query = query.filter(models.ContactRequestLog.user_id == user.id)
+        else:
+            query = query.filter(models.ContactRequestLog.email == payload.email)
+        recent_count = query.count()
+        if recent_count >= rate_limit:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many contact requests. Please try again later."
+            )
+
+    ip_address = _get_client_ip(request)
+    subject = payload.subject.strip() if payload.subject else f"{payload.contact_type.title()} - Model My Retirement"
+    body = f"""Name: {payload.name}
+Email: {payload.email}
+Type: {payload.contact_type}
+User ID: {user.id if user else "N/A"}
+IP: {ip_address or "N/A"}
+
+{payload.message}
+"""
+    sent = send_email(recipient, subject, body)
+    if not sent:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Email service unavailable.")
+
+    db.add(models.ContactRequestLog(
+        user_id=user.id if user else None,
+        contact_type=payload.contact_type,
+        name=payload.name,
+        email=payload.email,
+        subject=payload.subject,
+        message=payload.message,
+        ip_address=ip_address
+    ))
+    db.commit()
+    return {"ok": True}
+    contact_type = (payload.contact_type or "").strip().lower()
+    recipient = contact_map.get(contact_type)
+    if not recipient:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contact type.")
+
+    subject = payload.subject.strip() if payload.subject else f"{payload.contact_type.title()} - Model My Retirement"
+    body = f"""Name: {payload.name}
+Email: {payload.email}
+Type: {payload.contact_type}
+
+{payload.message}
+"""
+    sent = send_email(recipient, subject, body)
+    if not sent:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Email service unavailable.")
+    return {"ok": True}
 
 def is_projection_stale(db: Session, projection: models.Projection, user_id: int) -> bool:
     """

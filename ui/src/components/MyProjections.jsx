@@ -31,7 +31,7 @@ const MyProjections = () => {
 
     return (
         <div className="my-projections-page">
-            <h1>📚 My Estate Springboard Projections</h1>
+            <h1>📚 My Model My Retirement Projections</h1>
             {projections.length === 0 ? (
                 <p>No projections saved yet. Go to the Calculator to create one!</p>
             ) : (

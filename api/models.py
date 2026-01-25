@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON, UniqueConstraint
+from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON, UniqueConstraint, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -73,6 +73,24 @@ class WhatIfRequestLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user_owner = relationship("User", back_populates="what_if_requests")
+
+
+class ContactRequestLog(Base):
+    """
+    SQLAlchemy Model for contact form submissions.
+    """
+    __tablename__ = "contact_request_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    contact_type = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    subject = Column(String, nullable=True)
+    message = Column(Text, nullable=False)
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user_owner = relationship("User")
 
 
 class Projection(Base):

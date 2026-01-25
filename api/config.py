@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL_DEFAULT: str = os.getenv("OPENAI_MODEL_DEFAULT", "gpt-4o-mini")
     OPENAI_MODEL_PRO: str = os.getenv("OPENAI_MODEL_PRO", "gpt-4o")
 
+    # Contact form rate limit (per hour)
+    CONTACT_RATE_LIMIT_PER_HOUR: int = int(os.getenv("CONTACT_RATE_LIMIT_PER_HOUR", "5"))
+
     # Method to generate DATABASE_URL after validation
     def model_post_init(self, __context: Any) -> None:
         # Construct DATABASE_URL using Cloud SQL connector format if CLOUD_SQL_CONNECTION_NAME is set

@@ -211,7 +211,7 @@ export default function CashFlowSummary({ incomeItems, expenseItems, assets = []
       },
       title: {
         display: true,
-        text: `Estate Springboard - Cash Flow Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Model My Retirement - Cash Flow Projection${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
         font: { size: 13 },
       },
     },

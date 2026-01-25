@@ -316,7 +316,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       },
       title: {
         display: true,
-        text: `Estate Springboard - Overall Financial Snapshot${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: `Model My Retirement - Overall Financial Snapshot${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
       },
     },
     scales: {
@@ -674,7 +674,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
               ...chartOptions.plugins,
               title: {
                 ...chartOptions.plugins.title,
-                text: `Estate Springboard - Individual Asset Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+                text: `Model My Retirement - Individual Asset Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
               },
             },
           }}
@@ -787,7 +787,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
                 ...chartOptions.plugins,
                 title: {
                   ...chartOptions.plugins.title,
-                  text: `Estate Springboard - Individual Liability Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+                  text: `Model My Retirement - Individual Liability Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
                 },
               },
             }}

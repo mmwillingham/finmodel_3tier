@@ -67,6 +67,14 @@ class PasswordReset(BaseModel):
 class EmailConfirmation(BaseModel):
     token: str
 
+
+class ContactRequest(BaseModel):
+    contact_type: str
+    name: str
+    email: str
+    subject: Optional[str] = None
+    message: str
+
 class UserAdminStatusUpdate(BaseModel):
     is_admin: bool
     subscription_level: Optional[int] = None

@@ -98,6 +98,8 @@ const UserManagementPage = () => {
       isOpen: true,
       title: 'Update Subscription',
       message: `Set subscription for user ${userName} (ID: ${userId}) to level ${subscriptionLevel}?`,
+      confirmText: 'Update',
+      showCancel: true,
       onConfirm: async () => {
         setLoading(true);
         setMessage('');

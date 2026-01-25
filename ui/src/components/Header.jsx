@@ -7,15 +7,18 @@ import PointsModal from './PointsModal'; // Points modal component
 import AboutModal from './AboutModal'; // About modal component
 import HelpModal from './HelpModal'; // Help modal component
 import AccountSwitcher from './AccountSwitcher'; // Account switcher component
+import ContactFormModal from './ContactFormModal';
 
 const Header = () => { // Removed setIsSettingsModalOpen prop
     const { currentUser, logout, viewingUserId } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [showDropdown, setShowDropdown] = useState(false); // State to manage dropdown visibility
+    const [showContactMenu, setShowContactMenu] = useState(false);
     const [showPointsModal, setShowPointsModal] = useState(false); // State for points modal
     const [showAboutModal, setShowAboutModal] = useState(false); // State for about modal
     const [showHelpModal, setShowHelpModal] = useState(false); // State for help modal
+    const [contactModal, setContactModal] = useState({ isOpen: false, contactType: '', label: '' });
 
     // Handle direct navigation to /settings/help or /settings/about
     useEffect(() => {
@@ -33,6 +36,15 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
 
     const toggleDropdown = () => {
         setShowDropdown(prev => !prev);
+    };
+
+    const toggleContactMenu = () => {
+        setShowContactMenu(prev => !prev);
+    };
+
+    const openContactModal = (contactType, label) => {
+        setContactModal({ isOpen: true, contactType, label });
+        setShowContactMenu(false);
     };
 
     const toggleSidebar = () => {
@@ -78,10 +90,23 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                 <div className="logo">
                     <Link to="/" onClick={handleLogoClick}>
                         <img src="/vault-logo.jpg" alt="" style={{ height: '32px', verticalAlign: 'middle', marginRight: '8px' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
-                        <span>Estate Springboard</span>
+                        <span>Model My Retirement</span>
                     </Link>
                 </div>
                 <div className="nav-links">
+                    <div className="contact-menu" onMouseLeave={() => setShowContactMenu(false)}>
+                        <button type="button" className="contact-menu-button" onClick={toggleContactMenu}>
+                            Contact Us
+                        </button>
+                        {showContactMenu && (
+                            <div className="contact-menu-dropdown">
+                                <button type="button" onClick={() => openContactModal('question', 'Ask a question')}>Ask a question</button>
+                                <button type="button" onClick={() => openContactModal('feature', 'Request a feature')}>Request a feature</button>
+                                <button type="button" onClick={() => openContactModal('bug', 'Report a bug')}>Report a bug</button>
+                                <button type="button" onClick={() => openContactModal('support', 'Support')}>Support</button>
+                            </div>
+                        )}
+                    </div>
                     {currentUser ? (
                         <div className="header-right-menu">
                             <div className="header-public-links">
@@ -150,6 +175,12 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                         navigate('/', { replace: true });
                     }
                 }} 
+            />
+            <ContactFormModal
+                isOpen={contactModal.isOpen}
+                contactType={contactModal.contactType}
+                label={contactModal.label}
+                onClose={() => setContactModal({ isOpen: false, contactType: '', label: '' })}
             />
         </header>
     );
