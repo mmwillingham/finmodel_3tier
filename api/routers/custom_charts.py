@@ -11,6 +11,7 @@ from database import get_db
 from auth import get_current_user
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
+from utils.subscription import get_user_limits
 # Removed: from api import calculations # This will now be lazy-loaded inside functions
 
 
@@ -766,6 +767,9 @@ def create_custom_chart(
         
         user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
         projection_years = user_settings.projection_years if user_settings else DEFAULT_PROJECTION_YEARS
+        limits = get_user_limits(db, current_user)
+        if limits["is_limited"] and limits["max_projection_years"] is not None:
+            projection_years = min(projection_years, limits["max_projection_years"])
 
         warnings = []
         
@@ -1387,6 +1391,9 @@ def update_custom_chart(
             all_expense_items
             , warnings
         ) = build_projection_accounts(series_configs, db, current_user)
+        limits = get_user_limits(db, current_user)
+        if limits["is_limited"] and limits["max_projection_years"] is not None:
+            projection_years = min(projection_years, limits["max_projection_years"])
         if warnings:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1842,6 +1849,9 @@ def recalculate_all_charts(
                 _,
                 warnings
             ) = build_projection_accounts(series_configs, db, current_user)
+            limits = get_user_limits(db, current_user)
+            if limits["is_limited"] and limits["max_projection_years"] is not None:
+                projection_years = min(projection_years, limits["max_projection_years"])
             if warnings:
                 pruned_configs, removed_count = _prune_invalid_series_configs(series_configs, warnings)
                 if removed_count > 0:
@@ -1860,6 +1870,8 @@ def recalculate_all_charts(
                         _,
                         warnings
                     ) = build_projection_accounts(series_configs, db, current_user)
+                    if limits["is_limited"] and limits["max_projection_years"] is not None:
+                        projection_years = min(projection_years, limits["max_projection_years"])
                 if warnings:
                     errors.append(
                         f"Chart '{db_chart.name}' (ID: {db_chart.id}) has invalid series configs: {warnings}"
@@ -1938,6 +1950,9 @@ def recalculate_chart(
         _,
         warnings
     ) = build_projection_accounts(series_configs, db, current_user)
+    limits = get_user_limits(db, current_user)
+    if limits["is_limited"] and limits["max_projection_years"] is not None:
+        projection_years = min(projection_years, limits["max_projection_years"])
     if warnings:
         pruned_configs, removed_count = _prune_invalid_series_configs(series_configs, warnings)
         if removed_count > 0:
@@ -1956,6 +1971,8 @@ def recalculate_chart(
                 _,
                 warnings
             ) = build_projection_accounts(series_configs, db, current_user)
+            if limits["is_limited"] and limits["max_projection_years"] is not None:
+                projection_years = min(projection_years, limits["max_projection_years"])
         if warnings:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

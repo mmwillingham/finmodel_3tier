@@ -12,6 +12,7 @@ from schemas_documents import (
 )
 from utils import gcs_storage
 from utils.permission_dependencies import get_accessible_user_ids
+from utils.subscription import get_user_limits
 from utils.permissions import check_permission
 import logging
 import io
@@ -269,6 +270,17 @@ async def upload_document(
     """
     Upload a new document to GCS and create a database record.
     """
+    limits = get_user_limits(db, current_user)
+    if limits["is_limited"] and limits["max_documents"] is not None:
+        existing_count = db.query(models.Document).filter(
+            models.Document.owner_id == current_user.id
+        ).count()
+        if existing_count >= limits["max_documents"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Free plan supports up to {limits['max_documents']} documents."
+            )
+
     # Validate folder if specified
     if folder_id:
         folder = db.query(models.DocumentFolder).filter(

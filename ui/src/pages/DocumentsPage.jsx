@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import DocumentsService from '../services/documents.service';
+import SettingsService from '../services/settings.service';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AccountSwitcher from '../components/AccountSwitcher';
 import './DocumentsPage.css';
@@ -15,6 +16,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
   const [folderPath, setFolderPath] = useState([{ id: null, name: 'Root' }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [limits, setLimits] = useState(null);
   
   // Modals
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -39,6 +41,26 @@ const DocumentsPage = ({ hideSidebar = false }) => {
   useEffect(() => {
     loadFolderContents(currentFolderId);
   }, [currentFolderId, viewingUserId]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadLimits = async () => {
+      try {
+        const response = await SettingsService.getSubscriptionLimits();
+        if (isMounted) {
+          setLimits(response.data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setLimits(null);
+        }
+      }
+    };
+    loadLimits();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const loadFolderContents = async (folderId) => {
     setLoading(true);
@@ -105,7 +127,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
       setShowUploadModal(false);
       loadFolderContents(currentFolderId);
     } catch (err) {
-      alert('Failed to upload document: ' + (err.response?.data?.detail || err.message));
+      setError(err.response?.data?.detail || err.message || 'Failed to upload document');
     }
   };
 
@@ -229,10 +251,24 @@ const DocumentsPage = ({ hideSidebar = false }) => {
       </div>
 
       {loading && <div className="loading">Loading...</div>}
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div className="error">
+          {error}
+          {error.toLowerCase().includes('free plan') && (
+            <div style={{ marginTop: '8px' }}>
+              Upgrade on the <a href="/pricing">Pricing</a> page to upload more documents.
+            </div>
+          )}
+        </div>
+      )}
 
       {!loading && !error && (
         <div className="documents-content">
+          {limits?.is_limited && limits.max_documents != null && (
+            <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '12px' }}>
+              Free plan: up to {limits.max_documents} documents.
+            </div>
+          )}
           {/* Folders */}
           {folders.length > 0 && (
             <div className="folders-section">

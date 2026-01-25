@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { Line, Pie } from "react-chartjs-2";
 import ProjectionService from '../services/projection.service';
 
-export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals, compact = false }) {
+export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals, compact = false, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
   const { userSettings, currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const overallChartRef = useRef(null);
@@ -564,6 +564,25 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
     <div className="balance-sheet-projection">
       <div style={{ marginBottom: '15px' }}>
         <h2 style={{ marginBottom: '8px' }}>Balance Sheet Projections</h2>
+        {showProjectionYearSelector && (
+          <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label htmlFor="balance-sheet-years" style={{ fontWeight: 600 }}>Projection Years</label>
+            <select
+              id="balance-sheet-years"
+              value={projectionYears}
+              onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
+            >
+              {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
+                <option key={years} value={years}>{years}</option>
+              ))}
+            </select>
+            {isLimitedPlan && maxProjectionYears !== undefined && (
+              <span style={{ fontSize: '0.85em', color: '#666' }}>
+                Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
+              </span>
+            )}
+          </div>
+        )}
         <p style={{ fontSize: '0.9em', color: '#666', fontStyle: 'italic', margin: 0 }}>
           Note: All values are calculated as of December 31st of the specified year. For example, values for 2026 represent the balance sheet position as of December 31, 2026.
         </p>

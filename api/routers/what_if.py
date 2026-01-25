@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 import models
 import schemas
 import auth
@@ -11,6 +12,7 @@ from config import settings
 import logging
 from openai import OpenAI
 import json
+from utils.subscription import get_user_limits
 
 
 DEFAULT_PROJECTION_YEARS = schemas.UserSettingsBase.model_fields['projection_years'].default
@@ -162,8 +164,10 @@ Please provide a detailed answer to their "What If?" question, using their actua
         # Call OpenAI API with streaming
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
         
+        model_name = settings.OPENAI_MODEL_PRO if current_user.subscription_level == 3 else settings.OPENAI_MODEL_DEFAULT
+
         stream = client.chat.completions.create(
-            model="gpt-4o-mini",  # Using gpt-4o-mini for cost efficiency, can be upgraded to gpt-4 if needed
+            model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -200,6 +204,22 @@ async def ask_what_if(
     The AI will analyze the user's financial data and provide insights.
     Returns a streaming response (Server-Sent Events) so answers appear progressively.
     """
+    limits = get_user_limits(db, current_user)
+    if limits["is_limited"] and limits["max_whatif_monthly"] is not None:
+        start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        usage_count = db.query(models.WhatIfRequestLog).filter(
+            models.WhatIfRequestLog.user_id == current_user.id,
+            models.WhatIfRequestLog.created_at >= start_of_month
+        ).count()
+        if usage_count >= limits["max_whatif_monthly"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Free plan supports up to {limits['max_whatif_monthly']} What If requests per month."
+            )
+
+    db.add(models.WhatIfRequestLog(user_id=current_user.id))
+    db.commit()
+
     return StreamingResponse(
         generate_streaming_response(request, db, current_user),
         media_type="text/event-stream",

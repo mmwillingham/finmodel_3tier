@@ -21,6 +21,7 @@ class User(Base):
     must_change_password = Column(Boolean, default=False)  # Require password change on first login
     google_id = Column(String, unique=True, index=True, nullable=True) # NEW FIELD for Google OAuth
     referred_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # NEW: Track who referred this user
+    subscription_level = Column(Integer, default=1)  # 1=Free, 2=Premium, 3=Pro
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner", cascade="all, delete-orphan")
     # Relationship to PasswordResetToken: one user can have many reset tokens (though we'll only allow one active)
@@ -32,6 +33,7 @@ class User(Base):
     # Referral relationships
     referrals = relationship("Referral", foreign_keys="Referral.referrer_id", back_populates="referrer", cascade="all, delete-orphan")
     referred_by = relationship("User", remote_side=[id], foreign_keys=[referred_by_id])
+    what_if_requests = relationship("WhatIfRequestLog", back_populates="user_owner", cascade="all, delete-orphan")
 
 class PasswordResetToken(Base):
     """
@@ -59,6 +61,18 @@ class EmailConfirmationToken(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user_owner = relationship("User", back_populates="email_confirmation_tokens")
+
+
+class WhatIfRequestLog(Base):
+    """
+    SQLAlchemy Model for tracking What If request usage.
+    """
+    __tablename__ = "what_if_request_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user_owner = relationship("User", back_populates="what_if_requests")
 
 
 class Projection(Base):
@@ -176,7 +190,7 @@ class UserSettings(Base):
     city = Column(String, default="")
     state = Column(String, default="")
     zip_code = Column(String, default="")
-    projection_years = Column(Integer, default=20)
+    projection_years = Column(Integer, default=15)
     show_chart_totals = Column(Boolean, default=True) # New field
     surplus_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True)  # Designated asset for surplus/deficit
     tax_filing_status = Column(String, default="Single")  # Tax filing status: Single, Married Filing Jointly, etc.
@@ -202,6 +216,9 @@ class GlobalSettings(Base):
     liability_categories = Column(JSON, default=["Other", "Mortgage", "Student Loan", "Car Loan"])
     income_categories = Column(JSON, default=["Salary", "Rental Income", "Investments"])
     expense_categories = Column(JSON, default=["Housing", "Food", "Transportation", "Utilities", "Insurance", "Healthcare", "Entertainment"])
+    free_max_projection_years = Column(Integer, default=5)
+    free_max_documents = Column(Integer, default=5)
+    free_max_whatif_monthly = Column(Integer, default=5)
     help_content = Column(String, nullable=True)
     about_content = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -15,7 +15,8 @@ const checkCategoryUsage = (categoryName, categoryType) => {
 
 const getDefaultCategories = () => ApiService.get("/settings/default-categories");
 const loadDefaultCategories = () => ApiService.post("/settings/load-default-categories");
+const getSubscriptionLimits = () => ApiService.get("/settings/limits");
 
-const SettingsService = { getSettings, updateSettings, checkCategoryUsage, getDefaultCategories, loadDefaultCategories };
+const SettingsService = { getSettings, updateSettings, checkCategoryUsage, getDefaultCategories, loadDefaultCategories, getSubscriptionLimits };
 
 export default SettingsService;

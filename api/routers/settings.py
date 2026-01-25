@@ -9,6 +9,7 @@ import database
 import auth
 from utils.social_security import calculate_fra, fra_to_date, calculate_monthly_benefit, calculate_spousal_benefit
 from utils.permission_dependencies import get_accessible_user_ids
+from utils.subscription import get_user_limits
 
 # Constant to identify the federal tax expense item (must match frontend)
 FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
@@ -21,6 +22,20 @@ router = APIRouter(
     tags=["settings"],
     responses={404: {"description": "Not found"}},
 )
+
+@router.get("/limits", response_model=schemas.SubscriptionLimitsOut)
+def get_subscription_limits(
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    limits = get_user_limits(db, current_user)
+    return schemas.SubscriptionLimitsOut(
+        subscription_level=current_user.subscription_level,
+        is_limited=limits["is_limited"],
+        max_projection_years=limits["max_projection_years"],
+        max_documents=limits["max_documents"],
+        max_whatif_monthly=limits["max_whatif_monthly"],
+    )
 
 @router.get("", response_model=schemas.UserSettingsOut)
 def get_user_settings(

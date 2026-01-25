@@ -13,7 +13,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 // Constant to identify the federal tax expense item (must match backend)
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
 
-export default function MonteCarloProjections({ incomeItems, expenseItems, assets, liabilities, projectionYears, formatCurrency }) {
+export default function MonteCarloProjections({ incomeItems, expenseItems, assets, liabilities, projectionYears, formatCurrency, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
   const { userSettings } = useAuth();
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
@@ -545,6 +545,26 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
     <div className="monte-carlo-projections" style={{ padding: '20px' }}>
       <h2>Monte Carlo Projections</h2>
       <p>Run probabilistic simulations to see the range of possible financial outcomes.</p>
+
+      {showProjectionYearSelector && (
+        <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <label htmlFor="monte-carlo-years" style={{ fontWeight: 600 }}>Projection Years</label>
+          <select
+            id="monte-carlo-years"
+            value={projectionYears}
+            onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
+          >
+            {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
+              <option key={years} value={years}>{years}</option>
+            ))}
+          </select>
+          {isLimitedPlan && maxProjectionYears !== undefined && (
+            <span style={{ fontSize: '0.85em', color: '#666' }}>
+              Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="controls" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>

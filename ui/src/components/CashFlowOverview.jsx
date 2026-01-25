@@ -1123,7 +1123,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   );
 }
 
-export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [], liabilities = [], compact = false }) {
+export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [], liabilities = [], compact = false, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
   const { currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
   const chartRef = useRef(null);
@@ -2529,6 +2529,25 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
   return (
     <div className="cashflow-overview-container">
+      {showProjectionYearSelector && (
+        <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <label htmlFor="cashflow-overview-years" style={{ fontWeight: 600 }}>Projection Years</label>
+          <select
+            id="cashflow-overview-years"
+            value={projectionYears}
+            onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
+          >
+            {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
+              <option key={years} value={years}>{years}</option>
+            ))}
+          </select>
+          {isLimitedPlan && maxProjectionYears !== undefined && (
+            <span style={{ fontSize: '0.85em', color: '#666' }}>
+              Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
+            </span>
+          )}
+        </div>
+      )}
       <div style={{ marginBottom: '20px', borderBottom: '2px solid #eee' }}>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button

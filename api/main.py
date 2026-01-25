@@ -42,6 +42,7 @@ from routers.tax import router as tax_router
 from utils.email import send_email
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
+from utils.subscription import get_user_limits
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -432,7 +433,8 @@ def admin_create_user(
         is_active=True,
         is_confirmed=True,  # Admin-created users are auto-confirmed
         must_change_password=user.must_change_password,
-        referred_by_id=None
+        referred_by_id=None,
+        subscription_level=user.subscription_level
     )
     
     db.add(db_user)
@@ -494,6 +496,8 @@ def set_user_admin_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
     user_to_update.is_admin = status_update.is_admin
+    if status_update.subscription_level is not None:
+        user_to_update.subscription_level = status_update.subscription_level
     db.commit()
     db.refresh(user_to_update)
     return user_to_update
@@ -788,8 +792,14 @@ def rebuild_projection_from_stored_data(db: Session, projection: models.Projecti
     
     # Recalculate projection with stored accounts
     # Note: The calculation function will auto-include additional items (income/expenses/auto-disbursements) as needed
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    limits = get_user_limits(db, user) if user else {"is_limited": False}
+    years = projection.years
+    if limits.get("is_limited") and limits.get("max_projection_years") is not None:
+        years = min(years, limits["max_projection_years"])
+
     result = calculations.calculate_projection(
-        years=projection.years,
+        years=years,
         accounts=accounts_for_recalculation,
         db=db,
         owner_id=user_id
@@ -806,6 +816,13 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
+    limits = get_user_limits(db, user)
+    if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
+        )
+
     try:
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
@@ -984,6 +1001,13 @@ def update_projection(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
+    limits = get_user_limits(db, current_user)
+    if limits["is_limited"] and limits["max_projection_years"] is not None and req.years > limits["max_projection_years"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
+        )
+
     # Delete existing associated data
     db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
     db.commit()

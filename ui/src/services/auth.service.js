@@ -179,7 +179,7 @@ const AuthService = {
     /**
      * Updates a user's admin status. (Admin only)
      */
-    async setUserAdminStatus(userId, isAdmin) {
+    async setUserAdminStatus(userId, isAdmin, subscriptionLevel = null) {
         const token = AuthService.getToken();
         if (!token) {
             throw new Error("No authentication token found.");
@@ -187,6 +187,7 @@ const AuthService = {
         const response = await axios.put(API_URL + `admin/users/${userId}/set-admin-status`, 
             {
                 is_admin: isAdmin,
+                subscription_level: subscriptionLevel,
             },
             {
                 headers: {
@@ -200,7 +201,7 @@ const AuthService = {
     /**
      * Creates a new user. (Admin only)
      */
-    async createUser(email, password, mustChangePassword = true) {
+    async createUser(email, password, mustChangePassword = true, subscriptionLevel = 1) {
         const token = AuthService.getToken();
         if (!token) {
             throw new Error("No authentication token found.");
@@ -210,6 +211,7 @@ const AuthService = {
                 email: email || null,
                 password: password,
                 must_change_password: mustChangePassword,
+                subscription_level: subscriptionLevel,
             },
             {
                 headers: {

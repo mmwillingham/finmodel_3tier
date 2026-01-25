@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     
     # OpenAI API Settings
     OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY", "") or os.getenv("_OPENAI_API_KEY", "")
+    OPENAI_MODEL_DEFAULT: str = os.getenv("OPENAI_MODEL_DEFAULT", "gpt-4o-mini")
+    OPENAI_MODEL_PRO: str = os.getenv("OPENAI_MODEL_PRO", "gpt-4o")
 
     # Method to generate DATABASE_URL after validation
     def model_post_init(self, __context: Any) -> None:

@@ -13,7 +13,7 @@ import './CustomChartView.css'; // We will create this CSS file
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
-export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack, onEdit }) {
+export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack, onEdit, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
   const { userSettings, viewingUserId } = useAuth();
   const [chartConfig, setChartConfig] = useState(null);
   const [chartData, setChartData] = useState({ labels: [], datasets: [] });
@@ -613,6 +613,25 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       {message && (
         <div className={`message ${message.includes('error') || message.includes('Error') || message.includes('Failed') ? 'error' : 'success'}`} style={{ marginBottom: '15px' }}>
           {message}
+        </div>
+      )}
+      {showProjectionYearSelector && (
+        <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <label htmlFor="custom-chart-years" style={{ fontWeight: 600 }}>Projection Years</label>
+          <select
+            id="custom-chart-years"
+            value={projectionYears}
+            onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
+          >
+            {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
+              <option key={years} value={years}>{years}</option>
+            ))}
+          </select>
+          {isLimitedPlan && maxProjectionYears !== undefined && (
+            <span style={{ fontSize: '0.85em', color: '#666' }}>
+              Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
+            </span>
+          )}
         </div>
       )}
       <div className="chart-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>

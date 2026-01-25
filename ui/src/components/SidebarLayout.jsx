@@ -69,6 +69,8 @@ export default function SidebarLayout() {
   const [accounts, setAccounts] = useState([]);
   const [autoDisbursements, setAutoDisbursements] = useState([]); // NEW: For cash flow transfers
   const [projectionYears, setProjectionYears] = useState(20);
+  const [projectionYearsOverride, setProjectionYearsOverride] = useState(null);
+  const [subscriptionLimits, setSubscriptionLimits] = useState(null);
   const [showChartTotals, setShowChartTotals] = useState(true);
   const [customChartView, setCustomChartView] = useState(null);
   const [selectedChartId, setSelectedChartId] = useState(null);
@@ -117,6 +119,26 @@ export default function SidebarLayout() {
   useEffect(() => {
     loadViewingUserSettings();
   }, [loadViewingUserSettings]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadLimits = async () => {
+      try {
+        const response = await SettingsService.getSubscriptionLimits();
+        if (isMounted) {
+          setSubscriptionLimits(response.data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setSubscriptionLimits(null);
+        }
+      }
+    };
+    loadLimits();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) {
@@ -233,6 +255,29 @@ export default function SidebarLayout() {
       setProjectionYears(preferredYears);
     }
   }, [viewingUserId, viewingUserSettings, userSettings, currentUser?.id, projectionYears]);
+
+  useEffect(() => {
+    setProjectionYearsOverride(null);
+  }, [view, customChartView]);
+
+  useEffect(() => {
+    if (!subscriptionLimits?.is_limited || subscriptionLimits.max_projection_years == null) {
+      return;
+    }
+    const maxYears = subscriptionLimits.max_projection_years;
+    if (projectionYearsOverride !== null && projectionYearsOverride > maxYears) {
+      setProjectionYearsOverride(maxYears);
+    }
+  }, [subscriptionLimits, projectionYearsOverride]);
+
+  const handleProjectionYearsChange = (value) => {
+    const maxYears = subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : null;
+    const nextValue = maxYears != null ? Math.min(value, maxYears) : value;
+    setProjectionYearsOverride(nextValue);
+  };
+
+  const maxProjectionYears = subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : null;
+  const isLimitedPlan = Boolean(subscriptionLimits?.is_limited);
 
   // Handle password change completion - refresh user data from context
   const handlePasswordChangeComplete = () => {
@@ -1020,9 +1065,13 @@ export default function SidebarLayout() {
               liabilities={liabilities}
               incomeItems={incomeItems}
               expenseItems={expenseItems}
-              projectionYears={projectionYears}
+              projectionYears={projectionYearsOverride ?? projectionYears}
               formatCurrency={formatCurrency}
               showChartTotals={showChartTotals}
+              showProjectionYearSelector
+              onProjectionYearsChange={handleProjectionYearsChange}
+              maxProjectionYears={maxProjectionYears}
+              isLimitedPlan={isLimitedPlan}
             />
           </div>
         )}
@@ -1032,12 +1081,16 @@ export default function SidebarLayout() {
             <CashFlowOverview
               incomeItems={incomeItems}
               expenseItems={expenseItems}
-              projectionYears={projectionYears}
+              projectionYears={projectionYearsOverride ?? projectionYears}
               formatCurrency={formatCurrency}
               assets={assets}
             userSettings={viewingUserSettings || userSettings}
               autoDisbursements={autoDisbursements}
               liabilities={liabilities}
+              showProjectionYearSelector
+              onProjectionYearsChange={handleProjectionYearsChange}
+              maxProjectionYears={maxProjectionYears}
+              isLimitedPlan={isLimitedPlan}
             />
           </div>
         )}
@@ -1049,8 +1102,12 @@ export default function SidebarLayout() {
               expenseItems={expenseItems}
               assets={assets}
               liabilities={liabilities}
-              projectionYears={projectionYears}
+              projectionYears={projectionYearsOverride ?? projectionYears}
               formatCurrency={formatCurrency}
+              showProjectionYearSelector
+              onProjectionYearsChange={handleProjectionYearsChange}
+              maxProjectionYears={maxProjectionYears}
+              isLimitedPlan={isLimitedPlan}
             />
           </div>
         )}
@@ -1129,10 +1186,14 @@ export default function SidebarLayout() {
               liabilities={liabilities}
               incomeItems={incomeItems}
               expenseItems={expenseItems}
-              projectionYears={projectionYears}
+              projectionYears={projectionYearsOverride ?? projectionYears}
               formatCurrency={formatCurrency}
               onBack={() => { setView('custom-charts'); setCustomChartView('list'); setChartToViewId(null); }}
               onEdit={handleEditChart}
+              showProjectionYearSelector
+              onProjectionYearsChange={handleProjectionYearsChange}
+              maxProjectionYears={maxProjectionYears}
+              isLimitedPlan={isLimitedPlan}
             />
           </div>
         )}

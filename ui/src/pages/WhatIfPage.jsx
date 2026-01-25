@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './WhatIfPage.css';
 import whatIfService from '../services/what_if.service';
+import SettingsService from '../services/settings.service';
 
 const exampleQuestions = [
   "Compare the long term affect on my net worth between keeping or reinvesting dividends.",
@@ -24,6 +25,27 @@ const WhatIfPage = () => {
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [limits, setLimits] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadLimits = async () => {
+      try {
+        const response = await SettingsService.getSubscriptionLimits();
+        if (isMounted) {
+          setLimits(response.data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setLimits(null);
+        }
+      }
+    };
+    loadLimits();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,7 +64,8 @@ const WhatIfPage = () => {
         setAnswer(fullAnswer);
       });
     } catch (err) {
-      setError(err.message || 'Failed to get answer. Please try again.');
+      const message = err.message || 'Failed to get answer. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -100,6 +123,17 @@ const WhatIfPage = () => {
           {error && (
             <div className="error-message">
               {error}
+              {error.toLowerCase().includes('free plan') && (
+                <div style={{ marginTop: '8px' }}>
+                  Upgrade on the <a href="/pricing">Pricing</a> page to unlock more requests.
+                </div>
+              )}
+            </div>
+          )}
+
+          {limits?.is_limited && limits.max_whatif_monthly != null && (
+            <div style={{ fontSize: '0.9em', color: '#666', marginTop: '10px' }}>
+              Free plan: up to {limits.max_whatif_monthly} What If requests per month.
             </div>
           )}
 

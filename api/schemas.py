@@ -28,6 +28,7 @@ class UserOut(BaseModel):
     is_confirmed: bool = False # NEW FIELD
     is_admin: bool = False # NEW FIELD
     must_change_password: bool = False  # Require password change on first login
+    subscription_level: int = 1
     model_config = ConfigDict(from_attributes=True)
 
 class TokenData(BaseModel):
@@ -68,12 +69,14 @@ class EmailConfirmation(BaseModel):
 
 class UserAdminStatusUpdate(BaseModel):
     is_admin: bool
+    subscription_level: Optional[int] = None
 
 class AdminUserCreate(BaseModel):
     """Schema for admin to create users (email optional, can set must_change_password)"""
     email: Optional[str] = None  # Username/email - can be None
     password: str = Field(..., min_length=8)
     must_change_password: bool = True  # Default to True for admin-created users
+    subscription_level: int = 1
     
     @field_validator('password')
     @classmethod
@@ -278,7 +281,7 @@ class UserSettingsBase(BaseModel):
     city: str = ""
     state: str = ""
     zip_code: str = ""
-    projection_years: int = 20
+    projection_years: int = 15
     show_chart_totals: bool = True
     surplus_asset_id: Optional[int] = None  # Designated asset for surplus/deficit
     tax_filing_status: str = "Single"  # Tax filing status: Single, Married Filing Jointly, etc.
@@ -346,6 +349,9 @@ class GlobalSettingsBase(BaseModel):
     liability_categories: List[str] = ["Other", "Mortgage", "Student Loan", "Car Loan"]
     income_categories: List[str] = ["Salary", "Rental Income", "Investments"]
     expense_categories: List[str] = ["Housing", "Food", "Transportation", "Utilities", "Insurance", "Healthcare", "Entertainment"]
+    free_max_projection_years: int = 5
+    free_max_documents: int = 5
+    free_max_whatif_monthly: int = 5
 
 class GlobalSettingsCreate(GlobalSettingsBase):
     pass
@@ -355,6 +361,9 @@ class GlobalSettingsUpdate(BaseModel):
     liability_categories: Optional[List[str]] = None
     income_categories: Optional[List[str]] = None
     expense_categories: Optional[List[str]] = None
+    free_max_projection_years: Optional[int] = None
+    free_max_documents: Optional[int] = None
+    free_max_whatif_monthly: Optional[int] = None
     help_content: Optional[str] = None
     about_content: Optional[str] = None
 
@@ -365,6 +374,14 @@ class GlobalSettingsOut(GlobalSettingsBase):
     help_content: Optional[str] = None
     about_content: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class SubscriptionLimitsOut(BaseModel):
+    subscription_level: int
+    is_limited: bool
+    max_projection_years: Optional[int] = None
+    max_documents: Optional[int] = None
+    max_whatif_monthly: Optional[int] = None
 
 class PublicContentResponse(BaseModel):
     """Schema for public content endpoints (help/about) - readable by any authenticated user"""

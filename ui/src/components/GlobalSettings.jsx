@@ -15,6 +15,9 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
     const [liabilityCategories, setLiabilityCategories] = useState([]);
     const [incomeCategories, setIncomeCategories] = useState([]);
     const [expenseCategories, setExpenseCategories] = useState([]);
+    const [freeMaxProjectionYears, setFreeMaxProjectionYears] = useState(5);
+    const [freeMaxDocuments, setFreeMaxDocuments] = useState(5);
+    const [freeMaxWhatIfMonthly, setFreeMaxWhatIfMonthly] = useState(5);
 
     // States for controlling CategoryEditorModal visibility for global categories
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -37,6 +40,9 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
             setLiabilityCategories(data.liability_categories || []);
             setIncomeCategories(data.income_categories || []);
             setExpenseCategories(data.expense_categories || []);
+            setFreeMaxProjectionYears(data.free_max_projection_years ?? 5);
+            setFreeMaxDocuments(data.free_max_documents ?? 5);
+            setFreeMaxWhatIfMonthly(data.free_max_whatif_monthly ?? 5);
             setMessage('');
         } catch (err) {
             setError('Failed to fetch global settings.');
@@ -86,6 +92,31 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
         }
     };
 
+    const handleSaveLimits = async () => {
+        const currentToken = AuthService.getToken();
+        if (!currentToken) {
+            setError('Authentication token missing. Please log in again.');
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        setMessage('');
+        try {
+            await globalSettingsService.updateGlobalSettings({
+                free_max_projection_years: parseInt(freeMaxProjectionYears, 10) || 0,
+                free_max_documents: parseInt(freeMaxDocuments, 10) || 0,
+                free_max_whatif_monthly: parseInt(freeMaxWhatIfMonthly, 10) || 0,
+            }, currentToken);
+            setMessage('Free tier limits updated successfully!');
+            await fetchGlobalSettings();
+        } catch (err) {
+            setError('Failed to update free tier limits.');
+        } finally {
+            setLoading(false);
+            setTimeout(() => setMessage(''), 3000);
+        }
+    };
+
     if (loading) {
         return <div className="loading-message">Loading global settings...</div>;
     }
@@ -129,6 +160,51 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
                 {renderCategoryDisplay('Liability', liabilityCategories, setIsLiabilityModalOpen)}
                 {renderCategoryDisplay('Income', incomeCategories, setIsIncomeModalOpen)}
                 {renderCategoryDisplay('Expense', expenseCategories, setIsExpenseModalOpen)}
+            </div>
+
+            <div className="setting-group" style={{ marginTop: '20px' }}>
+                <div className="category-section-item" style={{ width: '100%' }}>
+                    <div className="category-header">
+                        <label style={{ fontWeight: 700, fontSize: '1.1em', color: 'var(--color-heading)' }}>Free Tier Limits</label>
+                    </div>
+                    <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                        <div className="form-field">
+                            <label htmlFor="free-max-projection-years">Max Projection Years</label>
+                            <input
+                                id="free-max-projection-years"
+                                type="number"
+                                min="0"
+                                value={freeMaxProjectionYears}
+                                onChange={(e) => setFreeMaxProjectionYears(e.target.value)}
+                            />
+                        </div>
+                        <div className="form-field">
+                            <label htmlFor="free-max-documents">Max Documents</label>
+                            <input
+                                id="free-max-documents"
+                                type="number"
+                                min="0"
+                                value={freeMaxDocuments}
+                                onChange={(e) => setFreeMaxDocuments(e.target.value)}
+                            />
+                        </div>
+                        <div className="form-field">
+                            <label htmlFor="free-max-whatif">Max What If Requests / Month</label>
+                            <input
+                                id="free-max-whatif"
+                                type="number"
+                                min="0"
+                                value={freeMaxWhatIfMonthly}
+                                onChange={(e) => setFreeMaxWhatIfMonthly(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '12px' }}>
+                        <button type="button" className="category-manage-button" onClick={handleSaveLimits}>
+                            Save Limits
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Category Editor Modals for Global Categories */}

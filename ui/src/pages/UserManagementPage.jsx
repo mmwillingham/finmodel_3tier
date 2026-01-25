@@ -23,6 +23,7 @@ const UserManagementPage = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserMustChangePassword, setNewUserMustChangePassword] = useState(true);
+  const [newUserSubscriptionLevel, setNewUserSubscriptionLevel] = useState(2);
 
   const fetchUsers = useCallback(async () => {
     if (!currentUser || !currentUser.is_admin) {
@@ -91,6 +92,30 @@ const UserManagementPage = () => {
     });
   };
 
+  const handleSetSubscriptionLevel = async (userId, userEmail, subscriptionLevel) => {
+    const userName = userEmail || `User ID ${userId}`;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Update Subscription',
+      message: `Set subscription for user ${userName} (ID: ${userId}) to level ${subscriptionLevel}?`,
+      onConfirm: async () => {
+        setLoading(true);
+        setMessage('');
+        try {
+          const targetUser = users.find((user) => user.id === userId);
+          const isAdmin = targetUser ? targetUser.is_admin : false;
+          await AuthService.setUserAdminStatus(userId, isAdmin, subscriptionLevel);
+          setMessage(`Subscription updated for user ${userName}.`);
+          fetchUsers();
+        } catch (error) {
+          setMessage(`Failed to update subscription for user ${userName}: ${error.response?.data?.detail || error.message}`);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!newUserPassword || newUserPassword.length < 8) {
@@ -101,12 +126,13 @@ const UserManagementPage = () => {
     setLoading(true);
     setMessage('');
     try {
-      await AuthService.createUser(newUserEmail || null, newUserPassword, newUserMustChangePassword);
+      await AuthService.createUser(newUserEmail || null, newUserPassword, newUserMustChangePassword, newUserSubscriptionLevel);
       setMessage(`User ${newUserEmail || 'created'} created successfully.`);
       setShowCreateForm(false);
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserMustChangePassword(true);
+      setNewUserSubscriptionLevel(2);
       fetchUsers(); // Refresh the list
     } catch (error) {
       setMessage(`Failed to create user: ${error.response?.data?.detail || error.message}`);
@@ -187,6 +213,7 @@ const UserManagementPage = () => {
             <option value="created_at">Date Created</option>
             <option value="id">ID</option>
             <option value="is_admin">Admin Status</option>
+            <option value="subscription_level">Subscription</option>
           </select>
           <button 
             onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
@@ -254,6 +281,19 @@ const UserManagementPage = () => {
                 Require password change on first login
               </label>
             </div>
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label htmlFor="new-user-subscription">Subscription Level:</label>
+              <select
+                id="new-user-subscription"
+                value={newUserSubscriptionLevel}
+                onChange={(e) => setNewUserSubscriptionLevel(parseInt(e.target.value, 10))}
+                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+              >
+                <option value={1}>Free</option>
+                <option value={2}>Premium</option>
+                <option value={3}>Pro</option>
+              </select>
+            </div>
             <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
               <button 
                 type="submit" 
@@ -310,6 +350,9 @@ const UserManagementPage = () => {
                     <th onClick={() => handleSort('is_admin')} className="sortable-header">
                       Admin {sortField === 'is_admin' && (sortDirection === 'asc' ? '↑' : '↓')}
                     </th>
+                    <th onClick={() => handleSort('subscription_level')} className="sortable-header">
+                      Subscription {sortField === 'subscription_level' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -321,6 +364,16 @@ const UserManagementPage = () => {
                         <td>{user.email || 'N/A'}</td>
                         <td>{formatDate(user.created_at)}</td>
                         <td>{user.is_admin ? 'Yes' : 'No'}</td>
+                        <td>
+                          <select
+                            value={user.subscription_level ?? 1}
+                            onChange={(e) => handleSetSubscriptionLevel(user.id, user.email, parseInt(e.target.value, 10))}
+                          >
+                            <option value={1}>Free</option>
+                            <option value={2}>Premium</option>
+                            <option value={3}>Pro</option>
+                          </select>
+                        </td>
                         <td>
                           <div className="user-actions">
                             <button 
