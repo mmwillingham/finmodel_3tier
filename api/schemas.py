@@ -199,7 +199,7 @@ class CashFlowCreate(BaseModel):
     annual_increase_percent: float = 0.0
     inflation_percent: float = 0.0
     person: str | None = None
-    start_date: str = Field(default_factory=lambda: f"{date.today().year}-01-01", description="Start date (YYYY-MM-DD). Defaults to January 1 of current year if not provided.")  # Required field with default
+    start_date: str | None = Field(default=None, description="Start date (YYYY-MM-DD). Defaults to January 1 of current year if not provided.")  # Optional; defaulted server-side
     end_date: str | None = None
     taxable: bool = False
     tax_deductible: bool = False
@@ -555,6 +555,17 @@ class LiabilityCreate(BaseModel):
     decrease_by_principal_yearly: bool = False  # NEW: Option to decrease liability by principal amount each year
     create_payment_expense: bool = False  # NEW: Option to create corresponding expense for payment amount
     expense_category: Optional[str] = None  # NEW: Category for the generated expense when create_payment_expense is true
+
+    @field_validator("start_date", "loan_start_date", mode="before")
+    @classmethod
+    def coerce_dates_to_string(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.date().isoformat()
+        if isinstance(value, date):
+            return value.isoformat()
+        return value
 
 class LiabilityUpdate(LiabilityCreate):
     pass

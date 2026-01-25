@@ -147,7 +147,9 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }) => {
         payload.annual_increase_percent = parseFloat(newLiability.annual_increase_percent || 0);
       }
 
-      payload.start_date = newLiability.start_date || null;
+      payload.start_date = newLiability.loan_type === 'amortized'
+        ? (newLiability.loan_start_date || null)
+        : (newLiability.start_date || null);
       payload.end_date = newLiability.end_date || null;
 
       await LiabilityService.create(payload);

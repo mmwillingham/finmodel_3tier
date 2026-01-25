@@ -204,7 +204,7 @@ export default function LiabilityFormModal({
         loan_start_date: newItem.loan_start_date,
         monthly_payment: monthlyPayment,
         annual_increase_percent: 0, // Amortized loans don't have this, or it's handled differently
-        start_date: null, // Clear these for amortized loans
+        start_date: newItem.loan_start_date, // Keep start_date as a valid string
         end_date: null,
         decrease_by_principal_yearly: newItem.decrease_by_principal_yearly || false,
         create_payment_expense: newItem.create_payment_expense || false,
