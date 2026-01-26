@@ -164,8 +164,8 @@ def export_user_data(
                     "chart_type": chart.chart_type,
                     "series_configurations": json.loads(chart.series_configurations) if isinstance(chart.series_configurations, str) else chart.series_configurations,
                     "display_type": chart.display_type,
-                    "years": chart.years,
-                    "show_chart_totals": chart.show_chart_totals,
+                    "years": getattr(chart, "years", None),
+                    "show_chart_totals": getattr(chart, "show_chart_totals", None),
                 }
                 for chart in charts
             ]

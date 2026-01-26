@@ -85,6 +85,12 @@ const PublicHomePage = () => {
   );
 
   useEffect(() => {
+    if (currentUser) {
+      navigate('/app', { replace: true });
+    }
+  }, [currentUser, navigate]);
+
+  useEffect(() => {
     const urls = samples.map((sample) => buildSampleImage(sample));
     setImages(urls);
   }, [samples]);
