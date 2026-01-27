@@ -185,7 +185,7 @@ const LoginPage = () => {
                                 disabled={otpLoading}
                             >
                                 {mfaMethods.includes('email') && <option value="email">Email</option>}
-                                {mfaMethods.includes('sms') && <option value="sms">Text message</option>}
+                                {mfaMethods.includes('sms') && <option value="sms">Text message (NOT SUPPORTED YET)</option>}
                             </select>
                         </div>
 

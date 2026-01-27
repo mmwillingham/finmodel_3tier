@@ -1,0 +1,122 @@
+steps:
+  - name: 'bash'
+    id: 'Generate Timestamp'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        export _FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        echo "export _FIXED_TIMESTAMP=${_FIXED_TIMESTAMP}" > /workspace/env_vars_mrm.sh
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Backend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars_mrm.sh
+        docker build --no-cache --pull -f Dockerfile_mrm -t ${_IMAGE_REPO}/mrm-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Backend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars_mrm.sh
+        docker push ${_IMAGE_REPO}/mrm-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Backend Service'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars_mrm.sh
+        gcloud run deploy ${_BACKEND_SERVICE_NAME} \
+          --image ${_IMAGE_REPO}/mrm-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          --region ${_REGION} \
+          --platform managed \
+          --allow-unauthenticated \
+          --project ${PROJECT_ID} \
+          --service-account ${_SERVICE_ACCOUNT} \
+          --set-env-vars="GCS_BUCKET_NAME=${_GCS_BUCKET},GCS_PROJECT_ID=${PROJECT_ID},PUBLIC_BACKEND_URL=${_BACKEND_URL},FRONTEND_URL=${_FRONTEND_URL},CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX},PLAID_ENV=sandbox" \
+          --set-cloudsql-instances=${_SQL_INSTANCE} \
+          --update-secrets=DB_PASSWORD=_DB_PASSWORD:${_DB_SECRET_VER},SECRET_KEY=_SECRET_KEY:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,PLAID_SECRET=_PLAID_SECRET:1,PLAID_ENCRYPTION_KEY=_PLAID_ENCRYPTION_KEY:1,PLAID_CLIENT_ID=_PLAID_CLIENT_ID:1,OPENAI_API_KEY=_OPENAI_API_KEY:1,OPENAI_API_KEY_PRO=_OPENAI_API_KEY_PRO:1,TWILIO_ACCOUNT_SID=_TWILIO_ACCOUNT_SID:1,TWILIO_AUTH_TOKEN=_TWILIO_AUTH_TOKEN:1,TWILIO_FROM_NUMBER=_TWILIO_FROM_NUMBER:1 \
+          --cpu=1 \
+          --memory=512Mi \
+          --concurrency=80 \
+          --timeout=30m \
+          --no-traffic
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Update Backend Traffic'
+    args: ['run', 'services', 'update-traffic', '${_BACKEND_SERVICE_NAME}', '--region', '${_REGION}', '--to-latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Frontend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars_mrm.sh
+        docker build --no-cache -t ${_IMAGE_REPO}/mrm-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=${_BACKEND_URL} .
+    dir: 'ui'
+    waitFor: ['Update Backend Traffic']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Frontend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars_mrm.sh
+        docker push ${_IMAGE_REPO}/mrm-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
+    waitFor: ['Build Frontend Image']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Frontend Service'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars_mrm.sh
+        gcloud run deploy ${_FRONTEND_SERVICE_NAME} \
+          --image ${_IMAGE_REPO}/mrm-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          --region ${_REGION} \
+          --project ${PROJECT_ID} \
+          --platform managed \
+          --allow-unauthenticated
+    waitFor: ['Push Frontend Image']
+
+  - name: 'python:3.11'
+    id: 'Run Alembic Migrations'
+    dir: 'api'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        python3 -m pip install -r requirements.txt
+        curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
+        chmod +x cloud-sql-proxy
+        mkdir -p /cloudsql
+        ./cloud-sql-proxy ${_SQL_INSTANCE} --unix-socket /cloudsql &
+        
+        echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/${_SQL_INSTANCE}/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done
+        set -ex
+        PYTHONPATH=/workspace alembic -c ./alembic.ini upgrade head
+    env:
+      - 'DB_USER=dbadmin'
+      - 'DB_NAME=finmodel1'
+      - 'CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE}'
+    secretEnv:
+      - '_DB_PASSWORD'
+    waitFor: ['Update Backend Traffic'] # Ensure DB exists/updated before migrating
+
+availableSecrets:
+  secretManager:
+    - versionName: 'projects/${PROJECT_ID}/secrets/_DB_PASSWORD/versions/${_DB_SECRET_VER}'
+      env: '_DB_PASSWORD'
+
+options:
+  default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
