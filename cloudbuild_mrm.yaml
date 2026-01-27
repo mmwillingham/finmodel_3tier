@@ -72,7 +72,7 @@ steps:
           --cpu=1 \
           --memory=512Mi \
           --min-instances=0 \
-          --no-cpu-boost=false \
+          --cpu-boost \
           --concurrency=80 \
           --timeout=30m \
           --no-traffic
