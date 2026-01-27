@@ -49,6 +49,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     )
     return encoded_jwt
 
+
+def create_mfa_token(user_id: int, expires_delta: Optional[timedelta] = None):
+    to_encode = {"sub": str(user_id), "mfa": True}
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
 def get_user(db: Session, user_id: str):
     # Retrieve user from the database, casting user_id to int
     return db.query(models.User).filter(models.User.id == int(user_id)).first()

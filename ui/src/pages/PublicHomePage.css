@@ -80,10 +80,11 @@
   margin-bottom: 12px;
 }
 
-.public-hero-image {
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+.public-hero-note {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .public-gallery {
@@ -97,6 +98,9 @@
   border-radius: 14px;
   padding: 16px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  text-align: left;
+  border: none;
+  cursor: pointer;
 }
 
 .public-card-header {
@@ -118,6 +122,52 @@
 .public-card-image {
   width: 100%;
   border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.public-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.public-lightbox-content {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 1100px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 16px 16px 24px;
+}
+
+.public-lightbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.public-lightbox-header button {
+  border: none;
+  background: #e2e8f0;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.public-lightbox-content img {
+  width: 100%;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
 

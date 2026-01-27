@@ -17,9 +17,22 @@ const AuthService = {
         localStorage.removeItem("user_token"); 
 
         try {
+            const mfaDeviceToken = localStorage.getItem("mfa_device_token");
             const response = await axios.post(API_URL + "token", formData, {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    ...(mfaDeviceToken ? { 'X-MFA-DEVICE': mfaDeviceToken } : {})
+                }
             });
+
+            if (response.data.mfa_required) {
+                return {
+                    mfa_required: true,
+                    mfa_token: response.data.mfa_token,
+                    mfa_methods: response.data.mfa_methods || [],
+                    must_change_password: response.data.must_change_password || false
+                };
+            }
 
             if (response.data.access_token) {
                 // Save the token to local storage for persistence
@@ -140,6 +153,62 @@ const AuthService = {
     async verifyEmail(token) {
         const response = await axios.post(API_URL + "verify-email", {
             token: token,
+        });
+        return response.data;
+    },
+
+    async requestMfaOtp(mfaToken, method) {
+        const response = await axios.post(API_URL + "mfa/request-otp", {
+            mfa_token: mfaToken,
+            method: method,
+        });
+        return response.data;
+    },
+
+    async verifyMfaOtp(mfaToken, method, code, rememberDevice = false) {
+        const response = await axios.post(API_URL + "mfa/verify-otp", {
+            mfa_token: mfaToken,
+            method: method,
+            code: code,
+            remember_device: rememberDevice,
+        });
+        if (response.data.mfa_device_token) {
+            localStorage.setItem("mfa_device_token", response.data.mfa_device_token);
+        }
+        if (response.data.access_token) {
+            AuthService.setToken(response.data.access_token);
+            const userDetails = await AuthService.getCurrentUser();
+            return {
+                token: response.data.access_token,
+                user: userDetails,
+                must_change_password: response.data.must_change_password || false
+            };
+        }
+        return response.data;
+    },
+
+    async getMfaSettings() {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.get(API_URL + "mfa/settings", {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    },
+
+    async updateMfaSettings(payload) {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.put(API_URL + "mfa/settings", payload, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
         });
         return response.data;
     },

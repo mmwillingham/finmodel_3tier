@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
+import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal'; // Assuming you have this component
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
@@ -59,6 +60,10 @@ const ProfileSettingsPage = () => {
   const [loading, setLoading] = useState(false);
   const { settings, loading: settingsLoading, refreshSettings } = useSettingsContext();
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaEmailEnabled, setMfaEmailEnabled] = useState(false);
+  const [mfaSmsEnabled, setMfaSmsEnabled] = useState(false);
+  const [mfaPhoneNumber, setMfaPhoneNumber] = useState('');
 
   useEffect(() => {
     if (!settings) {
@@ -85,6 +90,22 @@ const ProfileSettingsPage = () => {
     setPerson2SSCOLA(settings.person2_ss_cola?.toString() || "");
   }, [settings]);
 
+  useEffect(() => {
+    const loadMfaSettings = async () => {
+      try {
+        const mfa = await AuthService.getMfaSettings();
+        setMfaEnabled(Boolean(mfa.mfa_enabled));
+        setMfaEmailEnabled(Boolean(mfa.mfa_email_enabled));
+        setMfaSmsEnabled(Boolean(mfa.mfa_sms_enabled));
+        setMfaPhoneNumber(mfa.mfa_phone_number || "");
+      } catch (e) {
+      }
+    };
+    if (!viewingUserId) {
+      loadMfaSettings();
+    }
+  }, [viewingUserId]);
+
   const handleSave = async () => {
     setMessage('');
     setLoading(true);
@@ -110,6 +131,12 @@ const ProfileSettingsPage = () => {
         person2_ss_pia: person2SSPIA ? parseFloat(person2SSPIA) : null,
         person2_ss_retirement_date: person2SSRetirementDate || null,
         person2_ss_cola: person2SSCOLA ? parseFloat(person2SSCOLA) : null,
+      });
+      await AuthService.updateMfaSettings({
+        mfa_enabled: mfaEnabled,
+        mfa_email_enabled: mfaEmailEnabled,
+        mfa_sms_enabled: mfaSmsEnabled,
+        mfa_phone_number: mfaPhoneNumber || null,
       });
       await refreshSettings();
       setMessage('Profile settings saved successfully!');
@@ -525,6 +552,50 @@ const ProfileSettingsPage = () => {
             >
               Change Password
             </button>
+        </div>
+
+        <div className="settings-section" style={{ marginTop: '30px' }}>
+          <h3>Two-Factor Authentication</h3>
+          <div className="form-group-horizontal">
+            <label htmlFor="mfa-enabled">Enable 2FA</label>
+            <input
+              id="mfa-enabled"
+              type="checkbox"
+              checked={mfaEnabled}
+              onChange={(e) => setMfaEnabled(e.target.checked)}
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="mfa-email">Email OTP</label>
+            <input
+              id="mfa-email"
+              type="checkbox"
+              checked={mfaEmailEnabled}
+              onChange={(e) => setMfaEmailEnabled(e.target.checked)}
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="mfa-sms">SMS OTP (Twilio)</label>
+            <input
+              id="mfa-sms"
+              type="checkbox"
+              checked={mfaSmsEnabled}
+              onChange={(e) => setMfaSmsEnabled(e.target.checked)}
+            />
+          </div>
+          <div className="form-group-horizontal">
+            <label htmlFor="mfa-phone">SMS Phone Number</label>
+            <input
+              id="mfa-phone"
+              type="text"
+              value={formatPhoneNumber(mfaPhoneNumber)}
+              onChange={(e) => setMfaPhoneNumber(formatPhoneNumber(e.target.value))}
+              placeholder="(555) 123-4567"
+            />
+          </div>
+          <small style={{ color: '#666' }}>
+            Enable 2FA and choose at least one method. SMS requires a phone number.
+          </small>
         </div>
       </div>
       <div className="settings-page-actions">

@@ -11,6 +11,15 @@ const LoginPage = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false); // New state
+    const [mfaRequired, setMfaRequired] = useState(false);
+    const [mfaToken, setMfaToken] = useState('');
+    const [mfaMethods, setMfaMethods] = useState([]);
+    const [mfaMethod, setMfaMethod] = useState('');
+    const [otp, setOtp] = useState('');
+    const [otpError, setOtpError] = useState('');
+    const [otpInfo, setOtpInfo] = useState('');
+    const [otpLoading, setOtpLoading] = useState(false);
+    const [rememberDevice, setRememberDevice] = useState(true);
 
     const navigate = useNavigate();
     const location = useLocation(); // NEW: Get location object
@@ -41,6 +50,18 @@ const LoginPage = () => {
         try {
             // 1. Call the backend API service to get the JWT token
             const loginResponse = await AuthService.login(email, password);
+
+            if (loginResponse?.mfa_required) {
+                setMfaRequired(true);
+                setMfaToken(loginResponse.mfa_token);
+                setMfaMethods(loginResponse.mfa_methods || []);
+                setMfaMethod((loginResponse.mfa_methods || [])[0] || 'email');
+                setOtp('');
+                setOtpError('');
+                setOtpInfo('');
+                setLoading(false);
+                return;
+            }
 
             // 2. If the API call succeeds (200 OK), update the global authentication state
             //    The login() function will retrieve and verify the token.
@@ -142,6 +163,109 @@ const LoginPage = () => {
                 isOpen={isForgotPasswordModalOpen}
                 onClose={() => setIsForgotPasswordModalOpen(false)}
             />
+
+            {mfaRequired && (
+                <div className="auth-modal-overlay" onClick={() => setMfaRequired(false)}>
+                    <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Two-Factor Authentication</h3>
+                        <p>Select a method and enter the verification code.</p>
+                        {otpError && <p className="error-message">{otpError}</p>}
+                        {otpInfo && <p className="info-message">{otpInfo}</p>}
+
+                        <div className="form-group">
+                            <label htmlFor="mfa-method">Method</label>
+                            <select
+                                id="mfa-method"
+                                value={mfaMethod}
+                                onChange={(e) => {
+                                    setMfaMethod(e.target.value);
+                                    setOtpInfo('');
+                                    setOtpError('');
+                                }}
+                                disabled={otpLoading}
+                            >
+                                {mfaMethods.includes('email') && <option value="email">Email</option>}
+                                {mfaMethods.includes('sms') && <option value="sms">Text message</option>}
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="mfa-code">Verification code</label>
+                            <input
+                                id="mfa-code"
+                                type="text"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                placeholder="Enter 6-digit code"
+                                disabled={otpLoading}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="mfa-remember" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    id="mfa-remember"
+                                    type="checkbox"
+                                    checked={rememberDevice}
+                                    onChange={(e) => setRememberDevice(e.target.checked)}
+                                    disabled={otpLoading}
+                                />
+                                Remember this device for 90 days
+                            </label>
+                        </div>
+
+                        <div className="auth-modal-actions">
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                disabled={otpLoading}
+                                onClick={async () => {
+                                    setOtpError('');
+                                    setOtpInfo('');
+                                    setOtpLoading(true);
+                                    try {
+                                        const response = await AuthService.requestMfaOtp(mfaToken, mfaMethod);
+                                        setOtpInfo(`Code sent to ${response.destination || `your ${mfaMethod}`}.`);
+                                    } catch (err) {
+                                        setOtpError(err.response?.data?.detail || 'Failed to send code.');
+                                    } finally {
+                                        setOtpLoading(false);
+                                    }
+                                }}
+                            >
+                                {otpLoading ? 'Sending...' : 'Send code'}
+                            </button>
+                            <button
+                                type="button"
+                                className="submit-button"
+                                disabled={otpLoading || !otp}
+                                onClick={async () => {
+                                    setOtpError('');
+                                    setOtpLoading(true);
+                                    try {
+                                        const verifyResponse = await AuthService.verifyMfaOtp(mfaToken, mfaMethod, otp, rememberDevice);
+                                        await login();
+
+                                        const userData = verifyResponse.user || currentUser;
+                                        if (verifyResponse.must_change_password === true || (userData && userData.must_change_password === true)) {
+                                            navigate('/app', { state: { mustChangePassword: true } });
+                                        } else {
+                                            navigate('/app');
+                                        }
+                                        setMfaRequired(false);
+                                    } catch (err) {
+                                        setOtpError(err.response?.data?.detail || 'Invalid code.');
+                                    } finally {
+                                        setOtpLoading(false);
+                                    }
+                                }}
+                            >
+                                Verify & Sign In
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

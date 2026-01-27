@@ -22,6 +22,10 @@ class User(Base):
     google_id = Column(String, unique=True, index=True, nullable=True) # NEW FIELD for Google OAuth
     referred_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # NEW: Track who referred this user
     subscription_level = Column(Integer, default=1)  # 1=Free, 2=Premium, 3=Pro
+    mfa_enabled = Column(Boolean, default=False)
+    mfa_email_enabled = Column(Boolean, default=False)
+    mfa_sms_enabled = Column(Boolean, default=False)
+    mfa_phone_number = Column(String, nullable=True)
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner", cascade="all, delete-orphan")
     # Relationship to PasswordResetToken: one user can have many reset tokens (though we'll only allow one active)
@@ -88,6 +92,42 @@ class ContactRequestLog(Base):
     subject = Column(String, nullable=True)
     message = Column(Text, nullable=False)
     ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user_owner = relationship("User")
+
+
+class MfaOtpLog(Base):
+    """
+    SQLAlchemy Model for MFA OTP requests.
+    """
+    __tablename__ = "mfa_otp_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    method = Column(String, nullable=False)  # email or sms
+    destination = Column(String, nullable=False)  # email or phone number
+    code_hash = Column(String, nullable=False)
+    attempt_count = Column(Integer, default=0, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user_owner = relationship("User")
+
+
+class MfaTrustedDevice(Base):
+    """
+    SQLAlchemy Model for trusted MFA devices.
+    """
+    __tablename__ = "mfa_trusted_devices"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    device_token_hash = Column(String, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user_owner = relationship("User")

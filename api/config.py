@@ -71,6 +71,16 @@ class Settings(BaseSettings):
     # Contact form rate limit (per hour)
     CONTACT_RATE_LIMIT_PER_HOUR: int = int(os.getenv("CONTACT_RATE_LIMIT_PER_HOUR", "5"))
 
+    # MFA / OTP settings
+    MFA_OTP_TTL_MINUTES: int = int(os.getenv("MFA_OTP_TTL_MINUTES", "10"))
+    MFA_OTP_RATE_LIMIT_PER_HOUR: int = int(os.getenv("MFA_OTP_RATE_LIMIT_PER_HOUR", "5"))
+    MFA_OTP_MAX_ATTEMPTS: int = int(os.getenv("MFA_OTP_MAX_ATTEMPTS", "5"))
+
+    # Twilio SMS settings
+    TWILIO_ACCOUNT_SID: str | None = os.getenv("TWILIO_ACCOUNT_SID", "") or os.getenv("_TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN: str | None = os.getenv("TWILIO_AUTH_TOKEN", "") or os.getenv("_TWILIO_AUTH_TOKEN", "")
+    TWILIO_FROM_NUMBER: str | None = os.getenv("TWILIO_FROM_NUMBER", "") or os.getenv("_TWILIO_FROM_NUMBER", "")
+
     # Method to generate DATABASE_URL after validation
     def model_post_init(self, __context: Any) -> None:
         # Construct DATABASE_URL using Cloud SQL connector format if CLOUD_SQL_CONNECTION_NAME is set

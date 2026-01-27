@@ -9,6 +9,8 @@ from typing import List, Optional, Set
 from starlette.responses import RedirectResponse
 from utils import google_oauth
 from jose import jwt, JWTError
+import hashlib
+import secrets
 import json
 import traceback
 import os
@@ -40,6 +42,7 @@ from routers.plaid import router as plaid_router
 from routers.what_if import router as what_if_router
 from routers.tax import router as tax_router
 from utils.email import send_email
+from utils.sms import send_sms
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
 from utils.subscription import get_user_limits
@@ -183,8 +186,9 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
 
 @app.post("/token")
 def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(), 
-    db: Session = Depends(database.get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(database.get_db),
+    mfa_device: str | None = Header(default=None, alias="X-MFA-DEVICE"),
 ):
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -202,14 +206,44 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    if user.mfa_enabled:
+        if mfa_device and _is_trusted_device(db, user, mfa_device):
+            access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+            access_token = auth.create_access_token(
+                data={"sub": str(user.id)}, expires_delta=access_token_expires
+            )
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "must_change_password": user.must_change_password
+            }
+
+        mfa_token = auth.create_mfa_token(user.id, timedelta(minutes=settings.MFA_OTP_TTL_MINUTES))
+        methods = []
+        if user.mfa_email_enabled and user.email:
+            methods.append("email")
+        if user.mfa_sms_enabled and user.mfa_phone_number:
+            methods.append("sms")
+        if not methods:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="MFA is enabled but no methods are configured.",
+            )
+        return {
+            "mfa_required": True,
+            "mfa_token": mfa_token,
+            "mfa_methods": methods,
+            "must_change_password": user.must_change_password
+        }
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
-    
+
     # Return must_change_password flag so frontend can handle it
     return {
-        "access_token": access_token, 
+        "access_token": access_token,
         "token_type": "bearer",
         "must_change_password": user.must_change_password
     }
@@ -220,6 +254,274 @@ def read_users_me(
     db: Session = Depends(database.get_db)
 ):
     return current_user
+
+
+def _mask_email(email: str) -> str:
+    if not email or "@" not in email:
+        return ""
+    name, domain = email.split("@", 1)
+    if len(name) <= 2:
+        masked_name = f"{name[0]}*"
+    else:
+        masked_name = f"{name[0]}***{name[-1]}"
+    return f"{masked_name}@{domain}"
+
+
+def _mask_phone(phone: str) -> str:
+    if not phone:
+        return ""
+    digits = "".join([c for c in phone if c.isdigit()])
+    if len(digits) < 4:
+        return "****"
+    return f"***-***-{digits[-4:]}"
+
+
+def _normalize_phone(phone: str | None) -> str | None:
+    if not phone:
+        return None
+    digits = "".join([c for c in phone if c.isdigit()])
+    if not digits:
+        return None
+    if digits.startswith("1") and len(digits) == 11:
+        return f"+{digits}"
+    if len(digits) == 10:
+        return f"+1{digits}"
+    if phone.startswith("+"):
+        return phone
+    return f"+{digits}"
+
+
+def _hash_otp(code: str) -> str:
+    return hashlib.sha256(f"{code}{settings.SECRET_KEY}".encode("utf-8")).hexdigest()
+
+
+def _hash_device_token(token: str) -> str:
+    return hashlib.sha256(f"{token}{settings.SECRET_KEY}".encode("utf-8")).hexdigest()
+
+
+def _generate_otp() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def _get_mfa_user_from_token(mfa_token: str, db: Session) -> models.User:
+    try:
+        payload = jwt.decode(mfa_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
+    if not payload.get("mfa"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
+    return user
+
+
+def _get_mfa_destination(user: models.User, method: str) -> str:
+    if method == "email":
+        if not user.email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No email on file.")
+        return user.email
+    if method == "sms":
+        phone = _normalize_phone(user.mfa_phone_number)
+        if not phone:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No phone number on file.")
+        return phone
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA method.")
+
+
+def _enforce_mfa_rate_limit(db: Session, user: models.User | None, destination: str, method: str):
+    window_start = datetime.utcnow() - timedelta(hours=1)
+    query = db.query(models.MfaOtpLog).filter(
+        models.MfaOtpLog.created_at >= window_start,
+        models.MfaOtpLog.method == method,
+        models.MfaOtpLog.destination == destination,
+    )
+    if user:
+        query = query.filter(models.MfaOtpLog.user_id == user.id)
+    count = query.count()
+    if count >= settings.MFA_OTP_RATE_LIMIT_PER_HOUR:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many OTP requests. Try again later.")
+
+
+def _is_trusted_device(db: Session, user: models.User, token: str) -> bool:
+    token_hash = _hash_device_token(token)
+    device = db.query(models.MfaTrustedDevice).filter(
+        models.MfaTrustedDevice.user_id == user.id,
+        models.MfaTrustedDevice.device_token_hash == token_hash,
+        models.MfaTrustedDevice.expires_at >= datetime.utcnow(),
+    ).first()
+    if not device:
+        return False
+    device.last_used_at = datetime.utcnow()
+    db.commit()
+    return True
+
+
+@app.get("/mfa/settings", response_model=schemas.MfaSettingsOut, tags=["auth"])
+def get_mfa_settings(
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return schemas.MfaSettingsOut(
+        mfa_enabled=user.mfa_enabled,
+        mfa_email_enabled=user.mfa_email_enabled,
+        mfa_sms_enabled=user.mfa_sms_enabled,
+        mfa_phone_number=user.mfa_phone_number,
+    )
+
+
+@app.put("/mfa/settings", response_model=schemas.MfaSettingsOut, tags=["auth"])
+def update_mfa_settings(
+    payload: schemas.MfaSettingsUpdate,
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    if payload.mfa_enabled is not None:
+        user.mfa_enabled = payload.mfa_enabled
+        if not user.mfa_enabled:
+            user.mfa_email_enabled = False
+            user.mfa_sms_enabled = False
+    if payload.mfa_email_enabled is not None:
+        user.mfa_email_enabled = payload.mfa_email_enabled
+    if payload.mfa_sms_enabled is not None:
+        user.mfa_sms_enabled = payload.mfa_sms_enabled
+    if payload.mfa_phone_number is not None:
+        user.mfa_phone_number = _normalize_phone(payload.mfa_phone_number)
+
+    if user.mfa_email_enabled and not user.email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required for email OTP.")
+    if user.mfa_sms_enabled and not user.mfa_phone_number:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phone number is required for SMS OTP.")
+    if user.mfa_enabled and not (user.mfa_email_enabled or user.mfa_sms_enabled):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Select at least one MFA method.")
+
+    db.commit()
+    db.refresh(user)
+    return schemas.MfaSettingsOut(
+        mfa_enabled=user.mfa_enabled,
+        mfa_email_enabled=user.mfa_email_enabled,
+        mfa_sms_enabled=user.mfa_sms_enabled,
+        mfa_phone_number=user.mfa_phone_number,
+    )
+
+
+@app.post("/mfa/request-otp", tags=["auth"])
+def request_mfa_otp(
+    payload: schemas.MfaRequestOtp,
+    request: Request,
+    db: Session = Depends(database.get_db),
+):
+    user = _get_mfa_user_from_token(payload.mfa_token, db)
+    method = (payload.method or "").strip().lower()
+    if method == "email" and not user.mfa_email_enabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email OTP is not enabled.")
+    if method == "sms" and not user.mfa_sms_enabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SMS OTP is not enabled.")
+
+    destination = _get_mfa_destination(user, method)
+    _enforce_mfa_rate_limit(db, user, destination, method)
+
+    code = _generate_otp()
+    code_hash = _hash_otp(code)
+    expires_at = datetime.utcnow() + timedelta(minutes=settings.MFA_OTP_TTL_MINUTES)
+    ip_address = _get_client_ip(request)
+
+    if method == "email":
+        subject = f"Your {settings.APP_NAME} verification code"
+        body = f"Your verification code is {code}. It expires in {settings.MFA_OTP_TTL_MINUTES} minutes."
+        sent = send_email(destination, subject, body)
+    else:
+        sent = send_sms(destination, f"Your {settings.APP_NAME} verification code is {code}.")
+
+    if not sent:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to send OTP.")
+
+    db.add(models.MfaOtpLog(
+        user_id=user.id,
+        method=method,
+        destination=destination,
+        code_hash=code_hash,
+        expires_at=expires_at,
+        ip_address=ip_address,
+    ))
+    db.commit()
+    return {
+        "ok": True,
+        "expires_in": settings.MFA_OTP_TTL_MINUTES * 60,
+        "destination": _mask_email(destination) if method == "email" else _mask_phone(destination),
+    }
+
+
+@app.post("/mfa/verify-otp", tags=["auth"])
+def verify_mfa_otp(
+    payload: schemas.MfaVerifyOtp,
+    request: Request,
+    db: Session = Depends(database.get_db),
+):
+    user = _get_mfa_user_from_token(payload.mfa_token, db)
+    method = (payload.method or "").strip().lower()
+    destination = _get_mfa_destination(user, method)
+
+    log_entry = db.query(models.MfaOtpLog).filter(
+        models.MfaOtpLog.user_id == user.id,
+        models.MfaOtpLog.method == method,
+        models.MfaOtpLog.destination == destination,
+        models.MfaOtpLog.expires_at >= datetime.utcnow(),
+        models.MfaOtpLog.verified_at.is_(None),
+    ).order_by(models.MfaOtpLog.created_at.desc()).first()
+
+    if not log_entry:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP is invalid or expired.")
+
+    if log_entry.attempt_count >= settings.MFA_OTP_MAX_ATTEMPTS:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts. Request a new code.")
+
+    if _hash_otp(payload.code.strip()) != log_entry.code_hash:
+        log_entry.attempt_count += 1
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP is invalid.")
+
+    log_entry.verified_at = datetime.utcnow()
+    db.commit()
+
+    device_token = None
+    if payload.remember_device:
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = _hash_device_token(raw_token)
+        expires_at = datetime.utcnow() + timedelta(days=90)
+        db.add(models.MfaTrustedDevice(
+            user_id=user.id,
+            device_token_hash=token_hash,
+            expires_at=expires_at,
+            ip_address=_get_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        ))
+        db.commit()
+        device_token = raw_token
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+    response = {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "must_change_password": user.must_change_password
+    }
+    if device_token:
+        response["mfa_device_token"] = device_token
+        response["mfa_device_expires_at"] = (datetime.utcnow() + timedelta(days=90)).isoformat()
+    return response
 
 @app.post("/users/", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["users"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()):

@@ -328,7 +328,7 @@ export default function SidebarLayout() {
   // Detect settings routes and update view accordingly
   useEffect(() => {
     const path = location.pathname;
-    if (path === '/' || path === '') {
+    if (path === '/app' || path === '/' || path === '') {
       setView('new-home');
       setCashFlowView(null);
     } else if (path === '/accounts' || path === '/settings/accounts') {
@@ -792,7 +792,7 @@ export default function SidebarLayout() {
           <DefaultCategoriesPage />
         )}
 
-        {!loading && (view === "new-home" || view === null || view === undefined) && location.pathname === "/" && (
+        {!loading && (view === "new-home" || view === null || view === undefined) && (location.pathname === "/app" || location.pathname === "/") && (
           <>
             <motion.div 
               className="dashboard-welcome"

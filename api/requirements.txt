@@ -47,6 +47,7 @@ resolvelib
 rfc3986
 SQLAlchemy
 starlette
+twilio
 typing-extensions
 urllib3
 uvicorn

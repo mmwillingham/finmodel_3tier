@@ -29,6 +29,10 @@ class UserOut(BaseModel):
     is_admin: bool = False # NEW FIELD
     must_change_password: bool = False  # Require password change on first login
     subscription_level: int = 1
+    mfa_enabled: bool = False
+    mfa_email_enabled: bool = False
+    mfa_sms_enabled: bool = False
+    mfa_phone_number: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class TokenData(BaseModel):
@@ -658,3 +662,31 @@ class CustomChartOut(CustomChartBase):
     total_contributed: float | None = None
     total_growth: float | None = None
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- MFA SCHEMAS ---
+
+class MfaSettingsOut(BaseModel):
+    mfa_enabled: bool = False
+    mfa_email_enabled: bool = False
+    mfa_sms_enabled: bool = False
+    mfa_phone_number: str | None = None
+
+
+class MfaSettingsUpdate(BaseModel):
+    mfa_enabled: bool | None = None
+    mfa_email_enabled: bool | None = None
+    mfa_sms_enabled: bool | None = None
+    mfa_phone_number: str | None = None
+
+
+class MfaRequestOtp(BaseModel):
+    mfa_token: str
+    method: str
+
+
+class MfaVerifyOtp(BaseModel):
+    mfa_token: str
+    method: str
+    code: str
+    remember_device: bool | None = None

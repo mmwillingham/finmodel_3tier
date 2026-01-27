@@ -74,12 +74,16 @@ const PublicHomePage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
+  const [expandedImage, setExpandedImage] = useState(null);
 
   const samples = useMemo(
     () => ([
-      { title: 'Net Worth Projection', accent: '#38bdf8' },
-      { title: 'Cash Flow Outlook', accent: '#fbbf24' },
-      { title: 'Allocation Trend', accent: '#34d399' },
+      { title: 'Net Worth Projection', accent: '#38bdf8', url: '/home/Individual_Asset_Projections.png' },
+      { title: 'Cash Flow with Assets', accent: '#38bdf8', url: '/home/BASE_Model with Assets.png' },
+      { title: 'BASE Model Projection', accent: '#38bdf8', url: '/home/BASE_Model.png' },
+      { title: 'Monte Carlo Projection', accent: '#34d399', url: '/home/Monte Carlo.png' },
+      { title: 'Spending Categories', accent: '#fbbf24', url: '/home/Cash Out Itemized.png' },
+      { title: 'Cash In - Cash Out', accent: '#34d399', url: '/home/Cash In - Cash Out Categories.png' },
     ]),
     []
   );
@@ -91,7 +95,7 @@ const PublicHomePage = () => {
   }, [currentUser, navigate]);
 
   useEffect(() => {
-    const urls = samples.map((sample) => buildSampleImage(sample));
+    const urls = samples.map((sample) => sample.url || buildSampleImage(sample));
     setImages(urls);
   }, [samples]);
 
@@ -122,17 +126,20 @@ const PublicHomePage = () => {
             <span>Static preview</span>
             <span>Cached-ready</span>
           </div>
-          <img
-            src={images[0]}
-            alt="Sample net worth projection chart"
-            className="public-hero-image"
-          />
+          <p className="public-hero-note">
+            Click any chart below to expand it for a closer look.
+          </p>
         </div>
       </section>
 
       <section className="public-gallery">
         {samples.map((sample, index) => (
-          <div key={sample.title} className="public-card">
+          <button
+            key={sample.title}
+            type="button"
+            className="public-card"
+            onClick={() => setExpandedImage({ title: sample.title, url: images[index] })}
+          >
             <div className="public-card-header">
               <h3>{sample.title}</h3>
               <span className="public-card-tag">Sample</span>
@@ -142,9 +149,23 @@ const PublicHomePage = () => {
               alt={`Sample projection for ${sample.title}`}
               className="public-card-image"
             />
-          </div>
+          </button>
         ))}
       </section>
+
+      {expandedImage && (
+        <div className="public-lightbox" onClick={() => setExpandedImage(null)}>
+          <div className="public-lightbox-content" onClick={(event) => event.stopPropagation()}>
+            <div className="public-lightbox-header">
+              <h3>{expandedImage.title}</h3>
+              <button type="button" onClick={() => setExpandedImage(null)} aria-label="Close preview">
+                ×
+              </button>
+            </div>
+            <img src={expandedImage.url} alt={expandedImage.title} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
