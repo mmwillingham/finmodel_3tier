@@ -15,7 +15,7 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars_mrm.sh
-        docker build --no-cache --pull -f Dockerfile_mrm -t ${_IMAGE_REPO}/mrm-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
+        docker build --no-cache --pull -f api/Dockerfile_mrm -t ${_IMAGE_REPO}/mrm-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
