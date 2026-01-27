@@ -1,10 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { BackendProvider } from './context/BackendContext.jsx'; // Added this
+import { SettingsProvider } from './context/SettingsContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import NavigationGuard from './components/NavigationGuard';
 import SettingsPageLayout from './components/SettingsLayout';
-import { SettingsProvider } from './context/SettingsContext.jsx';
+import GlobalWakeUpOverlay from './components/GlobalWakeUpOverlay'; // Added this
 
 // Import all main components
 import Header from './components/Header.jsx';
@@ -38,67 +40,68 @@ import CacheTestPage from './pages/CacheTestPage.jsx';
 // The Main Application Structure
 function App() {
     return (
-        <Router>
-            {/* Wrap the entire app in the Auth Provider */}
-            <AuthProvider>
-                <SettingsProvider>
-                    <NavigationGuard>
-                    <Header /> {/* Removed setIsSettingsModalOpen prop */}
-                    <SettingsPageLayout>
-                        <main className="container container-with-sidebar">
-                            <Routes>
-                            {/* Public Routes */}
-                            <Route path="/" element={<PublicHomePage />} />
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route path="/signup" element={<SignupPage />} />
-                            <Route path="/reset-password" element={<ResetPasswordPage />} />
-                            <Route path="/confirm-email" element={<EmailConfirmationPage />} />
-                            <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
-                            <Route path="/features" element={<FeaturesPage />} />
-                            <Route path="/pricing" element={<PricingPage />} />
-                            <Route path="/cache-test" element={<CacheTestPage />} />
+        <BackendProvider> {/* Added Provider */}
+            <Router>
+                <AuthProvider>
+                    <SettingsProvider>
+                        <NavigationGuard>
+                            <Header />
+                            <SettingsPageLayout>
+                                <main className="container container-with-sidebar">
+                                    <Routes>
+                                        {/* Public Routes */}
+                                        <Route path="/" element={<PublicHomePage />} />
+                                        <Route path="/login" element={<LoginPage />} />
+                                        <Route path="/signup" element={<SignupPage />} />
+                                        <Route path="/reset-password" element={<ResetPasswordPage />} />
+                                        <Route path="/confirm-email" element={<EmailConfirmationPage />} />
+                                        <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+                                        <Route path="/features" element={<FeaturesPage />} />
+                                        <Route path="/pricing" element={<PricingPage />} />
+                                        <Route path="/cache-test" element={<CacheTestPage />} />
 
-                            {/* Protected Routes (Require JWT) */}
-                            <Route
-                                path="/app"
-                                element={
-                                    <ProtectedRoute>
-                                        <SidebarLayout />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route path="/accounts" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/assets" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/liabilities" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/cashflow/income" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/cashflow/expense" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/automatic-transfers" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/categories" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/account-switcher" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/application" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/profile" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/categories" element={<Navigate to="/categories" replace />} />
-                            <Route path="/settings/accounts" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/auto-disbursements" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/export-import" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/refer-a-friend" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/authorized-users" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/documents" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/help" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
-                            <Route path="/settings/about" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        {/* Protected Routes (Require JWT) */}
+                                        <Route
+                                            path="/app"
+                                            element={
+                                                <ProtectedRoute>
+                                                    <SidebarLayout />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route path="/accounts" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/assets" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/liabilities" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/cashflow/income" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/cashflow/expense" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/automatic-transfers" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/categories" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/account-switcher" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/application" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/profile" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/categories" element={<Navigate to="/categories" replace />} />
+                                        <Route path="/settings/accounts" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/auto-disbursements" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/export-import" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/refer-a-friend" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/authorized-users" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/documents" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/help" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/about" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
 
-                            {/* Redirect any old /my-projections or /calculator paths to the new home view if needed */}
-                            <Route path="/my-projections" element={<Navigate to="/app" replace />} />
-                            <Route path="/calculator" element={<Navigate to="/app" replace />} />
-                            </Routes>
-                        </main>
-                    </SettingsPageLayout>
-                </NavigationGuard>
-                </SettingsProvider>
-            </AuthProvider>
-        </Router>
+                                        <Route path="/my-projections" element={<Navigate to="/app" replace />} />
+                                        <Route path="/calculator" element={<Navigate to="/app" replace />} />
+                                    </Routes>
+                                </main>
+                            </SettingsPageLayout>
+                        </NavigationGuard>
+                    </SettingsProvider>
+                </AuthProvider>
+                <GlobalWakeUpOverlay /> {/* Added Component */}
+            </Router>
+        </BackendProvider>
     );
 }
 
