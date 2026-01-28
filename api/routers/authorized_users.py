@@ -118,7 +118,7 @@ def create_authorized_user(
     # Send email notification in the background
     try:
         primary_user_name = current_user.email.split('@')[0] if current_user.email else "User"
-        login_link = f"{settings.FRONTEND_URL or 'https://www.ordaxium.com'}/login"
+        login_link = f"{settings.FRONTEND_URL}/login"
         
         email_subject = f"You've been granted access to {current_user.email or 'a user'}'s financial data"
         if target_user:
@@ -135,7 +135,7 @@ You will be required to change your password on first login for security."""
             else:
                 invitation_message = "Your account has been linked and you can now access their data."
         else:
-            signup_link = f"{settings.FRONTEND_URL or 'https://www.ordaxium.com'}/signup"
+            signup_link = f"{settings.FRONTEND_URL}/signup"
             invitation_message = f"To accept this invitation and access their data, please sign up at:\n\n{signup_link}\n\nOnce you register with this email address, your access will be automatically activated."
         
         email_body = f"""Hello,

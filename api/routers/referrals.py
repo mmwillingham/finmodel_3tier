@@ -83,7 +83,7 @@ def create_referral(
     # Send email notification in the background
     try:
         referrer_name = current_user.email.split('@')[0]  # Use email username as name
-        referral_link = f"{settings.FRONTEND_URL or 'https://www.ordaxium.com'}/signup?ref={current_user.id}"
+        referral_link = f"{settings.FRONTEND_URL}/signup?ref={current_user.id}"
         
         email_subject = f"You've been referred to {settings.APP_NAME}"
         if existing_user:
