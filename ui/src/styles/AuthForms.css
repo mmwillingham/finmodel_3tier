@@ -1,145 +1,139 @@
-.auth-container {
+/* Layout Wrapper */
+.auth-page-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f0f2f5;
+  background-color: #f8fafc;
+  padding: 20px;
 }
 
-.auth-form-container {
+/* Card Styling - Merged with your .auth-form-container logic */
+.auth-container.card-modern {
   background-color: #ffffff;
   padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px;
-  display: flex; /* Added for vertical stacking */
-  flex-direction: column; /* Added for vertical stacking */
-  gap: 20px; /* Spacing between sections */
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.auth-form-container h2 {
+.auth-header {
   text-align: center;
-  color: #333;
-  margin-bottom: 30px;
-  font-size: 2rem;
 }
 
+.auth-header h2 {
+  margin: 0 0 8px 0;
+  color: #1e293b;
+  font-size: 1.75rem;
+}
+
+.auth-header p {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Form Spacing */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
-.form-group {
+.form-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.form-group label {
-  font-size: 1rem;
-  color: #555;
+.form-field label {
+  font-size: 0.95rem;
+  color: #475569;
   font-weight: 500;
 }
 
-.form-group input[type="email"],
-.form-group input[type="password"],
-.form-group input[type="text"] {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.form-group select {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  width: 100%;
-  box-sizing: border-box;
-  background: #fff;
-}
-
-.error-message {
-  color: #e74c3c;
-  font-size: 0.9rem;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.info-message {
-  color: #2563eb;
-  font-size: 0.9rem;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.submit-button,
+/* Buttons - Keeping your Google styles */
+.auth-submit-btn,
 .google-signin-button {
   padding: 12px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: bold;
+  font-size: 1rem;
+  font-weight: 600;
   width: 100%;
-  box-sizing: border-box;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.submit-button {
+.auth-submit-btn {
   background-color: #0b57d0;
   color: white;
 }
 
-.submit-button:hover {
+.auth-submit-btn:hover {
   background-color: #084399;
 }
 
 .google-signin-button {
-  background-color: #4285f4; /* Google brand blue */
-  color: white;
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  margin-top: -8px; /* Pull it closer to the "or" divider if you add one */
 }
 
 .google-signin-button:hover {
-  background-color: #357ae8;
+  background-color: #f9fafb;
 }
 
-.google-signin-button img {
-  width: 20px;
-  height: 20px;
+/* Message Banners */
+.message-banner {
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
-.auth-switch {
+.message-banner.error {
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #b91c1c;
+}
+
+.message-banner.success {
+  background-color: #f0fdf4;
+  border: 1px solid #dcfce7;
+  color: #15803d;
+}
+
+/* Footer & Switch Links */
+.auth-footer {
   text-align: center;
   font-size: 0.95rem;
-  color: #555;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
 }
 
-.auth-switch a, .link-button {
-  color: #0b57d0; /* Match primary button color */
+.auth-link {
+  color: #0b57d0;
   text-decoration: none;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: inherit; /* Inherit font size from parent p tag */
-  font-family: inherit; /* Inherit font family from parent p tag */
-  margin-left: 5px; /* Adjust spacing if needed */
+  font-weight: 600;
+  margin-left: 5px;
 }
 
-.auth-switch a:hover, .link-button:hover {
+.auth-link:hover {
   text-decoration: underline;
 }
 
+/* Keeping your Modal styles intact */
 .auth-modal-overlay {
   position: fixed;
   inset: 0;
@@ -152,26 +146,9 @@
 
 .auth-modal {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 24px;
   width: 100%;
   max-width: 420px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
-}
-
-.auth-modal-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.secondary-button {
-  padding: 12px 20px;
-  border: 1px solid #cbd5f5;
-  border-radius: 4px;
-  background: #eef2ff;
-  color: #1e3a8a;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
 }
