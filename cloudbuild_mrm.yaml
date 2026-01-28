@@ -6,7 +6,9 @@ steps:
       - '-c'
       - |
         export _FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        export DB_HOST=/cloudsql/${_SQL_INSTANCE}
         echo "export _FIXED_TIMESTAMP=${_FIXED_TIMESTAMP}" > /workspace/env_vars_mrm.sh
+        echo "export DB_HOST=/cloudsql/${_SQL_INSTANCE}" >> /workspace/env_vars_mrm.sh
 
   # 1. Build & Push
   - name: 'gcr.io/cloud-builders/docker'
@@ -35,6 +37,7 @@ steps:
     args:
       - '-c'
       - |
+        source /workspace/env_vars_mrm.sh
         python3 -m pip install -r requirements.txt
         curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
         chmod +x cloud-sql-proxy
@@ -48,7 +51,7 @@ steps:
       - 'DB_NAME=finmodel1'
       - 'CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE}'
     secretEnv:
-      - '_DB_PASSWORD'
+      - 'DB_PASSWORD'
     waitFor: ['Push Backend Image']
 
   # 3. Deploy Backend (The "Warm" version)
@@ -123,7 +126,7 @@ steps:
 availableSecrets:
   secretManager:
     - versionName: 'projects/${PROJECT_ID}/secrets/_DB_PASSWORD/versions/${_DB_SECRET_VER}'
-      env: '_DB_PASSWORD'
+      env: 'DB_PASSWORD'
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
