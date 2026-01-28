@@ -1,0 +1,16 @@
+kind: compute#urlMap
+name: mrm-load-balancer
+defaultService: projects/financial-model-cloud/global/backendServices/mrm-frontend-ui-service
+hostRules:
+- hosts:
+  - 'api.modelmyretirement.com'
+  pathMatcher: api-matcher
+- hosts:
+  - 'www.modelmyretirement.com'
+  - 'modelmyretirement.com'
+  pathMatcher: frontend-matcher
+pathMatchers:
+- name: api-matcher
+  defaultService: projects/financial-model-cloud/global/backendServices/mrm-backend-api-service
+- name: frontend-matcher
+  defaultService: projects/financial-model-cloud/global/backendServices/mrm-frontend-ui-service
