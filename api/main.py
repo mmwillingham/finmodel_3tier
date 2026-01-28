@@ -26,6 +26,7 @@ import schemas
 import database
 import auth
 import calculations
+
 from routers.custom_charts import router as custom_charts_router # MODIFIED: Explicitly import router
 from routers import assets
 from routers import liabilities
@@ -52,6 +53,11 @@ logger = logging.getLogger(__name__)
 
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
+
+@app.get("/health", tags=["Health"])
+@app.get("/health/", tags=["Health"]) # Handles the trailing slash issue
+async def health_check():
+    return {"status": "ok", "message": "Backend is warming up the engines!"}
 
 PUBLIC_CACHE_PATHS = {
     "/",
