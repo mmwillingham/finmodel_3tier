@@ -301,14 +301,15 @@ const AutoDisbursementSettingsPage = () => {
       {activeTab === 'surplus' && (
         <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
           <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>Surplus Asset</h3>
-          <div className="form-row" style={{ gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'flex-start' }}>
-            <div className="form-field">
+          <div className="form-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
+            <div className="form-field" style={{ flex: '1 1 300px', minWidth: 0 }}>
               <label htmlFor="surplus-asset">Surplus Asset</label>
               <select
                 id="surplus-asset"
                 value={surplusAssetId || ''}
                 onChange={(e) => setSurplusAssetId(e.target.value ? parseInt(e.target.value) : null)}
                 className="input-modern"
+                style={{ width: '100%', textOverflow: 'ellipsis' }}
               >
                 <option value="">None (No automatic surplus/deficit handling)</option>
                 {assets.map((asset) => (
@@ -321,7 +322,7 @@ const AutoDisbursementSettingsPage = () => {
                 Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
               </small>
             </div>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px', flexShrink: 0 }}>
               <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ padding: '10px 24px', whiteSpace: 'nowrap' }}>
                 Save
               </button>
