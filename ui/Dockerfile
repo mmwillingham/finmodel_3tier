@@ -1,32 +1,26 @@
 FROM node:20-alpine as build-stage
 
-ARG REACT_APP_API_URL
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
 WORKDIR /app/ui
 
-# Copy package.json and package-lock.json and install dependencies
 COPY package*.json ./
 RUN npm cache clean --force && npm install --force
 
-# Copy the rest of the application code
 COPY . .
 
-# Build with Vite, setting REACT_APP_API_URL environment variable
-# Vite will handle the build and output to 'build' directory
-RUN REACT_APP_API_URL=$REACT_APP_API_URL npm run build
+# Vite will use the outDir: 'build' specified in your vite.config.js
+RUN npm run build
 
-# Stage 2: Serve the React application with Nginx
+# Stage 2: Serve with Nginx
 FROM nginx:alpine
 
-# Copy the built React app from the build-stage
+# Copy from 'build' as per your vite.config.js
 COPY --from=build-stage /app/ui/build /usr/share/nginx/html
 
-# Copy our custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 8080 for Nginx (Cloud Run expects 8080)
 EXPOSE 8080
 
-# Command to start Nginx, using the Cloud Run injected PORT variable
-# Ensure Nginx listens on 8080 and its config is properly applied.
-CMD ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
+CMD ["nginx", "-g", "daemon off;"]

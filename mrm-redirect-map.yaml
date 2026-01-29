@@ -1,5 +1,0 @@
-kind: compute#urlMap
-name: mrm-http-redirect-map
-defaultUrlRedirect:
-  httpsRedirect: true
-  redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
