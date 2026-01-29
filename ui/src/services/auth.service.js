@@ -1,4 +1,4 @@
-import api from "./api";
+import api from "./api.service";
 
 const login = async (email, password) => {
   const params = new URLSearchParams();
@@ -11,7 +11,6 @@ const login = async (email, password) => {
     },
   });
   
-  // If MFA is enabled, the backend returns mfa_required: true
   if (response.data.mfa_required) {
     return {
       mfaRequired: true,
@@ -20,7 +19,6 @@ const login = async (email, password) => {
     };
   }
 
-  // Normal login flow
   if (response.data.access_token) {
     localStorage.setItem("user", JSON.stringify(response.data));
   }
