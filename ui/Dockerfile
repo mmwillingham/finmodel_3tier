@@ -11,7 +11,8 @@ RUN npm cache clean --force && npm install --force
 COPY . .
 
 # Vite will use the outDir: 'build' specified in your vite.config.js
-RUN npm run build
+# RUN npm run build
+RUN VITE_API_URL=$VITE_API_URL npm run build
 
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
