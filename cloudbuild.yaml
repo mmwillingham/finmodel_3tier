@@ -1,5 +1,5 @@
 steps:
-  # 0. Preparation
+  # 0. Preparation: Generate a shared timestamp for versioning
   - name: 'bash'
     id: 'Generate Timestamp'
     entrypoint: 'bash'
@@ -55,7 +55,7 @@ steps:
     secretEnv: ['DB_PASSWORD']
     waitFor: ['Push Backend Image']
 
-# 3. Deploy Backend
+  # 3. Deploy Backend (Fixed with all required variables)
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Backend'
     entrypoint: 'bash'
@@ -69,17 +69,12 @@ steps:
           --platform managed \
           --allow-unauthenticated \
           --set-cloudsql-instances=${_SQL_INSTANCE} \
-          --set-env-vars="FRONTEND_URL=${_FRONTEND_URL},PUBLIC_BACKEND_URL=${_BACKEND_URL},CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX},MAIL_SERVER=smtp.gmail.com,MAIL_PORT=587" \
+          --set-env-vars="DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},FRONTEND_URL=${_FRONTEND_URL},PUBLIC_BACKEND_URL=${_BACKEND_URL},CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX},MAIL_SERVER=smtp.gmail.com,MAIL_PORT=587" \
           --update-secrets="DB_PASSWORD=_DB_PASSWORD:${_DB_SECRET_VER},SECRET_KEY=_SECRET_KEY:1,MAIL_PASSWORD=_MAIL_PASSWORD:1" \
           --cpu=1 --memory=512Mi --cpu-boost --concurrency=80
     waitFor: ['Run Alembic Migrations']
 
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Update Traffic'
-    args: ['run', 'services', 'update-traffic', '${_BACKEND_SERVICE_NAME}', '--region', '${_REGION}', '--to-latest']
-    waitFor: ['Deploy Backend']
-
-  # 4. Frontend Build (Unified Environment Variables)
+  # 4. Frontend Build (Vite-specific)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Frontend'
     entrypoint: 'bash'
@@ -91,7 +86,7 @@ steps:
           --build-arg=REACT_APP_API_URL="${_BACKEND_URL}" \
           --build-arg=VITE_API_URL="${_BACKEND_URL}" .
     dir: 'ui'
-    waitFor: ['Update Traffic']
+    waitFor: ['Deploy Backend']
 
   # 5. Deploy Frontend
   - name: 'gcr.io/cloud-builders/gcloud'
