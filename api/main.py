@@ -1,3 +1,4 @@
+import time
 from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter, Header
 from starlette.requests import Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
@@ -860,3 +861,7 @@ def migrate_username_to_email(
     )
 
     return {"message": "Email updated. Please check your inbox to verify."}
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "timestamp": time.time()}
