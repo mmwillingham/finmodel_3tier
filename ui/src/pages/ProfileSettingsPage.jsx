@@ -42,6 +42,7 @@ const ProfileSettingsPage = () => {
   const handleSave = async () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
+    // Validate email format if they are a legacy user trying to enable MFA
     if (isLegacyUser && formData.mfaEnabled && !emailRegex.test(formData.newEmail)) {
         setMessage("Error: A valid email is required to enable MFA.");
         return;
@@ -51,21 +52,23 @@ const ProfileSettingsPage = () => {
     setMessage('');
     
     try {
-      // Step 1: Update general profile settings
+      // 1. Update General Profile (First/Last Name)
       const profilePayload = {
         person1_first_name: formData.p1FirstName,
         person1_last_name: formData.p1LastName,
-        // If they are legacy, we don't enable MFA until they verify email
+        // MFA only enables immediately for existing email users
         mfa_enabled: isLegacyUser ? false : formData.mfaEnabled 
       };
 
       await SettingsService.updateSettings(profilePayload);
 
-      // Step 2: Handle Identity Migration if they are legacy and turning on MFA
+      // 2. Handle Username-to-Email Migration separately
       if (isLegacyUser && formData.mfaEnabled) {
+          // Hits the new dedicated migration endpoint
           await ApiService.post('/users/migrate-to-email', { email: formData.newEmail });
-          setMessage("Profile saved! Check your new email address to verify your account and finish enabling MFA.");
+          setMessage("Profile updated! To finish enabling MFA, check your new email and click the verification link.");
       } else {
+          // Standard success flow for non-identity changes
           setMessage("Settings saved successfully!");
           setTimeout(() => navigate('/app'), 2000);
       }
@@ -78,6 +81,7 @@ const ProfileSettingsPage = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="profile-settings-container">

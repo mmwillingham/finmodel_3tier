@@ -1,43 +1,50 @@
-// api.service.js
 import axios from "axios";
+import AuthService from "./auth.service";
+
+// Restore your production variable name exactly
+const API_URL = process.env.REACT_APP_API_URL;
 
 const ApiService = axios.create({
-  // Use VITE_ prefix for Vite-based projects
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  headers: {
-    "Content-Type": "application/json",
-  },
+    baseURL: API_URL,
+    headers: {
+        "Content-type": "application/json",
+    },
 });
 
 ApiService.interceptors.request.use(
-  (config) => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user && user.access_token) {
-      config.headers["Authorization"] = `Bearer ${user.access_token}`;
-    }
+    (config) => {
+        const token = AuthService.getToken();
+        if (token) {
+            config.headers["Authorization"] = "Bearer " + token;
+        }
 
-    const deviceToken = localStorage.getItem("mfa_device");
-    if (deviceToken) {
-      config.headers["X-MFA-DEVICE"] = deviceToken;
-    }
+        // Add the MFA Trusted Device Token for the new backend functionality
+        const deviceToken = localStorage.getItem("mfa_device");
+        if (deviceToken) {
+            config.headers["X-MFA-DEVICE"] = deviceToken;
+        }
 
-    return config;
-  },
-  (error) => Promise.reject(error)
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
 );
 
 ApiService.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      if (!error.config.url.includes("/auth/mfa/verify")) {
-        localStorage.removeItem("user");
-        // Use a soft redirect to avoid breaking React state if possible
-        window.location.href = "/login";
-      }
+    (response) => {
+        return response;
+    },
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            // Protect against logout loops during MFA verification
+            if (!error.config.url.includes("/auth/mfa/verify")) {
+                AuthService.logout();
+                window.location.href = "/login";
+            }
+        }
+        return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
 
 export default ApiService;

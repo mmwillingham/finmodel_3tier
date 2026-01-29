@@ -132,13 +132,15 @@ def authenticate_or_create_google_user(db: Session, google_id: str, email: str):
         user = db.query(models.User).filter(models.User.email == email).first()
         if user:
             user.google_id = google_id
+            # Ensure migrating Google users are confirmed
+            user.is_confirmed = True 
         else:
             user = models.User(
                 email=email,
                 google_id=google_id,
                 hashed_password=get_password_hash(generate_random_token()),
                 is_active=True,
-                is_confirmed=True
+                is_confirmed=True  # Google users are pre-verified
             )
             db.add(user)
         db.commit()
