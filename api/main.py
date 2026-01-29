@@ -130,6 +130,7 @@ async def root():
 
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=settings.CORS_ORIGINS_REGEX,
