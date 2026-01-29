@@ -144,3 +144,22 @@ def authenticate_or_create_google_user(db: Session, google_id: str, email: str):
         db.commit()
         db.refresh(user)
     return user
+
+# auth.py (Add logic to support migration)
+
+def initiate_email_change(db: Session, user_id: int, new_email: str):
+    # 1. Check if the new email is already taken by someone else
+    existing_user = get_user_by_email(db, new_email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already in use.")
+    
+    # 2. Update the user record
+    # Note: We set is_confirmed to False so they must verify it before full MFA access
+    user = get_user(db, user_id)
+    user.email = new_email
+    user.is_confirmed = False
+    db.commit()
+    
+    # 3. Create a new confirmation token
+    token = create_email_confirmation_token(db, user.id)
+    return token

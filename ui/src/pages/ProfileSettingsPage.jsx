@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsService from '../services/settings.service';
-import AuthService from '../services/auth.service';
+import ApiService from '../services/api.service'; // Use the corrected ApiService
 import { useAuth } from '../context/AuthContext';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
 import './SettingsPages.css';
@@ -9,6 +9,7 @@ import './SettingsPages.css';
 const ProfileSettingsPage = () => {
   const navigate = useNavigate();
   const { settings, refreshSettings } = useSettingsContext();
+  const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -23,15 +24,16 @@ const ProfileSettingsPage = () => {
 
   useEffect(() => {
     if (settings) {
-      const currentId = settings.email || '';
-      const legacyStatus = !currentId.includes('@');
+      // Check if the username (email field) contains an '@'
+      const currentEmail = settings.email || '';
+      const legacyStatus = !currentEmail.includes('@');
       setIsLegacyUser(legacyStatus);
 
       setFormData(prev => ({
         ...prev,
         p1FirstName: settings.person1_first_name || '',
         p1LastName: settings.person1_last_name || '',
-        newEmail: legacyStatus ? '' : settings.email,
+        newEmail: legacyStatus ? '' : currentEmail,
         mfaEnabled: !!settings.mfa_enabled
       }));
     }
@@ -49,18 +51,20 @@ const ProfileSettingsPage = () => {
     setMessage('');
     
     try {
-      // Step 1: Save profile data ONLY. Do NOT include 'email' here.
-      const profilePayload = { ...settings };
-      delete profilePayload.email; // Ensure we don't trigger the ID update error
-      profilePayload.person1_first_name = formData.p1FirstName;
-      profilePayload.person1_last_name = formData.p1LastName;
+      // Step 1: Update general profile settings
+      const profilePayload = {
+        person1_first_name: formData.p1FirstName,
+        person1_last_name: formData.p1LastName,
+        // If they are legacy, we don't enable MFA until they verify email
+        mfa_enabled: isLegacyUser ? false : formData.mfaEnabled 
+      };
 
       await SettingsService.updateSettings(profilePayload);
 
-      // Step 2: Handle the Identity Migration separately
+      // Step 2: Handle Identity Migration if they are legacy and turning on MFA
       if (isLegacyUser && formData.mfaEnabled) {
-          await AuthService.requestEmailChange(formData.newEmail);
-          setMessage("Profile saved! Check your email to verify your new login and finish enabling MFA.");
+          await ApiService.post('/users/migrate-to-email', { email: formData.newEmail });
+          setMessage("Profile saved! Check your new email address to verify your account and finish enabling MFA.");
       } else {
           setMessage("Settings saved successfully!");
           setTimeout(() => navigate('/app'), 2000);
@@ -106,10 +110,17 @@ const ProfileSettingsPage = () => {
 
         {formData.mfaEnabled && isLegacyUser && (
           <div className="mfa-upgrade-notice">
-            <p><strong>Username Update Required:</strong> Your login will change from "{settings?.email}" to your email.</p>
+            <p className="bg-amber-900/20 p-3 rounded border border-amber-600/50 text-sm mb-3">
+              <strong>Action Required:</strong> To enable MFA, your username "{settings?.email}" must be changed to a verified email address.
+            </p>
             <div className="input-group">
-              <label>Login Email</label>
-              <input type="email" value={formData.newEmail} placeholder="name@example.com" onChange={e => setFormData({...formData, newEmail: e.target.value})} />
+              <label>New Login Email</label>
+              <input 
+                type="email" 
+                value={formData.newEmail} 
+                placeholder="name@example.com" 
+                onChange={e => setFormData({...formData, newEmail: e.target.value})} 
+              />
             </div>
           </div>
         )}
@@ -118,7 +129,7 @@ const ProfileSettingsPage = () => {
       <div className="form-actions">
         <button type="button" className="btn-secondary" onClick={() => navigate('/app')}>Cancel</button>
         <button type="button" className="btn-primary" onClick={handleSave} disabled={loading}>
-          {isLegacyUser && formData.mfaEnabled ? 'Verify & Enable MFA' : 'Save Changes'}
+          {isLegacyUser && formData.mfaEnabled ? 'Verify & Migrate to Email' : 'Save Changes'}
         </button>
       </div>
     </div>

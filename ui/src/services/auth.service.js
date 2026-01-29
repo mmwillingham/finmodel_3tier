@@ -6,9 +6,7 @@ const login = async (email, password) => {
   params.append("password", password);
 
   const response = await api.post("/token", params, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
   
   if (response.data.mfa_required) {
@@ -49,20 +47,30 @@ const requestMfaOtp = async (mfaToken, method) => {
   });
 };
 
+// Added to support AuthContext
+const getToken = () => {
+  const userJson = localStorage.getItem("user");
+  if (!userJson) return null;
+  try {
+    const user = JSON.parse(userJson);
+    return user.access_token;
+  } catch (e) {
+    return null;
+  }
+};
+
 const logout = () => {
   localStorage.removeItem("user");
+  localStorage.removeItem("mfa_device");
+  localStorage.removeItem("viewingUserId");
 };
 
-const getCurrentUser = () => {
-  return JSON.parse(localStorage.getItem("user"));
-};
-
-const authService = {
+const AuthService = {
   login,
   verifyMfa,
   requestMfaOtp,
-  logout,
-  getCurrentUser,
+  getToken,
+  logout
 };
 
-export default authService;
+export default AuthService;

@@ -230,7 +230,6 @@ def login_for_access_token(
 
 @app.get("/users/me", response_model=Optional[schemas.UserOut])
 def read_users_me(current_user: Optional[models.User] = Depends(auth.get_current_user)):
-    # Returning None here is SAFE and tells the frontend to show the login page
     return current_user
 
 # MFA Helpers
@@ -810,14 +809,54 @@ def change_password(
 
 @app.get("/confirm-email", tags=["users"])
 def confirm_email(token: str, db: Session = Depends(database.get_db)):
-    user_id = auth.verify_email_confirmation_token(token)
+    # verify_email_confirmation_token returns the user_id if valid
+    user_id = auth.verify_email_confirmation_token(db, token) 
     if not user_id:
         raise HTTPException(status_code=400, detail="Invalid or expired token")
     
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if user:
         user.is_confirmed = True
+        # Logic Fix: If they were migrating to enable MFA, we can now safely
+        # flip the mfa_enabled and mfa_email_enabled flags.
+        if not user.mfa_enabled:
+            user.mfa_enabled = True
+            user.mfa_email_enabled = True
+            
         db.commit()
-        return {"message": "Email confirmed successfully"}
+        # Instead of just JSON, you might want to redirect them to login
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?verified=true")
+        
     raise HTTPException(status_code=404, detail="User not found")
 
+# main.py
+
+@app.post("/users/migrate-to-email", tags=["users"])
+def migrate_username_to_email(
+    payload: schemas.EmailUpdateRequest, 
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    # 1. Check if the new email is already taken
+    existing_user = auth.get_user_by_email(db, payload.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="That email is already registered.")
+
+    # 2. Update user's email field and reset confirmation status
+    current_user.email = payload.email
+    current_user.is_confirmed = False
+    db.commit()
+
+    # 3. Generate a confirmation token and send email
+    token = auth.create_email_confirmation_token(db, current_user.id)
+    verification_link = f"{settings.FRONTEND_URL}/confirm-email?token={token}"
+    
+    background_tasks.add_task(
+        send_email, 
+        to_email=payload.email, 
+        subject="Verify your new Email Address", 
+        body=f"Please click here to verify your new username: {verification_link}"
+    )
+
+    return {"message": "Email updated. Please check your inbox to verify."}

@@ -1,13 +1,15 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, EmailStr
 import re
 from typing import List, Optional, Any
 from datetime import datetime, date
+
 
 # --- USER SCHEMAS ---
 
 class EmailUpdateRequest(BaseModel):
     """Schema for requesting a username/email migration."""
-    email: str
+    # Use EmailStr here to enforce valid format for the NEW email
+    email: EmailStr    
 
 class UserBase(BaseModel):
     email: Optional[str] = None  # Can be None for users without email (e.g., retirees)
@@ -27,13 +29,13 @@ class UserCreate(UserBase):
 
 class UserOut(BaseModel):
     id: int
-    email: Optional[str] = None
+    email: Optional[str] = None # Use str, NOT EmailStr
     created_at: datetime
-    is_confirmed: bool = False      # Ensure '= False' is here
-    is_admin: bool = False          # Ensure '= False' is here
+    is_confirmed: bool = False
+    is_admin: bool = False
     must_change_password: bool = False
-    subscription_level: int = 1     # Ensure '= 1' is here
-    mfa_enabled: bool = False       # Ensure '= False' is here
+    subscription_level: int = 1
+    mfa_enabled: bool = False
     mfa_email_enabled: bool = False
     mfa_sms_enabled: bool = False
     mfa_phone_number: Optional[str] = None
