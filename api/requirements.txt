@@ -5,7 +5,7 @@ cachetools
 certifi
 cffi
 charset-normalizer
-cloud-sql-python-connector # NEW: For Cloud SQL connectivity
+cloud-sql-python-connector
 cryptography
 email-validator
 fastapi
@@ -30,9 +30,9 @@ packaging
 pandas
 passlib
 pydantic
-pg8000 # NEW: PostgreSQL driver for Cloud SQL Connector
-alembic # NEW: For database migrations
-asyncpg # NEW: Async PostgreSQL driver
+pg8000
+alembic
+asyncpg
 pydantic-core
 pydantic-settings
 PyJWT
