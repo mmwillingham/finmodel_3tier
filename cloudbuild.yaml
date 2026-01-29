@@ -106,6 +106,11 @@ steps:
       - '--allow-unauthenticated'
     waitFor: ['Build Frontend']
 
+availableSecrets:
+  secretManager:
+    - versionName: 'projects/${PROJECT_ID}/secrets/_DB_PASSWORD/versions/${_DB_SECRET_VER}'
+      env: 'DB_PASSWORD'
+
 options:
   substitution_option: 'ALLOW_LOOSE'
   logging: CLOUD_LOGGING_ONLY
