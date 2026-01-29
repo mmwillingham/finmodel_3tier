@@ -37,6 +37,7 @@
     width: 140px;
     font-weight: 600;
     color: #4a5568;
+    font-size: 0.95rem;
 }
 
 .input-group input, .input-group select {
@@ -44,30 +45,31 @@
     padding: 10px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
+    font-size: 0.95rem;
 }
 
 .input-group input:disabled {
     background: #f8fafc;
     color: #94a3b8;
-    cursor: not-allowed;
 }
 
 .gray-bg span {
     flex: 1;
     padding: 10px;
-    background: #edf2f7;
+    background: #f8fafc;
     border-radius: 6px;
     color: #4a5568;
 }
 
 .benefit-card {
-    background: #ebf8ff;
-    color: #2c5282;
+    background: #f0f7ff;
+    color: #1e40af;
     padding: 18px;
     border-radius: 10px;
-    border: 1px solid #bee3f8;
+    border: 1px solid #bfdbfe;
     margin-top: 15px;
-    text-align: center;
+    text-align: left;
+    font-size: 1rem;
 }
 
 .estimate-warning-banner {
@@ -81,19 +83,19 @@
 }
 
 .warning-icon { margin-right: 12px; font-size: 1.2rem; }
-.estimate-warning-banner p { margin: 0; color: #92400e; font-size: 0.95rem; }
+.estimate-warning-banner p { margin: 0; color: #92400e; font-size: 0.9rem; }
 
 .triple-input { display: flex; gap: 10px; flex: 1; }
 
 .mfa-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-top: 30px; }
 .mfa-header { display: flex; justify-content: space-between; align-items: center; }
-.mfa-title { margin: 0; }
+.mfa-title { margin: 0; font-size: 1.1rem; font-weight: 700; }
 
 .switch { position: relative; width: 50px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e0; transition: .4s; border-radius: 34px; }
 .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: #3182ce; }
+input:checked + .slider { background-color: #2563eb; }
 input:checked + .slider:before { transform: translateX(24px); }
 
 .disabled-feature { opacity: 0.6; }
@@ -103,17 +105,19 @@ input:checked + .slider:before { transform: translateX(24px); }
     font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px;
 }
 
-.form-actions { display: flex; gap: 15px; margin-top: 50px; padding-top: 30px; border-top: 1px solid #e2e8f0; }
+.form-actions { display: flex; gap: 15px; margin-top: 50px; padding-top: 30px; border-top: 1px solid #e2e8f0; align-items: center; }
 .spacer { flex: 1; }
-.btn-primary { background: #3182ce; color: white; padding: 12px 30px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
-.btn-secondary { background: #edf2f7; color: #4a5568; padding: 12px 24px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; cursor: pointer; }
+.btn-primary { background: #2563eb; color: white; padding: 12px 30px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 1rem; }
+.btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+
+.btn-secondary { background: white; color: #4a5568; padding: 12px 24px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; cursor: pointer; font-size: 1rem; }
 
 .mfa-actions { display: flex; align-items: center; gap: 15px; }
 .validate-btn { margin-top: 15px; background: #4a5568; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-.validate-btn.verified { background: #38a169; cursor: default; }
+.validate-btn.verified { background: #059669; cursor: default; }
 
-.btn-text-only { background: none; border: none; color: #3182ce; font-size: 0.85rem; text-decoration: underline; cursor: pointer; margin-top: 15px; padding: 0; }
+.btn-text-only { background: none; border: none; color: #2563eb; font-size: 0.85rem; text-decoration: underline; cursor: pointer; margin-top: 15px; padding: 0; }
 
 .message-banner { padding: 12px; border-radius: 6px; margin-bottom: 20px; text-align: center; font-weight: 600; }
-.message-banner.success { background: #f0fff4; color: #2f855a; border: 1px solid #c6f6d5; }
-.message-banner.error { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+.message-banner.success { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+.message-banner.error { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }

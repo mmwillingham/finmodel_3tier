@@ -1,46 +1,47 @@
 import axios from "axios";
-import AuthService from "./auth.service";
 
-// IMPORTANT: This MUST match your FastAPI server address/port
-const API_URL = process.env.REACT_APP_API_URL;
-
-
-// Create a custom Axios instance
 const ApiService = axios.create({
-    baseURL: API_URL,
-    headers: {
-        "Content-type": "application/json",
-    },
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Request Interceptor: Attach the JWT token before sending
 ApiService.interceptors.request.use(
-    (config) => {
-        const token = AuthService.getToken();
-        if (token) {
-            // Attach the token in the 'Authorization: Bearer <token>' format
-            config.headers["Authorization"] = "Bearer " + token;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  (config) => {
+    // 1. Attach the standard JWT Access Token if it exists
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.access_token) {
+      config.headers["Authorization"] = `Bearer ${user.access_token}`;
     }
+
+    // 2. Attach the MFA Trusted Device Token if it exists
+    // This allows the backend to skip MFA for recognized devices
+    const deviceToken = localStorage.getItem("mfa_device");
+    if (deviceToken) {
+      config.headers["X-MFA-DEVICE"] = deviceToken;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Response Interceptor (Optional, but good for handling 401s globally)
+// Add a response interceptor to handle 401 Unauthorized errors (expired tokens)
 ApiService.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    (error) => {
-        // If the server returns 401 (Unauthorized), it means the token is expired or invalid
-        if (error.response && error.response.status === 401) {
-            AuthService.logout();
-            // Note: We can't use 'navigate' here, so we rely on AuthContext to manage redirect on state change
-        }
-        return Promise.reject(error);
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // If the error isn't related to an MFA handshake, log the user out
+      if (!error.config.url.includes("/auth/mfa/verify")) {
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
     }
+    return Promise.reject(error);
+  }
 );
 
 export default ApiService;

@@ -5,6 +5,10 @@ from datetime import datetime, date
 
 # --- USER SCHEMAS ---
 
+class EmailUpdateRequest(BaseModel):
+    """Schema for requesting a username/email migration."""
+    email: str
+
 class UserBase(BaseModel):
     email: Optional[str] = None  # Can be None for users without email (e.g., retirees)
 

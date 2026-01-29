@@ -27,7 +27,7 @@ import database
 import auth
 import calculations
 
-from routers.custom_charts import router as custom_charts_router # MODIFIED: Explicitly import router
+from routers.custom_charts import router as custom_charts_router
 from routers import assets
 from routers import liabilities
 from routers.settings import router as settings_router
@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
 
 @app.get("/health", tags=["Health"])
-@app.get("/health/", tags=["Health"]) # Handles the trailing slash issue
+@app.get("/health/", tags=["Health"])
 async def health_check():
     return {"status": "ok", "message": "Backend is warming up the engines!"}
 
@@ -71,7 +71,6 @@ PUBLIC_CACHE_CONTROL = "public, max-age=300, s-maxage=3600, stale-while-revalida
 PRIVATE_NO_STORE = "private, no-store"
 NO_STORE = "no-store"
 
-
 class CacheControlMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp, public_cache_paths: Set[str]):
         super().__init__(app)
@@ -79,42 +78,34 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
-
         if response.headers.get("Cache-Control"):
             return response
-
         if request.method not in ("GET", "HEAD"):
             response.headers["Cache-Control"] = NO_STORE
             return response
-
         if request.headers.get("authorization") or request.headers.get("cookie"):
             response.headers["Cache-Control"] = PRIVATE_NO_STORE
             return response
-
         if request.url.path in self.public_cache_paths:
             response.headers["Cache-Control"] = PUBLIC_CACHE_CONTROL
         else:
             response.headers["Cache-Control"] = PRIVATE_NO_STORE
-
         return response
 
 @app.on_event("startup")
 async def startup_event():
-    # Configure logging for the application
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.WARNING, format=log_format)
-
-    # Explicitly set log levels for uvicorn and our application modules
     logging.getLogger("uvicorn").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
     logging.getLogger("api.routers.custom_charts").setLevel(logging.WARNING)
     logging.getLogger("api.calculations").setLevel(logging.WARNING)
-    logging.getLogger("calculations").setLevel(logging.WARNING)  # Also set for 'calculations' module name
-    logging.getLogger("main").setLevel(logging.WARNING)  # Set for main module logger
+    logging.getLogger("calculations").setLevel(logging.WARNING)
+    logging.getLogger("main").setLevel(logging.WARNING)
     logging.getLogger("auth").setLevel(logging.WARNING)
 
-app.include_router(custom_charts_router) # MODIFIED: Use the explicitly imported router
+app.include_router(custom_charts_router)
 app.include_router(settings_router)
 app.include_router(assets.router)
 app.include_router(liabilities.router)
@@ -130,29 +121,25 @@ app.include_router(plaid_router)
 app.include_router(what_if_router)
 app.include_router(tax_router)
 
-# New router for admin global settings
 admin_router = APIRouter()
 
 @app.get("/", tags=["health"])
 async def root():
     return {"message": "Financial Projector API is running!"}
 
-# --- CONFIGURATION ---
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
-# --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=settings.CORS_ORIGINS_REGEX,              
-    allow_credentials=True,             
-    allow_methods=["*"],                
-    allow_headers=["*"],                
+    allow_origin_regex=settings.CORS_ORIGINS_REGEX,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 app.add_middleware(
     CacheControlMiddleware,
     public_cache_paths=PUBLIC_CACHE_PATHS,
 )
-# --- END CORS CONFIGURATION ---
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -168,17 +155,13 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
         user_info = await google_oauth.get_google_user_info(access_token)
         google_id = user_info["id"]
         email = user_info["email"]
-        
         user = auth.authenticate_or_create_google_user(db, google_id, email)
-
         our_access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         our_access_token = auth.create_access_token(
             data={"sub": str(user.id)}, expires_delta=our_access_token_expires
         )
-
         redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
         return RedirectResponse(url=redirect_url)
-
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -187,8 +170,6 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Google OAuth failed: {e}"
         )
-
-# --- AUTHENTICATION ROUTES ---
 
 @app.post("/token")
 def login_for_access_token(
@@ -203,15 +184,12 @@ def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Only require email confirmation if user has an email address
     if user.email and not user.is_confirmed:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Please confirm your email address before logging in.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
     if user.mfa_enabled:
         if mfa_device and _is_trusted_device(db, user, mfa_device):
             access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -223,7 +201,6 @@ def login_for_access_token(
                 "token_type": "bearer",
                 "must_change_password": user.must_change_password
             }
-
         mfa_token = auth.create_mfa_token(user.id, timedelta(minutes=settings.MFA_OTP_TTL_MINUTES))
         methods = []
         if user.mfa_email_enabled and user.email:
@@ -241,13 +218,10 @@ def login_for_access_token(
             "mfa_methods": methods,
             "must_change_password": user.must_change_password
         }
-
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
-
-    # Return must_change_password flag so frontend can handle it
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -261,53 +235,34 @@ def read_users_me(
 ):
     return current_user
 
-
+# MFA Helpers
 def _mask_email(email: str) -> str:
-    if not email or "@" not in email:
-        return ""
+    if not email or "@" not in email: return ""
     name, domain = email.split("@", 1)
-    if len(name) <= 2:
-        masked_name = f"{name[0]}*"
-    else:
-        masked_name = f"{name[0]}***{name[-1]}"
+    masked_name = f"{name[0]}*" if len(name) <= 2 else f"{name[0]}***{name[-1]}"
     return f"{masked_name}@{domain}"
 
-
 def _mask_phone(phone: str) -> str:
-    if not phone:
-        return ""
+    if not phone: return ""
     digits = "".join([c for c in phone if c.isdigit()])
-    if len(digits) < 4:
-        return "****"
-    return f"***-***-{digits[-4:]}"
-
+    return f"***-***-{digits[-4:]}" if len(digits) >= 4 else "****"
 
 def _normalize_phone(phone: str | None) -> str | None:
-    if not phone:
-        return None
+    if not phone: return None
     digits = "".join([c for c in phone if c.isdigit()])
-    if not digits:
-        return None
-    if digits.startswith("1") and len(digits) == 11:
-        return f"+{digits}"
-    if len(digits) == 10:
-        return f"+1{digits}"
-    if phone.startswith("+"):
-        return phone
-    return f"+{digits}"
-
+    if not digits: return None
+    if digits.startswith("1") and len(digits) == 11: return f"+{digits}"
+    if len(digits) == 10: return f"+1{digits}"
+    return phone if phone.startswith("+") else f"+{digits}"
 
 def _hash_otp(code: str) -> str:
     return hashlib.sha256(f"{code}{settings.SECRET_KEY}".encode("utf-8")).hexdigest()
 
-
 def _hash_device_token(token: str) -> str:
     return hashlib.sha256(f"{token}{settings.SECRET_KEY}".encode("utf-8")).hexdigest()
 
-
 def _generate_otp() -> str:
     return f"{secrets.randbelow(1000000):06d}"
-
 
 def _get_mfa_user_from_token(mfa_token: str, db: Session) -> models.User:
     try:
@@ -317,26 +272,20 @@ def _get_mfa_user_from_token(mfa_token: str, db: Session) -> models.User:
     if not payload.get("mfa"):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
     user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
     return user
 
-
 def _get_mfa_destination(user: models.User, method: str) -> str:
     if method == "email":
-        if not user.email:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No email on file.")
+        if not user.email: raise HTTPException(status_code=400, detail="No email on file.")
         return user.email
     if method == "sms":
         phone = _normalize_phone(user.mfa_phone_number)
-        if not phone:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No phone number on file.")
+        if not phone: raise HTTPException(status_code=400, detail="No phone number on file.")
         return phone
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA method.")
-
+    raise HTTPException(status_code=400, detail="Invalid MFA method.")
 
 def _enforce_mfa_rate_limit(db: Session, user: models.User | None, destination: str, method: str):
     window_start = datetime.utcnow() - timedelta(hours=1)
@@ -345,12 +294,9 @@ def _enforce_mfa_rate_limit(db: Session, user: models.User | None, destination: 
         models.MfaOtpLog.method == method,
         models.MfaOtpLog.destination == destination,
     )
-    if user:
-        query = query.filter(models.MfaOtpLog.user_id == user.id)
-    count = query.count()
-    if count >= settings.MFA_OTP_RATE_LIMIT_PER_HOUR:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many OTP requests. Try again later.")
-
+    if user: query = query.filter(models.MfaOtpLog.user_id == user.id)
+    if query.count() >= settings.MFA_OTP_RATE_LIMIT_PER_HOUR:
+        raise HTTPException(status_code=429, detail="Too many OTP requests.")
 
 def _is_trusted_device(db: Session, user: models.User, token: str) -> bool:
     token_hash = _hash_device_token(token)
@@ -359,249 +305,46 @@ def _is_trusted_device(db: Session, user: models.User, token: str) -> bool:
         models.MfaTrustedDevice.device_token_hash == token_hash,
         models.MfaTrustedDevice.expires_at >= datetime.utcnow(),
     ).first()
-    if not device:
-        return False
+    if not device: return False
     device.last_used_at = datetime.utcnow()
     db.commit()
     return True
 
-
-@app.get("/mfa/settings", response_model=schemas.MfaSettingsOut, tags=["auth"])
-def get_mfa_settings(
-    current_user: schemas.UserOut = Depends(auth.get_current_user),
-    db: Session = Depends(database.get_db),
-):
-    user = db.query(models.User).filter(models.User.id == current_user.id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    return schemas.MfaSettingsOut(
-        mfa_enabled=user.mfa_enabled,
-        mfa_email_enabled=user.mfa_email_enabled,
-        mfa_sms_enabled=user.mfa_sms_enabled,
-        mfa_phone_number=user.mfa_phone_number,
-    )
-
-
-@app.put("/mfa/settings", response_model=schemas.MfaSettingsOut, tags=["auth"])
-def update_mfa_settings(
-    payload: schemas.MfaSettingsUpdate,
-    current_user: schemas.UserOut = Depends(auth.get_current_user),
-    db: Session = Depends(database.get_db),
-):
-    user = db.query(models.User).filter(models.User.id == current_user.id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-
-    if payload.mfa_enabled is not None:
-        user.mfa_enabled = payload.mfa_enabled
-        if not user.mfa_enabled:
-            user.mfa_email_enabled = False
-            user.mfa_sms_enabled = False
-    if payload.mfa_email_enabled is not None:
-        user.mfa_email_enabled = payload.mfa_email_enabled
-    if payload.mfa_sms_enabled is not None:
-        user.mfa_sms_enabled = payload.mfa_sms_enabled
-    if payload.mfa_phone_number is not None:
-        user.mfa_phone_number = _normalize_phone(payload.mfa_phone_number)
-
-    if user.mfa_email_enabled and not user.email:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required for email OTP.")
-    if user.mfa_sms_enabled and not user.mfa_phone_number:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phone number is required for SMS OTP.")
-    if user.mfa_enabled and not (user.mfa_email_enabled or user.mfa_sms_enabled):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Select at least one MFA method.")
-
-    db.commit()
-    db.refresh(user)
-    return schemas.MfaSettingsOut(
-        mfa_enabled=user.mfa_enabled,
-        mfa_email_enabled=user.mfa_email_enabled,
-        mfa_sms_enabled=user.mfa_sms_enabled,
-        mfa_phone_number=user.mfa_phone_number,
-    )
-
-
-@app.post("/mfa/request-otp", tags=["auth"])
-def request_mfa_otp(
-    payload: schemas.MfaRequestOtp,
-    request: Request,
-    db: Session = Depends(database.get_db),
-):
-    user = _get_mfa_user_from_token(payload.mfa_token, db)
-    method = (payload.method or "").strip().lower()
-    if method == "email" and not user.mfa_email_enabled:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email OTP is not enabled.")
-    if method == "sms" and not user.mfa_sms_enabled:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SMS OTP is not enabled.")
-
-    destination = _get_mfa_destination(user, method)
-    _enforce_mfa_rate_limit(db, user, destination, method)
-
-    code = _generate_otp()
-    code_hash = _hash_otp(code)
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.MFA_OTP_TTL_MINUTES)
-    ip_address = _get_client_ip(request)
-
-    if method == "email":
-        subject = f"Your {settings.APP_NAME} verification code"
-        body = f"Your verification code is {code}. It expires in {settings.MFA_OTP_TTL_MINUTES} minutes."
-        sent = send_email(destination, subject, body)
-    else:
-        sent = send_sms(destination, f"Your {settings.APP_NAME} verification code is {code}.")
-
-    if not sent:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to send OTP.")
-
-    db.add(models.MfaOtpLog(
-        user_id=user.id,
-        method=method,
-        destination=destination,
-        code_hash=code_hash,
-        expires_at=expires_at,
-        ip_address=ip_address,
-    ))
-    db.commit()
-    return {
-        "ok": True,
-        "expires_in": settings.MFA_OTP_TTL_MINUTES * 60,
-        "destination": _mask_email(destination) if method == "email" else _mask_phone(destination),
-    }
-
-
-@app.post("/mfa/verify-otp", tags=["auth"])
-def verify_mfa_otp(
-    payload: schemas.MfaVerifyOtp,
-    request: Request,
-    db: Session = Depends(database.get_db),
-):
-    user = _get_mfa_user_from_token(payload.mfa_token, db)
-    method = (payload.method or "").strip().lower()
-    destination = _get_mfa_destination(user, method)
-
-    log_entry = db.query(models.MfaOtpLog).filter(
-        models.MfaOtpLog.user_id == user.id,
-        models.MfaOtpLog.method == method,
-        models.MfaOtpLog.destination == destination,
-        models.MfaOtpLog.expires_at >= datetime.utcnow(),
-        models.MfaOtpLog.verified_at.is_(None),
-    ).order_by(models.MfaOtpLog.created_at.desc()).first()
-
-    if not log_entry:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP is invalid or expired.")
-
-    if log_entry.attempt_count >= settings.MFA_OTP_MAX_ATTEMPTS:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts. Request a new code.")
-
-    if _hash_otp(payload.code.strip()) != log_entry.code_hash:
-        log_entry.attempt_count += 1
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP is invalid.")
-
-    log_entry.verified_at = datetime.utcnow()
-    db.commit()
-
-    device_token = None
-    if payload.remember_device:
-        raw_token = secrets.token_urlsafe(32)
-        token_hash = _hash_device_token(raw_token)
-        expires_at = datetime.utcnow() + timedelta(days=90)
-        db.add(models.MfaTrustedDevice(
-            user_id=user.id,
-            device_token_hash=token_hash,
-            expires_at=expires_at,
-            ip_address=_get_client_ip(request),
-            user_agent=request.headers.get("user-agent"),
-        ))
-        db.commit()
-        device_token = raw_token
-
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth.create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires
-    )
-    response = {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "must_change_password": user.must_change_password
-    }
-    if device_token:
-        response["mfa_device_token"] = device_token
-        response["mfa_device_expires_at"] = (datetime.utcnow() + timedelta(days=90)).isoformat()
-    return response
+def _get_client_ip(request: Request):
+    return request.client.host
 
 @app.post("/users/", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["users"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
-    """
-    Registers a new user in the database and initializes their settings with global defaults if available.
-    Email is optional - if provided, it must be unique.
-    """
-    # Check if email is provided and if it's already registered
     if user.email:
-        db_user = db.query(models.User).filter(
-            (models.User.email == user.email)
-        ).first()
-        
+        db_user = db.query(models.User).filter(models.User.email == user.email).first()
         if db_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-        
+            raise HTTPException(status_code=400, detail="Email already registered")
     try:
         hashed_password = auth.get_password_hash(user.password)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Password did not meet requirements: {e}"
-        )
+        raise HTTPException(status_code=400, detail=f"Password error: {e}")
     
-    # Check if this user was referred by someone
-    # First, check if there's a pending referral for this email
     pending_referral = db.query(models.Referral).filter(
         models.Referral.friend_email == user.email.lower(),
         models.Referral.registered_user_id.is_(None)
     ).first()
     
-    referred_by_id = None
-    if pending_referral:
-        # Use the referrer from the pending referral
-        referred_by_id = pending_referral.referrer_id
-    elif user.referred_by_email:
-        # User explicitly provided a referral email
-        referrer = db.query(models.User).filter(models.User.email == user.referred_by_email).first()
-        if referrer:
-            referred_by_id = referrer.id
+    referred_by_id = pending_referral.referrer_id if pending_referral else None
     
     db_user = models.User(
-        email=user.email if user.email else None,
+        email=user.email,
         hashed_password=hashed_password,
         is_active=True,
         is_confirmed=False,
-        must_change_password=False,  # Regular signups don't require password change
         referred_by_id=referred_by_id
     )
+    db.add(db_user); db.commit(); db.refresh(db_user)
     
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    # Now update the referral record with the new user ID if it exists
     if pending_referral:
         pending_referral.registered_user_id = db_user.id
         pending_referral.registered_at = datetime.now()
         db.commit()
-    
-    # Link any pending authorized user entries for this email
-    pending_authorized_users = db.query(models.AuthorizedUser).filter(
-        models.AuthorizedUser.authorized_user_email == user.email.lower(),
-        models.AuthorizedUser.authorized_user_id.is_(None)
-    ).all()
-    
-    for auth_entry in pending_authorized_users:
-        auth_entry.authorized_user_id = db_user.id
-    db.commit()
-    
-    # Initialize UserSettings with global defaults if available, otherwise use schema defaults
+
     global_settings = db.query(models.GlobalSettings).first()
     if global_settings:
         user_settings = models.UserSettings(
@@ -609,241 +352,246 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
             asset_categories=global_settings.asset_categories,
             liability_categories=global_settings.liability_categories,
             income_categories=global_settings.income_categories,
-            expense_categories=global_settings.expense_categories,
-            default_inflation_percent=schemas.UserSettingsBase.model_fields['default_inflation_percent'].default,
-            person1_first_name=schemas.UserSettingsBase.model_fields['person1_first_name'].default,
-            person1_last_name=schemas.UserSettingsBase.model_fields['person1_last_name'].default,
-            person1_birthdate=schemas.UserSettingsBase.model_fields['person1_birthdate'].default,
-            person1_cell_phone=schemas.UserSettingsBase.model_fields['person1_cell_phone'].default,
-            person2_first_name=schemas.UserSettingsBase.model_fields['person2_first_name'].default,
-            person2_last_name=schemas.UserSettingsBase.model_fields['person2_last_name'].default,
-            person2_birthdate=schemas.UserSettingsBase.model_fields['person2_birthdate'].default,
-            person2_cell_phone=schemas.UserSettingsBase.model_fields['person2_cell_phone'].default,
-            address=schemas.UserSettingsBase.model_fields['address'].default,
-            city=schemas.UserSettingsBase.model_fields['city'].default,
-            state=schemas.UserSettingsBase.model_fields['state'].default,
-            zip_code=schemas.UserSettingsBase.model_fields['zip_code'].default,
-            projection_years=schemas.UserSettingsBase.model_fields['projection_years'].default,
-            show_chart_totals=schemas.UserSettingsBase.model_fields['show_chart_totals'].default,
+            expense_categories=global_settings.expense_categories
         )
     else:
         user_settings = models.UserSettings(owner_id=db_user.id)
-    
-    db.add(user_settings)
-    db.commit()
-    db.refresh(user_settings)
+    db.add(user_settings); db.commit()
 
-    # Only send confirmation email if user has an email address
     if db_user.email:
-        confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
-        confirmation_link = f"{settings.FRONTEND_URL}/confirm-email?token={confirmation_token}"
-        background_tasks.add_task(send_email, 
-            to_email=db_user.email,
-            subject="Financial Projector - Confirm Your Email",
-            body=f"""Hello {db_user.email},
-
-Thank you for registering with Financial Projector!
-
-Please click the link below to confirm your email address:
-{confirmation_link}
-
-This link will expire in 24 hours.
-
-Best regards,
-The Financial Projector Team"""
-        )
-    
+        token = auth.create_email_confirmation_token(db, db_user.id)
+        background_tasks.add_task(send_email, to_email=db_user.email, subject="Confirm Email", body=f"Link: {settings.FRONTEND_URL}/confirm-email?token={token}")
     return db_user
 
-@app.delete("/admin/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["admin"])
-def delete_user_by_admin(
-    user_id: int,
+# --- CASH FLOW ENDPOINTS ---
+
+@app.post("/cashflow/", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
+def create_cashflow_item(
+    item: schemas.CashFlowCreate,
     db: Session = Depends(database.get_db),
-    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
+    current_user: models.User = Depends(auth.get_current_user)
 ):
-    """
-    Allows an admin user to delete another user and all their associated data.
-    """
-    if user_id == current_admin_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin user cannot delete their own account.")
+    """Create a new income or expense item."""
+    # Start date logic
+    start_date_val = item.start_date
+    if not start_date_val:
+        start_date_val = f"{date.today().year}-01-01"
 
-    user_to_delete = db.query(models.User).filter(models.User.id == user_id).first()
+    # Create the item
+    db_item = models.CashFlowItem(
+        **item.model_dump(exclude={'linked_asset_ids'}),
+        owner_id=current_user.id,
+        start_date=start_date_val,
+        yearly_value=item.value # Initially set yearly_value to the raw value
+    )
+    
+    # Calculate yearly_value based on frequency
+    if item.frequency == 'monthly':
+        db_item.yearly_value = item.value * 12
+    
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
 
-    if not user_to_delete:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-
-    try:
-        # Delete the user - database-level CASCADE will handle related records
-        db.delete(user_to_delete)
+    # Handle many-to-many relationship for linked assets
+    if item.linked_asset_ids:
+        assets = db.query(models.Asset).filter(
+            models.Asset.id.in_(item.linked_asset_ids),
+            models.Asset.owner_id == current_user.id
+        ).all()
+        db_item.linked_assets = assets
         db.commit()
+        db.refresh(db_item)
+
+    return db_item
+
+@app.get("/cashflow/", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
+def read_cashflow_items(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Retrieve all cash flow items accessible to the current user."""
+    accessible_ids = get_accessible_user_ids(current_user.id, db)
+    return db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id.in_(accessible_ids)).all()
+
+@app.get("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
+def read_cashflow_item(
+    item_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Retrieve a specific cash flow item."""
+    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # Check view permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=item.owner_id,
+        permission_type="items",
+        required_permission="view"
+    )
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="Access denied")
         
-        # Verify the user was actually deleted
-        verify_deleted = db.query(models.User).filter(models.User.id == user_id).first()
-        if verify_deleted:
-            logger.error(f"User {user_id} was not deleted from database after commit")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete user from database."
-            )
-        
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error deleting user {user_id}: {str(e)}", exc_info=True)
+    return item
+
+@app.put("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
+def update_cashflow_item(
+    item_id: int,
+    item_update: schemas.CashFlowUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Update a cash flow item."""
+    db_item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    # Check edit permission
+    if not check_permission(db, current_user.id, db_item.owner_id, "items", "edit"):
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    update_data = item_update.model_dump(exclude_unset=True, exclude={'linked_asset_ids'})
+    
+    # Recalculate yearly_value if value or frequency changes
+    new_value = update_data.get('value', db_item.value)
+    new_freq = update_data.get('frequency', db_item.frequency)
+    
+    if 'value' in update_data or 'frequency' in update_data:
+        update_data['yearly_value'] = new_value * 12 if new_freq == 'monthly' else new_value
+
+    for key, value in update_data.items():
+        setattr(db_item, key, value)
+
+    # Update linked assets if provided
+    if item_update.linked_asset_ids is not None:
+        assets = db.query(models.Asset).filter(
+            models.Asset.id.in_(item_update.linked_asset_ids),
+            models.Asset.owner_id == db_item.owner_id
+        ).all()
+        db_item.linked_assets = assets
+
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.post("/projections/", response_model=schemas.ProjectionResponse, tags=["projections"])
+def create_projection(
+    projection: schemas.ProjectionRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Run a new projection calculation and save it."""
+    # Check subscription limits for projection years
+    limits = get_user_limits(current_user)
+    if limits["is_limited"] and projection.years > limits["max_projection_years"]:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete user: {str(e)}"
+            status_code=403, 
+            detail=f"Your current plan limits projections to {limits['max_projection_years']} years."
         )
 
-@app.get("/admin/users", response_model=list[schemas.UserOut], tags=["admin"])
+    # Perform calculations
+    try:
+        results = calculations.run_projection(projection)
+    except Exception as e:
+        logger.error(f"Projection calculation failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Calculation error: {str(e)}")
+
+    # Save to database
+    db_projection = models.Projection(
+        name=projection.plan_name,
+        years=projection.years,
+        owner_id=current_user.id,
+        final_value=results['final_value'],
+        total_contributed=results['total_contributed'],
+        total_growth=results['total_growth'],
+        data_json=json.dumps(results['time_series'])
+    )
+    db.add(db_projection)
+    db.commit()
+    db.refresh(db_projection)
+
+    # Save individual account results for the projection
+    for acc in results['accounts']:
+        db_acc = models.ProjectedAccount(
+            projection_id=db_projection.id,
+            name=acc['name'],
+            account_type=acc['account_type'],
+            initial_value=acc['initial_value'],
+            contribution=acc['contribution'],
+            growth_rate=acc['growth_rate'],
+            cash_flow_item_id=acc.get('cash_flow_item_id')
+        )
+        db.add(db_acc)
+    
+    db.commit()
+    return db_projection
+
+@app.get("/projections/", response_model=List[schemas.ProjectionOut], tags=["projections"])
+def list_projections(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """List all saved projections for the user."""
+    return db.query(models.Projection).filter(models.Projection.owner_id == current_user.id).all()
+
+@app.get("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
+def get_projection(
+    projection_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Get full details of a specific projection."""
+    proj = db.query(models.Projection).filter(
+        models.Projection.id == projection_id,
+        models.Projection.owner_id == current_user.id
+    ).options(joinedload(models.Projection.accounts_data)).first()
+    
+    if not proj:
+        raise HTTPException(status_code=404, detail="Projection not found")
+    return proj
+
+@app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
+def delete_projection(
+    projection_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Delete a saved projection."""
+    proj = db.query(models.Projection).filter(
+        models.Projection.id == projection_id,
+        models.Projection.owner_id == current_user.id
+    ).first()
+    if not proj:
+        raise HTTPException(status_code=404, detail="Projection not found")
+    
+    db.delete(proj)
+    db.commit()
+    return Response(status_code=204)
+
+@app.get("/admin/users", response_model=List[schemas.UserOut], tags=["admin"])
 def list_all_manageable_users(
     db: Session = Depends(database.get_db),
     current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
 ):
-    """
-    Allows an an admin user to retrieve a list of all other users.
-    """
-    users = db.query(models.User).filter(models.User.id != current_admin_user.id).all()
-    return [schemas.UserOut.model_validate(user) for user in users]
+    """Admin only: List all users in the system."""
+    return db.query(models.User).filter(models.User.id != current_admin_user.id).all()
 
-@app.post("/admin/users", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED, tags=["admin"])
-def admin_create_user(
-    user: schemas.AdminUserCreate,
-    db: Session = Depends(database.get_db),
-    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
-):
-    """
-    Allows an admin to create a new user with optional email and password change requirement.
-    """
-    # Check if email is provided and if it's already registered
-    if user.email:
-        existing_user = db.query(models.User).filter(
-            models.User.email == user.email
-        ).first()
-        
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email/username already registered"
-            )
-    
-    try:
-        hashed_password = auth.get_password_hash(user.password)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Password did not meet requirements: {e}"
-        )
-    
-    db_user = models.User(
-        email=user.email if user.email else None,
-        hashed_password=hashed_password,
-        is_active=True,
-        is_confirmed=True,  # Admin-created users are auto-confirmed
-        must_change_password=user.must_change_password,
-        referred_by_id=None,
-        subscription_level=user.subscription_level
-    )
-    
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    # Initialize UserSettings with global defaults if available
-    global_settings = db.query(models.GlobalSettings).first()
-    if global_settings:
-        user_settings = models.UserSettings(
-            owner_id=db_user.id,
-            asset_categories=global_settings.asset_categories,
-            liability_categories=global_settings.liability_categories,
-            income_categories=global_settings.income_categories,
-            expense_categories=global_settings.expense_categories,
-            default_inflation_percent=schemas.UserSettingsBase.model_fields['default_inflation_percent'].default,
-            person1_first_name=schemas.UserSettingsBase.model_fields['person1_first_name'].default,
-            person1_last_name=schemas.UserSettingsBase.model_fields['person1_last_name'].default,
-            person1_birthdate=schemas.UserSettingsBase.model_fields['person1_birthdate'].default,
-            person1_cell_phone=schemas.UserSettingsBase.model_fields['person1_cell_phone'].default,
-            person2_first_name=schemas.UserSettingsBase.model_fields['person2_first_name'].default,
-            person2_last_name=schemas.UserSettingsBase.model_fields['person2_last_name'].default,
-            person2_birthdate=schemas.UserSettingsBase.model_fields['person2_birthdate'].default,
-            person2_cell_phone=schemas.UserSettingsBase.model_fields['person2_cell_phone'].default,
-            address=schemas.UserSettingsBase.model_fields['address'].default,
-            city=schemas.UserSettingsBase.model_fields['city'].default,
-            state=schemas.UserSettingsBase.model_fields['state'].default,
-            zip_code=schemas.UserSettingsBase.model_fields['zip_code'].default,
-            projection_years=schemas.UserSettingsBase.model_fields['projection_years'].default,
-            show_chart_totals=schemas.UserSettingsBase.model_fields['show_chart_totals'].default,
-        )
-    else:
-        user_settings = models.UserSettings(owner_id=db_user.id)
-    
-    db.add(user_settings)
-    db.commit()
-    db.refresh(user_settings)
-    
-    return db_user
-
-@app.put("/admin/users/{user_id}/set-admin-status", response_model=schemas.UserOut, tags=["admin"])
-def set_user_admin_status(
-    user_id: int,
-    status_update: schemas.UserAdminStatusUpdate,
-    db: Session = Depends(database.get_db),
-    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
-):
-    """
-    Allows an admin user to change another user's admin status.
-    """
-    if user_id == current_admin_user.id and not status_update.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin user cannot revoke their own admin status."
-        )
-
-    user_to_update = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user_to_update:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-
-    user_to_update.is_admin = status_update.is_admin
-    if status_update.subscription_level is not None:
-        user_to_update.subscription_level = status_update.subscription_level
-    db.commit()
-    db.refresh(user_to_update)
-    return user_to_update
-
-# --- GLOBAL SETTINGS ENDPOINTS (Admin Only) ---
-@admin_router.get("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"], summary="Get global default categories")
-def get_global_settings(
-    db: Session = Depends(database.get_db),
-    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user) # Ensures admin access
-):
-    """
-    Retrieves the global default categories. Creates default if none exist.
-    """
-    global_settings = db.query(models.GlobalSettings).first()
-    if not global_settings:
-        # Create default global settings if they don't exist
-        global_settings = models.GlobalSettings(help_content="<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>") # Initialize with default content
-        db.add(global_settings)
-        db.commit()
-        db.refresh(global_settings)
-    return global_settings
-
-@admin_router.put("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"], summary="Update global default categories")
+@admin_router.put("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"])
 def update_global_settings(
     payload: schemas.GlobalSettingsUpdate,
     db: Session = Depends(database.get_db),
-    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user) # Ensures admin access
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
 ):
-    """
-    Updates the global default categories. Creates default if none exist.
-    """
+    """Admin only: Update system-wide default settings."""
     global_settings = db.query(models.GlobalSettings).first()
     if not global_settings:
         global_settings = models.GlobalSettings()
         db.add(global_settings)
-        db.commit()
-        db.refresh(global_settings)
-    
+
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(global_settings, key, value)
     
@@ -851,28 +599,15 @@ def update_global_settings(
     db.refresh(global_settings)
     return global_settings
 
-app.include_router(admin_router, prefix="/admin")
-
-# Public endpoint for reading help/about content (requires authentication, not admin)
-@app.get("/content/help-about", response_model=schemas.PublicContentResponse, tags=["content"], summary="Get help and about content (public read)")
-def get_help_about_content(
+@admin_router.get("/global-settings", response_model=schemas.GlobalSettingsOut, tags=["admin"])
+def get_global_settings(
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)  # Requires authentication, not admin
+    current_admin_user: schemas.UserOut = Depends(auth.get_current_admin_user)
 ):
-    """
-    Retrieves help and about content. Accessible by any authenticated user.
-    """
-    global_settings = db.query(models.GlobalSettings).first()
-    if not global_settings:
-        # Return default content if global settings don't exist
-        return schemas.PublicContentResponse(
-            help_content="<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>",
-            about_content="<h1>About</h1><p>This is a placeholder for about content. Administrators can edit this content.</p>"
-        )
-    return schemas.PublicContentResponse(
-        help_content=global_settings.help_content,
-        about_content=global_settings.about_content
-    )
+    """Admin only: Retrieve current system-wide defaults."""
+    return db.query(models.GlobalSettings).first()
+
+app.include_router(admin_router, prefix="/admin")
 
 @app.post("/categories/check-usage", response_model=bool, tags=["categories"])
 def check_category_usage(
@@ -880,825 +615,24 @@ def check_category_usage(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """
-    Checks if a category is currently in use by any assets, liabilities, or cash flow items.
-    """
-    category_name = category_check.category_name
-    category_type = category_check.category_type.lower()
-    user_id = current_user.id
-
-    is_in_use = False
-
-    if category_type == "asset":
-        asset_count = db.query(models.Asset).filter(
-            models.Asset.owner_id == user_id,
-            models.Asset.category == category_name
-        ).count()
-        if asset_count > 0:
-            is_in_use = True
-    elif category_type == "liability":
-        liability_count = db.query(models.Liability).filter(
-            models.Liability.owner_id == user_id,
-            models.Liability.category == category_name
-        ).count()
-        if liability_count > 0:
-            is_in_use = True
-    elif category_type == "income":
-        cashflow_income_count = db.query(models.CashFlowItem).filter(
-            models.CashFlowItem.owner_id == user_id,
-            models.CashFlowItem.category == category_name,
-            models.CashFlowItem.is_income == True
-        ).count()
-        if cashflow_income_count > 0:
-            is_in_use = True
-    elif category_type == "expense":
-        cashflow_expense_count = db.query(models.CashFlowItem).filter(
-            models.CashFlowItem.owner_id == user_id,
-            models.CashFlowItem.category == category_name,
-            models.CashFlowItem.is_income == False
-        ).count()
-        if cashflow_expense_count > 0:
-            is_in_use = True
-
-    return is_in_use
-
-@app.put("/users/me/password", response_model=schemas.UserOut, tags=["users"])
-def change_password(
-    payload: schemas.ChangePasswordRequest,
-    current_user: schemas.UserOut = Depends(auth.get_current_user),
-    db: Session = Depends(database.get_db)
-):
-    """Allows an authenticated user to change their password."""
-    updated_user = auth.change_user_password(
-        db=db,
-        user_id=current_user.id,
-        current_password=payload.current_password,
-        new_password=payload.new_password
-    )
-    return updated_user
-
-@app.post("/forgot-password", status_code=status.HTTP_200_OK, tags=["auth"])
-def forgot_password(
-    payload: schemas.PasswordResetRequest,
-    db: Session = Depends(database.get_db)
-):
-    """Handles the request to initiate a password reset. Sends a reset email if the user exists."""
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
-    if user:
-        token = auth.create_password_reset_token(db, user.id)
-        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-        send_email(
-            to_email=user.email,
-            subject="Financial Projector - Password Reset Request",
-            body=f"""Hello,
-
-You have requested a password reset for your Financial Projector account.
-
-Please use the following link to reset your password: {reset_link}
-
-This link will expire in 1 hour.
-
-If you did not request a password reset, please ignore this email.
-
-Best regards,
-The Financial Projector Team"""
-        )
+    """Check if a specific category is currently being used by any assets or liabilities."""
+    cat_name = category_check.category_name
+    cat_type = category_check.category_type.lower()
     
-    return {"message": "If an account with that email exists, a password reset link has been sent."}
-
-@app.post("/reset-password", response_model=schemas.UserOut, tags=["auth"])
-def reset_password(
-    payload: schemas.PasswordReset,
-    db: Session = Depends(database.get_db)
-):
-    """Resets the user's password using a valid reset token."""
-    try:
-        updated_user = auth.reset_user_password(
-            db=db,
-            token=payload.token,
-            new_password=payload.new_password
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"New password did not meet requirements: {e}"
-        )
-    except HTTPException as e:
-        raise e
-    return updated_user
-
-@app.post("/verify-email", response_model=schemas.UserOut, tags=["auth"])
-def verify_email(
-    payload: schemas.EmailConfirmation,
-    db: Session = Depends(database.get_db)
-):
-    """Verifies a user's email address using a confirmation token."""
-    try:
-        confirmed_user = auth.verify_email_confirmation_token(db, payload.token)
-    except HTTPException as e:
-        raise e
-    return confirmed_user
-
-
-def _get_user_from_header(auth_header: str | None, db: Session):
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return None
-    token = auth_header.split(" ", 1)[1].strip()
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id:
-            return None
-    except JWTError:
-        return None
-    return db.query(models.User).filter(models.User.id == int(user_id)).first()
-
-
-def _get_client_ip(request: Request) -> str | None:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip() or None
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip() or None
-    return request.client.host if request.client else None
-
-
-@app.post("/contact", status_code=status.HTTP_200_OK, tags=["public"])
-def contact_us(
-    payload: schemas.ContactRequest,
-    request: Request,
-    authorization: str | None = Header(default=None),
-    db: Session = Depends(database.get_db)
-):
-    contact_map = {
-        "question": "ask@modelmyretirement.com",
-        "feature": "newfeature@modelmyretirement.com",
-        "bug": "bug@modelmyretirement.com",
-        "support": "support@modelmyretirement.com",
-    }
-    contact_type = (payload.contact_type or "").strip().lower()
-    recipient = contact_map.get(contact_type)
-    if not recipient:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contact type.")
-
-    user = _get_user_from_header(authorization, db)
-    rate_limit = settings.CONTACT_RATE_LIMIT_PER_HOUR
-    if rate_limit > 0:
-        window_start = datetime.utcnow() - timedelta(hours=1)
-        query = db.query(models.ContactRequestLog).filter(
-            models.ContactRequestLog.created_at >= window_start
-        )
-        if user:
-            query = query.filter(models.ContactRequestLog.user_id == user.id)
-        else:
-            query = query.filter(models.ContactRequestLog.email == payload.email)
-        recent_count = query.count()
-        if recent_count >= rate_limit:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many contact requests. Please try again later."
-            )
-
-    ip_address = _get_client_ip(request)
-    subject = payload.subject.strip() if payload.subject else f"{payload.contact_type.title()} - Model My Retirement"
-    body = f"""Name: {payload.name}
-Email: {payload.email}
-Type: {payload.contact_type}
-User ID: {user.id if user else "N/A"}
-IP: {ip_address or "N/A"}
-
-{payload.message}
-"""
-    sent = send_email(recipient, subject, body)
-    if not sent:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Email service unavailable.")
-
-    db.add(models.ContactRequestLog(
-        user_id=user.id if user else None,
-        contact_type=payload.contact_type,
-        name=payload.name,
-        email=payload.email,
-        subject=payload.subject,
-        message=payload.message,
-        ip_address=ip_address
-    ))
-    db.commit()
-    return {"ok": True}
-    contact_type = (payload.contact_type or "").strip().lower()
-    recipient = contact_map.get(contact_type)
-    if not recipient:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contact type.")
-
-    subject = payload.subject.strip() if payload.subject else f"{payload.contact_type.title()} - Model My Retirement"
-    body = f"""Name: {payload.name}
-Email: {payload.email}
-Type: {payload.contact_type}
-
-{payload.message}
-"""
-    sent = send_email(recipient, subject, body)
-    if not sent:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Email service unavailable.")
-    return {"ok": True}
-
-def is_projection_stale(db: Session, projection: models.Projection, user_id: int) -> bool:
-    """
-    Check if a projection needs recalculation based on underlying data changes.
-    Returns True if projection is stale and needs recalculation.
-    """
-    if not projection.last_calculated_at:
-        return True  # Stale if never calculated
-    
-    # Get the latest modification time from all underlying data
-    from sqlalchemy import func as sql_func
-    
-    # Get max updated_at from assets, liabilities, and cash flow items
-    max_asset_update = db.query(sql_func.max(models.Asset.updated_at)).filter(
-        models.Asset.owner_id == user_id
-    ).scalar()
-    
-    max_liability_update = db.query(sql_func.max(models.Liability.updated_at)).filter(
-        models.Liability.owner_id == user_id
-    ).scalar()
-    
-    max_cashflow_update = db.query(sql_func.max(models.CashFlowItem.updated_at)).filter(
-        models.CashFlowItem.owner_id == user_id
-    ).scalar()
-    
-    # Also check auto-disbursements (they might not have updated_at, use created_at instead)
-    try:
-        if hasattr(models.AutoDisbursement, 'updated_at'):
-            max_disbursement_update = db.query(sql_func.max(models.AutoDisbursement.updated_at)).filter(
-                models.AutoDisbursement.owner_id == user_id
-            ).scalar()
-        elif hasattr(models.AutoDisbursement, 'created_at'):
-            max_disbursement_update = db.query(sql_func.max(models.AutoDisbursement.created_at)).filter(
-                models.AutoDisbursement.owner_id == user_id
-            ).scalar()
-        else:
-            max_disbursement_update = None
-    except Exception:
-        max_disbursement_update = None
-    
-    # Find the latest data change (handle case where all might be None)
-    dates_list = [date for date in [max_asset_update, max_liability_update, max_cashflow_update, max_disbursement_update] if date is not None]
-    
-    if not dates_list:
-        # No data exists yet, so projection is not stale
-        return False
-    
-    latest_data_change = max(dates_list)
-    
-    # Projection is stale if underlying data was modified after last calculation
-    if latest_data_change:
-        # Convert to timezone-aware datetime for comparison
-        if projection.last_calculated_at.tzinfo is None:
-            from datetime import timezone
-            last_calculated = projection.last_calculated_at.replace(tzinfo=timezone.utc)
-        else:
-            last_calculated = projection.last_calculated_at
-            
-        if latest_data_change.tzinfo is None:
-            from datetime import timezone
-            latest_data_change = latest_data_change.replace(tzinfo=timezone.utc)
+    if cat_type == "asset":
+        exists = db.query(models.Asset).filter(
+            models.Asset.owner_id == current_user.id,
+            models.Asset.category == cat_name
+        ).first() is not None
+        return exists
+    elif cat_type == "liability":
+        exists = db.query(models.Liability).filter(
+            models.Liability.owner_id == current_user.id,
+            models.Liability.category == cat_name
+        ).first() is not None
+        return exists
         
-        return latest_data_change > last_calculated
-    
-    return False  # Not stale if no data changes
-
-
-def rebuild_projection_from_stored_data(db: Session, projection: models.Projection, user_id: int) -> dict:
-    """
-    Rebuild projection data from stored accounts_data to recalculate.
-    This extracts the ProjectedAccountCreate schemas from stored ProjectedAccount models.
-    Note: For Balance Sheet Projections, this won't include auto-included items,
-    but the stored accounts_data should contain all relevant accounts.
-    """
-    accounts_for_recalculation = []
-    
-    # Check if we have accounts_data to rebuild from
-    if not projection.accounts_data or len(projection.accounts_data) == 0:
-        raise ValueError(f"Cannot rebuild projection {projection.id}: no accounts_data stored. Projection may need to be recreated.")
-    
-    # Convert stored ProjectedAccount models back to ProjectedAccountCreate schemas
-    for stored_account in projection.accounts_data:
-        # Reconstruct ProjectedAccountCreate from stored data
-        account_schema = schemas.ProjectedAccountCreate(
-            name=stored_account.name,
-            account_type=stored_account.account_type,
-            initial_value=stored_account.initial_value,
-            contribution=stored_account.contribution,
-            growth_rate=stored_account.growth_rate,
-            loan_type=stored_account.loan_type,
-            principal_amount=stored_account.principal_amount,
-            interest_rate=stored_account.interest_rate,
-            loan_term_months=stored_account.loan_term_months,
-            loan_start_date=stored_account.loan_start_date,
-            monthly_payment=stored_account.monthly_payment,
-            start_date=stored_account.start_date,
-            end_date=stored_account.end_date
-        )
-        accounts_for_recalculation.append(account_schema)
-    
-    # Recalculate projection with stored accounts
-    # Note: The calculation function will auto-include additional items (income/expenses/auto-disbursements) as needed
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    limits = get_user_limits(db, user) if user else {"is_limited": False}
-    years = projection.years
-    if limits.get("is_limited") and limits.get("max_projection_years") is not None:
-        years = min(years, limits["max_projection_years"])
-
-    result = calculations.calculate_projection(
-        years=years,
-        accounts=accounts_for_recalculation,
-        db=db,
-        owner_id=user_id
-    )
-    
-    return result
-
-
-@app.post("/projections", response_model=schemas.ProjectionResponse, status_code=status.HTTP_201_CREATED, tags=["projections"])
-def create_projection(
-    projection_data: schemas.ProjectionRequest,
-    user: schemas.UserOut = Depends(auth.get_current_user), 
-    db: Session = Depends(database.get_db)
-):
-    """
-    Creates a new projection, runs the calculation, and saves the results to the database."""
-    limits = get_user_limits(db, user)
-    if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
-        )
-
-    try:
-        projection_results = calculations.calculate_projection(
-            years=projection_data.years,
-            accounts=projection_data.accounts,
-            db=db,
-            owner_id=user.id
-        )
-    except Exception as e:
-        logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail=str(e))
-
-    db_projection = models.Projection(
-        owner_id=user.id,
-        name=projection_data.plan_name,
-        years=projection_data.years,
-        final_value=projection_results["final_value"],
-        total_contributed=projection_results["total_contributed"],
-        total_growth=projection_results["total_growth"],
-        data_json=projection_results.get("data_json"),  # Store data_json in database for fast retrieval
-        last_calculated_at=datetime.utcnow()  # Track when projection was calculated
-    )
-    db.add(db_projection)
-    db.commit()
-    db.refresh(db_projection)
-
-    # Associate projected accounts and time series data with the new projection
-    for acc in projection_results["projected_accounts"]:
-        acc.projection_id = db_projection.id
-        db.add(acc)
-
-    db.commit()
-    db.refresh(db_projection) # Refresh to load relationships
-
-    # Construct response with data_json from calculations
-    return schemas.ProjectionResponse(
-        id=db_projection.id,
-        name=db_projection.name,
-        years=db_projection.years,
-        final_value=db_projection.final_value,
-        total_contributed=db_projection.total_contributed,
-        total_growth=db_projection.total_growth,
-        timestamp=db_projection.timestamp,
-        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
-        time_series_data=[],  # Excluded to save memory - use data_json instead
-        data_json=projection_results.get("data_json")  # Include data_json from calculations
-    )
-
-@app.get("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
-def get_projection_details(
-    projection_id: int, 
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Retrieves a single projection if the user has view permission."""
-    
-    projection = (
-        db.query(models.Projection)
-        .options(joinedload(models.Projection.accounts_data))
-        .filter(models.Projection.id == projection_id)
-        .first()
-    )
-    
-    if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found")
-    
-    # Check view permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=projection.owner_id,
-        permission_type="projections",
-        required_permission="view"
-    )
-    
-    if not has_permission:
-        raise HTTPException(status_code=403, detail="You do not have permission to view this projection")
-    
-    # Auto-recalculate if projection is stale (transparent to user)
-    # Only auto-recalculate if we have accounts_data to rebuild from
-    try:
-        if is_projection_stale(db, projection, current_user.id) and projection.accounts_data and len(projection.accounts_data) > 0:
-            try:
-                # Rebuild projection from stored accounts_data
-                result = rebuild_projection_from_stored_data(db, projection, current_user.id)
-                
-                # Update projection with new results
-                projection.final_value = result["final_value"]
-                projection.total_contributed = result["total_contributed"]
-                projection.total_growth = result["total_growth"]
-                projection.data_json = result.get("data_json")
-                projection.last_calculated_at = datetime.utcnow()
-                projection.timestamp = datetime.utcnow()
-                
-                # Delete old accounts
-                db.query(models.ProjectedAccount).filter(
-                    models.ProjectedAccount.projection_id == projection_id
-                ).delete()
-                
-                # Add new data
-                for acc in result["projected_accounts"]:
-                    acc.projection_id = projection.id
-                    db.add(acc)
-                
-                db.commit()
-                db.refresh(projection)
-            except Exception as e:
-                logger.error(f"Error auto-recalculating projection {projection_id}: {e}", exc_info=True)
-                # Continue with stale data rather than failing
-                db.rollback()
-    except Exception as e:
-        logger.error(f"Error checking if projection {projection_id} is stale: {e}", exc_info=True)
-        # Continue without auto-recalculation
-    
-    # Return response without time_series_data to save memory
-    # data_json is read directly from database (stored during calculation)
-    return schemas.ProjectionDetailOut(
-        id=projection.id,
-        name=projection.name,
-        years=projection.years,
-        final_value=projection.final_value,
-        total_contributed=projection.total_contributed,
-        total_growth=projection.total_growth,
-        timestamp=projection.timestamp,
-        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection.accounts_data],
-        time_series_data=[],  # Excluded to save memory - use data_json instead
-        data_json=projection.data_json  # Read directly from database
-    )
-
-@app.get("/projections", response_model=List[schemas.ProjectionOut], tags=["projections"])
-def list_projections(
-    db: Session = Depends(database.get_db), 
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Lists all projections the current user can access (own or authorized)."""
-    
-    # Get accessible user IDs (own + authorized)
-    accessible_user_ids = get_accessible_user_ids(db, current_user.id, "projections")
-    
-    # Only load basic projection data for the list view, details will be fetched by get_projection_details
-    projections = db.query(models.Projection).filter(
-        models.Projection.owner_id.in_(accessible_user_ids)
-    ).all()
-    
-    return projections
-
-@app.put("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
-def update_projection(
-    projection_id: int,
-    req: schemas.ProjectionRequest,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Updates an existing projection if user has edit permission."""
-    projection = (
-        db.query(models.Projection)
-        .options(joinedload(models.Projection.accounts_data))
-        .filter(models.Projection.id == projection_id)
-        .first()
-    )
-    
-    if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found")
-    
-    # Check edit permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=projection.owner_id,
-        permission_type="projections",
-        required_permission="edit"
-    )
-    
-    if not has_permission:
-        raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
-    
-    limits = get_user_limits(db, current_user)
-    if limits["is_limited"] and limits["max_projection_years"] is not None and req.years > limits["max_projection_years"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
-        )
-
-    # Delete existing associated data
-    db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
-    db.commit()
-
-    # Recalculate projection
-    try:
-        result = calculations.calculate_projection(
-            years=req.years,
-            accounts=req.accounts,
-            db=db,
-            owner_id=current_user.id
-        )
-    except Exception as e:
-        logger.error(f"Error during projection calculation in update_projection for user {current_user.id}: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail=f"Projection calculation failed: {str(e)}")
-    
-    # Update projection header details
-    projection.name = req.plan_name
-    projection.years = req.years
-    projection.final_value = result["final_value"]
-    projection.total_contributed = result["total_contributed"]
-    projection.total_growth = result["total_growth"]
-    projection.timestamp = datetime.utcnow()
-    projection.data_json = result.get("data_json")  # Store data_json in database for fast retrieval
-    projection.last_calculated_at = datetime.utcnow()  # Update calculation timestamp
-    
-    # Add new associated data
-    try:
-        # Add projected accounts
-        for acc in result["projected_accounts"]:
-            acc.projection_id = projection.id
-            db.add(acc)
-
-        db.commit()
-        db.refresh(projection) # Refresh to load relationships
-    except Exception as e:
-        logger.error(f"Error saving projection data for user {current_user.id}: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to save projection data: {str(e)}")
-    
-    # Construct response with data_json from database (stored during calculation)
-    return schemas.ProjectionDetailOut(
-        id=projection.id,
-        name=projection.name,
-        years=projection.years,
-        final_value=projection.final_value,
-        total_contributed=projection.total_contributed,
-        total_growth=projection.total_growth,
-        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in result["projected_accounts"]],
-        time_series_data=[],  # Excluded to save memory - use data_json instead
-        data_json=projection.data_json  # Read directly from database (already stored above)
-    )
-
-@app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
-def delete_projection(
-    projection_id: int,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """Delete a projection (requires edit permission)."""
-    projection = db.query(models.Projection).filter(models.Projection.id == projection_id).first()
-    if not projection:
-        raise HTTPException(status_code=404, detail="Projection not found")
-    
-    # Check edit permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=projection.owner_id,
-        permission_type="projections",
-        required_permission="edit"
-    )
-    
-    if not has_permission:
-        raise HTTPException(status_code=403, detail="You do not have permission to delete this projection")
-    
-
-    db.delete(projection)
-    db.commit()
-    return Response(status_code=204)
-
-@app.get("/cashflow", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
-def list_cashflow(
-    is_income: bool,
-    viewing_user_id: Optional[int] = None,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """List all cash flow items the current user can access.
-    If viewing_user_id is None, only show the current user's own cash flow items.
-    If viewing_user_id is provided, filter to that specific user's items (must be accessible)."""
-    
-    # Default to only showing current user's cash flow items when viewingUserId is None
-    if viewing_user_id is None:
-        accessible_user_ids = [current_user.id]
-    else:
-        # When viewing a specific user, check if they're accessible
-        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "items")
-        if viewing_user_id not in accessible_user_ids:
-            raise HTTPException(status_code=403, detail="You do not have access to view this user's data")
-        accessible_user_ids = [viewing_user_id]
-    
-    cashflow_items = (
-        db.query(models.CashFlowItem)
-        .filter(models.CashFlowItem.owner_id.in_(accessible_user_ids))
-        .filter(models.CashFlowItem.is_income == is_income)
-        .order_by(models.CashFlowItem.id.desc())
-        .all()
-    )
-    return cashflow_items
-
-def _calculate_yearly_value_for_cashflow(db: Session, payload: schemas.CashFlowCreate | schemas.CashFlowUpdate):
-    if payload.linked_item_id and payload.linked_item_type and payload.percentage is not None:
-        linked_value = 0.0
-        if payload.linked_item_type == "asset":
-            linked_item = db.query(models.Asset).filter(models.Asset.id == payload.linked_item_id).first()
-            if linked_item:
-                linked_value = linked_item.value
-        elif payload.linked_item_type == "income":
-            linked_item = db.query(models.CashFlowItem).filter(
-                models.CashFlowItem.id == payload.linked_item_id,
-                models.CashFlowItem.is_income == True
-            ).first()
-            if linked_item:
-                linked_value = linked_item.yearly_value
-        
-        return linked_value * (payload.percentage / 100.0) * (12 if payload.frequency == "monthly" else 1)
-    else:
-        return payload.value * 12 if payload.frequency == "monthly" else payload.value
-
-
-@app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
-def create_cashflow(
-    payload: schemas.CashFlowCreate,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
-    
-    # Default start_date to January 1 of current year if not provided
-    start_date = payload.start_date
-    if not start_date:
-        current_year = date.today().year
-        start_date = f"{current_year}-01-01"
-    
-    item = models.CashFlowItem(
-        owner_id=current_user.id,
-        is_income=payload.is_income,
-        category=payload.category,
-        description=payload.description,
-        frequency=payload.frequency,
-        yearly_value=yearly_value,
-        annual_increase_percent=payload.annual_increase_percent,
-        inflation_percent=payload.inflation_percent,
-        person=payload.person,
-        start_date=start_date,
-        end_date=payload.end_date,
-        taxable=payload.taxable,
-        tax_deductible=payload.taxable,
-        is_qualified_dividend=getattr(payload, 'is_qualified_dividend', False),
-        linked_item_id=payload.linked_item_id,
-        linked_item_type=payload.linked_item_type,
-        percentage=payload.percentage,
-        linked_asset_ids=payload.linked_asset_ids,
-        # For income items with reinvest_dividends=True, use reinvestment_account_id as contributes_to_asset_id
-        # For expense items, use contributes_to_asset_id directly
-        contributes_to_asset_id=payload.contributes_to_asset_id if not payload.is_income else (
-            payload.reinvestment_account_id if (getattr(payload, 'reinvest_dividends', False) and getattr(payload, 'reinvestment_account_id', None)) else payload.contributes_to_asset_id
-        ),
-        reinvest_dividends=payload.reinvest_dividends if hasattr(payload, 'reinvest_dividends') else False,
-        reinvestment_account_id=payload.reinvestment_account_id if hasattr(payload, 'reinvestment_account_id') else None
-    )
-    
-    # Debug logging for dividend reinvestment mapping
-    if payload.is_income:
-        reinvest_dividends_val = getattr(payload, 'reinvest_dividends', False)
-        reinvestment_account_id_val = getattr(payload, 'reinvestment_account_id', None)
-    
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    
-    # If income is added and calculate_federal_tax is enabled, ensure Federal Tax expense exists
-    if payload.is_income:
-        user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
-        if user_settings and user_settings.calculate_federal_tax:
-            FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)"
-            federal_tax_expense = db.query(models.CashFlowItem).filter(
-                models.CashFlowItem.owner_id == current_user.id,
-                models.CashFlowItem.is_income == False,
-                models.CashFlowItem.description == FEDERAL_TAX_EXPENSE_DESCRIPTION
-            ).first()
-            
-            if not federal_tax_expense:
-                # Ensure "Taxes" category exists in expense_categories, add it if missing
-                expense_categories = list(user_settings.expense_categories) if user_settings.expense_categories else []
-                taxes_category_modified = False
-                if "Taxes" not in expense_categories:
-                    expense_categories.append("Taxes")
-                    user_settings.expense_categories = expense_categories
-                    from sqlalchemy.orm.attributes import flag_modified
-                    flag_modified(user_settings, "expense_categories")
-                    taxes_category_modified = True
-                
-                # Create the federal tax expense item
-                federal_tax_expense = models.CashFlowItem(
-                    owner_id=current_user.id,
-                    is_income=False,
-                    category="Taxes",
-                    description=FEDERAL_TAX_EXPENSE_DESCRIPTION,
-                    frequency="yearly",
-                    yearly_value=0.0,  # This will be calculated dynamically in projections
-                    inflation_percent=0.0,
-                    taxable=False,
-                    tax_deductible=False
-                )
-                db.add(federal_tax_expense)
-                # Commit both the user_settings update (if modified) and the new federal tax expense
-                if taxes_category_modified:
-                    db.commit()  # Commit user_settings changes
-                else:
-                    db.commit()  # Commit federal_tax_expense
-    
-    return item
-
-@app.put("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
-def update_cashflow(
-    item_id: int,
-    payload: schemas.CashFlowUpdate,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """Update a cash flow item (requires edit permission)."""
-    item = db.query(models.CashFlowItem).filter(models.CashFlowItem.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    
-    # Check edit permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=item.owner_id,
-        permission_type="items",
-        required_permission="edit"
-    )
-    
-    if not has_permission:
-        raise HTTPException(status_code=403, detail="You do not have permission to edit this item")
-    
-    yearly_value = _calculate_yearly_value_for_cashflow(db, payload)
-    
-    # Get the update dictionary
-    update_dict = payload.model_dump(exclude_unset=True)
-    # Default start_date to January 1 of current year if being updated and not provided
-    if "start_date" in update_dict and not update_dict["start_date"]:
-        current_year = date.today().year
-        update_dict["start_date"] = f"{current_year}-01-01"
-    
-    # For income items with reinvest_dividends=True, map reinvestment_account_id to contributes_to_asset_id
-    if item.is_income:
-        reinvest_dividends = update_dict.get('reinvest_dividends', item.reinvest_dividends)
-        reinvestment_account_id = update_dict.get('reinvestment_account_id', item.reinvestment_account_id)
-        
-        if reinvest_dividends and reinvestment_account_id:
-            # Map reinvestment_account_id to contributes_to_asset_id for income items
-            update_dict['contributes_to_asset_id'] = reinvestment_account_id
-        elif not reinvest_dividends:
-            # If reinvest_dividends is being set to False, clear contributes_to_asset_id
-            if 'reinvest_dividends' in update_dict:
-                update_dict['contributes_to_asset_id'] = None
-    
-    for key, value in update_dict.items():
-        setattr(item, key, value)
-    item.yearly_value = yearly_value # Ensure yearly_value is explicitly set after calculation
-    
-    db.commit()
-    db.refresh(item)
-    return item
+    return False
 
 @app.delete("/cashflow/{item_id}", status_code=204, tags=["cashflow"])
 def delete_cashflow(
@@ -1723,7 +657,6 @@ def delete_cashflow(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to delete this item")
     
-
     db.delete(item)
     db.commit()
     return Response(status_code=204)
@@ -1738,8 +671,155 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     error_traceback = traceback.format_exc()
-    logger.error(f"Unhandled exception: {error_traceback}", exc_info=True)
+    logger.error(f"Unhandled error: {str(exc)}\n{error_traceback}")
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal Server Error. Please check logs for details."},
+        content={"detail": "An internal server error occurred. Please contact support."}
     )
+
+@app.post("/auth/mfa/request", tags=["auth"])
+def request_mfa_otp(
+    req: schemas.MfaRequestOtp,
+    db: Session = Depends(database.get_db),
+    request: Request = None
+):
+    user = _get_mfa_user_from_token(req.mfa_token, db)
+    destination = _get_mfa_destination(user, req.method)
+    _enforce_mfa_rate_limit(db, user, destination, req.method)
+    
+    code = _generate_otp()
+    code_hash = _hash_otp(code)
+    
+    expires_at = datetime.utcnow() + timedelta(minutes=settings.MFA_OTP_TTL_MINUTES)
+    otp_entry = models.MfaOtpLog(
+        user_id=user.id,
+        method=req.method,
+        destination=destination,
+        code_hash=code_hash,
+        expires_at=expires_at,
+        ip_address=_get_client_ip(request) if request else None
+    )
+    db.add(otp_entry)
+    db.commit()
+
+    if req.method == "email":
+        send_email(to_email=destination, subject="Your Verification Code", body=f"Your code is: {code}")
+    elif req.method == "sms":
+        send_sms(to_phone=destination, message=f"Your code is: {code}")
+        
+    return {"message": f"OTP sent via {req.method}", "destination": _mask_email(destination) if req.method == "email" else _mask_phone(destination)}
+
+@app.post("/auth/mfa/verify", tags=["auth"])
+def verify_mfa_otp(
+    req: schemas.MfaVerifyOtp,
+    db: Session = Depends(database.get_db)
+):
+    user = _get_mfa_user_from_token(req.mfa_token, db)
+    destination = _get_mfa_destination(user, req.method)
+    code_hash = _hash_otp(req.code)
+    
+    otp_record = db.query(models.MfaOtpLog).filter(
+        models.MfaOtpLog.user_id == user.id,
+        models.MfaOtpLog.code_hash == code_hash,
+        models.MfaOtpLog.expires_at >= datetime.utcnow(),
+        models.MfaOtpLog.used_at.is_(None)
+    ).first()
+
+    if not otp_record:
+        raise HTTPException(status_code=401, detail="Invalid or expired code.")
+
+    otp_record.used_at = datetime.utcnow()
+    
+    response_data = {
+        "access_token": auth.create_access_token(data={"sub": str(user.id)}),
+        "token_type": "bearer",
+        "must_change_password": user.must_change_password
+    }
+
+    if req.remember_device:
+        device_token = secrets.token_urlsafe(32)
+        device_hash = _hash_device_token(device_token)
+        new_device = models.MfaTrustedDevice(
+            user_id=user.id,
+            device_token_hash=device_hash,
+            expires_at=datetime.utcnow() + timedelta(days=settings.MFA_TRUSTED_DEVICE_DAYS)
+        )
+        db.add(new_device)
+        response_data["mfa_device_token"] = device_token
+
+    db.commit()
+    return response_data
+
+@app.get("/settings/me", response_model=schemas.UserSettingsOut, tags=["settings"])
+def get_my_settings(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    settings_obj = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
+    if not settings_obj:
+        settings_obj = models.UserSettings(owner_id=current_user.id)
+        db.add(settings_obj)
+        db.commit()
+        db.refresh(settings_obj)
+    return settings_obj
+
+@app.put("/settings/me", response_model=schemas.UserSettingsOut, tags=["settings"])
+def update_my_settings(
+    settings_update: schemas.UserSettingsUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    db_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
+    update_data = settings_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(db_settings, key, value)
+    
+    db.commit()
+    db.refresh(db_settings)
+    return db_settings
+
+@app.get("/auth/mfa/settings", response_model=schemas.MfaSettingsOut, tags=["auth"])
+def get_mfa_settings(current_user: models.User = Depends(auth.get_current_user)):
+    return current_user
+
+@app.put("/auth/mfa/settings", response_model=schemas.MfaSettingsOut, tags=["auth"])
+def update_mfa_settings(
+    update: schemas.MfaSettingsUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    for key, value in update.model_dump(exclude_unset=True).items():
+        setattr(current_user, key, value)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@app.post("/users/change-password", tags=["users"])
+def change_password(
+    req: schemas.ChangePasswordRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    if not auth.verify_password(req.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    
+    current_user.hashed_password = auth.get_password_hash(req.new_password)
+    current_user.must_change_password = False
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+@app.get("/confirm-email", tags=["users"])
+def confirm_email(token: str, db: Session = Depends(database.get_db)):
+    user_id = auth.verify_email_confirmation_token(token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        user.is_confirmed = True
+        db.commit()
+        return {"message": "Email confirmed successfully"}
+    raise HTTPException(status_code=404, detail="User not found")
+
