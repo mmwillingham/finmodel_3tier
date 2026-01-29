@@ -61,23 +61,25 @@ def authenticate_user(db: Session, email: str, password: str):
         return False
     return user
 
-async def get_current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
+def get_current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        # If the token is empty/invalid, we want to return None, not crash
+        if not token or token == "undefined":
+            return None 
+            
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
-            raise credentials_exception
+            return None
     except JWTError:
-        raise credentials_exception
-        
-    user = get_user(db, user_id=int(user_id))
-    if user is None:
-        raise credentials_exception
+        return None # Return None so the frontend knows you're just a guest
+    
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     return user
 
 def get_current_admin_user(current_user: models.User = Depends(get_current_user)):

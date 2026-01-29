@@ -228,11 +228,8 @@ def login_for_access_token(
         "must_change_password": user.must_change_password
     }
 
-@app.get("/users/me", response_model=schemas.UserOut)
-def read_users_me(
-    current_user: schemas.UserOut = Depends(auth.get_current_user),
-    db: Session = Depends(database.get_db)
-):
+@app.get("/users/me", response_model=Optional[schemas.UserOut])
+def read_users_me(current_user: Optional[models.User] = Depends(auth.get_current_user)):
     return current_user
 
 # MFA Helpers

@@ -29,15 +29,21 @@ class UserOut(BaseModel):
     id: int
     email: Optional[str] = None
     created_at: datetime
-    is_confirmed: bool = False # NEW FIELD
-    is_admin: bool = False # NEW FIELD
-    must_change_password: bool = False  # Require password change on first login
-    subscription_level: int = 1
-    mfa_enabled: bool = False
+    is_confirmed: bool = False      # Ensure '= False' is here
+    is_admin: bool = False          # Ensure '= False' is here
+    must_change_password: bool = False
+    subscription_level: int = 1     # Ensure '= 1' is here
+    mfa_enabled: bool = False       # Ensure '= False' is here
     mfa_email_enabled: bool = False
     mfa_sms_enabled: bool = False
-    mfa_phone_number: str | None = None
+    mfa_phone_number: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    mfa_required: bool = False
+    mfa_token: Optional[str] = None
 
 class TokenData(BaseModel):
     """Schema for the data payload extracted from the JWT."""
