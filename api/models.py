@@ -5,9 +5,6 @@ from database import Base
 from datetime import datetime
 
 class User(Base):
-    """
-    SQLAlchemy Model for the User table.
-    """
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=True)
@@ -33,17 +30,25 @@ class User(Base):
     liabilities = relationship("Liability", back_populates="owner", cascade="all, delete-orphan")
     cashflow_items = relationship("CashFlowItem", back_populates="owner", cascade="all, delete-orphan")
 
+class AuthorizedUser(Base):
+    """Missing class that was causing the crash."""
+    __tablename__ = "authorized_users"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    authorized_email = Column(String, nullable=False, index=True)
+    permission_level = Column(String, default="view") # view, edit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint('owner_id', 'authorized_email', name='_owner_authorized_uc'),)
+
 class UserSettings(Base):
     __tablename__ = "user_settings"
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    
-    # Categories synced from GlobalSettings
     asset_categories = Column(JSON, default=list)
     liability_categories = Column(JSON, default=list)
     income_categories = Column(JSON, default=list)
     expense_categories = Column(JSON, default=list)
-    
     owner = relationship("User", back_populates="user_settings")
 
 class Asset(Base):
@@ -54,7 +59,6 @@ class Asset(Base):
     category = Column(String)
     value = Column(Float, default=0.0)
     growth_rate = Column(Float, default=0.0)
-    
     owner = relationship("User", back_populates="assets")
 
 class Liability(Base):
@@ -66,7 +70,6 @@ class Liability(Base):
     balance = Column(Float, default=0.0)
     interest_rate = Column(Float, default=0.0)
     monthly_payment = Column(Float, default=0.0)
-    
     owner = relationship("User", back_populates="liabilities")
 
 class CashFlowItem(Base):
@@ -74,12 +77,11 @@ class CashFlowItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     name = Column(String, nullable=False)
-    type = Column(String) # Income or Expense
+    type = Column(String) 
     value = Column(Float, default=0.0)
     frequency = Column(String, default="monthly")
     yearly_value = Column(Float, default=0.0)
     start_date = Column(String, nullable=True)
-    
     owner = relationship("User", back_populates="cashflow_items")
 
 class Projection(Base):
@@ -92,7 +94,6 @@ class Projection(Base):
     total_contributed = Column(Float)
     total_growth = Column(Float)
     data_json = Column(Text)
-    
     accounts_data = relationship("ProjectedAccount", back_populates="projection", cascade="all, delete-orphan")
 
 class ProjectedAccount(Base):
@@ -105,11 +106,9 @@ class ProjectedAccount(Base):
     contribution = Column(Float)
     growth_rate = Column(Float)
     cash_flow_item_id = Column(Integer, nullable=True)
-    
     projection = relationship("Projection", back_populates="accounts_data")
 
 class MfaOtpLog(Base):
-    """Stores the 6-digit verification codes for MFA."""
     __tablename__ = "mfa_otp_logs"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -122,7 +121,6 @@ class MfaOtpLog(Base):
     ip_address = Column(String, nullable=True)
 
 class MfaTrustedDevice(Base):
-    """Stores tokens for 'Remember this device' functionality."""
     __tablename__ = "mfa_trusted_devices"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -132,7 +130,6 @@ class MfaTrustedDevice(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class GlobalSettings(Base):
-    """System-wide default categories for new users."""
     __tablename__ = "global_settings"
     id = Column(Integer, primary_key=True)
     asset_categories = Column(JSON, default=list)
