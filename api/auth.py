@@ -62,24 +62,22 @@ def authenticate_user(db: Session, email: str, password: str):
     return user
 
 def get_current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
-        # If the token is empty/invalid, we want to return None, not crash
+        # If no token exists, return None (guest) instead of an error
         if not token or token == "undefined":
-            return None 
+            return None
             
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             return None
-    except JWTError:
-        return None # Return None so the frontend knows you're just a guest
+            
+        # Match the schema change here
+        token_data = schemas.TokenData(user_id=user_id) 
+    except (JWTError, ValueError):
+        return None 
     
-    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    user = db.query(models.User).filter(models.User.id == int(token_data.user_id)).first()
     return user
 
 def get_current_admin_user(current_user: models.User = Depends(get_current_user)):

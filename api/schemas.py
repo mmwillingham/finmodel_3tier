@@ -47,7 +47,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     """Schema for the data payload extracted from the JWT."""
-    email: Optional[str] = None
+    user_id: Optional[str] = None  # Change 'email' to 'user_id'
 
 class ChangePasswordRequest(BaseModel):
     current_password: str

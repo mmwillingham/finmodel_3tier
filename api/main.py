@@ -230,6 +230,7 @@ def login_for_access_token(
 
 @app.get("/users/me", response_model=Optional[schemas.UserOut])
 def read_users_me(current_user: Optional[models.User] = Depends(auth.get_current_user)):
+    # Returning None here is SAFE and tells the frontend to show the login page
     return current_user
 
 # MFA Helpers
