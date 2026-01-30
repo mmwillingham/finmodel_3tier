@@ -364,7 +364,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
 
 # --- CASH FLOW ENDPOINTS ---
 
-@app.post("/cashflow/", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
+@app.post("/cashflow", response_model=schemas.CashFlowOut, status_code=201, tags=["cashflow"])
 def create_cashflow_item(
     item: schemas.CashFlowCreate,
     db: Session = Depends(database.get_db),
@@ -404,7 +404,7 @@ def create_cashflow_item(
 
     return db_item
 
-@app.get("/cashflow/", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
+@app.get("/cashflow", response_model=List[schemas.CashFlowOut], tags=["cashflow"])
 def read_cashflow_items(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user)

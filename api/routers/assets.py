@@ -16,7 +16,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.post("/", response_model=schemas.AssetOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=schemas.AssetOut, status_code=status.HTTP_201_CREATED)
 def create_asset(
     asset: schemas.AssetCreate,
     db: Session = Depends(database.get_db),
@@ -34,7 +34,7 @@ def create_asset(
     db.refresh(db_asset)
     return db_asset
 
-@router.get("/", response_model=List[schemas.AssetOut])
+@router.get("", response_model=List[schemas.AssetOut])
 def list_assets(
     viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
