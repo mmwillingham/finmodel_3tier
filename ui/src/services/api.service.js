@@ -2,7 +2,9 @@ import axios from "axios";
 import AuthService from "./auth.service";
 
 // Restore your production variable name exactly
-const API_URL = process.env.REACT_APP_API_URL;
+// MARTIN REMEMBER TO CHANGE THIS BACK
+// const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = "https://finmodel-backend-service-526419047208.us-east1.run.app";
 
 const ApiService = axios.create({
     baseURL: API_URL,

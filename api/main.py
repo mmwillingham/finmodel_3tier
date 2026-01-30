@@ -553,6 +553,97 @@ def get_projection(
         raise HTTPException(status_code=404, detail="Projection not found")
     return proj
 
+@app.put("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
+def update_projection(
+    projection_id: int,
+    req: schemas.ProjectionRequest,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """
+    Updates an existing projection if user has edit permission."""
+    projection = (
+        db.query(models.Projection)
+        .options(joinedload(models.Projection.accounts_data))
+        .filter(models.Projection.id == projection_id)
+        .first()
+    )
+    
+    if not projection:
+        raise HTTPException(status_code=404, detail="Projection not found")
+    
+    # Check edit permission
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=projection.owner_id,
+        permission_type="projections",
+        required_permission="edit"
+    )
+    
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
+    
+    limits = get_user_limits(db, current_user)
+    if limits["is_limited"] and limits["max_projection_years"] is not None and req.years > limits["max_projection_years"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
+        )
+
+    # Delete existing associated data
+    db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
+    db.commit()
+
+    # Recalculate projection
+    try:
+        result = calculations.calculate_projection(
+            years=req.years,
+            accounts=req.accounts,
+            db=db,
+            owner_id=current_user.id
+        )
+    except Exception as e:
+        logger.error(f"Error during projection calculation in update_projection for user {current_user.id}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Projection calculation failed: {str(e)}")
+    
+    # Update projection header details
+    projection.name = req.plan_name
+    projection.years = req.years
+    projection.final_value = result["final_value"]
+    projection.total_contributed = result["total_contributed"]
+    projection.total_growth = result["total_growth"]
+    projection.timestamp = datetime.utcnow()
+    projection.data_json = result.get("data_json")  # Store data_json in database for fast retrieval
+    projection.last_calculated_at = datetime.utcnow()  # Update calculation timestamp
+    
+    # Add new associated data
+    try:
+        # Add projected accounts
+        for acc in result["projected_accounts"]:
+            acc.projection_id = projection.id
+            db.add(acc)
+
+        db.commit()
+        db.refresh(projection) # Refresh to load relationships
+    except Exception as e:
+        logger.error(f"Error saving projection data for user {current_user.id}: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save projection data: {str(e)}")
+    
+    # Construct response with data_json from database (stored during calculation)
+    return schemas.ProjectionDetailOut(
+        id=projection.id,
+        name=projection.name,
+        years=projection.years,
+        final_value=projection.final_value,
+        total_contributed=projection.total_contributed,
+        total_growth=projection.total_growth,
+        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in result["projected_accounts"]],
+        time_series_data=[],  # Excluded to save memory - use data_json instead
+        data_json=projection.data_json  # Read directly from database (already stored above)
+    )
+
 @app.delete("/projections/{projection_id}", status_code=204, tags=["projections"])
 def delete_projection(
     projection_id: int,
