@@ -477,7 +477,7 @@ def update_cashflow_item(
     db.refresh(db_item)
     return db_item
 
-@app.post("/projections/", response_model=schemas.ProjectionResponse, tags=["projections"])
+@app.post("/projections", response_model=schemas.ProjectionResponse, tags=["projections"])
 def create_projection(
     projection: schemas.ProjectionRequest,
     db: Session = Depends(database.get_db),
@@ -529,7 +529,7 @@ def create_projection(
     db.commit()
     return db_projection
 
-@app.get("/projections/", response_model=List[schemas.ProjectionOut], tags=["projections"])
+@app.get("/projections", response_model=List[schemas.ProjectionOut], tags=["projections"])
 def list_projections(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user)
