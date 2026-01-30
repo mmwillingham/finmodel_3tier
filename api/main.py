@@ -410,7 +410,7 @@ def read_cashflow_items(
     current_user: models.User = Depends(auth.get_current_user)
 ):
     """Retrieve all cash flow items accessible to the current user."""
-    accessible_ids = get_accessible_user_ids(current_user.id, db)
+    accessible_ids = get_accessible_user_ids(db, current_user.id, "items")
     return db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id.in_(accessible_ids)).all()
 
 @app.get("/cashflow/{item_id}", response_model=schemas.CashFlowOut, tags=["cashflow"])
@@ -485,7 +485,7 @@ def create_projection(
 ):
     """Run a new projection calculation and save it."""
     # Check subscription limits for projection years
-    limits = get_user_limits(current_user)
+    limits = get_user_limits(db, current_user)
     if limits["is_limited"] and projection.years > limits["max_projection_years"]:
         raise HTTPException(
             status_code=403, 
