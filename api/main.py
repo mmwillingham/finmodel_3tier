@@ -863,6 +863,3 @@ def migrate_username_to_email(
 
     return {"message": "Email updated. Please check your inbox to verify."}
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "timestamp": time.time()}
