@@ -29,6 +29,10 @@ class User(Base):
 
     # Relationships
     projections = relationship("Projection", back_populates="owner", cascade="all, delete-orphan")
+    # THE CLEANER FIX: Explicitly define these so the Asset/Liability models can 'back_populate' them
+    assets = relationship("Asset", back_populates="owner", cascade="all, delete-orphan")
+    liabilities = relationship("Liability", back_populates="owner", cascade="all, delete-orphan")
+    
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user_owner", cascade="all, delete-orphan")
     email_confirmation_tokens = relationship("EmailConfirmationToken", back_populates="user_owner", cascade="all, delete-orphan")
     settings = relationship("UserSettings", back_populates="owner", uselist=False, cascade="all, delete-orphan")
@@ -266,6 +270,7 @@ class Asset(Base):
     end_date = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    # This now matches the property we just added to the User class
     owner = relationship("User", back_populates="assets")
 
 class Liability(Base):
@@ -292,6 +297,7 @@ class Liability(Base):
     expense_category = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    # This now matches the property we just added to the User class
     owner = relationship("User", back_populates="liabilities")
 
 class CustomChart(Base):
