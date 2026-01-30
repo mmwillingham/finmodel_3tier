@@ -53,7 +53,7 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 # --- INITIALIZATION ---
-app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
+app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=True)
 
 @app.get("/health", tags=["Health"])
 @app.get("/health/", tags=["Health"])
