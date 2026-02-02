@@ -38,6 +38,7 @@ import ChangePasswordModal from "./ChangePasswordModal";
 import CategorySettingsPage from "../pages/CategorySettingsPage";
 import ProfileSettingsPage from "../pages/ProfileSettingsPage";
 import ApplicationSettingsPage from "../pages/ApplicationSettingsPage";
+import TaxHandlingPage from "../pages/TaxHandlingPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import DefaultCategoriesPage from "../pages/DefaultCategoriesPage";
 import HelpPage from "../pages/HelpPage";
@@ -351,6 +352,8 @@ export default function SidebarLayout() {
       setView('documents');
     } else if (path === '/settings/application') {
       setView('settings-application');
+    } else if (path === '/settings/tax-handling') {
+      setView('settings-tax-handling');
     } else if (path === '/settings/profile') {
       setView('settings-profile');
     } else if (path === '/settings/account-switcher') {
@@ -685,6 +688,13 @@ export default function SidebarLayout() {
             >
               Cash Handling
             </button>
+            <NavLink
+              to="/settings/tax-handling"
+              className={({ isActive }) => `nav-btn ${isActive || view === 'settings-tax-handling' ? 'active' : ''}`}
+              onClick={handleNavSelection}
+            >
+              Tax Handling
+            </NavLink>
           </section>
 
           <section className="nav-section">
@@ -754,6 +764,10 @@ export default function SidebarLayout() {
 
         {!loading && view === "settings-profile" && (
           <ProfileSettingsPage />
+        )}
+
+        {!loading && view === "settings-tax-handling" && (
+          <TaxHandlingPage />
         )}
 
         {!loading && view === "settings-application" && (

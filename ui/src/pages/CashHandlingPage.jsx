@@ -144,7 +144,7 @@ const CashHandlingPage = () => {
               <span style={{ color: '#666', fontStyle: 'italic' }}>No assets found. Add assets first.</span>
             ) : (
               assets.map((asset) => (
-                <label key={asset.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <label key={asset.id} className="selectable-item-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={cashAssetIds.includes(asset.id)}
@@ -182,7 +182,7 @@ const CashHandlingPage = () => {
               incomeItems.map((item) => {
                 const isChecked = cashInSourceIds.length === 0 || cashInSourceIds.includes(item.id);
                 return (
-                  <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <label key={item.id} className="selectable-item-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={isChecked}
@@ -221,7 +221,7 @@ const CashHandlingPage = () => {
               expenseItems.map((item) => {
                 const isChecked = cashOutSourceIds.length === 0 || cashOutSourceIds.includes(item.id);
                 return (
-                  <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <label key={item.id} className="selectable-item-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={isChecked}
