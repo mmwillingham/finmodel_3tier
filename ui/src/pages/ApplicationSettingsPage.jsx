@@ -78,7 +78,7 @@ const ApplicationSettingsPage = () => {
         </div>
         <div className="form-group-horizontal checkbox-group">
           <label htmlFor="show-chart-totals">
-            Show Chart Totals
+            Show Chart Totals (Default)
           </label>
           <input
             id="show-chart-totals"
