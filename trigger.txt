@@ -1,5 +1,9 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 3
 =======
 genericTrigger
 >>>>>>> 208c875 (using generic cloudbuild.yaml)
+=======
+2
+>>>>>>> dev
