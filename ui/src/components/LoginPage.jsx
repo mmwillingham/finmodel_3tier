@@ -188,6 +188,29 @@ const LoginPage = () => {
                                 {mfaMethods.includes('sms') && <option value="sms">Text message (NOT SUPPORTED YET)</option>}
                             </select>
                         </div>
+                        
+                        <div className="form-group">
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                disabled={otpLoading}
+                                onClick={async () => {
+                                    setOtpError('');
+                                    setOtpInfo('');
+                                    setOtpLoading(true);
+                                    try {
+                                        const response = await AuthService.requestMfaOtp(mfaToken, mfaMethod);
+                                        setOtpInfo(`Code sent to ${response.destination || `your ${mfaMethod}`}.`);
+                                    } catch (err) {
+                                        setOtpError(err.response?.data?.detail || 'Failed to send code.');
+                                    } finally {
+                                        setOtpLoading(false);
+                                    }
+                                }}
+                            >
+                                {otpLoading ? 'Sending...' : 'Send code'}
+                            </button>
+                        </div>
 
                         <div className="form-group">
                             <label htmlFor="mfa-code">Verification code</label>
@@ -215,26 +238,6 @@ const LoginPage = () => {
                         </div>
 
                         <div className="auth-modal-actions">
-                            <button
-                                type="button"
-                                className="secondary-button"
-                                disabled={otpLoading}
-                                onClick={async () => {
-                                    setOtpError('');
-                                    setOtpInfo('');
-                                    setOtpLoading(true);
-                                    try {
-                                        const response = await AuthService.requestMfaOtp(mfaToken, mfaMethod);
-                                        setOtpInfo(`Code sent to ${response.destination || `your ${mfaMethod}`}.`);
-                                    } catch (err) {
-                                        setOtpError(err.response?.data?.detail || 'Failed to send code.');
-                                    } finally {
-                                        setOtpLoading(false);
-                                    }
-                                }}
-                            >
-                                {otpLoading ? 'Sending...' : 'Send code'}
-                            </button>
                             <button
                                 type="button"
                                 className="submit-button"

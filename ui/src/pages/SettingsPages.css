@@ -10,6 +10,58 @@
     overflow: visible; /* Allow content to scroll within */
 }
 
+
+/* MFA toggle switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  margin-left: auto;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.2s;
+  border-radius: 26px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  top: 3px;
+  background-color: #fff;
+  transition: 0.2s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.switch input:checked + .slider {
+  background-color: #007bff;
+}
+.switch input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+/* When MFA options are visually disabled (container opacity applied) ensure disabled inputs show not-allowed cursor */
+.mfa-section input:disabled,
+.mfa-section select:disabled,
+.mfa-section textarea:disabled {
+  cursor: not-allowed;
+}
+
 /* Override centering for settings pages when inside main-content (which has SidebarLayout) */
 .main-content .settings-page-container {
     margin: 20px 0 !important;
@@ -325,15 +377,22 @@
 
 .settings-page-container h2 {
     color: var(--color-heading);
-    margin-bottom: 15px; /* Reduced margin */
+    margin-bottom: 18px;
     border-bottom: none;
-    padding-bottom: 10px; /* Reduced padding */
+    padding-bottom: 6px;
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    font-size: 28px; /* Larger page title */
+    font-weight: 800;
+    letter-spacing: -0.5px;
 }
 
 .settings-page-container h3 {
-    margin-top: 10px; /* Reduced top margin */
-    margin-bottom: 12px; /* Reduced bottom margin */
+    margin-top: 12px;
+    margin-bottom: 14px;
+    font-size: 18px; /* Larger section headings */
+    font-weight: 700;
+    color: var(--color-heading);
+    letter-spacing: -0.2px;
 }
 
 .settings-page-container .setting-group {
@@ -595,7 +654,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
+    padding: 14px 0; /* increased vertical spacing between rows */
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -642,6 +701,63 @@
 
 .profile-settings-form .form-group-horizontal .change-password-btn {
     align-self: flex-end; /* Align button to the end */
+}
+
+/* Two-column layout for Person 1 and Spouse */
+.people-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px; /* increased gap for breathing room between columns */
+    align-items: start;
+}
+.person-column h3 {
+    color: var(--color-heading);
+    margin: 0 0 6px 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+.person-column h4 {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+/* Add padding inside each person column for breathing room */
+.person-column {
+    padding: 12px;
+    background-color: var(--color-background-soft);
+    border-radius: 8px;
+}
+
+/* Add padding to post-grid columns */
+.post-grid > div {
+    padding: 12px;
+    background-color: var(--color-background-soft);
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .people-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Post-people two-column layout for Address (left) and MFA (right) */
+.post-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px; /* increased gap for breathing room between columns */
+    align-items: start;
+    margin-top: 18px;
+}
+.post-grid > div .settings-section {
+    margin-top: 0;
+}
+@media (max-width: 768px) {
+    .post-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Help Page specific styles */
@@ -1144,6 +1260,15 @@
   font-size: 0.95em;
   color: var(--color-text);
   font-weight: 500;
+}
+
+/* Make selectable items in lists use normal weight */
+.selectable-item-label {
+  font-weight: 400; /* override default label weight */
+  color: var(--color-text);
+}
+.selectable-item-label span {
+  font-weight: 400;
 }
 
 .section-actions {

@@ -61,9 +61,12 @@ const ProfileSettingsPage = () => {
   const { settings, loading: settingsLoading, refreshSettings } = useSettingsContext();
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(false);
-  const [mfaEmailEnabled, setMfaEmailEnabled] = useState(false);
+  const [mfaEmailEnabled, setMfaEmailEnabled] = useState(true);
   const [mfaSmsEnabled, setMfaSmsEnabled] = useState(false);
   const [mfaPhoneNumber, setMfaPhoneNumber] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyInfo, setVerifyInfo] = useState('');
+  const [verifyError, setVerifyError] = useState('');
 
   useEffect(() => {
     if (!settings) {
@@ -186,418 +189,414 @@ const ProfileSettingsPage = () => {
       {message && <div className="message">{message}</div>}
 
       <div className="profile-settings-form">
-        <div className="form-group-horizontal">
-          <label htmlFor="person1-first-name">
-            First Name
-          </label>
-          <input
-            id="person1-first-name"
-            type="text"
-            value={person1FirstName}
-            onChange={(e) => setPerson1FirstName(e.target.value)}
-            placeholder="First Name"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="person1-last-name">
-            Last Name
-          </label>
-          <input
-            id="person1-last-name"
-            type="text"
-            value={person1LastName}
-            onChange={(e) => setPerson1LastName(e.target.value)}
-            placeholder="Last Name"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="person1-birthdate">
-            Date of Birth
-          </label>
-          <input
-            id="person1-birthdate"
-            type="date"
-            value={person1Birthdate}
-            onChange={(e) => setPerson1Birthdate(e.target.value)}
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="person1-cell-phone">
-            Cell Phone
-          </label>
-          <input
-            id="person1-cell-phone"
-            type="tel"
-            value={person1CellPhone}
-            onChange={(e) => setPerson1CellPhone(formatPhoneNumber(e.target.value))}
-            placeholder="(XXX) XXX-XXXX"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="person2-first-name">
-            Spouse First Name
-          </label>
-          <input
-            id="person2-first-name"
-            type="text"
-            value={person2FirstName}
-            onChange={(e) => setPerson2FirstName(e.target.value)}
-            placeholder="Spouse First Name"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="person2-last-name">
-            Spouse Last Name
-          </label>
-          <input
-            id="person2-last-name"
-            type="text"
-            value={person2LastName}
-            onChange={(e) => setPerson2LastName(e.target.value)}
-            placeholder="Spouse Last Name"
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="person2-birthdate">
-            Spouse Date of Birth
-          </label>
-          <input
-            id="person2-birthdate"
-            type="date"
-            value={person2Birthdate}
-            onChange={(e) => setPerson2Birthdate(e.target.value)}
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="person2-cell-phone">
-            Spouse Cell Phone
-          </label>
-          <input
-            id="person2-cell-phone"
-            type="tel"
-            value={person2CellPhone}
-            onChange={(e) => setPerson2CellPhone(formatPhoneNumber(e.target.value))}
-            placeholder="(XXX) XXX-XXXX"
-          />
-        </div>
+        <div className="people-grid">
+          <div className="person-column">
+            <h3 style={{ marginBottom: '12px' }}>Person 1</h3>
+            <div className="form-group-horizontal">
+              <label htmlFor="person1-first-name">First Name</label>
+              <input
+                id="person1-first-name"
+                type="text"
+                value={person1FirstName}
+                onChange={(e) => setPerson1FirstName(e.target.value)}
+                placeholder="First Name"
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="person1-last-name">Last Name</label>
+              <input
+                id="person1-last-name"
+                type="text"
+                value={person1LastName}
+                onChange={(e) => setPerson1LastName(e.target.value)}
+                placeholder="Last Name"
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="person1-birthdate">Date of Birth</label>
+              <input
+                id="person1-birthdate"
+                type="date"
+                value={person1Birthdate}
+                onChange={(e) => setPerson1Birthdate(e.target.value)}
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="person1-cell-phone">Cell Phone</label>
+              <input
+                id="person1-cell-phone"
+                type="tel"
+                value={person1CellPhone}
+                onChange={(e) => setPerson1CellPhone(formatPhoneNumber(e.target.value))}
+                placeholder="(XXX) XXX-XXXX"
+              />
+            </div>
 
-        {/* Address and Tax Filing Status Section */}
-        <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
-          <h3 style={{ marginBottom: '20px', color: '#333' }}>Address & Tax Information</h3>
-          <div className="form-group-horizontal">
-            <label htmlFor="address">
-              Address
-            </label>
-            <input
-              id="address"
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Address"
-            />
+            <div style={{ width: '100%', marginTop: '18px', paddingTop: '10px', borderTop: '1px dashed var(--color-border)' }}>
+              <h4 style={{ marginBottom: '10px' }}>Social Security</h4>
+              <div style={{ padding: '10px 15px', backgroundColor: '#e7f3ff', borderLeft: '4px solid #0066cc', borderRadius: '4px', fontSize: '0.9rem', color: '#004085', marginBottom: '12px' }}>
+                <strong>Note:</strong> The calculated monthly benefit is an approximation. For the most accurate estimate, refer to ssa.gov.
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person1-ss-fra">Full Retirement Age (FRA)</label>
+                <input
+                  id="person1-ss-fra"
+                  type="text"
+                  value={formatFRADisplay(person1Birthdate)}
+                  disabled
+                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  placeholder="Calculated from date of birth"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person1-ss-pia">Full Retirement Monthly Benefit (PIA)</label>
+                <input
+                  id="person1-ss-pia"
+                  type="number"
+                  step="0.01"
+                  value={person1SSPIA}
+                  onChange={(e) => setPerson1SSPIA(e.target.value)}
+                  placeholder="Available at ssa.gov"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person1-ss-retirement-date">Social Security Retirement Date</label>
+                <input
+                  id="person1-ss-retirement-date"
+                  type="date"
+                  value={person1SSRetirementDate}
+                  onChange={(e) => setPerson1SSRetirementDate(e.target.value)}
+                  min={getMinRetirementDate(person1Birthdate) || undefined}
+                  placeholder="After 62nd birthday"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person1-ss-cola">Social Security COLA (avg) %</label>
+                <input
+                  id="person1-ss-cola"
+                  type="number"
+                  step="0.1"
+                  value={person1SSCOLA}
+                  onChange={(e) => setPerson1SSCOLA(e.target.value)}
+                  placeholder="Average COLA percentage"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person1-ss-monthly-benefit">Monthly Benefit (calculated)</label>
+                <input
+                  id="person1-ss-monthly-benefit"
+                  type="text"
+                  value={person1SSPIA && person1SSRetirementDate ?
+                    `$${calculateMonthlyBenefit(parseFloat(person1SSPIA), person1SSRetirementDate, calculateFRADate(person1Birthdate), person1Birthdate).toFixed(2)}` :
+                    ''}
+                  disabled
+                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  placeholder="Calculated based on PIA and retirement date"
+                />
+              </div>
+            </div>
           </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="city">
-              City
-            </label>
-            <input
-              id="city"
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="City"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="state">
-              State
-            </label>
-            <select
-              id="state"
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-            >
-              <option value="">Select State</option>
-              {states.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="zip-code">
-              Zip Code
-            </label>
-            <input
-              id="zip-code"
-              type="text"
-              value={zipCode}
-              onChange={(e) => setZipCode(e.target.value)}
-              placeholder="Zip Code"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="tax-filing-status">
-              Tax Filing Status
-            </label>
-            <select
-              id="tax-filing-status"
-              value={taxFilingStatus}
-              onChange={(e) => setTaxFilingStatus(e.target.value)}
-            >
-              <option value="Single">Single</option>
-              <option value="Married Filing Jointly">Married Filing Jointly</option>
-              <option value="Married Filing Separately">Married Filing Separately</option>
-              <option value="Head of Household">Head of Household</option>
-              <option value="Qualifying Surviving Spouse">Qualifying Surviving Spouse</option>
-            </select>
-          </div>
-        </div>
 
-        {/* Social Security Section for Person 1 */}
-        <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
-          <h3 style={{ marginBottom: '20px', color: '#333' }}>Person 1 - Social Security</h3>
-          <div style={{ 
-            padding: '10px 15px', 
-            backgroundColor: '#fff3cd', 
-            borderLeft: '4px solid #ffc107',
-            borderRadius: '4px',
-            fontSize: '0.9rem',
-            color: '#856404',
-            marginBottom: '15px'
-          }}>
-            <strong>Note:</strong> The calculated monthly benefit is an approximation. For the most accurate estimate, refer to your official Social Security statement at ssa.gov.
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person1-ss-fra">
-              Full Retirement Age (FRA)
-            </label>
-            <input
-              id="person1-ss-fra"
-              type="text"
-              value={formatFRADisplay(person1Birthdate)}
-              disabled
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-              placeholder="Calculated from date of birth"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person1-ss-pia">
-              Full Retirement Monthly Benefit (PIA)
-            </label>
-            <input
-              id="person1-ss-pia"
-              type="number"
-              step="0.01"
-              value={person1SSPIA}
-              onChange={(e) => setPerson1SSPIA(e.target.value)}
-              placeholder="Available at ssa.gov"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person1-ss-retirement-date">
-              Social Security Retirement Date
-            </label>
-            <input
-              id="person1-ss-retirement-date"
-              type="date"
-              value={person1SSRetirementDate}
-              onChange={(e) => setPerson1SSRetirementDate(e.target.value)}
-              min={getMinRetirementDate(person1Birthdate) || undefined}
-              placeholder="After 62nd birthday"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person1-ss-cola">
-              Social Security COLA (avg) %
-            </label>
-            <input
-              id="person1-ss-cola"
-              type="number"
-              step="0.1"
-              value={person1SSCOLA}
-              onChange={(e) => setPerson1SSCOLA(e.target.value)}
-              placeholder="Average COLA percentage"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person1-ss-monthly-benefit">
-              Monthly Benefit (calculated)
-            </label>
-            <input
-              id="person1-ss-monthly-benefit"
-              type="text"
-              value={person1SSPIA && person1SSRetirementDate ? 
-                `$${calculateMonthlyBenefit(parseFloat(person1SSPIA), person1SSRetirementDate, calculateFRADate(person1Birthdate), person1Birthdate).toFixed(2)}` : 
-                ''}
-              disabled
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-              placeholder="Calculated based on PIA and retirement date"
-            />
+          <div className="person-column">
+            <h3 style={{ marginBottom: '12px' }}>Spouse</h3>
+            <div className="form-group-horizontal">
+              <label htmlFor="person2-first-name">First Name</label>
+              <input
+                id="person2-first-name"
+                type="text"
+                value={person2FirstName}
+                onChange={(e) => setPerson2FirstName(e.target.value)}
+                placeholder="Spouse First Name"
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="person2-last-name">Last Name</label>
+              <input
+                id="person2-last-name"
+                type="text"
+                value={person2LastName}
+                onChange={(e) => setPerson2LastName(e.target.value)}
+                placeholder="Spouse Last Name"
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="person2-birthdate">Date of Birth</label>
+              <input
+                id="person2-birthdate"
+                type="date"
+                value={person2Birthdate}
+                onChange={(e) => setPerson2Birthdate(e.target.value)}
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="person2-cell-phone">Cell Phone</label>
+              <input
+                id="person2-cell-phone"
+                type="tel"
+                value={person2CellPhone}
+                onChange={(e) => setPerson2CellPhone(formatPhoneNumber(e.target.value))}
+                placeholder="(XXX) XXX-XXXX"
+              />
+            </div>
+
+            <div style={{ width: '100%', marginTop: '18px', paddingTop: '10px', borderTop: '1px dashed var(--color-border)' }}>
+              <h4 style={{ marginBottom: '10px' }}>Social Security</h4>
+              <div style={{ padding: '10px 15px', backgroundColor: '#e7f3ff', borderLeft: '4px solid #0066cc', borderRadius: '4px', fontSize: '0.9rem', color: '#004085', marginBottom: '12px' }}>
+                <strong>Note:</strong> Spousal benefits are the higher of their own benefit or 1/2 of spouse's. Assumes Person 1 is the higher earner and both are alive.
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person2-ss-fra">Full Retirement Age (FRA)</label>
+                <input
+                  id="person2-ss-fra"
+                  type="text"
+                  value={formatFRADisplay(person2Birthdate)}
+                  disabled
+                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  placeholder="Calculated from date of birth"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person2-ss-pia">Full Retirement Monthly Benefit (PIA)</label>
+                <input
+                  id="person2-ss-pia"
+                  type="number"
+                  step="0.01"
+                  value={person2SSPIA}
+                  onChange={(e) => setPerson2SSPIA(e.target.value)}
+                  placeholder="Available at ssa.gov"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person2-ss-retirement-date">Social Security Retirement Date</label>
+                <input
+                  id="person2-ss-retirement-date"
+                  type="date"
+                  value={person2SSRetirementDate}
+                  onChange={(e) => setPerson2SSRetirementDate(e.target.value)}
+                  min={getMinRetirementDate(person2Birthdate) || undefined}
+                  placeholder="After 62nd birthday"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person2-ss-cola">Social Security COLA (avg) %</label>
+                <input
+                  id="person2-ss-cola"
+                  type="number"
+                  step="0.1"
+                  value={person2SSCOLA}
+                  onChange={(e) => setPerson2SSCOLA(e.target.value)}
+                  placeholder="Average COLA percentage"
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label htmlFor="person2-ss-monthly-benefit">Monthly Benefit (calculated)</label>
+                <input
+                  id="person2-ss-monthly-benefit"
+                  type="text"
+                  value={person2SSPIA && person2SSRetirementDate ?
+                    `$${calculateMonthlyBenefit(parseFloat(person2SSPIA), person2SSRetirementDate, calculateFRADate(person2Birthdate), person2Birthdate).toFixed(2)}` :
+                    ''}
+                  disabled
+                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  placeholder="Calculated based on PIA and retirement date (higher of own or spousal benefit)"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Social Security Section for Person 2 */}
-        <div style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
-          <h3 style={{ marginBottom: '20px', color: '#333' }}>Person 2 (Spouse) - Social Security</h3>
-          <div style={{ 
-            padding: '10px 15px', 
-            backgroundColor: '#fff3cd', 
-            borderLeft: '4px solid #ffc107',
-            borderRadius: '4px',
-            fontSize: '0.9rem',
-            color: '#856404',
-            marginBottom: '15px'
-          }}>
-            <strong>Note:</strong> The calculated monthly benefit is an approximation. For the most accurate estimate, refer to your official Social Security statement at ssa.gov.
+        <div className="post-grid" style={{ width: '100%', marginTop: '30px', marginBottom: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
+          <div>
+            <h3 style={{ marginBottom: '20px', color: '#333' }}>Address & Tax Information</h3>
+            <div className="form-group-horizontal">
+              <label htmlFor="address">Address</label>
+              <input
+                id="address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Address"
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="city">City</label>
+              <input
+                id="city"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="state">State</label>
+              <select
+                id="state"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+              >
+                <option value="">Select State</option>
+                {states.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="zip-code">Zip Code</label>
+              <input
+                id="zip-code"
+                type="text"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                placeholder="Zip Code"
+              />
+            </div>
+            <div className="form-group-horizontal">
+              <label htmlFor="tax-filing-status">Tax Filing Status</label>
+              <select
+                id="tax-filing-status"
+                value={taxFilingStatus}
+                onChange={(e) => setTaxFilingStatus(e.target.value)}
+              >
+                <option value="Single">Single</option>
+                <option value="Married Filing Jointly">Married Filing Jointly</option>
+                <option value="Married Filing Separately">Married Filing Separately</option>
+                <option value="Head of Household">Head of Household</option>
+                <option value="Qualifying Surviving Spouse">Qualifying Surviving Spouse</option>
+              </select>
+            </div>
           </div>
-          <div style={{ 
-            padding: '10px 15px', 
-            backgroundColor: '#e7f3ff', 
-            borderLeft: '4px solid #0066cc',
-            borderRadius: '4px',
-            fontSize: '0.9rem',
-            color: '#004085',
-            marginBottom: '15px'
-          }}>
-            <strong>Note:</strong> Spousal benefit calculations assume Person 1 is the higher earner and both spouses are alive. 
-            Person 2's benefit is the higher of their own benefit or the spousal benefit (32.5-50% of Person 1's PIA, based on when Person 2 claims relative to Person 2's FRA).
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person2-ss-fra">
-              Full Retirement Age (FRA)
-            </label>
-            <input
-              id="person2-ss-fra"
-              type="text"
-              value={formatFRADisplay(person2Birthdate)}
-              disabled
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-              placeholder="Calculated from date of birth"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person2-ss-pia">
-              Full Retirement Monthly Benefit (PIA)
-            </label>
-            <input
-              id="person2-ss-pia"
-              type="number"
-              step="0.01"
-              value={person2SSPIA}
-              onChange={(e) => setPerson2SSPIA(e.target.value)}
-              placeholder="Available at ssa.gov"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person2-ss-retirement-date">
-              Social Security Retirement Date
-            </label>
-            <input
-              id="person2-ss-retirement-date"
-              type="date"
-              value={person2SSRetirementDate}
-              onChange={(e) => setPerson2SSRetirementDate(e.target.value)}
-              min={getMinRetirementDate(person2Birthdate) || undefined}
-              placeholder="After 62nd birthday"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person2-ss-cola">
-              Social Security COLA (avg) %
-            </label>
-            <input
-              id="person2-ss-cola"
-              type="number"
-              step="0.1"
-              value={person2SSCOLA}
-              onChange={(e) => setPerson2SSCOLA(e.target.value)}
-              placeholder="Average COLA percentage"
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="person2-ss-monthly-benefit">
-              Monthly Benefit (calculated)
-            </label>
-            <input
-              id="person2-ss-monthly-benefit"
-              type="text"
-              value={person2SSPIA && person2SSRetirementDate ? 
-                `$${calculateMonthlyBenefit(parseFloat(person2SSPIA), person2SSRetirementDate, calculateFRADate(person2Birthdate), person2Birthdate).toFixed(2)}` : 
-                ''}
-              disabled
-              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-              placeholder="Calculated based on PIA and retirement date (higher of own or spousal benefit)"
-            />
-          </div>
-        </div>
 
-        <div className="form-group-horizontal">
-            <button 
-              type="button" 
-              className="change-password-btn" 
-              onClick={() => setIsChangePasswordModalOpen(true)}
-              style={{ 
-                backgroundColor: '#007bff', 
-                color: 'white', 
-                border: 'none', 
-                padding: '8px 16px', 
-                borderRadius: '4px', 
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
-            >
-              Change Password
-            </button>
-        </div>
-
-        <div className="settings-section" style={{ marginTop: '30px' }}>
-          <h3>Two-Factor Authentication</h3>
-          <div className="form-group-horizontal">
-            <label htmlFor="mfa-enabled">Enable 2FA</label>
-            <input
-              id="mfa-enabled"
-              type="checkbox"
-              checked={mfaEnabled}
-              onChange={(e) => setMfaEnabled(e.target.checked)}
-            />
+          <div>
+            <div className="settings-section mfa-section" style={{ marginTop: 0 }}>
+              <h3>Multi-Factor Authentication</h3>
+              <p>Secure your account with a verification code.</p>
+              <div className="form-group-horizontal checkbox-group">
+                <label htmlFor="mfa-enabled">Enable MFA</label>
+                <label className="switch" aria-hidden>
+                  <input
+                    id="mfa-enabled"
+                    type="checkbox"
+                    checked={mfaEnabled}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setMfaEnabled(checked);
+                      if (checked && !mfaEmailEnabled && !mfaSmsEnabled) {
+                        setMfaEmailEnabled(true);
+                      }
+                      if (!checked) {
+                        setMfaEmailEnabled(false);
+                        setMfaSmsEnabled(false);
+                      }
+                    }}
+                  />
+                  <span className="slider" />
+                </label>
+              </div>
+              <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
+                <label htmlFor="mfa-email">Email Verification</label>
+                <input
+                  id="mfa-email"
+                  type="checkbox"
+                  checked={mfaEmailEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setMfaEmailEnabled(checked);
+                    if (checked) setMfaSmsEnabled(false);
+                  }}
+                  disabled={!mfaEnabled}
+                />
+              </div>
+              <div className="form-group-horizontal">
+                <label />
+                <input
+                  type="text"
+                  readOnly
+                  value={(currentUser && (currentUser.username || currentUser.email)) || ''}
+                  style={{ width: '280px', textAlign: 'right', marginLeft: '10px', padding: '10px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#f5f5f5' }}
+                />
+              </div>
+              <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
+                <label htmlFor="mfa-sms">SMS/Text Message Verification (Coming Soon)</label>
+                <input
+                  id="mfa-sms"
+                  type="checkbox"
+                  checked={false}
+                  onChange={() => {}}
+                  disabled={true}
+                />
+              </div>
+              <div className="form-group-horizontal" style={{ opacity: (mfaEnabled && mfaSmsEnabled) ? 1 : 0.6 }}>
+                <label htmlFor="mfa-phone">SMS Phone Number</label>
+                <input
+                  id="mfa-phone"
+                  type="text"
+                  value={formatPhoneNumber(mfaPhoneNumber)}
+                  onChange={(e) => setMfaPhoneNumber(formatPhoneNumber(e.target.value))}
+                  placeholder="(555) 123-4567"
+                  disabled={!mfaEnabled || !mfaSmsEnabled}
+                />
+              </div>
+              {mfaEnabled && mfaSmsEnabled && (
+                <div className="form-group-horizontal" style={{ gap: '8px', alignItems: 'center' }}>
+                  <label />
+                  <div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setVerifyError('');
+                        setVerifyInfo('');
+                        setVerifyLoading(true);
+                        try {
+                          if (!mfaPhoneNumber) {
+                            throw new Error('Please enter a phone number.');
+                          }
+                          const resp = await AuthService.requestPhoneVerification(mfaPhoneNumber);
+                          setVerifyInfo(resp.message || 'Verification code sent.');
+                        } catch (err) {
+                          setVerifyError(err.response?.data?.detail || err.message || 'Failed to send verification.');
+                        } finally {
+                          setVerifyLoading(false);
+                        }
+                      }}
+                      disabled={!mfaEnabled || !mfaSmsEnabled || verifyLoading}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
+                    >
+                      {verifyLoading ? 'Sending...' : 'Verify'}
+                    </button>
+                    {verifyInfo && <div style={{ color: '#155724', marginTop: '6px' }}>{verifyInfo}</div>}
+                    {verifyError && <div style={{ color: '#721c24', marginTop: '6px' }}>{verifyError}</div>}
+                  </div>
+                </div>
+              )}
+              <small style={{ color: '#666' }}>
+                Enable 2FA and choose at least one method. SMS requires a phone number.
+              </small>
+            </div>
           </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="mfa-email">Email OTP</label>
-            <input
-              id="mfa-email"
-              type="checkbox"
-              checked={mfaEmailEnabled}
-              onChange={(e) => setMfaEmailEnabled(e.target.checked)}
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="mfa-sms">SMS OTP (Twilio)</label>
-            <input
-              id="mfa-sms"
-              type="checkbox"
-              checked={mfaSmsEnabled}
-              onChange={(e) => setMfaSmsEnabled(e.target.checked)}
-            />
-          </div>
-          <div className="form-group-horizontal">
-            <label htmlFor="mfa-phone">SMS Phone Number</label>
-            <input
-              id="mfa-phone"
-              type="text"
-              value={formatPhoneNumber(mfaPhoneNumber)}
-              onChange={(e) => setMfaPhoneNumber(formatPhoneNumber(e.target.value))}
-              placeholder="(555) 123-4567"
-            />
-          </div>
-          <small style={{ color: '#666' }}>
-            Enable 2FA and choose at least one method. SMS requires a phone number.
-          </small>
         </div>
       </div>
+
+      <div className="form-group-horizontal" style={{ marginTop: '12px' }}>
+        <button 
+          type="button" 
+          className="change-password-btn" 
+          onClick={() => setIsChangePasswordModalOpen(true)}
+          style={{ 
+            backgroundColor: '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            padding: '10px 16px', 
+            borderRadius: '6px', 
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
+        >
+          Change Password
+        </button>
+      </div>
+
       <div className="settings-page-actions">
         <button onClick={handleSave} className="save-button" disabled={loading}>
           {loading ? 'Saving...' : 'Save'}

@@ -165,6 +165,24 @@ const AuthService = {
         return response.data;
     },
 
+    /**
+     * Requests a verification SMS to the provided phone number for settings verification.
+     */
+    async requestPhoneVerification(phoneNumber) {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.post(API_URL + "mfa/request-phone-verification", {
+            phone_number: phoneNumber,
+        }, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    },
+
     async verifyMfaOtp(mfaToken, method, code, rememberDevice = false) {
         const response = await axios.post(API_URL + "mfa/verify-otp", {
             mfa_token: mfaToken,
