@@ -1,0 +1,131 @@
+steps:
+  - name: 'bash'
+    id: 'Generate Timestamp'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        export _FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        echo "export _FIXED_TIMESTAMP=${_FIXED_TIMESTAMP}" > /workspace/env_vars.sh
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Backend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        docker build --no-cache --pull -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Backend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Backend Service'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        gcloud run deploy finmodel-backend-service \
+          --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          --region us-east1 \
+          --platform managed \
+          --allow-unauthenticated \
+          --project financial-model-cloud \
+          --service-account app-docs-sa@financial-model-cloud.iam.gserviceaccount.com \
+          --set-env-vars='GCS_BUCKET_NAME=finmodel-documents,GCS_PROJECT_ID=financial-model-cloud,PUBLIC_BACKEND_URL=https://api.ordaxium.com,FRONTEND_URL=https://www.ordaxium.com,CORS_ORIGINS_REGEX=^(http://localhost:3000|https://www\.ordaxium\.com|https://finmodel-frontend-service-.*\.run\.app)$,PLAID_ENV=sandbox,MFA_OTP_TTL_MINUTES=10,MFA_OTP_RATE_LIMIT_PER_HOUR=3,MFA_OTP_MAX_ATTEMPTS=10' \
+          --set-cloudsql-instances=financial-model-cloud:us-east1:finmodel-postgres-instance \
+          --update-secrets=DB_PASSWORD=_DB_PASSWORD:2,SECRET_KEY=_SECRET_KEY:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,PLAID_SECRET=_PLAID_SECRET:1,PLAID_ENCRYPTION_KEY=_PLAID_ENCRYPTION_KEY:1,PLAID_CLIENT_ID=_PLAID_CLIENT_ID:1,OPENAI_API_KEY=_OPENAI_API_KEY:1,OPENAI_API_KEY_PRO=_OPENAI_API_KEY_PRO:1,TWILIO_ACCOUNT_SID=_TWILIO_ACCOUNT_SID:1,TWILIO_AUTH_TOKEN=_TWILIO_AUTH_TOKEN:1,TWILIO_FROM_NUMBER=_TWILIO_FROM_NUMBER:1 \
+          --cpu=1 \
+          --memory=512Mi \
+          --concurrency=80 \
+          --timeout=30m \
+          --no-traffic
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Update Backend Traffic'
+    args:
+      - 'run'
+      - 'services'
+      - 'update-traffic'
+      - 'finmodel-backend-service'
+      - '--region'
+      - 'us-east1'
+      - '--to-latest'
+      - '--project'
+      - 'financial-model-cloud'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Frontend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+            docker build --no-cache -t us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=https://api.ordaxium.com .
+    dir: 'ui'
+    waitFor: ['Update Backend Traffic']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Frontend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        docker push us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
+    waitFor: ['Build Frontend Image']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy Frontend Service'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        gcloud run deploy finmodel-frontend-service --image us-east1-docker.pkg.dev/financial-model-cloud/finmodel-repo/finmodel-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --region us-east1 --platform managed --allow-unauthenticated --project financial-model-cloud
+    waitFor: ['Push Frontend Image']
+
+  - name: 'python:3.11'
+    id: 'Run Alembic Migrations'
+    dir: 'api'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        python3 -m pip install -r requirements.txt
+        curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
+        chmod +x cloud-sql-proxy
+        mkdir -p /cloudsql
+        ./cloud-sql-proxy financial-model-cloud:us-east1:finmodel-postgres-instance --unix-socket /cloudsql &
+        
+        echo "Waiting for Cloud SQL Proxy to start..." && for i in $(seq 1 10); do if [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "Cloud SQL Proxy is ready!"; break; fi; echo "Still waiting..." && sleep 10; done && if ! [ -S /cloudsql/financial-model-cloud:us-east1:finmodel-postgres-instance/.s.PGSQL.5432 ]; then echo "ERROR: Cloud SQL Proxy did not start in time." && exit 1; fi
+        set -ex
+        PYTHONPATH=/workspace alembic -c ./alembic.ini current
+        PYTHONPATH=/workspace alembic -c ./alembic.ini upgrade head
+    env:
+      - 'DB_USER=dbadmin'
+      - 'DB_NAME=finmodel1'
+      - 'CLOUD_SQL_CONNECTION_NAME=financial-model-cloud:us-east1:finmodel-postgres-instance'
+    secretEnv:
+      - '_DB_PASSWORD'
+    timeout: 1800s
+
+options:
+  default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
+
+# Adding a cachebuster to ensure fresh builds: Dec 29 2025 (Attempt 2)
+availableSecrets:
+  secretManager:
+    - versionName: 'projects/financial-model-cloud/secrets/_DB_PASSWORD/versions/2'
+      env: '_DB_PASSWORD'
+    # Note: Plaid secrets (_PLAID_SECRET, _PLAID_ENCRYPTION_KEY, _PLAID_CLIENT_ID) are not listed here
+    # because they are only used in Cloud Run deployment via --update-secrets, not in build steps.
+    # Cloud Run will access them directly from Secrets Manager at runtime.
