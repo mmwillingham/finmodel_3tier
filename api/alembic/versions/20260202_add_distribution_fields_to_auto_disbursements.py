@@ -1,6 +1,6 @@
 """add distribution_type and taxable_income_cashflow_item_id to auto_disbursements
 
-Revision ID: 20260202_add_distribution_fields_to_auto_disbursements
+Revision ID: 20260202_dist_fields
 Revises: a7fb52034cca
 Create Date: 2026-02-02 00:00:00.000000
 """
@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = "20260202_add_distribution_fields_to_auto_disbursements"
+revision = "20260202_dist_fields"
 down_revision = "a7fb52034cca"
 branch_labels = None
 depends_on = None

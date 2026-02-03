@@ -1,15 +1,15 @@
 """add rmd_overrides to auto_disbursements
 
-Revision ID: add_rmd_overrides_auto_disbursements_20260202
-Revises: add_use_rmd_auto_disbursements_20260202
+Revision ID: 20260202_rmd_overrides
+Revises: 20260202_use_rmd
 Create Date: 2026-02-02 00:10:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'add_rmd_overrides_auto_disbursements_20260202'
-down_revision = 'add_use_rmd_auto_disbursements_20260202'
+revision = '20260202_rmd_overrides'
+down_revision = '20260202_use_rmd'
 branch_labels = None
 depends_on = None
 
