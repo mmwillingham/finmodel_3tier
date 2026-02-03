@@ -450,7 +450,6 @@ const AutoDisbursementSettingsPage = () => {
                   onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, name: e.target.value })}
                   className="input-modern"
                 />
-              </div>
               <div className="form-field">
                 <label htmlFor="distribution_type">Distribution Type</label>
                 <select
@@ -485,16 +484,6 @@ const AutoDisbursementSettingsPage = () => {
                   <option value="dollar_amount">Dollar Amount</option>
                 </select>
               </div>
-                {newAutoDisbursement.distribution_type === 'taxable_ira' && (
-                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
-                    This is a taxable transfer from a non-Roth retirement account to a non-retirement account. A corresponding income item will be created. Required: start date and owner birth date in profile.
-                  </small>
-                )}
-                {newAutoDisbursement.distribution_type === 'non_taxable' && (
-                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
-                    Non-taxable transfers should come from non-retirement accounts or Roth accounts. The source will be validated when saving.
-                  </small>
-                )}
               </div>
               <div className="form-field">
                 <label htmlFor="source_asset_id">Source Asset *</label>
