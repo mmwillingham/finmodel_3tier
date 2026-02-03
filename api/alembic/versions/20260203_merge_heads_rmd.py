@@ -1,9 +1,9 @@
-\"\"\"merge multiple heads after RMD patches
+"""merge multiple heads after RMD patches
 
 Revision ID: 20260203_merge_heads_rmd
 Revises: ce90ec2a0c6f, allow_null_brokerage_on_accounts, 7f6d1a9c2f38, add_rmd_overrides_auto_disbursements_20260202
 Create Date: 2026-02-03 13:30:00.000000
-\"\"\"
+"""
 from alembic import op
 import sqlalchemy as sa
 
