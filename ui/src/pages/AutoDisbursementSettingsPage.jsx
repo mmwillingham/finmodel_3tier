@@ -56,19 +56,16 @@ const AutoDisbursementSettingsPage = () => {
     name: '',
     source_asset_id: null,
     target_asset_id: null,
+    distribution_type: 'non_taxable',
     transfer_type: 'percentage',
     transfer_value: '',
     start_date: '',
     end_date: '',
+    use_rmd: false,
+    rmd_overrides: {},
   });
   // RMD schedule and per-year overrides
   const [rmdSchedule, setRmdSchedule] = useState(null);
-  // Ensure newAutoDisbursement includes RMD fields
-  useEffect(() => {
-    if (!newAutoDisbursement.hasOwnProperty('use_rmd')) {
-      setNewAutoDisbursement((s) => ({ ...s, use_rmd: false, rmd_overrides: {} }));
-    }
-  }, []); // run once
   const [userSettings, setUserSettings] = useState({});
   const [editingId, setEditingId] = useState(null);
   const isViewingOther = viewingUserId && viewingUserId !== currentUser?.id;
@@ -222,12 +219,15 @@ const AutoDisbursementSettingsPage = () => {
       setMessage('Auto-disbursement created successfully!');
       setNewAutoDisbursement({
         name: '',
-        source_asset_id: null,
-        target_asset_id: null,
+        source_asset_id: '',
+        target_asset_id: '',
+        distribution_type: 'non_taxable',
         transfer_type: 'percentage',
         transfer_value: '',
         start_date: '',
         end_date: '',
+        use_rmd: false,
+        rmd_overrides: {},
       });
       loadData();
       setTimeout(() => {
@@ -468,7 +468,7 @@ const AutoDisbursementSettingsPage = () => {
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
             Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
           </h3>
-          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px', marginBottom: '18px' }}>
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px', alignItems: 'start', marginBottom: '18px' }}>
               {/* Row 1: Name | Source Asset | Target Asset */}
               <div className="form-field">
                 <label htmlFor="name">Name *</label>
@@ -486,7 +486,7 @@ const AutoDisbursementSettingsPage = () => {
                 <select
                   id="source_asset_id"
                   value={newAutoDisbursement.source_asset_id || ''}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, source_asset_id: e.target.value ? parseInt(e.target.value) : null })}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, source_asset_id: e.target.value || '' })}
                   className="input-modern"
                 >
                   <option value="">Select Source Asset</option>
@@ -501,7 +501,7 @@ const AutoDisbursementSettingsPage = () => {
                         return true;
                       })
                       .map((asset) => (
-                        <option key={asset.id} value={asset.id}>
+                        <option key={asset.id} value={String(asset.id)}>
                           {asset.name} ({asset.category}{asset.is_roth ? ' • Roth' : ''})
                         </option>
                       ))
@@ -515,7 +515,7 @@ const AutoDisbursementSettingsPage = () => {
                 <select
                   id="target_asset_id"
                   value={newAutoDisbursement.target_asset_id || ''}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, target_asset_id: e.target.value ? parseInt(e.target.value) : null })}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, target_asset_id: e.target.value || '' })}
                   className="input-modern"
                 >
                   <option value="">Select Target Asset</option>
@@ -530,7 +530,7 @@ const AutoDisbursementSettingsPage = () => {
                         return true;
                       })
                       .map((asset) => (
-                        <option key={asset.id} value={asset.id}>
+                        <option key={asset.id} value={String(asset.id)}>
                           {asset.name} ({asset.category}{asset.is_roth ? ' • Roth' : ''})
                         </option>
                       ))
@@ -704,7 +704,7 @@ const AutoDisbursementSettingsPage = () => {
                 <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
               </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '12px', marginTop: '12px', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '12px', marginTop: '18px', marginBottom: '30px' }}>
             {!editingId ? (
               <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern">
                 Add Auto-Disbursement
@@ -721,8 +721,9 @@ const AutoDisbursementSettingsPage = () => {
                     setEditingId(null);
                     setNewAutoDisbursement({
                       name: '',
-                      source_asset_id: null,
-                      target_asset_id: null,
+                      source_asset_id: '',
+                      target_asset_id: '',
+                      distribution_type: 'non_taxable',
                       transfer_type: 'percentage',
                       transfer_value: '',
                       start_date: '',
@@ -876,7 +877,14 @@ const AutoDisbursementSettingsPage = () => {
                       <td>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <button onClick={() => {
-                              setNewAutoDisbursement({ ...ad, use_rmd: !!ad.use_rmd, rmd_overrides: ad.rmd_overrides || {} });
+                              setNewAutoDisbursement({
+                                ...ad,
+                                source_asset_id: ad.source_asset_id ? String(ad.source_asset_id) : '',
+                                target_asset_id: ad.target_asset_id ? String(ad.target_asset_id) : '',
+                                distribution_type: ad.distribution_type || 'non_taxable',
+                                use_rmd: !!ad.use_rmd,
+                                rmd_overrides: ad.rmd_overrides || {},
+                              });
                               setEditingId(ad.id);
                               setActiveTab('disbursements');
                               window.scrollTo({ top: 0, behavior: 'smooth' });
