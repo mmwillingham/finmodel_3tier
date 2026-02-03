@@ -146,19 +146,20 @@
 
 .settings-page-container:has(.accounts-table) .form-row,
 .settings-page-container.auto-disbursements-page .form-row {
-    gap: 10px; /* Reduced gap */
-    margin-bottom: 10px; /* Reduced margin */
+    gap: 22px; /* Increased gap for more breathing room between fields */
+    margin-bottom: 18px; /* Increased vertical spacing between rows */
 }
 
 .settings-page-container:has(.accounts-table) .form-field,
 .settings-page-container.auto-disbursements-page .form-field {
-    gap: 4px; /* Reduced gap between label and input */
+    gap: 10px; /* Larger gap between label and input for readability */
+    margin-bottom: 8px; /* Added bottom margin to separate stacked fields */
 }
 
 .settings-page-container:has(.accounts-table) .form-field label,
 .settings-page-container.auto-disbursements-page .form-field label {
-    margin-bottom: 4px; /* Reduced margin */
-    font-size: 0.9em; /* Slightly smaller labels */
+    margin-bottom: 8px; /* Increased margin for labels */
+    font-size: 0.95em; /* Slightly larger labels for clarity */
 }
 
 /* Accounts table improvements */

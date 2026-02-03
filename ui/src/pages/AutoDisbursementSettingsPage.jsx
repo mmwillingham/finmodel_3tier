@@ -559,14 +559,16 @@ const AutoDisbursementSettingsPage = () => {
                 {recommendedRmd && (
                   <div style={{ marginTop: '6px' }}>
                     <small style={{ color: '#007bff' }}>
-                      Recommended RMD for year {recommendedRmd.year}: ${recommendedRmd.rmd_amount.toFixed(2)} (divisor {recommendedRmd.divisor}, table {recommendedRmd.table_used})
+                      Recommended RMD for year {recommendedRmd.year}: ${recommendedRmd.rmd_amount != null ? Number(recommendedRmd.rmd_amount).toFixed(2) : '—'} (divisor {recommendedRmd.divisor || '—'}, table {recommendedRmd.table_used || '—'})
                     </small>
                     <div style={{ marginTop: '6px' }}>
                       <button
                         type="button"
                         className="btn-primary-modern"
                         onClick={() => {
-                          setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: 'dollar_amount', transfer_value: recommendedRmd.rmd_amount.toFixed(2) });
+                          if (recommendedRmd.rmd_amount != null) {
+                            setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: 'dollar_amount', transfer_value: Number(recommendedRmd.rmd_amount).toFixed(2) });
+                          }
                         }}
                         style={{ padding: '6px 10px' }}
                       >
