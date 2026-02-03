@@ -319,6 +319,7 @@ class Account(Base):
     account_name = Column(String, nullable=False)  # e.g., "Investment Account", "Checking Account"
     account_number = Column(String, nullable=True)  # Account number (optional)
     is_retirement = Column(Boolean, default=False)  # True for retirement accounts (IRA, 401k, etc.)
+    is_roth = Column(Boolean, default=False)  # True if account/holding is Roth-type
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -340,6 +341,7 @@ class Asset(Base):
     retirement_dividend_rate = Column(Float, nullable=True)  # Dividend rate for retirement accounts (reinvested, not taxable)
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)    # End date as string (YYYY-MM-DD)
+    is_roth = Column(Boolean, default=False)  # True if this asset is a Roth-type holding
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

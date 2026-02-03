@@ -42,6 +42,7 @@ const AutoDisbursementSettingsPage = () => {
     }
   }, []); // run once
   const [userSettings, setUserSettings] = useState({});
+  const [editingId, setEditingId] = useState(null);
   const isViewingOther = viewingUserId && viewingUserId !== currentUser?.id;
   const { refreshSettings } = useSettingsContext();
 
@@ -144,6 +145,17 @@ const AutoDisbursementSettingsPage = () => {
       const targetAccount = accounts.find(acc => acc.id === (targetAsset?.account_id || null));
       if (targetAccount && targetAccount.is_retirement) {
         setMessage('Error: Target must be a non-retirement account for taxable IRA distributions');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+    }
+    // If non-taxable, enforce source is non-retirement or Roth
+    if (newAutoDisbursement.distribution_type === 'non_taxable') {
+      const sourceAsset = assets.find(a => a.id === parseInt(newAutoDisbursement.source_asset_id));
+      const sourceAccount = accounts.find(acc => acc.id === (sourceAsset?.account_id || null));
+      const isRoth = sourceAsset && !!sourceAsset.is_roth;
+      if (sourceAccount && sourceAccount.is_retirement && !isRoth) {
+        setMessage('Error: Source must be a non-retirement account or a Roth account for Non-taxable Distributions');
         setTimeout(() => setMessage(''), 3000);
         return;
       }
@@ -440,6 +452,28 @@ const AutoDisbursementSettingsPage = () => {
                 />
               </div>
               <div className="form-field">
+                <label htmlFor="distribution_type">Distribution Type</label>
+                <select
+                  id="distribution_type"
+                  value={newAutoDisbursement.distribution_type || 'non_taxable'}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, distribution_type: e.target.value || 'non_taxable' })}
+                  className="input-modern"
+                >
+                  <option value="non_taxable">Non-taxable Distribution</option>
+                  <option value="taxable_ira">Taxable IRA Distribution</option>
+                </select>
+                {newAutoDisbursement.distribution_type === 'taxable_ira' && (
+                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                    This is a taxable transfer from a non-Roth retirement account to a non-retirement account. A corresponding income item will be created. Required: start date and owner birth date in profile.
+                  </small>
+                )}
+                {newAutoDisbursement.distribution_type === 'non_taxable' && (
+                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                    Non-taxable transfers should come from non-retirement accounts or Roth accounts. The source will be validated when saving.
+                  </small>
+                )}
+              </div>
+              <div className="form-field">
                 <label htmlFor="transfer_type">Transfer Type *</label>
                 <select
                   id="transfer_type"
@@ -451,21 +485,14 @@ const AutoDisbursementSettingsPage = () => {
                   <option value="dollar_amount">Dollar Amount</option>
                 </select>
               </div>
-              <div className="form-field">
-                <label htmlFor="distribution_type">Distribution Type</label>
-                <select
-                  id="distribution_type"
-                  value={newAutoDisbursement.distribution_type || ''}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, distribution_type: e.target.value || null })}
-                  className="input-modern"
-                >
-                  <option value="">None</option>
-                  <option value="non_taxable">Non-taxable Distribution</option>
-                  <option value="taxable_ira">Taxable IRA Distribution</option>
-                </select>
                 {newAutoDisbursement.distribution_type === 'taxable_ira' && (
                   <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
                     This is a taxable transfer from a non-Roth retirement account to a non-retirement account. A corresponding income item will be created. Required: start date and owner birth date in profile.
+                  </small>
+                )}
+                {newAutoDisbursement.distribution_type === 'non_taxable' && (
+                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                    Non-taxable transfers should come from non-retirement accounts or Roth accounts. The source will be validated when saving.
                   </small>
                 )}
               </div>
@@ -644,10 +671,37 @@ const AutoDisbursementSettingsPage = () => {
                 <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
               </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '12px', marginBottom: '30px' }}>
-            <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern">
-              Add Auto-Disbursement
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '12px', marginTop: '12px', marginBottom: '30px' }}>
+            {!editingId ? (
+              <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern">
+                Add Auto-Disbursement
+              </button>
+            ) : (
+              <>
+                <button onClick={() => {
+                    handleUpdateAutoDisbursement(editingId, newAutoDisbursement);
+                    setEditingId(null);
+                  }} className="btn-primary-modern">
+                  Update Auto-Disbursement
+                </button>
+                <button onClick={() => {
+                    setEditingId(null);
+                    setNewAutoDisbursement({
+                      name: '',
+                      source_asset_id: null,
+                      target_asset_id: null,
+                      transfer_type: 'percentage',
+                      transfer_value: '',
+                      start_date: '',
+                      end_date: '',
+                      use_rmd: false,
+                      rmd_overrides: {},
+                    });
+                  }} className="cancel-button">
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
 
           {/* Divider */}
@@ -788,7 +842,12 @@ const AutoDisbursementSettingsPage = () => {
                       <td style={{ whiteSpace: 'nowrap', fontSize: '0.9em' }}>{ad.end_date ? new Date(ad.end_date).toLocaleDateString() : '-'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <button onClick={() => setEditingAutoDisbursement({ ...ad })} className="edit-icon-btn" title="Edit">
+                          <button onClick={() => {
+                              setNewAutoDisbursement({ ...ad, use_rmd: !!ad.use_rmd, rmd_overrides: ad.rmd_overrides || {} });
+                              setEditingId(ad.id);
+                              setActiveTab('disbursements');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }} className="edit-icon-btn" title="Edit">
                             <span role="img" aria-label="edit">✏️</span>
                           </button>
                           <button onClick={() => handleDeleteAutoDisbursement(ad.id)} className="delete-icon-btn" title="Delete">

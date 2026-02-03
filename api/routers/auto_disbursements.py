@@ -117,6 +117,15 @@ def create_auto_disbursement(
         else:
             db_disbursement.taxable_income_cashflow_item_id = existing.id
             db.commit()
+    # Validate non-taxable distribution source: must be non-retirement or Roth
+    if getattr(disbursement, "distribution_type", None) == "non_taxable":
+        # Attempt to find account retirement flag
+        src_acc = None
+        if source_asset and source_asset.account_id:
+            src_acc = db.query(models.Account).filter(models.Account.id == source_asset.account_id).first()
+        is_roth = bool(getattr(source_asset, 'is_roth', False))
+        if src_acc and src_acc.is_retirement and not is_roth:
+            raise HTTPException(status_code=400, detail="Source must be a non-retirement account or a Roth account for non-taxable distributions")
     return db_disbursement
 
 @router.get("/{disbursement_id}", response_model=schemas.AutoDisbursementOut)
@@ -208,6 +217,17 @@ def update_auto_disbursement(
         else:
             db_disbursement.taxable_income_cashflow_item_id = existing.id
             db.commit()
+    # If distribution_type changed to non_taxable, validate source is non-retirement or Roth
+    if getattr(disbursement_update, "distribution_type", None) == "non_taxable":
+        # Check source account retirement flag if source_asset_id updated or existing db_disbursement has one
+        source_id = disbursement_update.source_asset_id if disbursement_update.source_asset_id is not None else db_disbursement.source_asset_id
+        source_asset = db.query(models.Asset).filter(models.Asset.id == source_id, models.Asset.owner_id == current_user.id).first() if source_id else None
+        src_acc = None
+        if source_asset and source_asset.account_id:
+            src_acc = db.query(models.Account).filter(models.Account.id == source_asset.account_id).first()
+        is_roth = bool(getattr(source_asset, 'is_roth', False))
+        if src_acc and src_acc.is_retirement and not is_roth:
+            raise HTTPException(status_code=400, detail="Source must be a non-retirement account or a Roth account for non-taxable distributions")
     return db_disbursement
 
 @router.delete("/{disbursement_id}", status_code=status.HTTP_204_NO_CONTENT)
