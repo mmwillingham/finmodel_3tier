@@ -471,13 +471,13 @@ const AutoDisbursementSettingsPage = () => {
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px', alignItems: 'start', marginBottom: '18px' }}>
               {/* Row 1: Name | Source Asset | Target Asset */}
               <div className="form-field">
-                <label htmlFor="name">Name *</label>
+                <label htmlFor="name">Name of Distribution *</label>
                 <input
                   id="name"
                   type="text"
                   placeholder="e.g. IRA to Savings"
                   value={newAutoDisbursement.name}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, name: e.target.value })}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, name: e.target.value }))}
                   className="input-modern"
                 />
               </div>
@@ -486,7 +486,7 @@ const AutoDisbursementSettingsPage = () => {
                 <select
                   id="source_asset_id"
                   value={newAutoDisbursement.source_asset_id || ''}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, source_asset_id: e.target.value || '' })}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, source_asset_id: e.target.value || '' }))}
                   className="input-modern"
                 >
                   <option value="">Select Source Asset</option>
@@ -515,7 +515,7 @@ const AutoDisbursementSettingsPage = () => {
                 <select
                   id="target_asset_id"
                   value={newAutoDisbursement.target_asset_id || ''}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, target_asset_id: e.target.value || '' })}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, target_asset_id: e.target.value || '' }))}
                   className="input-modern"
                 >
                   <option value="">Select Target Asset</option>
@@ -545,7 +545,7 @@ const AutoDisbursementSettingsPage = () => {
                 <select
                   id="distribution_type"
                   value={newAutoDisbursement.distribution_type || 'non_taxable'}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, distribution_type: e.target.value || 'non_taxable' })}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, distribution_type: e.target.value || 'non_taxable' }))}
                   className="input-modern"
                 >
                   <option value="non_taxable">Non-taxable Distribution</option>
@@ -560,7 +560,7 @@ const AutoDisbursementSettingsPage = () => {
                       <input
                         type="checkbox"
                         checked={!!newAutoDisbursement.use_rmd}
-                        onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, use_rmd: e.target.checked })}
+                        onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, use_rmd: e.target.checked }))}
                         style={{ marginRight: 8 }}
                       />
                       Use RMD each year
@@ -578,7 +578,7 @@ const AutoDisbursementSettingsPage = () => {
                 <select
                   id="transfer_type"
                   value={newAutoDisbursement.transfer_type}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: e.target.value })}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, transfer_type: e.target.value }))}
                   className="input-modern"
                 >
                   <option value="percentage">Percentage</option>
@@ -595,13 +595,17 @@ const AutoDisbursementSettingsPage = () => {
                   step={newAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
                   placeholder={newAutoDisbursement.transfer_type === 'percentage' ? 'e.g., 5' : 'e.g., 5000'}
                   value={newAutoDisbursement.transfer_value}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_value: e.target.value })}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, transfer_value: e.target.value }))}
                   className="input-modern"
                 />
                 {recommendedRmd && (
                   <div style={{ marginTop: '6px' }}>
                     <small style={{ color: '#007bff' }}>
-                      Recommended RMD for year {recommendedRmd.year}: ${recommendedRmd.rmd_amount != null ? Number(recommendedRmd.rmd_amount).toFixed(2) : '—'} (divisor {recommendedRmd.divisor || '—'}, table {recommendedRmd.table_used || '—'})
+                      {`Recommended RMD for year ${recommendedRmd.year}: ${(
+                        (recommendedRmd.rmd_amount != null && !isNaN(Number(recommendedRmd.rmd_amount)))
+                          ? `$${Number(recommendedRmd.rmd_amount).toFixed(2)}`
+                          : '—'
+                      )} (divisor ${recommendedRmd.divisor || '—'}, table ${typeof recommendedRmd.table_used === 'string' ? recommendedRmd.table_used : (recommendedRmd.table_used == null ? '—' : JSON.stringify(recommendedRmd.table_used))})`}
                     </small>
                     <div style={{ marginTop: '6px' }}>
                       <button
@@ -609,7 +613,7 @@ const AutoDisbursementSettingsPage = () => {
                         className="btn-primary-modern"
                         onClick={() => {
                           if (recommendedRmd.rmd_amount != null) {
-                            setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: 'dollar_amount', transfer_value: Number(recommendedRmd.rmd_amount).toFixed(2) });
+                            setNewAutoDisbursement(prev => ({ ...prev, transfer_type: 'dollar_amount', transfer_value: Number(recommendedRmd.rmd_amount).toFixed(2) }));
                           }
                         }}
                         style={{ padding: '6px 10px' }}
@@ -625,10 +629,10 @@ const AutoDisbursementSettingsPage = () => {
                   <div style={{ marginTop: '10px', borderTop: '1px dashed #ddd', paddingTop: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                       <label style={{ margin: 0 }}>
-                        <input
+                      <input
                           type="checkbox"
                           checked={!!newAutoDisbursement.use_rmd}
-                          onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, use_rmd: e.target.checked })}
+                          onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, use_rmd: e.target.checked }))}
                         /> Use RMD each year
                       </label>
                       <small style={{ color: '#666' }}>Toggle to apply RMD as the transfer amount each year (can be overridden manually).</small>
@@ -649,8 +653,13 @@ const AutoDisbursementSettingsPage = () => {
                             return (
                               <tr key={r.year}>
                                 <td style={{ padding: '4px 8px' }}>{r.year}</td>
-                                <td style={{ padding: '4px 8px', textAlign: 'right' }}>${parseFloat(r.rmd_amount).toFixed(2)}</td>
-                                <td style={{ padding: '4px 8px' }}>{r.table_used}</td>
+                                <td style={{ padding: '4px 8px', textAlign: 'right' }}>
+                                  {(() => {
+                                    const amt = (r.rmd_amount != null && !isNaN(Number(r.rmd_amount))) ? `$${Number(r.rmd_amount).toFixed(2)}` : '—';
+                                    return amt;
+                                  })()}
+                                </td>
+                                <td style={{ padding: '4px 8px' }}>{typeof r.table_used === 'string' ? r.table_used : (r.table_used == null ? '—' : JSON.stringify(r.table_used))}</td>
                                 <td style={{ padding: '4px 8px' }}>
                                   <input
                                     type="number"
@@ -687,7 +696,7 @@ const AutoDisbursementSettingsPage = () => {
                   id="start_date"
                   type="date"
                   value={newAutoDisbursement.start_date}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, start_date: e.target.value })}
+                                      onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, start_date: e.target.value }))}
                   className="input-modern"
                 />
                 <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
@@ -698,7 +707,7 @@ const AutoDisbursementSettingsPage = () => {
                   id="end_date"
                   type="date"
                   value={newAutoDisbursement.end_date}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, end_date: e.target.value })}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, end_date: e.target.value }))}
                   className="input-modern"
                 />
                 <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
