@@ -11,6 +11,34 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import './SettingsPages.css';
 
 const AutoDisbursementSettingsPage = () => {
+  // Simple error boundary to catch render/runtime errors and display them in the UI.
+  class ErrorBoundary extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { hasError: false, error: null, info: null };
+    }
+    componentDidCatch(error, info) {
+      // Save to state and log to console for debugging
+      this.setState({ hasError: true, error, info });
+      // eslint-disable-next-line no-console
+      console.error('AutoDisbursementSettingsPage render error', error, info);
+    }
+    render() {
+      if (this.state.hasError) {
+        return (
+          <div style={{ padding: 20, background: '#fff3f3', border: '1px solid #f5c2c2', borderRadius: 6 }}>
+            <strong style={{ color: '#a00' }}>An error occurred rendering Auto-Disbursements</strong>
+            <div style={{ marginTop: 8, color: '#333' }}>{this.state.error && this.state.error.toString()}</div>
+            <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap', color: '#555' }}>{this.state.info?.componentStack}</pre>
+            <div style={{ marginTop: 8 }}>
+              Please copy the above error and send it to the developer console if asked.
+            </div>
+          </div>
+        );
+      }
+      return this.props.children;
+    }
+  }
   const { currentUser, viewingUserId } = useAuth();
   const navigate = useNavigate();
   useSettingsBackButton();
@@ -334,6 +362,7 @@ const AutoDisbursementSettingsPage = () => {
   }
 
   return (
+    <ErrorBoundary>
     <div className="settings-page-container auto-disbursements-page">
       <h2>Automatic Transfers</h2>
       {isViewingOther && (
@@ -439,7 +468,8 @@ const AutoDisbursementSettingsPage = () => {
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
             Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
           </h3>
-          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px', marginBottom: '18px' }}>
+              {/* Row 1: Name | Source Asset | Target Asset */}
               <div className="form-field">
                 <label htmlFor="name">Name *</label>
                 <input
@@ -450,40 +480,6 @@ const AutoDisbursementSettingsPage = () => {
                   onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, name: e.target.value })}
                   className="input-modern"
                 />
-              <div className="form-field">
-                <label htmlFor="distribution_type">Distribution Type</label>
-                <select
-                  id="distribution_type"
-                  value={newAutoDisbursement.distribution_type || 'non_taxable'}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, distribution_type: e.target.value || 'non_taxable' })}
-                  className="input-modern"
-                >
-                  <option value="non_taxable">Non-taxable Distribution</option>
-                  <option value="taxable_ira">Taxable IRA Distribution</option>
-                </select>
-                {newAutoDisbursement.distribution_type === 'taxable_ira' && (
-                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
-                    This is a taxable transfer from a non-Roth retirement account to a non-retirement account. A corresponding income item will be created. Required: start date and owner birth date in profile.
-                  </small>
-                )}
-                {newAutoDisbursement.distribution_type === 'non_taxable' && (
-                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
-                    Non-taxable transfers should come from non-retirement accounts or Roth accounts. The source will be validated when saving.
-                  </small>
-                )}
-              </div>
-              <div className="form-field">
-                <label htmlFor="transfer_type">Transfer Type *</label>
-                <select
-                  id="transfer_type"
-                  value={newAutoDisbursement.transfer_type}
-                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: e.target.value })}
-                  className="input-modern"
-                >
-                  <option value="percentage">Percentage</option>
-                  <option value="dollar_amount">Dollar Amount</option>
-                </select>
-              </div>
               </div>
               <div className="form-field">
                 <label htmlFor="source_asset_id">Source Asset *</label>
@@ -506,7 +502,7 @@ const AutoDisbursementSettingsPage = () => {
                       })
                       .map((asset) => (
                         <option key={asset.id} value={asset.id}>
-                          {asset.name} ({asset.category})
+                          {asset.name} ({asset.category}{asset.is_roth ? ' • Roth' : ''})
                         </option>
                       ))
                   ) : (
@@ -535,12 +531,58 @@ const AutoDisbursementSettingsPage = () => {
                       })
                       .map((asset) => (
                         <option key={asset.id} value={asset.id}>
-                          {asset.name} ({asset.category})
+                          {asset.name} ({asset.category}{asset.is_roth ? ' • Roth' : ''})
                         </option>
                       ))
                   ) : (
                     <option value="" disabled>No assets available</option>
                   )}
+                </select>
+              </div>
+              {/* Row 2: Distribution Type | Transfer Type | Transfer Value */}
+              <div className="form-field">
+                <label htmlFor="distribution_type">Distribution Type</label>
+                <select
+                  id="distribution_type"
+                  value={newAutoDisbursement.distribution_type || 'non_taxable'}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, distribution_type: e.target.value || 'non_taxable' })}
+                  className="input-modern"
+                >
+                  <option value="non_taxable">Non-taxable Distribution</option>
+                  <option value="taxable_ira">Taxable IRA Distribution</option>
+                </select>
+                {newAutoDisbursement.distribution_type === 'taxable_ira' && (
+                  <>
+                    <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                      Taxable transfer from a non-Roth retirement account to a non-retirement account. Required: start date and owner birth date in profile.
+                    </small>
+                    <label style={{ display: 'block', marginTop: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!newAutoDisbursement.use_rmd}
+                        onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, use_rmd: e.target.checked })}
+                        style={{ marginRight: 8 }}
+                      />
+                      Use RMD each year
+                    </label>
+                  </>
+                )}
+                {newAutoDisbursement.distribution_type === 'non_taxable' && (
+                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                    Non-taxable transfers should come from non-retirement accounts or Roth accounts. The source will be validated when saving.
+                  </small>
+                )}
+              </div>
+              <div className="form-field">
+                <label htmlFor="transfer_type">Transfer Type *</label>
+                <select
+                  id="transfer_type"
+                  value={newAutoDisbursement.transfer_type}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: e.target.value })}
+                  className="input-modern"
+                >
+                  <option value="percentage">Percentage</option>
+                  <option value="dollar_amount">Dollar Amount</option>
                 </select>
               </div>
               <div className="form-field">
@@ -866,6 +908,7 @@ const AutoDisbursementSettingsPage = () => {
         message={confirmDialog.message}
       />
     </div>
+    </ErrorBoundary>
   );
 };
 
