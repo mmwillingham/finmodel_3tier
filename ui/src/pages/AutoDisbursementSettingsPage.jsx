@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AutoDisbursementService from '../services/auto_disbursement.service';
 import AssetService from '../services/asset.service';
 import SettingsService from '../services/settings.service';
+import AccountService from '../services/account.service';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
@@ -15,6 +16,7 @@ const AutoDisbursementSettingsPage = () => {
   useSettingsBackButton();
   const [autoDisbursements, setAutoDisbursements] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [surplusAssetId, setSurplusAssetId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,6 +33,15 @@ const AutoDisbursementSettingsPage = () => {
     start_date: '',
     end_date: '',
   });
+  // RMD schedule and per-year overrides
+  const [rmdSchedule, setRmdSchedule] = useState(null);
+  // Ensure newAutoDisbursement includes RMD fields
+  useEffect(() => {
+    if (!newAutoDisbursement.hasOwnProperty('use_rmd')) {
+      setNewAutoDisbursement((s) => ({ ...s, use_rmd: false, rmd_overrides: {} }));
+    }
+  }, []); // run once
+  const [userSettings, setUserSettings] = useState({});
   const isViewingOther = viewingUserId && viewingUserId !== currentUser?.id;
   const { refreshSettings } = useSettingsContext();
 
@@ -38,12 +49,16 @@ const AutoDisbursementSettingsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [autoDisbursementsData, assetsRes, settingsRes] = await Promise.all([
+    const [autoDisbursementsData, assetsRes, accountsRes, settingsRes] = await Promise.all([
         AutoDisbursementService.getAllAutoDisbursements(viewingUserId).catch((err) => {
           return [];
         }),
         AssetService.list(viewingUserId || null).catch((err) => {
           return { data: [] };
+        }),
+        // Load accounts to determine retirement flags for filtering
+      AccountService.getAllAccounts(viewingUserId).catch((err) => {
+          return [];
         }),
         SettingsService.getSettings(viewingUserId).catch((err) => {
           return { data: {} };
@@ -51,7 +66,10 @@ const AutoDisbursementSettingsPage = () => {
       ]);
       setAutoDisbursements(autoDisbursementsData || []);
       setAssets(assetsRes?.data || []);
+      setAccounts(accountsRes || []);
       setSurplusAssetId(settingsRes.data.surplus_asset_id || null);
+      // Save user settings for birthdate/tax year etc.
+      setUserSettings(settingsRes.data || {});
     } catch (e) {
       setError('Failed to load data.');
     } finally {
@@ -63,6 +81,39 @@ const AutoDisbursementSettingsPage = () => {
     loadData();
   }, [loadData]);
 
+  // RMD states
+  const [recommendedRmd, setRecommendedRmd] = useState(null);
+  const [rmdLoading, setRmdLoading] = useState(false);
+  const [rmdError, setRmdError] = useState('');
+
+  useEffect(() => {
+    const fetchRmd = async () => {
+      setRecommendedRmd(null);
+      setRmdError('');
+      setRmdSchedule(null);
+      if (newAutoDisbursement.distribution_type !== 'taxable_ira' || !newAutoDisbursement.source_asset_id) {
+        return;
+      }
+      try {
+        setRmdLoading(true);
+        const startYear = (userSettings && userSettings.tax_year) ? userSettings.tax_year : new Date().getFullYear();
+        // Request a 10-year schedule for preview
+        const resp = await AutoDisbursementService.getRmd(newAutoDisbursement.source_asset_id, startYear, 10);
+        if (Array.isArray(resp)) {
+          setRmdSchedule(resp);
+          setRecommendedRmd(resp[0] || null);
+        } else {
+          setRecommendedRmd(resp);
+        }
+      } catch (err) {
+        setRmdError(err.response?.data?.detail || err.message || 'Failed to fetch RMD');
+      } finally {
+        setRmdLoading(false);
+      }
+    };
+    fetchRmd();
+  }, [newAutoDisbursement.distribution_type, newAutoDisbursement.source_asset_id, userSettings]);
+
   const handleCreateAutoDisbursement = async () => {
     if (isViewingOther) {
       setMessage('Automatic transfers are read-only when viewing another account.');
@@ -73,6 +124,29 @@ const AutoDisbursementSettingsPage = () => {
       setMessage('Error: Name, Source Asset, and Target Asset are required');
       setTimeout(() => setMessage(''), 3000);
       return;
+    }
+    // If taxable IRA distribution, enforce additional required fields
+    if (newAutoDisbursement.distribution_type === 'taxable_ira') {
+      if (!newAutoDisbursement.start_date) {
+        setMessage('Error: start_date is required for taxable IRA distributions');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+      // Ensure source asset belongs to a retirement account
+      const sourceAsset = assets.find(a => a.id === parseInt(newAutoDisbursement.source_asset_id));
+      const sourceAccount = accounts.find(acc => acc.id === (sourceAsset?.account_id || null));
+      if (!sourceAccount || !sourceAccount.is_retirement) {
+        setMessage('Error: Source must be a retirement account for taxable IRA distributions');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+      const targetAsset = assets.find(a => a.id === parseInt(newAutoDisbursement.target_asset_id));
+      const targetAccount = accounts.find(acc => acc.id === (targetAsset?.account_id || null));
+      if (targetAccount && targetAccount.is_retirement) {
+        setMessage('Error: Target must be a non-retirement account for taxable IRA distributions');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
     }
 
     if (newAutoDisbursement.source_asset_id === newAutoDisbursement.target_asset_id) {
@@ -100,6 +174,8 @@ const AutoDisbursementSettingsPage = () => {
         source_asset_id: parseInt(newAutoDisbursement.source_asset_id),
         target_asset_id: parseInt(newAutoDisbursement.target_asset_id),
         transfer_value: transferValue,
+        use_rmd: !!newAutoDisbursement.use_rmd,
+          rmd_overrides: newAutoDisbursement.rmd_overrides || null,
         start_date: newAutoDisbursement.start_date || null,
         end_date: newAutoDisbursement.end_date || null,
       });
@@ -162,6 +238,8 @@ const AutoDisbursementSettingsPage = () => {
         source_asset_id: parseInt(updatedAutoDisbursement.source_asset_id),
         target_asset_id: parseInt(updatedAutoDisbursement.target_asset_id),
         transfer_value: transferValue,
+        use_rmd: !!updatedAutoDisbursement.use_rmd,
+        rmd_overrides: updatedAutoDisbursement.rmd_overrides || null,
         start_date: updatedAutoDisbursement.start_date || null,
         end_date: updatedAutoDisbursement.end_date || null,
       });
@@ -374,6 +452,24 @@ const AutoDisbursementSettingsPage = () => {
                 </select>
               </div>
               <div className="form-field">
+                <label htmlFor="distribution_type">Distribution Type</label>
+                <select
+                  id="distribution_type"
+                  value={newAutoDisbursement.distribution_type || ''}
+                  onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, distribution_type: e.target.value || null })}
+                  className="input-modern"
+                >
+                  <option value="">None</option>
+                  <option value="non_taxable">Non-taxable Distribution</option>
+                  <option value="taxable_ira">Taxable IRA Distribution</option>
+                </select>
+                {newAutoDisbursement.distribution_type === 'taxable_ira' && (
+                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                    This is a taxable transfer from a non-Roth retirement account to a non-retirement account. A corresponding income item will be created. Required: start date and owner birth date in profile.
+                  </small>
+                )}
+              </div>
+              <div className="form-field">
                 <label htmlFor="source_asset_id">Source Asset *</label>
                 <select
                   id="source_asset_id"
@@ -383,11 +479,20 @@ const AutoDisbursementSettingsPage = () => {
                 >
                   <option value="">Select Source Asset</option>
                   {assets && assets.length > 0 ? (
-                    assets.map((asset) => (
-                      <option key={asset.id} value={asset.id}>
-                        {asset.name} ({asset.category})
-                      </option>
-                    ))
+                    assets
+                      .filter(a => {
+                        if (newAutoDisbursement.distribution_type === 'taxable_ira') {
+                          // only retirement accounts as source
+                          const acc = accounts.find(ac => ac.id === a.account_id);
+                          return acc && acc.is_retirement;
+                        }
+                        return true;
+                      })
+                      .map((asset) => (
+                        <option key={asset.id} value={asset.id}>
+                          {asset.name} ({asset.category})
+                        </option>
+                      ))
                   ) : (
                     <option value="" disabled>No assets available</option>
                   )}
@@ -403,11 +508,20 @@ const AutoDisbursementSettingsPage = () => {
                 >
                   <option value="">Select Target Asset</option>
                   {assets && assets.length > 0 ? (
-                    assets.map((asset) => (
-                      <option key={asset.id} value={asset.id}>
-                        {asset.name} ({asset.category})
-                      </option>
-                    ))
+                    assets
+                      .filter(a => {
+                        if (newAutoDisbursement.distribution_type === 'taxable_ira') {
+                          // only non-retirement targets
+                          const acc = accounts.find(ac => ac.id === a.account_id);
+                          return !(acc && acc.is_retirement);
+                        }
+                        return true;
+                      })
+                      .map((asset) => (
+                        <option key={asset.id} value={asset.id}>
+                          {asset.name} ({asset.category})
+                        </option>
+                      ))
                   ) : (
                     <option value="" disabled>No assets available</option>
                   )}
@@ -426,6 +540,86 @@ const AutoDisbursementSettingsPage = () => {
                   onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, transfer_value: e.target.value })}
                   className="input-modern"
                 />
+                {recommendedRmd && (
+                  <div style={{ marginTop: '6px' }}>
+                    <small style={{ color: '#007bff' }}>
+                      Recommended RMD for year {recommendedRmd.year}: ${recommendedRmd.rmd_amount.toFixed(2)} (divisor {recommendedRmd.divisor}, table {recommendedRmd.table_used})
+                    </small>
+                    <div style={{ marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        className="btn-primary-modern"
+                        onClick={() => {
+                          setNewAutoDisbursement({ ...newAutoDisbursement, transfer_type: 'dollar_amount', transfer_value: recommendedRmd.rmd_amount.toFixed(2) });
+                        }}
+                        style={{ padding: '6px 10px' }}
+                      >
+                        Use recommended RMD
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {rmdLoading && <div style={{ marginTop: '6px' }}><small>Calculating RMD...</small></div>}
+                {rmdError && <div style={{ marginTop: '6px', color: '#c00' }}><small>{rmdError}</small></div>}
+                {rmdSchedule && (
+                  <div style={{ marginTop: '10px', borderTop: '1px dashed #ddd', paddingTop: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <label style={{ margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={!!newAutoDisbursement.use_rmd}
+                          onChange={(e) => setNewAutoDisbursement({ ...newAutoDisbursement, use_rmd: e.target.checked })}
+                        /> Use RMD each year
+                      </label>
+                      <small style={{ color: '#666' }}>Toggle to apply RMD as the transfer amount each year (can be overridden manually).</small>
+                    </div>
+                    <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #f0f0f0', padding: '8px', borderRadius: '4px', background: '#fafafa' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: '4px 8px' }}>Year</th>
+                            <th style={{ textAlign: 'right', padding: '4px 8px' }}>RMD Amount</th>
+                            <th style={{ textAlign: 'left', padding: '4px 8px' }}>Table</th>
+                            <th style={{ textAlign: 'left', padding: '4px 8px' }}>Override</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rmdSchedule.map((r) => {
+                            const overrideVal = (newAutoDisbursement.rmd_overrides && (newAutoDisbursement.rmd_overrides[r.year] ?? newAutoDisbursement.rmd_overrides[String(r.year)])) || '';
+                            return (
+                              <tr key={r.year}>
+                                <td style={{ padding: '4px 8px' }}>{r.year}</td>
+                                <td style={{ padding: '4px 8px', textAlign: 'right' }}>${parseFloat(r.rmd_amount).toFixed(2)}</td>
+                                <td style={{ padding: '4px 8px' }}>{r.table_used}</td>
+                                <td style={{ padding: '4px 8px' }}>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="override"
+                                    value={overrideVal}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setNewAutoDisbursement(prev => {
+                                        const nextOverrides = { ...(prev.rmd_overrides || {}) };
+                                        if (v === '' || isNaN(parseFloat(v))) {
+                                          delete nextOverrides[String(r.year)];
+                                        } else {
+                                          nextOverrides[String(r.year)] = parseFloat(v);
+                                        }
+                                        return { ...prev, rmd_overrides: nextOverrides };
+                                      });
+                                    }}
+                                    style={{ width: '100px' }}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="form-field">
                 <label htmlFor="start_date">Start Date</label>

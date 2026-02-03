@@ -24,6 +24,7 @@ from calculation_helpers import (
     calculate_year_fraction_dates,
     parse_date_value,
 )
+from utils.rmd import calculate_rmd
 
 def calculate_year_fraction(start_date_str: Optional[Union[str, date]], end_date_str: Optional[Union[str, date]], projection_year: int) -> float:
     """
@@ -316,6 +317,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                     disbursement.transfer_value,
                     parse_date_value(disbursement.start_date),
                     parse_date_value(disbursement.end_date),
+                    getattr(disbursement, "distribution_type", None),
+                    getattr(disbursement, "taxable_income_cashflow_item_id", None),
+                    getattr(disbursement, "use_rmd", False),
+                    getattr(disbursement, "rmd_overrides", None),
                 )
             )
 
@@ -395,6 +400,10 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                 transfer_value,
                 disbursement_start_date,
                 disbursement_end_date,
+                distribution_type,
+                taxable_cashflow_item_id,
+                use_rmd,
+                rmd_overrides,
             ) in auto_disbursements_prepared:
                 # Check if disbursement is active for this year
                 active = True
@@ -409,16 +418,47 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         source_balance = account_current_balances[source_name]
                         
                         # Calculate transfer amount
-                        if transfer_type == "percentage":
-                            transfer_amount = abs(source_balance) * (transfer_value / 100.0)
-                        else:  # dollar_amount
-                            transfer_amount = abs(transfer_value)
+                        # If configured to use RMD, compute RMD for this asset for the current_projection_year
+                        if use_rmd and distribution_type == "taxable_ira":
+                            # Find owner's birthdate from user_settings (already loaded)
+                            if user_settings and user_settings.person1_birthdate:
+                                rmd_info = calculate_rmd(user_settings.person1_birthdate, abs(source_balance), current_projection_year, user_settings.person2_birthdate if getattr(user_settings, 'person2_birthdate', None) else None)
+                                # Check for per-year override (rmd_overrides may have string or int keys)
+                                override_val = None
+                                if rmd_overrides:
+                                    # try int key first
+                                    try:
+                                        override_val = rmd_overrides.get(current_projection_year)
+                                    except Exception:
+                                        override_val = None
+                                    if override_val is None:
+                                        override_val = rmd_overrides.get(str(current_projection_year))
+                                transfer_amount = float(override_val) if override_val is not None else rmd_info.get("rmd_amount", 0.0)
+                            else:
+                                # fallback to configured value if RMD cannot be computed
+                                if transfer_type == "percentage":
+                                    transfer_amount = abs(source_balance) * (transfer_value / 100.0)
+                                else:
+                                    transfer_amount = abs(transfer_value)
+                        else:
+                            if transfer_type == "percentage":
+                                transfer_amount = abs(source_balance) * (transfer_value / 100.0)
+                            else:  # dollar_amount
+                                transfer_amount = abs(transfer_value)
                         
                         # Apply transfer (only if source has sufficient balance)
                         # This happens BEFORE growth, so source_balance is the beginning-of-year balance
                         if abs(source_balance) >= transfer_amount:
                             account_current_balances[source_name] -= transfer_amount
                             account_current_balances[target_name] += transfer_amount
+                            # If this is a taxable IRA distribution, record it as taxable income for the year
+                            if distribution_type == "taxable_ira" and taxable_cashflow_item_id:
+                                cash_item = cash_flow_items_by_id.get(taxable_cashflow_item_id)
+                                if cash_item:
+                                    desc = cash_item.description
+                                    annual_flow_values[desc] = annual_flow_values.get(desc, 0.0) + transfer_amount
+                                    # Also increase taxable income tracker so tax calc picks it up
+                                    current_year_taxable_income += transfer_amount
 
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]

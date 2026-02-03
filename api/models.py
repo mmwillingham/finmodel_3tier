@@ -411,6 +411,11 @@ class AutoDisbursement(Base):
     transfer_value = Column(Float, nullable=False)  # Percentage (0-100) or dollar amount
     start_date = Column(String, nullable=True)  # Start date as string (YYYY-MM-DD)
     end_date = Column(String, nullable=True)  # End date as string (YYYY-MM-DD)
+    distribution_type = Column(String, nullable=True)  # "taxable_ira" | "non_taxable" | None
+    use_rmd = Column(Boolean, nullable=True, default=False)
+    taxable_income_cashflow_item_id = Column(Integer, nullable=True)
+    # Optional per-year overrides for RMD amounts (JSON mapping year -> amount)
+    rmd_overrides = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
