@@ -157,8 +157,15 @@ const AutoDisbursementSettingsPage = () => {
         } else {
           setRecommendedRmd(resp);
         }
-        } catch (err) {
-        setRmdError(formatError(err.response?.data?.detail || err.message || 'Failed to fetch RMD'));
+      } catch (err) {
+        // If validation error (422) from backend, avoid showing raw pydantic detail to user.
+        const status = err?.response?.status;
+        if (status === 422) {
+          console.error('RMD validation error:', err.response?.data);
+          setRmdError('Failed to calculate RMD: invalid request parameters.');
+        } else {
+          setRmdError(formatError(err.response?.data?.detail || err.message || 'Failed to fetch RMD'));
+        }
       } finally {
         setRmdLoading(false);
       }
@@ -506,15 +513,8 @@ const AutoDisbursementSettingsPage = () => {
                   value={newAutoDisbursement.name}
                   onChange={(e) => {
                     const val = e.target.value;
-                    const pos = e.target.selectionStart;
+                    setRmdError('');
                     setNewAutoDisbursement(prev => ({ ...prev, name: val }));
-                    setTimeout(() => {
-                      const el = nameRef.current;
-                      if (el) {
-                        el.focus();
-                        try { el.setSelectionRange(pos, pos); } catch (err) {}
-                      }
-                    }, 0);
                   }}
                   className="input-modern"
                 />
@@ -598,7 +598,17 @@ const AutoDisbursementSettingsPage = () => {
                       <input
                         type="checkbox"
                         checked={!!newAutoDisbursement.use_rmd}
-                        onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, use_rmd: e.target.checked }))}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setNewAutoDisbursement(prev => {
+                            const next = { ...prev, use_rmd: checked };
+                            // If enabling RMD and we have a recommendedRmd year, prefill start_date to that year start.
+                            if (checked && recommendedRmd && recommendedRmd.year) {
+                              next.start_date = `${recommendedRmd.year}-01-01`;
+                            }
+                            return next;
+                          });
+                        }}
                         style={{ marginRight: 8 }}
                       />
                       Use RMD each year
@@ -636,15 +646,8 @@ const AutoDisbursementSettingsPage = () => {
                   ref={transferValueRef}
                   onChange={(e) => {
                     const val = e.target.value;
-                    const pos = e.target.selectionStart;
+                    setRmdError('');
                     setNewAutoDisbursement(prev => ({ ...prev, transfer_value: val }));
-                    setTimeout(() => {
-                      const el = transferValueRef.current;
-                      if (el) {
-                        el.focus();
-                        try { el.setSelectionRange(pos, pos); } catch (err) {}
-                      }
-                    }, 0);
                   }}
                   className="input-modern"
                 />
@@ -685,11 +688,8 @@ const AutoDisbursementSettingsPage = () => {
                   ref={startDateRef}
                   onChange={(e) => {
                     const val = e.target.value;
+                    setRmdError('');
                     setNewAutoDisbursement(prev => ({ ...prev, start_date: val }));
-                    setTimeout(() => {
-                      const el = startDateRef.current;
-                      if (el) el.focus();
-                    }, 0);
                   }}
                   className="input-modern"
                 />
@@ -704,11 +704,8 @@ const AutoDisbursementSettingsPage = () => {
                   ref={endDateRef}
                   onChange={(e) => {
                     const val = e.target.value;
+                    setRmdError('');
                     setNewAutoDisbursement(prev => ({ ...prev, end_date: val }));
-                    setTimeout(() => {
-                      const el = endDateRef.current;
-                      if (el) el.focus();
-                    }, 0);
                   }}
                   className="input-modern"
                 />
