@@ -1323,6 +1323,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         projection = await ProjectionService.createProjection(projectionRequest);
       }
 
+      // Notify auto-disbursements to refresh RMD values after projection run.
+      window.dispatchEvent(new CustomEvent('rmdRefreshRequested', { detail: { source: 'cashFlowOverviewProjection', projectionId: projection.id || projectionId } }));
+
       // Parse the data_json
       if (projection.data_json) {
         const parsedData = JSON.parse(projection.data_json);

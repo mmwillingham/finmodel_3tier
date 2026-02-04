@@ -231,6 +231,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         projection = await ProjectionService.createProjection(projectionRequest);
       }
 
+      // Notify auto-disbursements to refresh RMD values after projection run.
+      window.dispatchEvent(new CustomEvent('rmdRefreshRequested', { detail: { source: 'balanceSheetProjection', projectionId: projection.id || projectionId } }));
+
       // Parse the data_json
       if (projection.data_json) {
         const parsedData = JSON.parse(projection.data_json);

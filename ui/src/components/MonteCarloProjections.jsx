@@ -390,6 +390,8 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
 
       setResults(statistics);
       setLoading(false);
+      // Notify auto-disbursements to refresh RMD values after simulation run.
+      window.dispatchEvent(new CustomEvent('rmdRefreshRequested', { detail: { source: 'monteCarloSimulation' } }));
     }, 100);
   };
 

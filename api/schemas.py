@@ -605,6 +605,10 @@ class AutoDisbursementCreate(BaseModel):
     transfer_value: float  # Percentage (0-100) or dollar amount
     start_date: str | None = None  # Start date as string (YYYY-MM-DD)
     end_date: str | None = None    # End date as string (YYYY-MM-DD)
+    distribution_type: str | None = None  # "taxable_ira" | "non_taxable" | None
+    use_rmd: bool | None = None
+    rmd_overrides: dict | None = None  # Mapping year->amount, stored as JSON
+    use_rmd: bool | None = None
 
 class AutoDisbursementUpdate(BaseModel):
     name: Optional[str] = None
@@ -614,6 +618,10 @@ class AutoDisbursementUpdate(BaseModel):
     transfer_value: Optional[float] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    distribution_type: Optional[str] = None
+    use_rmd: Optional[bool] = None
+    rmd_overrides: Optional[dict] = None
+    use_rmd: Optional[bool] = None
 
 class AutoDisbursementOut(BaseModel):
     id: int
@@ -624,6 +632,10 @@ class AutoDisbursementOut(BaseModel):
     transfer_value: float
     start_date: str | None = None
     end_date: str | None = None
+    distribution_type: str | None = None
+    use_rmd: bool | None = None
+    rmd_overrides: dict | None = None
+    taxable_income_cashflow_item_id: int | None = None
     created_at: datetime
     updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)

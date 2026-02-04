@@ -37,6 +37,7 @@ const AccountsSettingsPage = () => {
     account_name: '',
     account_number: '',
     is_retirement: false,
+    is_roth: false,
   });
   const [renamingBrokerageId, setRenamingBrokerageId] = useState(null);
   const [renamingBrokerageName, setRenamingBrokerageName] = useState('');
@@ -93,7 +94,7 @@ const AccountsSettingsPage = () => {
     try {
       // If brokerage_id is selected, use it; otherwise use legacy fields to create/find brokerage
       const accountData = newAccount.brokerage_id 
-        ? { brokerage_id: newAccount.brokerage_id, account_name: newAccount.account_name, account_number: newAccount.account_number, is_retirement: newAccount.is_retirement }
+        ? { brokerage_id: newAccount.brokerage_id, account_name: newAccount.account_name, account_number: newAccount.account_number, is_retirement: newAccount.is_retirement, is_roth: newAccount.is_roth }
         : newAccount;
       
       await AccountService.createAccount(accountData);
@@ -123,6 +124,7 @@ const AccountsSettingsPage = () => {
         account_name: updatedAccount.account_name,
         account_number: updatedAccount.account_number,
         is_retirement: updatedAccount.is_retirement,
+        is_roth: updatedAccount.is_roth,
       };
       await AccountService.updateAccount(accountId, updateData);
       setMessage('Account updated successfully!');
@@ -538,6 +540,18 @@ const AccountsSettingsPage = () => {
             </select>
           </div>
           <div className="form-field">
+            <label htmlFor="is_roth" style={{ marginBottom: '8px', display: 'block' }}>Roth?</label>
+            <select
+              id="is_roth"
+              value={newAccount.is_roth ? 'yes' : 'no'}
+              onChange={(e) => setNewAccount({ ...newAccount, is_roth: e.target.value === 'yes' })}
+              className="input-modern"
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div className="form-field">
             <label htmlFor="account_number" style={{ marginBottom: '8px', display: 'block' }}>Account Number</label>
             <input
               id="account_number"
@@ -569,8 +583,9 @@ const AccountsSettingsPage = () => {
                   <th style={{ minWidth: '100px', padding: '8px', textAlign: 'left' }}>Owner</th>
                   <th style={{ minWidth: '150px', padding: '8px', textAlign: 'left' }}>Brokerage</th>
                   <th style={{ minWidth: '250px', padding: '8px', textAlign: 'left' }}>Account Name</th>
-                  <th style={{ minWidth: '150px', padding: '8px', textAlign: 'left' }}>Account Number</th>
+                <th style={{ minWidth: '150px', padding: '8px', textAlign: 'left' }}>Account Number</th>
                   <th style={{ minWidth: '100px', padding: '8px', textAlign: 'left' }}>Retirement</th>
+                  <th style={{ minWidth: '80px', padding: '8px', textAlign: 'left' }}>Roth</th>
                   <th style={{ minWidth: '120px', padding: '8px', textAlign: 'left' }}>Actions</th>
                 </tr>
               </thead>
@@ -629,6 +644,17 @@ const AccountsSettingsPage = () => {
                           </select>
                         </td>
                         <td style={{ padding: '8px' }}>
+                          <select
+                            value={editingAccount.is_roth ? 'yes' : 'no'}
+                            onChange={(e) => setEditingAccount({ ...editingAccount, is_roth: e.target.value === 'yes' })}
+                            className="input-modern"
+                            style={{ width: '100%', fontSize: '0.9em', padding: '6px' }}
+                          >
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: '8px' }}>
                           <button 
                             onClick={() => handleUpdateAccount(account.id, editingAccount)} 
                             className="btn-primary-modern" 
@@ -666,6 +692,7 @@ const AccountsSettingsPage = () => {
                         <td style={{ fontWeight: 500, padding: '8px' }}>{account.account_name}</td>
                         <td style={{ padding: '8px' }}>{account.account_number || '-'}</td>
                         <td style={{ padding: '8px' }}>{account.is_retirement ? 'Yes' : 'No'}</td>
+                        <td style={{ padding: '8px' }}>{account.is_roth ? 'Yes' : 'No'}</td>
                         <td style={{ padding: '8px' }}>
                           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                             {account.owner_id === currentUser?.id ? (

@@ -618,10 +618,6 @@ export default function CustomChartForm({
                         checked={series.itemize || false}
                         onChange={(e) => {
                           handleSeriesChange(index, 'itemize', e.target.checked);
-                          // When enabling itemize, clear account filters but preserve category
-                          if (e.target.checked) {
-                            handleSeriesChange(index, 'selected_account_ids', []);
-                          }
                         }}
                       />
                       Itemize (show individual items)

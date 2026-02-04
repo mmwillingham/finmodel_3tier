@@ -46,6 +46,8 @@ steps:
         ./cloud-sql-proxy ${_SQL_INSTANCE} --unix-socket /cloudsql &
         echo "Waiting for Cloud SQL Proxy..." && sleep 5
         set -ex
+        # Ensure DB and migration graph are aligned in case of prior merge/stamp issues
+        PYTHONPATH=/workspace alembic -c ./alembic.ini stamp 20260203_merge_heads_rmd || true
         PYTHONPATH=/workspace alembic -c ./alembic.ini upgrade head
     env:
       - 'DB_USER=dbadmin'

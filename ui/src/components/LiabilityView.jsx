@@ -185,41 +185,43 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
         <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
           <thead>
             <tr>
-              <th className="cashflow-table-cell sortable" style={{ width: '13%' }} onClick={() => handleSort('name')}>
-                Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-              <th className="cashflow-table-cell sortable type-column" style={{ width: '11%' }} onClick={() => handleSort('loan_type')}>
-                Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('category')}>
-                Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
-                Curr Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-              <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('annual_increase_percent')}>
-                Ann Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
-                Principal {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('interest_rate')}>
-              Int Rate {sortConfig.key === 'interest_rate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('loan_term_months')}>
-              Term (Mo) {sortConfig.key === 'loan_term_months' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('monthly_payment')}>
-              Monthly Pay {sortConfig.key === 'monthly_payment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('start_date')}>
-              Start Date {sortConfig.key === 'start_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell" style={{ width: '7%' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedLiabilities.map((item) => {
+              {[
+                <th key="name" className="cashflow-table-cell sortable" style={{ width: '13%' }} onClick={() => handleSort('name')}>
+                  Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="loan_type" className="cashflow-table-cell sortable type-column" style={{ width: '11%' }} onClick={() => handleSort('loan_type')}>
+                  Type {sortConfig.key === 'loan_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="category" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('category')}>
+                  Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="current_balance" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
+                  Curr Balance {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="annual_rate" className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('annual_increase_percent')}>
+                  Ann Rate {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="principal" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('principal_amount')}>
+                  Principal {sortConfig.key === 'principal_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="interest_rate" className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('interest_rate')}>
+                  Int Rate {sortConfig.key === 'interest_rate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="term" className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('loan_term_months')}>
+                  Term (Mo) {sortConfig.key === 'loan_term_months' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="monthly_pay" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('monthly_payment')}>
+                  Monthly Pay {sortConfig.key === 'monthly_payment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="start_date" className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('start_date')}>
+                  Start Date {sortConfig.key === 'start_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="actions" className="cashflow-table-cell" style={{ width: '7%' }}>Actions</th>
+              ]}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedLiabilities.map((item) => {
             // Check for missing required fields (name, category, value/principal_amount)
             // For amortized loans, principal_amount is required; for ordinary, value is required
             // Note: value of 0 is allowed (TESTING_PLAN.md assumes 0 is valid)
@@ -236,34 +238,36 @@ export default function LiabilityView({ liabilities, refreshLiabilities, refresh
             
             return (
             <tr key={item.id} style={rowStyle} title={hasMissingFields ? 'Missing required fields: ' + missingFields.join(', ') : ''}>
-              <td className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Name</span>}</td>
-              <td className="cashflow-table-cell">
-                {item.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving'}
-              </td> {/* NEW: Type Value */}
-              <td className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Category</span>}</td>
-              <td className="cashflow-table-cell">
-                {item.loan_type === 'amortized' ? formatCurrency(item.principal_amount) : formatCurrency(item.value)}
-              </td>
-              <td className="cashflow-table-cell">
-                {item.loan_type === 'ordinary' ? `${item.annual_increase_percent}%` : 'N/A'}
-              </td>
-              <td className="cashflow-table-cell">
-                {item.loan_type === 'amortized' ? formatCurrency(item.principal_amount) : 'N/A'}
-              </td>
-              <td className="cashflow-table-cell">
-                {item.loan_type === 'amortized' ? `${item.interest_rate}%` : 'N/A'}
-              </td>
-              <td className="cashflow-table-cell">
-                {item.loan_type === 'amortized' ? item.loan_term_months : 'N/A'}
-              </td>
-              <td className="cashflow-table-cell">
-                {item.loan_type === 'amortized' ? formatCurrency(item.monthly_payment) : 'N/A'}
-              </td>
-              <td className="cashflow-table-cell">{item.start_date || '-'}</td>
-              <td className="action-buttons-cell">
-                <button onClick={() => handleEditLiability(item)} className="edit-icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
-                <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
-              </td>
+              {[
+                <td key="name" className="cashflow-table-cell">{item.name || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Name</span>}</td>,
+                <td key="type" className="cashflow-table-cell">
+                  {item.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving'}
+                </td>,
+                <td key="categoryValue" className="cashflow-table-cell">{item.category || <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Missing: Category</span>}</td>,
+                <td key="currBalance" className="cashflow-table-cell">
+                  {item.loan_type === 'amortized' ? formatCurrency(item.principal_amount) : formatCurrency(item.value)}
+                </td>,
+                <td key="annRate" className="cashflow-table-cell">
+                  {item.loan_type === 'ordinary' ? `${item.annual_increase_percent}%` : 'N/A'}
+                </td>,
+                <td key="principal" className="cashflow-table-cell">
+                  {item.loan_type === 'amortized' ? formatCurrency(item.principal_amount) : 'N/A'}
+                </td>,
+                <td key="interest" className="cashflow-table-cell">
+                  {item.loan_type === 'amortized' ? `${item.interest_rate}%` : 'N/A'}
+                </td>,
+                <td key="term" className="cashflow-table-cell">
+                  {item.loan_type === 'amortized' ? item.loan_term_months : 'N/A'}
+                </td>,
+                <td key="monthlyPayment" className="cashflow-table-cell">
+                  {item.loan_type === 'amortized' ? formatCurrency(item.monthly_payment) : 'N/A'}
+                </td>,
+                <td key="startDate" className="cashflow-table-cell">{item.start_date || '-'}</td>,
+                <td key="actions" className="action-buttons-cell">
+                  <button onClick={() => handleEditLiability(item)} className="edit-icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
+                  <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
+                </td>,
+              ]}
             </tr>
             );
           })}

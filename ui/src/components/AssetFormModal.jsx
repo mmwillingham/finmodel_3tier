@@ -49,6 +49,7 @@ export default function AssetFormModal({
     account_id: null,
     start_date: "",
     end_date: "",
+    is_roth: false,
   });
   
   // Check if the selected account is a retirement account (use useMemo to avoid initialization issues)
@@ -88,6 +89,7 @@ export default function AssetFormModal({
             account_id: itemToEdit.account_id || null,
             start_date: itemToEdit.start_date || '',
             end_date: itemToEdit.end_date || '',
+            is_roth: !!itemToEdit.is_roth,
           }));
           
           // Load retirement interest and dividend rates if they exist
@@ -177,6 +179,7 @@ export default function AssetFormModal({
             account_id: null,
             start_date: defaultStartDate,
             end_date: "",
+            is_roth: false,
           }));
           setTrackInterestAsIncome(false);
           setExistingLinkedInterestId(null);
@@ -253,6 +256,7 @@ export default function AssetFormModal({
       account_id: newItem.account_id || null,
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
+      is_roth: !!newItem.is_roth,
     };
     
     // For retirement accounts, always include retirement rates (even if null)
@@ -434,6 +438,7 @@ export default function AssetFormModal({
       account_id: null,
       start_date: "",
       end_date: "",
+      is_roth: false,
     });
     setTrackInterestAsIncome(false);
     setInterestRate("");
@@ -489,6 +494,15 @@ export default function AssetFormModal({
                   </option>
                 ))}
               </select>
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  id="asset-is-roth"
+                  type="checkbox"
+                  checked={!!newItem.is_roth}
+                  onChange={(e) => setNewItem({ ...newItem, is_roth: e.target.checked })}
+                />
+                <label htmlFor="asset-is-roth" style={{ margin: 0, cursor: 'pointer' }}>Is Roth?</label>
+              </div>
             </div>
 
             <div className="form-field">

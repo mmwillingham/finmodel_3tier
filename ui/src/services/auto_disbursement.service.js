@@ -48,6 +48,17 @@ const AutoDisbursementService = {
       throw error;
     }
   },
+  async getRmd(assetId, year = null, years = null) {
+    try {
+      const params = { asset_id: assetId };
+      if (year) params.year = year;
+      if (years) params.years = years;
+      const response = await api.get('/auto-disbursements/rmd', { params });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default AutoDisbursementService;
