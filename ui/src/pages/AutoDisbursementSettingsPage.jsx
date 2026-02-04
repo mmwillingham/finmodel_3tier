@@ -663,6 +663,9 @@ const AutoDisbursementSettingsPage = () => {
                       />
                       Use RMD each year
                     </label>
+                    <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                      Selecting Taxable Distribution automatically creates a "Taxable distribution" income row in the Cash Flow view so tax calculations include the transfer.
+                    </small>
                   </>
                 )}
                 {newAutoDisbursement.distribution_type === 'non_taxable' && (

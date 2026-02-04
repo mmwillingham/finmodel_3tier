@@ -2,13 +2,13 @@ import React, { useState, useRef } from "react";
 import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Line } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line, Bar } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
 // Constant to identify the federal tax expense item (must match backend)
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
@@ -21,11 +21,17 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
   const [numSimulations, setNumSimulations] = useState(1000);
   const [volatility, setVolatility] = useState(15); // Standard deviation for growth rates as percentage
   const [results, setResults] = useState(null);
+  const [simulationSeries, setSimulationSeries] = useState(null);
+  const [selectedView, setSelectedView] = useState("fan");
+  const [successRate, setSuccessRate] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const runMonteCarloSimulation = () => {
     setLoading(true);
     setResults(null);
+    setSimulationSeries(null);
+    setSuccessRate(null);
+    setSelectedView("fan");
 
     // Run simulations in batches to avoid blocking UI
     setTimeout(() => {
@@ -389,6 +395,16 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       }
 
       setResults(statistics);
+      setSimulationSeries(simulationResults);
+      const terminalValues = simulationResults
+        .map(sim => sim[projectionYears]?.netWorth ?? 0)
+        .filter((value) => typeof value === "number");
+      if (terminalValues.length > 0) {
+        const successCount = terminalValues.filter(value => value > 0).length;
+        setSuccessRate((successCount / terminalValues.length) * 100);
+      } else {
+        setSuccessRate(null);
+      }
       setLoading(false);
       // Notify auto-disbursements to refresh RMD values after simulation run.
       window.dispatchEvent(new CustomEvent('rmdRefreshRequested', { detail: { source: 'monteCarloSimulation' } }));
@@ -515,6 +531,92 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
     ],
   } : null;
 
+  const finalYearIndex = projectionYears;
+  const terminalNetWorthSeries = simulationSeries
+    ? simulationSeries.map(sim => sim[finalYearIndex]?.netWorth ?? 0)
+    : [];
+
+  const spaghettiSamples = simulationSeries ? simulationSeries.slice(0, 50) : [];
+  const spaghettiChartData = spaghettiSamples.length && results ? {
+    labels: results.map(d => d.year),
+    datasets: spaghettiSamples.map((sim, idx) => ({
+      label: `Sim ${idx + 1}`,
+      data: sim.map(point => point.netWorth),
+      borderColor: `rgba(33, 150, 243, ${0.3 + (idx % 10) * 0.05})`,
+      borderWidth: 1,
+      pointRadius: 0,
+      fill: false,
+      tension: 0.3,
+    })),
+  } : null;
+
+  const histogramData = terminalNetWorthSeries.length ? (() => {
+    const binCount = 12;
+    const minValue = Math.min(...terminalNetWorthSeries);
+    const maxValue = Math.max(...terminalNetWorthSeries);
+    const range = Math.max(maxValue - minValue, 1);
+    const binSize = range / binCount;
+    const bins = new Array(binCount).fill(0);
+    terminalNetWorthSeries.forEach(value => {
+      let index = Math.floor((value - minValue) / binSize);
+      if (index >= binCount) index = binCount - 1;
+      if (index < 0) index = 0;
+      bins[index]++;
+    });
+    const labels = bins.map((_, index) => {
+      const start = minValue + index * binSize;
+      const end = start + binSize;
+      return `${formatCurrency(start)} - ${formatCurrency(end)}`;
+    });
+    return {
+      labels,
+      datasets: [
+        {
+          label: `Terminal Net Worth (${currentYear + projectionYears})`,
+          data: bins,
+          backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        },
+      ],
+    };
+  })() : null;
+
+  const histogramOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => `${context.parsed.y} simulations`,
+        },
+      },
+      title: {
+        display: true,
+        text: `Terminal Net Worth Distribution (${currentYear + projectionYears})`,
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          callback: (value, index) => {
+            const label = histogramData?.labels?.[index];
+            return label ? label.split(' - ')[0] : '';
+          },
+        },
+      },
+      y: {
+        beginAtZero: true,
+      },
+    },
+  };
+
+  const userLabelSuffix = userSettings?.person1_first_name && userSettings?.person1_last_name
+    ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}`
+    : '';
+
+  const chartTitleFor = (label) => `Monte Carlo ${label}${userLabelSuffix}`;
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -524,7 +626,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       },
       title: {
         display: true,
-        text: `Monte Carlo Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+        text: chartTitleFor('Projections'),
       },
     },
     scales: {
@@ -539,6 +641,31 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
         ticks: {
           callback: (value) => formatCurrency(value),
         },
+      },
+    },
+  };
+
+  const fanChartOptions = {
+    ...chartOptions,
+    plugins: {
+      ...chartOptions.plugins,
+      title: {
+        ...chartOptions.plugins.title,
+        text: chartTitleFor('Fan Chart - Net Worth'),
+      },
+    },
+  };
+
+  const spaghettiChartOptions = {
+    ...chartOptions,
+    plugins: {
+      ...chartOptions.plugins,
+      legend: {
+        display: false,
+      },
+      title: {
+        ...chartOptions.plugins.title,
+        text: chartTitleFor('Spaghetti Plot'),
       },
     },
   };
@@ -635,20 +762,97 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
 
       {results && (
         <div ref={chartRef}>
-          {/* Net Worth Chart */}
-          <h3>Net Worth Projections</h3>
-          <div style={{ height: '400px', marginBottom: '40px' }}>
-            <Line data={netWorthChartData} options={{
-              ...chartOptions,
-              plugins: {
-                ...chartOptions.plugins,
-                title: {
-                  ...chartOptions.plugins.title,
-                  text: `Monte Carlo Net Worth Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
-                },
-              },
-            }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '20px', alignItems: 'flex-start', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label htmlFor="monte-carlo-view" style={{ fontWeight: 600 }}>View</label>
+              <select
+                id="monte-carlo-view"
+                value={selectedView}
+                onChange={(e) => setSelectedView(e.target.value)}
+                style={{ padding: '6px 10px', minWidth: '200px' }}
+              >
+                <option value="fan">Fan Chart</option>
+                <option value="spaghetti">Spaghetti Plot</option>
+                <option value="histogram">Terminal Value Histogram</option>
+                <option value="success">Success Rate</option>
+              </select>
+            </div>
+            <div style={{ minWidth: '220px', padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '0.85rem', color: '#555' }}>Success Rate</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 600 }}>
+                {successRate !== null ? `${successRate.toFixed(1)}%` : 'Calculating...'}
+              </div>
+              <div style={{ height: '6px', width: '100%', backgroundColor: '#f0f0f0', borderRadius: '4px', margin: '8px 0' }}>
+                <div
+                  style={{
+                    width: `${Math.min(100, Math.max(0, successRate ?? 0))}%`,
+                    height: '100%',
+                    borderRadius: '4px',
+                    backgroundColor: '#0b57d0',
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                % of simulations with terminal net worth &gt; 0
+              </div>
+            </div>
           </div>
+
+          {selectedView === 'fan' && (
+            <>
+              <h3>Net Worth Projections (Fan Chart)</h3>
+              <div style={{ height: '400px', marginBottom: '40px' }}>
+                <Line data={netWorthChartData} options={fanChartOptions} />
+              </div>
+            </>
+          )}
+
+          {selectedView === 'spaghetti' && (
+            <>
+              <h3>Spaghetti Plot</h3>
+              <div style={{ height: '400px', marginBottom: '40px' }}>
+                {spaghettiChartData ? (
+                  <Line data={spaghettiChartData} options={spaghettiChartOptions} />
+                ) : (
+                  <p>No simulation data available yet.</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {selectedView === 'histogram' && (
+            <>
+              <h3>Terminal Value Distribution Histogram</h3>
+              <div style={{ height: '400px', marginBottom: '40px' }}>
+                {histogramData ? (
+                  <Bar data={histogramData} options={histogramOptions} />
+                ) : (
+                  <p>No distribution data available yet.</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {selectedView === 'success' && (
+            <div style={{ marginBottom: '40px', padding: '20px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <h3>Success Rate Details</h3>
+              <p style={{ marginBottom: '12px' }}>Success = terminal net worth &gt; 0</p>
+              <div style={{ fontSize: '2rem', fontWeight: 600 }}>
+                {successRate !== null ? `${successRate.toFixed(1)}%` : 'Calculating...'}
+              </div>
+              <div style={{ height: '12px', backgroundColor: '#f0f0f0', borderRadius: '6px', margin: '12px 0' }}>
+                <div
+                  style={{
+                    width: `${Math.min(100, Math.max(0, successRate ?? 0))}%`,
+                    height: '100%',
+                    borderRadius: '6px',
+                    backgroundColor: '#0b57d0',
+                  }}
+                />
+              </div>
+              <p style={{ margin: 0, color: '#555' }}>Confidence the Monte Carlo projection ends in positive net worth.</p>
+            </div>
+          )}
 
           {/* Net Worth Table */}
           <h3>Statistical Summary - Net Worth</h3>

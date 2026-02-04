@@ -6,6 +6,7 @@ import { Line, Bar, Chart } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
+import { calculateRmd } from '../utils/rmdCalculator';
 import ProjectionService from '../services/projection.service';
 
 // Register Chart.js components for combo charts
@@ -13,6 +14,84 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 // Constant to identify the federal tax expense item (must match backend)
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
+
+const buildTaxableDistributionEntries = ({
+  autoDisbursements = [],
+  assets = [],
+  assetProjections = {},
+  currentYear,
+  selectedYear,
+  userSettings = {},
+}) => {
+  if (!Array.isArray(autoDisbursements) || autoDisbursements.length === 0) {
+    return [];
+  }
+
+  const projectionYear = currentYear + selectedYear;
+  const yearStart = new Date(projectionYear, 0, 1);
+  const yearEnd = new Date(projectionYear, 11, 31);
+
+  return autoDisbursements.flatMap((ad) => {
+    if (!ad || ad.distribution_type !== 'taxable_ira' || !ad.source_asset_id) {
+      return [];
+    }
+
+    const startDate = ad.start_date ? new Date(ad.start_date) : null;
+    const endDate = ad.end_date ? new Date(ad.end_date) : null;
+    if ((startDate && yearEnd < startDate) || (endDate && yearStart > endDate)) {
+      return [];
+    }
+
+    const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+    if (!sourceAsset) {
+      return [];
+    }
+
+    const projections = assetProjections[sourceAsset.id] || [];
+    const startIndex = selectedYear === 0 ? 0 : Math.max(selectedYear - 1, 0);
+    let sourceBalance = projections[startIndex] ?? sourceAsset.value ?? 0;
+    if (selectedYear === 0 && projections[0] == null) {
+      sourceBalance = sourceAsset.value || 0;
+    }
+    sourceBalance = Math.abs(sourceBalance);
+
+    let transferAmount = 0;
+    if (ad.use_rmd && userSettings?.person1_birthdate) {
+      const overrideKey = projectionYear;
+      let overrideVal = ad.rmd_overrides ? (ad.rmd_overrides[overrideKey] ?? ad.rmd_overrides[String(overrideKey)]) : null;
+      if (overrideVal != null && overrideVal !== '') {
+        transferAmount = Number(overrideVal) || 0;
+      } else {
+        const spouseBirthdate = userSettings.person2_birthdate || null;
+        const rmdResult = calculateRmd(userSettings.person1_birthdate, sourceBalance, projectionYear, spouseBirthdate);
+        transferAmount = rmdResult?.rmd_amount || 0;
+      }
+    } else if (ad.transfer_type === 'percentage') {
+      transferAmount = sourceBalance * ((Number(ad.transfer_value) || 0) / 100.0);
+    } else {
+      transferAmount = Number(ad.transfer_value) || 0;
+    }
+
+    transferAmount = Math.max(0, transferAmount);
+    if (!Number.isFinite(transferAmount) || transferAmount === 0) {
+      return [];
+    }
+
+    return [{
+      id: `taxable-distribution-${ad.id}-${projectionYear}`,
+      description: "Taxable distribution",
+      category: ad.name || 'Taxable distribution',
+      yearly_value: transferAmount,
+      start_date: ad.start_date || null,
+      end_date: ad.end_date || null,
+      taxable: true,
+      annual_increase_percent: 0,
+      frequency: 'yearly',
+      linked_item_type: null,
+      percentage: null,
+    }];
+  });
+};
 
 // Simplified Sankey Diagram Component
 function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [], viewMode = 'sankey', includeTransfers = true }) {
@@ -23,8 +102,8 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   
   const cashInSourceIds = userSettings?.cash_in_source_ids || [];
   const cashOutSourceIds = userSettings?.cash_out_source_ids || [];
-  
-  const includedIncomeItems = cashInSourceIds.length === 0 
+
+  const baseIncomeItems = cashInSourceIds.length === 0 
     ? (incomeItems || [])
     : (incomeItems || []).filter(item => cashInSourceIds.includes(item?.id));
   
@@ -32,9 +111,30 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     ? (expenseItems || [])
     : (expenseItems || []).filter(item => cashOutSourceIds.includes(item?.id));
   
+  const assetProjections = {};
+  assets.forEach(asset => {
+    const growthRate = (asset.annual_increase_percent || 0) / 100;
+    assetProjections[asset.id] = [];
+    for (let yearIndex = 0; yearIndex <= projectionYears; yearIndex++) {
+      const value = (asset.value || 0) * Math.pow(1 + growthRate, yearIndex);
+      assetProjections[asset.id].push(value);
+    }
+  });
+
+  const taxableDistributionItems = buildTaxableDistributionEntries({
+    autoDisbursements,
+    assets,
+    assetProjections,
+    currentYear,
+    selectedYear,
+    userSettings,
+  });
+
+  const allIncomeItems = [...baseIncomeItems, ...taxableDistributionItems];
+
   // Group income by category
   const incomeByCategory = {};
-  includedIncomeItems.forEach(item => {
+  allIncomeItems.forEach(item => {
     const category = item.category || 'Other';
     if (!incomeByCategory[category]) {
       incomeByCategory[category] = [];
@@ -57,13 +157,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   const year = selectedYear; // Year offset (0 = current year)
   let totalCashIn = 0;
   let totalCashOut = 0;
-  
-  // Pre-calculate asset projections for dynamic items
-  const assetProjections = {};
-  assets.forEach(asset => {
-    const growthRate = (asset.annual_increase_percent || 0) / 100;
-    assetProjections[asset.id] = (asset.value || 0) * Math.pow(1 + growthRate, year);
-  });
   
   // Calculate income totals by category for selected year
   const incomeCategoryTotals = {};
@@ -98,7 +191,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         if (linkedAssetIds.length > 0) {
           let totalAssetValue = 0;
           linkedAssetIds.forEach(assetId => {
-            const projectedAssetValue = assetProjections[assetId] || 0;
+            const projectedAssetValue = assetProjections[assetId]?.[year] || 0;
             totalAssetValue += projectedAssetValue;
           });
           itemValue = totalAssetValue * (item.percentage / 100.0);
@@ -160,18 +253,18 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       
       // Handle dynamic items (linked to assets or income)
       if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null && item.percentage !== undefined) {
-        const projectedAssetValue = assetProjections[item.linked_item_id] || 0;
+        const projectedAssetValue = assetProjections[item.linked_item_id]?.[year] || 0;
         itemValue = projectedAssetValue * (item.percentage / 100.0);
       } else if (item.linked_item_id && item.linked_item_type === "income" && item.percentage !== null && item.percentage !== undefined) {
         // Expense linked to income - calculate based on linked income value
-        const linkedIncomeItem = includedIncomeItems.find(i => i.id === item.linked_item_id);
+        const linkedIncomeItem = allIncomeItems.find(i => i.id === item.linked_item_id);
         if (linkedIncomeItem) {
           // Calculate the linked income value for this year
           let linkedIncomeValue = linkedIncomeItem.yearly_value || 0;
           
           // Check if linked income is also dynamic (linked to asset)
           if (linkedIncomeItem.linked_item_id && linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null && linkedIncomeItem.percentage !== undefined) {
-            const projectedAssetValue = assetProjections[linkedIncomeItem.linked_item_id] || 0;
+            const projectedAssetValue = assetProjections[linkedIncomeItem.linked_item_id]?.[year] || 0;
             linkedIncomeValue = projectedAssetValue * (linkedIncomeItem.percentage / 100.0);
           } else {
             // Fixed income - apply growth rate
