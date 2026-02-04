@@ -10,36 +10,36 @@ import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
 import './SettingsPages.css';
 
-const AutoDisbursementSettingsPage = () => {
-  // Simple error boundary to catch render/runtime errors and display them in the UI.
-  class ErrorBoundary extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = { hasError: false, error: null, info: null };
-    }
-    componentDidCatch(error, info) {
-      // Save to state and log to console for debugging
-      this.setState({ hasError: true, error, info });
-      // eslint-disable-next-line no-console
-      console.error('AutoDisbursementSettingsPage render error', error, info);
-    }
-    render() {
-      if (this.state.hasError) {
-        return (
-          <div style={{ padding: 20, background: '#fff3f3', border: '1px solid #f5c2c2', borderRadius: 6 }}>
-            <strong style={{ color: '#a00' }}>An error occurred rendering Auto-Disbursements</strong>
-            <div style={{ marginTop: 8, color: '#333' }}>{this.state.error && this.state.error.toString()}</div>
-            <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap', color: '#555' }}>{this.state.info?.componentStack}</pre>
-            <div style={{ marginTop: 8 }}>
-              Please copy the above error and send it to the developer console if asked.
-            </div>
-          </div>
-          
-        );
-      }
-      return this.props.children;
-    }
+// Simple error boundary to catch render/runtime errors and display them in the UI.
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, info: null };
   }
+  componentDidCatch(error, info) {
+    // Save to state and log to console for debugging
+    this.setState({ hasError: true, error, info });
+    // eslint-disable-next-line no-console
+    console.error('AutoDisbursementSettingsPage render error', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 20, background: '#fff3f3', border: '1px solid #f5c2c2', borderRadius: 6 }}>
+          <strong style={{ color: '#a00' }}>An error occurred rendering Auto-Disbursements</strong>
+          <div style={{ marginTop: 8, color: '#333' }}>{this.state.error && this.state.error.toString()}</div>
+          <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap', color: '#555' }}>{this.state.info?.componentStack}</pre>
+          <div style={{ marginTop: 8 }}>
+            Please copy the above error and send it to the developer console if asked.
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const AutoDisbursementSettingsPage = () => {
   const { currentUser, viewingUserId } = useAuth();
   const navigate = useNavigate();
   useSettingsBackButton();
@@ -518,7 +518,7 @@ const AutoDisbursementSettingsPage = () => {
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
             Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
           </h3>
-          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr)', gap: '20px', alignItems: 'start', marginBottom: '18px' }}>
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', alignItems: 'start', marginBottom: '18px' }}>
               {/* Row 1: Name | Source Asset | Target Asset */}
               <div className="form-field">
                 <label htmlFor="name">Name of Distribution *</label>
@@ -543,6 +543,7 @@ const AutoDisbursementSettingsPage = () => {
                   value={newAutoDisbursement.source_asset_id || ''}
                   onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, source_asset_id: e.target.value || '' }))}
                   className="input-modern"
+                  style={{ width: '100%', minWidth: 0 }}
                 >
                   <option value="">Select Source Asset</option>
                   {assets && assets.length > 0 ? (
@@ -572,6 +573,7 @@ const AutoDisbursementSettingsPage = () => {
                   value={newAutoDisbursement.target_asset_id || ''}
                   onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, target_asset_id: e.target.value || '' }))}
                   className="input-modern"
+                  style={{ width: '100%', minWidth: 0 }}
                 >
                   <option value="">Select Target Asset</option>
                   {assets && assets.length > 0 ? (

@@ -105,6 +105,34 @@ def create_auto_disbursement(
             raise HTTPException(status_code=400, detail="Source must be a non-retirement account or a Roth account for non-taxable distributions")
     return db_disbursement
 
+@router.get("/rmd", tags=["auto-disbursements"])
+def get_rmd_for_asset(asset_id: int, year: int | None = None, years: int | None = None, db: Session = Depends(database.get_db), current_user: schemas.UserOut = Depends(auth.get_current_user)):
+    """
+    Compute RMD for an asset owned by the current user.
+    If `year` provided and `years` is None -> return single-year result.
+    If `years` provided -> returns list of results for year..year+years-1 (default year=today).
+    Uses asset.value as prior-year-end balance unless caller overrides.
+    """
+    if year is None:
+        year = date.today().year
+    asset = db.query(models.Asset).filter(models.Asset.id == asset_id, models.Asset.owner_id == current_user.id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    # Get owner's birthdate from user settings
+    user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
+    if not user_settings or not user_settings.person1_birthdate:
+        raise HTTPException(status_code=400, detail="Person 1 birthdate required in profile settings to compute RMD")
+    spouse_bd = user_settings.person2_birthdate if user_settings.person2_birthdate else None
+    # Use asset.value as prior-year-end balance (caller may override)
+    balance = asset.value or 0.0
+    if years and years > 1:
+        results = []
+        for y in range(year, year + years):
+            results.append(calculate_rmd(user_settings.person1_birthdate, balance, y, spouse_bd))
+        return results
+    r = calculate_rmd(user_settings.person1_birthdate, balance, year, spouse_bd)
+    return r
+
 @router.get("/{disbursement_id}", response_model=schemas.AutoDisbursementOut)
 def get_auto_disbursement(
     disbursement_id: int,
@@ -216,31 +244,4 @@ def delete_auto_disbursement(
     return None
 
 
-@router.get("/rmd", tags=["auto-disbursements"])
-def get_rmd_for_asset(asset_id: int, year: int | None = None, years: int | None = None, db: Session = Depends(database.get_db), current_user: schemas.UserOut = Depends(auth.get_current_user)):
-    """
-    Compute RMD for an asset owned by the current user.
-    If `year` provided and `years` is None -> return single-year result.
-    If `years` provided -> returns list of results for year..year+years-1 (default year=today).
-    Uses asset.value as prior-year-end balance unless caller overrides.
-    """
-    if year is None:
-        year = date.today().year
-    asset = db.query(models.Asset).filter(models.Asset.id == asset_id, models.Asset.owner_id == current_user.id).first()
-    if not asset:
-        raise HTTPException(status_code=404, detail="Asset not found")
-    # Get owner's birthdate from user settings
-    user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
-    if not user_settings or not user_settings.person1_birthdate:
-        raise HTTPException(status_code=400, detail="Person 1 birthdate required in profile settings to compute RMD")
-    spouse_bd = user_settings.person2_birthdate if user_settings.person2_birthdate else None
-    # Use asset.value as prior-year-end balance (caller may override)
-    balance = asset.value or 0.0
-    if years and years > 1:
-        results = []
-        for y in range(year, year + years):
-            results.append(calculate_rmd(user_settings.person1_birthdate, balance, y, spouse_bd))
-        return results
-    r = calculate_rmd(user_settings.person1_birthdate, balance, year, spouse_bd)
-    return r
 
