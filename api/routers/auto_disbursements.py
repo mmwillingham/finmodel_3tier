@@ -78,7 +78,7 @@ def create_auto_disbursement(
     db.add(db_disbursement)
     db.commit()
     db.refresh(db_disbursement)
-    # Handle taxable IRA distribution creation of income item if requested
+    # For taxable IRA distributions we do validation here (but do NOT auto-create a CashFlowItem).
     if getattr(disbursement, "distribution_type", None) == "taxable_ira":
         # Ensure source and target assets are proper types (source retirement, target non-retirement)
         source_asset = db.query(models.Asset).filter(models.Asset.id == disbursement.source_asset_id, models.Asset.owner_id == current_user.id).first()
@@ -94,29 +94,6 @@ def create_auto_disbursement(
             raise HTTPException(status_code=400, detail="Source must be a retirement account for taxable IRA distributions")
         if target_account and target_account.is_retirement:
             raise HTTPException(status_code=400, detail="Target must be a non-retirement account for taxable IRA distributions")
-        # Create a taxable income CashFlowItem to represent the distribution (if not exists)
-        description = f"Taxable distribution - {db_disbursement.name}"
-        existing = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.description == description).first()
-        if not existing:
-            cash_item = models.CashFlowItem(
-                owner_id=current_user.id,
-                is_income=True,
-                category="Distributions",
-                description=description,
-                frequency="yearly",
-                yearly_value=0.0,
-                annual_increase_percent=0.0,
-                inflation_percent=0.0,
-                taxable=True,
-            )
-            db.add(cash_item)
-            db.commit()
-            db.refresh(cash_item)
-            db_disbursement.taxable_income_cashflow_item_id = cash_item.id
-            db.commit()
-        else:
-            db_disbursement.taxable_income_cashflow_item_id = existing.id
-            db.commit()
     # Validate non-taxable distribution source: must be non-retirement or Roth
     if getattr(disbursement, "distribution_type", None) == "non_taxable":
         # Attempt to find account retirement flag
@@ -192,31 +169,21 @@ def update_auto_disbursement(
     
     db.commit()
     db.refresh(db_disbursement)
-    # If distribution_type changed to taxable_ira, ensure taxable cashflow item exists
+    # If distribution_type changed to taxable_ira, perform validation only (do not create income items).
     if getattr(disbursement_update, "distribution_type", None) == "taxable_ira":
-        # Create or ensure cashflow item exists as in create endpoint
-        description = f"Taxable distribution - {db_disbursement.name}"
-        existing = db.query(models.CashFlowItem).filter(models.CashFlowItem.owner_id == current_user.id, models.CashFlowItem.description == description).first()
-        if not existing:
-            cash_item = models.CashFlowItem(
-                owner_id=current_user.id,
-                is_income=True,
-                category="Distributions",
-                description=description,
-                frequency="yearly",
-                yearly_value=0.0,
-                annual_increase_percent=0.0,
-                inflation_percent=0.0,
-                taxable=True,
-            )
-            db.add(cash_item)
-            db.commit()
-            db.refresh(cash_item)
-            db_disbursement.taxable_income_cashflow_item_id = cash_item.id
-            db.commit()
-        else:
-            db_disbursement.taxable_income_cashflow_item_id = existing.id
-            db.commit()
+        # Validate source/target asset account retirement flags as in create endpoint (no cashflow item creation)
+        source_asset = db.query(models.Asset).filter(models.Asset.id == db_disbursement.source_asset_id, models.Asset.owner_id == current_user.id).first()
+        target_asset = db.query(models.Asset).filter(models.Asset.id == db_disbursement.target_asset_id, models.Asset.owner_id == current_user.id).first()
+        source_account = None
+        target_account = None
+        if source_asset and source_asset.account_id:
+            source_account = db.query(models.Account).filter(models.Account.id == source_asset.account_id).first()
+        if target_asset and target_asset.account_id:
+            target_account = db.query(models.Account).filter(models.Account.id == target_asset.account_id).first()
+        if not source_account or not source_account.is_retirement:
+            raise HTTPException(status_code=400, detail="Source must be a retirement account for taxable IRA distributions")
+        if target_account and target_account.is_retirement:
+            raise HTTPException(status_code=400, detail="Target must be a non-retirement account for taxable IRA distributions")
     # If distribution_type changed to non_taxable, validate source is non-retirement or Roth
     if getattr(disbursement_update, "distribution_type", None) == "non_taxable":
         # Check source account retirement flag if source_asset_id updated or existing db_disbursement has one

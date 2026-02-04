@@ -34,73 +34,7 @@ const AutoDisbursementSettingsPage = () => {
               Please copy the above error and send it to the developer console if asked.
             </div>
           </div>
-          {/* RMD schedule / overrides panel - rendered separately to avoid remounting the main form inputs */}
-          {rmdSchedule && (
-            <div className="setting-group" style={{ marginBottom: '18px', padding: '10px 12px', border: '1px solid #eee', borderRadius: 6, background: '#fafcff' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label style={{ margin: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={!!newAutoDisbursement.use_rmd}
-                      onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, use_rmd: e.target.checked }))}
-                    /> Use RMD each year
-                  </label>
-                  <small style={{ color: '#666' }}>Toggle to apply RMD as the transfer amount each year (can be overridden manually).</small>
-                </div>
-                <div>
-                  <small style={{ color: '#666' }}>Per-year overrides (enter value to override RMD amount)</small>
-                </div>
-              </div>
-              <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #f0f0f0', padding: '8px', borderRadius: '4px', background: '#fff' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', padding: '6px 8px' }}>Year</th>
-                      <th style={{ textAlign: 'right', padding: '6px 8px' }}>RMD Amount</th>
-                      <th style={{ textAlign: 'left', padding: '6px 8px' }}>Table</th>
-                      <th style={{ textAlign: 'left', padding: '6px 8px' }}>Override</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rmdSchedule.map((r) => {
-                      const overrideVal = (newAutoDisbursement.rmd_overrides && (newAutoDisbursement.rmd_overrides[r.year] ?? newAutoDisbursement.rmd_overrides[String(r.year)])) || '';
-                      return (
-                        <tr key={r.year}>
-                          <td style={{ padding: '6px 8px' }}>{r.year}</td>
-                          <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                            {(r.rmd_amount != null && !isNaN(Number(r.rmd_amount))) ? `$${Number(r.rmd_amount).toFixed(2)}` : '—'}
-                          </td>
-                          <td style={{ padding: '6px 8px' }}>{typeof r.table_used === 'string' ? r.table_used : (r.table_used == null ? '—' : JSON.stringify(r.table_used))}</td>
-                          <td style={{ padding: '6px 8px' }}>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="override"
-                              value={overrideVal}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setNewAutoDisbursement(prev => {
-                                  const nextOverrides = { ...(prev.rmd_overrides || {}) };
-                                  if (v === '' || isNaN(parseFloat(v))) {
-                                    delete nextOverrides[String(r.year)];
-                                  } else {
-                                    nextOverrides[String(r.year)] = parseFloat(v);
-                                  }
-                                  return { ...prev, rmd_overrides: nextOverrides };
-                                });
-                              }}
-                              style={{ width: '120px' }}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          
         );
       }
       return this.props.children;
@@ -179,6 +113,9 @@ const AutoDisbursementSettingsPage = () => {
   const [rmdLoading, setRmdLoading] = useState(false);
   const [rmdError, setRmdError] = useState('');
   const nameRef = useRef(null);
+  const startDateRef = useRef(null);
+  const endDateRef = useRef(null);
+  const transferValueRef = useRef(null);
 
   // Helper to normalize error-like values into a string for display
   const formatError = (err) => {
@@ -306,7 +243,7 @@ const AutoDisbursementSettingsPage = () => {
         end_date: newAutoDisbursement.end_date || null,
       });
       setMessage('Auto-disbursement created successfully!');
-      setNewAutoDisbursement({
+      setNewAutoDisbursement(() => ({
         name: '',
         source_asset_id: '',
         target_asset_id: '',
@@ -317,7 +254,7 @@ const AutoDisbursementSettingsPage = () => {
         end_date: '',
         use_rmd: false,
         rmd_overrides: {},
-      });
+      }));
       loadData();
       setTimeout(() => {
         setMessage('');
@@ -696,7 +633,19 @@ const AutoDisbursementSettingsPage = () => {
                   step={newAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
                   placeholder={newAutoDisbursement.transfer_type === 'percentage' ? 'e.g., 5' : 'e.g., 5000'}
                   value={newAutoDisbursement.transfer_value}
-                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, transfer_value: e.target.value }))}
+                  ref={transferValueRef}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const pos = e.target.selectionStart;
+                    setNewAutoDisbursement(prev => ({ ...prev, transfer_value: val }));
+                    setTimeout(() => {
+                      const el = transferValueRef.current;
+                      if (el) {
+                        el.focus();
+                        try { el.setSelectionRange(pos, pos); } catch (err) {}
+                      }
+                    }, 0);
+                  }}
                   className="input-modern"
                 />
                 {recommendedRmd && (
@@ -733,7 +682,15 @@ const AutoDisbursementSettingsPage = () => {
                   id="start_date"
                   type="date"
                   value={newAutoDisbursement.start_date}
-                                      onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, start_date: e.target.value }))}
+                  ref={startDateRef}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewAutoDisbursement(prev => ({ ...prev, start_date: val }));
+                    setTimeout(() => {
+                      const el = startDateRef.current;
+                      if (el) el.focus();
+                    }, 0);
+                  }}
                   className="input-modern"
                 />
                 <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
@@ -744,7 +701,15 @@ const AutoDisbursementSettingsPage = () => {
                   id="end_date"
                   type="date"
                   value={newAutoDisbursement.end_date}
-                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, end_date: e.target.value }))}
+                  ref={endDateRef}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewAutoDisbursement(prev => ({ ...prev, end_date: val }));
+                    setTimeout(() => {
+                      const el = endDateRef.current;
+                      if (el) el.focus();
+                    }, 0);
+                  }}
                   className="input-modern"
                 />
                 <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
@@ -765,7 +730,7 @@ const AutoDisbursementSettingsPage = () => {
                 </button>
                 <button onClick={() => {
                     setEditingId(null);
-                    setNewAutoDisbursement({
+                    setNewAutoDisbursement(() => ({
                       name: '',
                       source_asset_id: '',
                       target_asset_id: '',
@@ -776,7 +741,7 @@ const AutoDisbursementSettingsPage = () => {
                       end_date: '',
                       use_rmd: false,
                       rmd_overrides: {},
-                    });
+                    }));
                   }} className="cancel-button">
                   Cancel
                 </button>

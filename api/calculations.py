@@ -451,14 +451,17 @@ def calculate_projection(years: int, accounts: List[schemas.ProjectedAccountCrea
                         if abs(source_balance) >= transfer_amount:
                             account_current_balances[source_name] -= transfer_amount
                             account_current_balances[target_name] += transfer_amount
-                            # If this is a taxable IRA distribution, record it as taxable income for the year
-                            if distribution_type == "taxable_ira" and taxable_cashflow_item_id:
-                                cash_item = cash_flow_items_by_id.get(taxable_cashflow_item_id)
-                                if cash_item:
-                                    desc = cash_item.description
-                                    annual_flow_values[desc] = annual_flow_values.get(desc, 0.0) + transfer_amount
-                                    # Also increase taxable income tracker so tax calc picks it up
-                                    current_year_taxable_income += transfer_amount
+                            # If this is a taxable IRA distribution, always record it as taxable income for the year.
+                            # If a taxable_cashflow_item_id exists, also map the amount to that cashflow item for backward compatibility.
+                            if distribution_type == "taxable_ira":
+                                # Increase taxable income tracker so tax calc picks it up
+                                current_year_taxable_income += transfer_amount
+                                # If frontend previously created or linked a cashflow item, update annual_flow_values mapping too
+                                if taxable_cashflow_item_id:
+                                    cash_item = cash_flow_items_by_id.get(taxable_cashflow_item_id)
+                                    if cash_item:
+                                        desc = cash_item.description
+                                        annual_flow_values[desc] = annual_flow_values.get(desc, 0.0) + transfer_amount
 
             for projected_account in projected_accounts_for_db:
                 current_balance = account_current_balances[projected_account.name]
