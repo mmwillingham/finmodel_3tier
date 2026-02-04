@@ -112,6 +112,7 @@ const AutoDisbursementSettingsPage = () => {
   const [recommendedRmd, setRecommendedRmd] = useState(null);
   const [rmdLoading, setRmdLoading] = useState(false);
   const [rmdError, setRmdError] = useState('');
+  const [useRecommendedRmdValue, setUseRecommendedRmdValue] = useState(true);
   const nameRef = useRef(null);
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
@@ -138,51 +139,110 @@ const AutoDisbursementSettingsPage = () => {
     return String(err);
   };
 
-  useEffect(() => {
-    const fetchRmd = async () => {
-      setRecommendedRmd(null);
-      setRmdError('');
-      setRmdSchedule(null);
-      // Only fetch RMD schedule when user has explicitly enabled Use RMD each year,
-      // and a source asset is selected. This prevents premature validation errors
-      // and unnecessary UI changes while the user is filling the form.
-      if (newAutoDisbursement.distribution_type !== 'taxable_ira' || !newAutoDisbursement.source_asset_id || !newAutoDisbursement.use_rmd) {
-        return;
+  const fetchRmd = useCallback(async () => {
+    setRecommendedRmd(null);
+    setRmdError('');
+    setRmdSchedule(null);
+    // Only fetch RMD schedule when user has explicitly enabled Use RMD each year,
+    // and a source asset is selected. This prevents premature validation errors
+    // and unnecessary UI changes while the user is filling the form.
+    if (newAutoDisbursement.distribution_type !== 'taxable_ira' || !newAutoDisbursement.source_asset_id || !newAutoDisbursement.use_rmd) {
+      return;
+    }
+    try {
+      setRmdLoading(true);
+      const startYear = (userSettings && userSettings.tax_year) ? userSettings.tax_year : new Date().getFullYear();
+      // Request a 10-year schedule for preview
+      const resp = await AutoDisbursementService.getRmd(newAutoDisbursement.source_asset_id, startYear, 10);
+      if (Array.isArray(resp)) {
+        setRmdSchedule(resp);
+        setRecommendedRmd(resp[0] || null);
+      } else {
+        setRecommendedRmd(resp);
       }
-      try {
-        setRmdLoading(true);
-        const startYear = (userSettings && userSettings.tax_year) ? userSettings.tax_year : new Date().getFullYear();
-        // Request a 10-year schedule for preview
-        const resp = await AutoDisbursementService.getRmd(newAutoDisbursement.source_asset_id, startYear, 10);
-        if (Array.isArray(resp)) {
-          setRmdSchedule(resp);
-          setRecommendedRmd(resp[0] || null);
-        } else {
-          setRecommendedRmd(resp);
-        }
-      } catch (err) {
-        // If validation error (422) from backend, avoid showing raw pydantic detail to user.
-        const status = err?.response?.status;
-        if (status === 422) {
-          console.error('RMD validation error:', err.response?.data);
-          setRmdError('Failed to calculate RMD: invalid request parameters.');
-        } else {
-          setRmdError(formatError(err.response?.data?.detail || err.message || 'Failed to fetch RMD'));
-        }
-      } finally {
-        setRmdLoading(false);
+    } catch (err) {
+      // If validation error (422) from backend, avoid showing raw pydantic detail to user.
+      const status = err?.response?.status;
+      if (status === 422) {
+        console.error('RMD validation error:', err.response?.data);
+        setRmdError('Failed to calculate RMD: invalid request parameters.');
+      } else {
+        setRmdError(formatError(err.response?.data?.detail || err.message || 'Failed to fetch RMD'));
       }
-    };
-    fetchRmd();
+    } finally {
+      setRmdLoading(false);
+    }
   }, [newAutoDisbursement.distribution_type, newAutoDisbursement.source_asset_id, newAutoDisbursement.use_rmd, userSettings]);
 
-  // When a recommended RMD is returned and the user has enabled RMD, prefill start_date
-  // with the start of the recommended year if the form doesn't already have a start_date.
   useEffect(() => {
-    if (newAutoDisbursement.use_rmd && recommendedRmd && recommendedRmd.year && !newAutoDisbursement.start_date) {
-      setNewAutoDisbursement(prev => ({ ...prev, start_date: `${recommendedRmd.year}-01-01` }));
+    fetchRmd();
+  }, [fetchRmd]);
+
+  // Refresh RMD when other parts of the app request it.
+  useEffect(() => {
+    const handleRmdRefresh = () => {
+      fetchRmd();
+    };
+    window.addEventListener('rmdRefreshRequested', handleRmdRefresh);
+    return () => {
+      window.removeEventListener('rmdRefreshRequested', handleRmdRefresh);
+    };
+  }, [fetchRmd]);
+
+  // Auto-refresh RMD at midnight while this page is open.
+  useEffect(() => {
+    if (newAutoDisbursement.distribution_type !== 'taxable_ira' || !newAutoDisbursement.source_asset_id || !newAutoDisbursement.use_rmd) {
+      return;
     }
-  }, [recommendedRmd, newAutoDisbursement.use_rmd]);
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+    let intervalId = null;
+    const timeoutId = setTimeout(() => {
+      fetchRmd();
+      intervalId = setInterval(() => {
+        fetchRmd();
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilMidnight);
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [fetchRmd, newAutoDisbursement.distribution_type, newAutoDisbursement.source_asset_id, newAutoDisbursement.use_rmd]);
+
+  const getRmdStartYear = (birthdateStr) => {
+    if (!birthdateStr) return null;
+    const birthDate = new Date(birthdateStr);
+    if (Number.isNaN(birthDate.getTime())) return null;
+    const birthYear = birthDate.getFullYear();
+    // SECURE Act 2.0: 72 if born <= 1950, 73 if 1951-1959, 75 if 1960+
+    let rmdAge = 72;
+    if (birthYear >= 1960) {
+      rmdAge = 75;
+    } else if (birthYear >= 1951) {
+      rmdAge = 73;
+    }
+    return birthYear + rmdAge;
+  };
+
+  // When user enables RMD, prefill start_date using birthdate-based RMD start year
+  // if the form doesn't already have a start_date.
+  useEffect(() => {
+    if (!newAutoDisbursement.use_rmd || newAutoDisbursement.start_date) return;
+    const startYear = getRmdStartYear(userSettings?.person1_birthdate);
+    if (startYear) {
+      setNewAutoDisbursement(prev => ({ ...prev, start_date: `${startYear}-01-01` }));
+    }
+  }, [newAutoDisbursement.use_rmd, userSettings?.person1_birthdate, newAutoDisbursement.start_date]);
+
+  // When using the recommended RMD value, keep transfer_value aligned to the rounded recommendation.
+  useEffect(() => {
+    if (!newAutoDisbursement.use_rmd || !useRecommendedRmdValue) return;
+    if (recommendedRmd?.rmd_amount == null || isNaN(Number(recommendedRmd.rmd_amount))) return;
+    const roundedValue = String(Math.round(Number(recommendedRmd.rmd_amount)));
+    setNewAutoDisbursement(prev => ({ ...prev, transfer_type: 'dollar_amount', transfer_value: roundedValue }));
+  }, [newAutoDisbursement.use_rmd, useRecommendedRmdValue, recommendedRmd]);
 
   const handleCreateAutoDisbursement = async () => {
     if (isViewingOther) {
@@ -190,7 +250,10 @@ const AutoDisbursementSettingsPage = () => {
       setTimeout(() => setMessage(''), 3000);
       return;
     }
-    if (!newAutoDisbursement.name || !newAutoDisbursement.source_asset_id || !newAutoDisbursement.target_asset_id) {
+    const normalizedName = (newAutoDisbursement.name || '').trim();
+    const normalizedSourceId = String(newAutoDisbursement.source_asset_id || '').trim();
+    const normalizedTargetId = String(newAutoDisbursement.target_asset_id || '').trim();
+    if (!normalizedName || !normalizedSourceId || !normalizedTargetId) {
       setMessage('Error: Name, Source Asset, and Target Asset are required');
       setTimeout(() => setMessage(''), 3000);
       return;
@@ -238,7 +301,7 @@ const AutoDisbursementSettingsPage = () => {
 
     // If using RMD, transfer_value is not required (RMD will determine the amount).
     let transferValue = null;
-    if (!newAutoDisbursement.use_rmd) {
+    if (!newAutoDisbursement.use_rmd || !useRecommendedRmdValue) {
       transferValue = parseFloat(newAutoDisbursement.transfer_value);
       if (isNaN(transferValue) || transferValue <= 0) {
         setMessage('Error: Transfer Value must be a positive number');
@@ -250,14 +313,18 @@ const AutoDisbursementSettingsPage = () => {
         setTimeout(() => setMessage(''), 3000);
         return;
       }
+    } else {
+      // Use a safe numeric value to satisfy backend schema when RMD is enabled.
+      const recommendedValue = recommendedRmd?.rmd_amount != null ? Number(recommendedRmd.rmd_amount) : null;
+      transferValue = Number.isFinite(recommendedValue) ? Math.round(recommendedValue) : 0;
     }
 
     try {
       await AutoDisbursementService.createAutoDisbursement({
         ...newAutoDisbursement,
-        source_asset_id: parseInt(newAutoDisbursement.source_asset_id),
-        target_asset_id: parseInt(newAutoDisbursement.target_asset_id),
-        transfer_value: newAutoDisbursement.use_rmd ? null : transferValue,
+        source_asset_id: parseInt(normalizedSourceId),
+        target_asset_id: parseInt(normalizedTargetId),
+        transfer_value: transferValue,
         use_rmd: !!newAutoDisbursement.use_rmd,
         rmd_overrides: newAutoDisbursement.rmd_overrides || null,
         start_date: newAutoDisbursement.start_date || null,
@@ -279,7 +346,6 @@ const AutoDisbursementSettingsPage = () => {
       loadData();
       setTimeout(() => {
         setMessage('');
-        navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
       const errorMessage = formatError(e.response?.data?.detail || e.message || 'Error creating auto-disbursement');
@@ -294,7 +360,10 @@ const AutoDisbursementSettingsPage = () => {
       setTimeout(() => setMessage(''), 3000);
       return;
     }
-    if (!updatedAutoDisbursement.name || !updatedAutoDisbursement.source_asset_id || !updatedAutoDisbursement.target_asset_id) {
+    const normalizedName = (updatedAutoDisbursement.name || '').trim();
+    const normalizedSourceId = String(updatedAutoDisbursement.source_asset_id || '').trim();
+    const normalizedTargetId = String(updatedAutoDisbursement.target_asset_id || '').trim();
+    if (!normalizedName || !normalizedSourceId || !normalizedTargetId) {
       setMessage('Error: Name, Source Asset, and Target Asset are required');
       setTimeout(() => setMessage(''), 3000);
       return;
@@ -308,7 +377,7 @@ const AutoDisbursementSettingsPage = () => {
 
     // If using RMD, transfer_value is not required (RMD will determine the amount).
     let transferValue = null;
-    if (!updatedAutoDisbursement.use_rmd) {
+    if (!updatedAutoDisbursement.use_rmd || !useRecommendedRmdValue) {
       transferValue = parseFloat(updatedAutoDisbursement.transfer_value);
       if (isNaN(transferValue) || transferValue <= 0) {
         setMessage('Error: Transfer Value must be a positive number');
@@ -320,14 +389,17 @@ const AutoDisbursementSettingsPage = () => {
         setTimeout(() => setMessage(''), 3000);
         return;
       }
+    } else {
+      const recommendedValue = recommendedRmd?.rmd_amount != null ? Number(recommendedRmd.rmd_amount) : null;
+      transferValue = Number.isFinite(recommendedValue) ? Math.round(recommendedValue) : 0;
     }
 
     try {
       await AutoDisbursementService.updateAutoDisbursement(id, {
         ...updatedAutoDisbursement,
-        source_asset_id: parseInt(updatedAutoDisbursement.source_asset_id),
-        target_asset_id: parseInt(updatedAutoDisbursement.target_asset_id),
-        transfer_value: updatedAutoDisbursement.use_rmd ? null : transferValue,
+        source_asset_id: parseInt(normalizedSourceId),
+        target_asset_id: parseInt(normalizedTargetId),
+        transfer_value: transferValue,
         use_rmd: !!updatedAutoDisbursement.use_rmd,
         rmd_overrides: updatedAutoDisbursement.rmd_overrides || null,
         start_date: updatedAutoDisbursement.start_date || null,
@@ -338,7 +410,6 @@ const AutoDisbursementSettingsPage = () => {
       loadData();
       setTimeout(() => {
         setMessage('');
-        navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
       const errorMessage = formatError(e.response?.data?.detail || e.message || 'Error updating auto-disbursement');
@@ -519,7 +590,7 @@ const AutoDisbursementSettingsPage = () => {
             Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
           </h3>
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', alignItems: 'start', marginBottom: '18px' }}>
-              {/* Row 1: Name | Source Asset | Target Asset */}
+              {/* Row 1: Name | Distribution Type | Transfer Type */}
               <div className="form-field">
                 <label htmlFor="name">Name of Distribution *</label>
                 <input
@@ -536,6 +607,62 @@ const AutoDisbursementSettingsPage = () => {
                   className="input-modern"
                 />
               </div>
+              <div className="form-field">
+                <label htmlFor="distribution_type">Distribution Type</label>
+                <select
+                  id="distribution_type"
+                  value={newAutoDisbursement.distribution_type || 'non_taxable'}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, distribution_type: e.target.value || 'non_taxable' }))}
+                  className="input-modern"
+                >
+                  <option value="non_taxable">Non-taxable Distribution</option>
+                  <option value="taxable_ira">Taxable IRA Distribution</option>
+                </select>
+                {newAutoDisbursement.distribution_type === 'taxable_ira' && (
+                  <>
+                    <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                      Taxable transfer from a non-Roth retirement account to a non-retirement account. Required: start date and owner birth date in profile.
+                    </small>
+                    <label style={{ display: 'block', marginTop: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!newAutoDisbursement.use_rmd}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setNewAutoDisbursement(prev => {
+                            const next = { ...prev, use_rmd: checked };
+                            if (checked) {
+                              next.transfer_type = 'dollar_amount';
+                              setUseRecommendedRmdValue(true);
+                            }
+                            return next;
+                          });
+                        }}
+                        style={{ marginRight: 8 }}
+                      />
+                      Use RMD each year
+                    </label>
+                  </>
+                )}
+                {newAutoDisbursement.distribution_type === 'non_taxable' && (
+                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                    Non-taxable transfers should come from non-retirement accounts or Roth accounts. The source will be validated when saving.
+                  </small>
+                )}
+              </div>
+              <div className="form-field">
+                <label htmlFor="transfer_type">Transfer Type *</label>
+                <select
+                  id="transfer_type"
+                  value={newAutoDisbursement.transfer_type}
+                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, transfer_type: e.target.value }))}
+                  className="input-modern"
+                >
+                  <option value="percentage">Percentage</option>
+                  <option value="dollar_amount">Dollar Amount</option>
+                </select>
+              </div>
+              {/* Row 2: Source Asset | Target Asset | Transfer Value */}
               <div className="form-field">
                 <label htmlFor="source_asset_id">Source Asset *</label>
                 <select
@@ -596,62 +723,6 @@ const AutoDisbursementSettingsPage = () => {
                   )}
                 </select>
               </div>
-              {/* Row 2: Distribution Type | Transfer Type | Transfer Value */}
-              <div className="form-field">
-                <label htmlFor="distribution_type">Distribution Type</label>
-                <select
-                  id="distribution_type"
-                  value={newAutoDisbursement.distribution_type || 'non_taxable'}
-                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, distribution_type: e.target.value || 'non_taxable' }))}
-                  className="input-modern"
-                >
-                  <option value="non_taxable">Non-taxable Distribution</option>
-                  <option value="taxable_ira">Taxable IRA Distribution</option>
-                </select>
-                {newAutoDisbursement.distribution_type === 'taxable_ira' && (
-                  <>
-                    <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
-                      Taxable transfer from a non-Roth retirement account to a non-retirement account. Required: start date and owner birth date in profile.
-                    </small>
-                    <label style={{ display: 'block', marginTop: '8px' }}>
-                      <input
-                        type="checkbox"
-                        checked={!!newAutoDisbursement.use_rmd}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setNewAutoDisbursement(prev => {
-                            const next = { ...prev, use_rmd: checked };
-                            // If enabling RMD and we have a recommendedRmd year, prefill start_date to that year start.
-                            if (checked && recommendedRmd && recommendedRmd.year) {
-                              next.start_date = `${recommendedRmd.year}-01-01`;
-                            }
-                            return next;
-                          });
-                        }}
-                        style={{ marginRight: 8 }}
-                      />
-                      Use RMD each year
-                    </label>
-                  </>
-                )}
-                {newAutoDisbursement.distribution_type === 'non_taxable' && (
-                  <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
-                    Non-taxable transfers should come from non-retirement accounts or Roth accounts. The source will be validated when saving.
-                  </small>
-                )}
-              </div>
-              <div className="form-field">
-                <label htmlFor="transfer_type">Transfer Type *</label>
-                <select
-                  id="transfer_type"
-                  value={newAutoDisbursement.transfer_type}
-                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, transfer_type: e.target.value }))}
-                  className="input-modern"
-                >
-                  <option value="percentage">Percentage</option>
-                  <option value="dollar_amount">Dollar Amount</option>
-                </select>
-              </div>
               <div className="form-field">
                 <label htmlFor="transfer_value">
                   Transfer Value * ({newAutoDisbursement.transfer_type === 'percentage' ? '%' : '$'}/year)
@@ -668,8 +739,8 @@ const AutoDisbursementSettingsPage = () => {
                     setRmdError('');
                     setNewAutoDisbursement(prev => ({ ...prev, transfer_value: val }));
                   }}
-                  disabled={!!(newAutoDisbursement.use_rmd && newAutoDisbursement.distribution_type === 'taxable_ira')}
-                  style={newAutoDisbursement.use_rmd && newAutoDisbursement.distribution_type === 'taxable_ira' ? { backgroundColor: '#f5f5f5' } : {}}
+                  disabled={!!(newAutoDisbursement.use_rmd && newAutoDisbursement.distribution_type === 'taxable_ira' && useRecommendedRmdValue)}
+                  style={newAutoDisbursement.use_rmd && newAutoDisbursement.distribution_type === 'taxable_ira' && useRecommendedRmdValue ? { backgroundColor: '#f5f5f5' } : {}}
                   className="input-modern"
                 />
                 {recommendedRmd && (
@@ -677,24 +748,35 @@ const AutoDisbursementSettingsPage = () => {
                     <small style={{ color: '#007bff' }}>
                       {`Recommended RMD for year ${recommendedRmd.year}: ${(
                         (recommendedRmd.rmd_amount != null && !isNaN(Number(recommendedRmd.rmd_amount)))
-                          ? `$${Number(recommendedRmd.rmd_amount).toFixed(2)}`
+                          ? `$${Math.round(Number(recommendedRmd.rmd_amount)).toLocaleString()}`
                           : '—'
                       )} (divisor ${recommendedRmd.divisor || '—'}, table ${typeof recommendedRmd.table_used === 'string' ? recommendedRmd.table_used : (recommendedRmd.table_used == null ? '—' : JSON.stringify(recommendedRmd.table_used))})`}
                     </small>
-                    <div style={{ marginTop: '6px' }}>
-                      <button
-                        type="button"
-                        className="btn-primary-modern"
-                        onClick={() => {
-                          if (recommendedRmd.rmd_amount != null) {
-                            setNewAutoDisbursement(prev => ({ ...prev, transfer_type: 'dollar_amount', transfer_value: Number(recommendedRmd.rmd_amount).toFixed(2) }));
-                          }
-                        }}
-                        style={{ padding: '6px 10px' }}
-                      >
-                        Use recommended RMD
-                      </button>
-                    </div>
+                  </div>
+                )}
+                {newAutoDisbursement.use_rmd && (
+                  <div style={{ marginTop: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        checked={useRecommendedRmdValue}
+                        onChange={(e) => setUseRecommendedRmdValue(e.target.checked)}
+                      />
+                      Use recommended RMD
+                    </label>
+                    <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
+                      RMD values refresh nightly at midnight.
+                    </small>
+                    <button
+                      type="button"
+                      className="btn-primary-modern"
+                      onClick={fetchRmd}
+                      disabled={!newAutoDisbursement.source_asset_id || rmdLoading}
+                      style={{ padding: '6px 10px', marginTop: '6px' }}
+                    >
+                      Manually Refresh
+                    </button>
                   </div>
                 )}
                 {rmdLoading && <div style={{ marginTop: '6px' }}><small>Calculating RMD...</small></div>}
@@ -900,7 +982,11 @@ const AutoDisbursementSettingsPage = () => {
                       <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word', fontSize: '0.9em' }}>{getAssetName(ad.source_asset_id)}</td>
                       <td style={{ wordWrap: 'break-word', overflowWrap: 'break-word', fontSize: '0.9em' }}>{getAssetName(ad.target_asset_id)}</td>
                       <td>{ad.transfer_type === 'percentage' ? 'Pct' : '$'}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{ad.transfer_type === 'percentage' ? `${ad.transfer_value}%` : `$${ad.transfer_value.toLocaleString()}`}/yr</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {ad.transfer_type === 'percentage'
+                          ? `${ad.transfer_value}%`
+                          : `$${Math.round(Number(ad.transfer_value)).toLocaleString()}`}/yr
+                      </td>
                       <td style={{ whiteSpace: 'nowrap', fontSize: '0.9em' }}>{ad.start_date ? new Date(ad.start_date).toLocaleDateString() : '-'}</td>
                       <td style={{ whiteSpace: 'nowrap', fontSize: '0.9em' }}>{ad.end_date ? new Date(ad.end_date).toLocaleDateString() : '-'}</td>
                       <td>

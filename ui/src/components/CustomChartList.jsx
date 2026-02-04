@@ -86,6 +86,8 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
           fetchCharts(); // Refresh the list to show updated data
           // Dispatch event to notify CustomChartView to refresh all charts
           window.dispatchEvent(new CustomEvent('chartRecalculated', { detail: { chartId: 'all' } }));
+          // Also request an RMD refresh for auto-disbursements.
+          window.dispatchEvent(new CustomEvent('rmdRefreshRequested', { detail: { source: 'customChartsRecalculateAll' } }));
         } catch (error) {
           setMessage("Failed to recalculate charts. Please try again.");
         } finally {

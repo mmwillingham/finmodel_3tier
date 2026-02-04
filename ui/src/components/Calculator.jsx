@@ -143,6 +143,9 @@ const Calculator = ({ onProjectionCreated, editingProjection }) => {
                 navigate(`/projection/${response.id}`);
             }
 
+            // Notify auto-disbursements to refresh RMD values after projection run.
+            window.dispatchEvent(new CustomEvent('rmdRefreshRequested', { detail: { source: 'projectionRun', projectionId: response.id } }));
+
         } catch (error) {
             const errorMsg = error.response?.data?.detail || "An unexpected error occurred.";
             setMessage(`${isEditing ? 'Update' : 'Calculation'} Failed: ${errorMsg}`);
