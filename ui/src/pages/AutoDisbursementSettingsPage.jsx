@@ -143,7 +143,10 @@ const AutoDisbursementSettingsPage = () => {
       setRecommendedRmd(null);
       setRmdError('');
       setRmdSchedule(null);
-      if (newAutoDisbursement.distribution_type !== 'taxable_ira' || !newAutoDisbursement.source_asset_id) {
+      // Only fetch RMD schedule when user has explicitly enabled Use RMD each year,
+      // and a source asset is selected. This prevents premature validation errors
+      // and unnecessary UI changes while the user is filling the form.
+      if (newAutoDisbursement.distribution_type !== 'taxable_ira' || !newAutoDisbursement.source_asset_id || !newAutoDisbursement.use_rmd) {
         return;
       }
       try {
@@ -171,7 +174,15 @@ const AutoDisbursementSettingsPage = () => {
       }
     };
     fetchRmd();
-  }, [newAutoDisbursement.distribution_type, newAutoDisbursement.source_asset_id, userSettings]);
+  }, [newAutoDisbursement.distribution_type, newAutoDisbursement.source_asset_id, newAutoDisbursement.use_rmd, userSettings]);
+
+  // When a recommended RMD is returned and the user has enabled RMD, prefill start_date
+  // with the start of the recommended year if the form doesn't already have a start_date.
+  useEffect(() => {
+    if (newAutoDisbursement.use_rmd && recommendedRmd && recommendedRmd.year && !newAutoDisbursement.start_date) {
+      setNewAutoDisbursement(prev => ({ ...prev, start_date: `${recommendedRmd.year}-01-01` }));
+    }
+  }, [recommendedRmd, newAutoDisbursement.use_rmd]);
 
   const handleCreateAutoDisbursement = async () => {
     if (isViewingOther) {
@@ -225,17 +236,20 @@ const AutoDisbursementSettingsPage = () => {
       return;
     }
 
-    const transferValue = parseFloat(newAutoDisbursement.transfer_value);
-    if (isNaN(transferValue) || transferValue <= 0) {
-      setMessage('Error: Transfer Value must be a positive number');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    if (newAutoDisbursement.transfer_type === 'percentage' && transferValue > 100) {
-      setMessage('Error: Percentage cannot exceed 100%');
-      setTimeout(() => setMessage(''), 3000);
-      return;
+    // If using RMD, transfer_value is not required (RMD will determine the amount).
+    let transferValue = null;
+    if (!newAutoDisbursement.use_rmd) {
+      transferValue = parseFloat(newAutoDisbursement.transfer_value);
+      if (isNaN(transferValue) || transferValue <= 0) {
+        setMessage('Error: Transfer Value must be a positive number');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+      if (newAutoDisbursement.transfer_type === 'percentage' && transferValue > 100) {
+        setMessage('Error: Percentage cannot exceed 100%');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
     }
 
     try {
@@ -243,9 +257,9 @@ const AutoDisbursementSettingsPage = () => {
         ...newAutoDisbursement,
         source_asset_id: parseInt(newAutoDisbursement.source_asset_id),
         target_asset_id: parseInt(newAutoDisbursement.target_asset_id),
-        transfer_value: transferValue,
+        transfer_value: newAutoDisbursement.use_rmd ? null : transferValue,
         use_rmd: !!newAutoDisbursement.use_rmd,
-          rmd_overrides: newAutoDisbursement.rmd_overrides || null,
+        rmd_overrides: newAutoDisbursement.rmd_overrides || null,
         start_date: newAutoDisbursement.start_date || null,
         end_date: newAutoDisbursement.end_date || null,
       });
@@ -292,17 +306,20 @@ const AutoDisbursementSettingsPage = () => {
       return;
     }
 
-    const transferValue = parseFloat(updatedAutoDisbursement.transfer_value);
-    if (isNaN(transferValue) || transferValue <= 0) {
-      setMessage('Error: Transfer Value must be a positive number');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    if (updatedAutoDisbursement.transfer_type === 'percentage' && transferValue > 100) {
-      setMessage('Error: Percentage cannot exceed 100%');
-      setTimeout(() => setMessage(''), 3000);
-      return;
+    // If using RMD, transfer_value is not required (RMD will determine the amount).
+    let transferValue = null;
+    if (!updatedAutoDisbursement.use_rmd) {
+      transferValue = parseFloat(updatedAutoDisbursement.transfer_value);
+      if (isNaN(transferValue) || transferValue <= 0) {
+        setMessage('Error: Transfer Value must be a positive number');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+      if (updatedAutoDisbursement.transfer_type === 'percentage' && transferValue > 100) {
+        setMessage('Error: Percentage cannot exceed 100%');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
     }
 
     try {
@@ -310,7 +327,7 @@ const AutoDisbursementSettingsPage = () => {
         ...updatedAutoDisbursement,
         source_asset_id: parseInt(updatedAutoDisbursement.source_asset_id),
         target_asset_id: parseInt(updatedAutoDisbursement.target_asset_id),
-        transfer_value: transferValue,
+        transfer_value: updatedAutoDisbursement.use_rmd ? null : transferValue,
         use_rmd: !!updatedAutoDisbursement.use_rmd,
         rmd_overrides: updatedAutoDisbursement.rmd_overrides || null,
         start_date: updatedAutoDisbursement.start_date || null,
@@ -649,6 +666,8 @@ const AutoDisbursementSettingsPage = () => {
                     setRmdError('');
                     setNewAutoDisbursement(prev => ({ ...prev, transfer_value: val }));
                   }}
+                  disabled={!!(newAutoDisbursement.use_rmd && newAutoDisbursement.distribution_type === 'taxable_ira')}
+                  style={newAutoDisbursement.use_rmd && newAutoDisbursement.distribution_type === 'taxable_ira' ? { backgroundColor: '#f5f5f5' } : {}}
                   className="input-modern"
                 />
                 {recommendedRmd && (
