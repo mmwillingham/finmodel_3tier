@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AutoDisbursementService from '../services/auto_disbursement.service';
 import AssetService from '../services/asset.service';
@@ -111,6 +111,28 @@ const AutoDisbursementSettingsPage = () => {
   const [recommendedRmd, setRecommendedRmd] = useState(null);
   const [rmdLoading, setRmdLoading] = useState(false);
   const [rmdError, setRmdError] = useState('');
+  const nameRef = useRef(null);
+
+  // Helper to normalize error-like values into a string for display
+  const formatError = (err) => {
+    if (!err && err !== '') return '';
+    if (typeof err === 'string') return err;
+    if (Array.isArray(err)) {
+      return err.map((e) => {
+        if (!e) return String(e);
+        if (typeof e === 'string') return e;
+        if (e.msg) return e.msg;
+        if (e.detail) return typeof e.detail === 'string' ? e.detail : JSON.stringify(e.detail);
+        return JSON.stringify(e);
+      }).join('; ');
+    }
+    if (typeof err === 'object') {
+      if (err.detail) return typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+      if (err.msg) return err.msg;
+      return JSON.stringify(err);
+    }
+    return String(err);
+  };
 
   useEffect(() => {
     const fetchRmd = async () => {
@@ -131,8 +153,8 @@ const AutoDisbursementSettingsPage = () => {
         } else {
           setRecommendedRmd(resp);
         }
-      } catch (err) {
-        setRmdError(err.response?.data?.detail || err.message || 'Failed to fetch RMD');
+        } catch (err) {
+        setRmdError(formatError(err.response?.data?.detail || err.message || 'Failed to fetch RMD'));
       } finally {
         setRmdLoading(false);
       }
@@ -235,7 +257,7 @@ const AutoDisbursementSettingsPage = () => {
         navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
-      const errorMessage = e.response?.data?.detail || 'Error creating auto-disbursement';
+      const errorMessage = formatError(e.response?.data?.detail || e.message || 'Error creating auto-disbursement');
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
     }
@@ -291,7 +313,7 @@ const AutoDisbursementSettingsPage = () => {
         navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
-      const errorMessage = e.response?.data?.detail || 'Error updating auto-disbursement';
+      const errorMessage = formatError(e.response?.data?.detail || e.message || 'Error updating auto-disbursement');
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
     }
@@ -314,7 +336,7 @@ const AutoDisbursementSettingsPage = () => {
           loadData();
           setTimeout(() => setMessage(''), 2000);
         } catch (e) {
-          const errorMessage = e.response?.data?.detail || 'Error deleting auto-disbursement';
+          const errorMessage = formatError(e.response?.data?.detail || e.message || 'Error deleting auto-disbursement');
           setMessage(errorMessage);
           setTimeout(() => setMessage(''), 3000);
         }
@@ -345,7 +367,7 @@ const AutoDisbursementSettingsPage = () => {
         navigate('/app'); // Close the page after successful save
       }, 1000);
     } catch (e) {
-      const errorMessage = e.response?.data?.detail || 'Error saving surplus asset';
+      const errorMessage = formatError(e.response?.data?.detail || e.message || 'Error saving surplus asset');
       setMessage(errorMessage);
       setTimeout(() => setMessage(''), 3000);
     }
@@ -474,10 +496,23 @@ const AutoDisbursementSettingsPage = () => {
                 <label htmlFor="name">Name of Distribution *</label>
                 <input
                   id="name"
+                  ref={nameRef}
                   type="text"
                   placeholder="e.g. IRA to Savings"
                   value={newAutoDisbursement.name}
-                  onChange={(e) => setNewAutoDisbursement(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const pos = e.target.selectionStart;
+                    setNewAutoDisbursement(prev => ({ ...prev, name: val }));
+                    // restore focus/caret after state update (defensive for unexpected remounts)
+                    setTimeout(() => {
+                      const el = nameRef.current;
+                      if (el) {
+                        el.focus();
+                        try { el.setSelectionRange(pos, pos); } catch (err) {}
+                      }
+                    }, 0);
+                  }}
                   className="input-modern"
                 />
               </div>
