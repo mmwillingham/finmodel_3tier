@@ -637,7 +637,7 @@ const AutoDisbursementSettingsPage = () => {
                   className="input-modern"
                 >
                   <option value="non_taxable">Non-taxable Distribution</option>
-                  <option value="taxable_ira">Taxable IRA Distribution</option>
+                  <option value="taxable_ira">Taxable Distribution (e.g. IRA to Savings)</option>
                 </select>
                 {newAutoDisbursement.distribution_type === 'taxable_ira' && (
                   <>
