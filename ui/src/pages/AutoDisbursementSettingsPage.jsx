@@ -53,6 +53,7 @@ const AutoDisbursementSettingsPage = () => {
   const [editingAutoDisbursement, setEditingAutoDisbursement] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
   const [activeTab, setActiveTab] = useState('surplus'); // 'surplus' or 'disbursements'
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [newAutoDisbursement, setNewAutoDisbursement] = useState({
     name: '',
     source_asset_id: null,
@@ -343,6 +344,7 @@ const AutoDisbursementSettingsPage = () => {
         use_rmd: false,
         rmd_overrides: {},
       }));
+      setShowCreateForm(false);
       loadData();
       setTimeout(() => {
         setMessage('');
@@ -407,6 +409,7 @@ const AutoDisbursementSettingsPage = () => {
       });
       setMessage('Auto-disbursement updated successfully!');
       setEditingAutoDisbursement(null);
+      setShowCreateForm(false);
       loadData();
       setTimeout(() => {
         setMessage('');
@@ -585,11 +588,29 @@ const AutoDisbursementSettingsPage = () => {
       {/* Auto-Disbursements Tab */}
       {activeTab === 'disbursements' && (
         <div className="setting-group card-modern" style={{ display: 'block', marginBottom: '20px' }}>
-          {/* Form Section - Top */}
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
             Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
           </h3>
-          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', alignItems: 'start', marginBottom: '18px' }}>
+
+          {!showCreateForm && !editingId && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '20px' }}>
+              <button
+                onClick={() => {
+                  setShowCreateForm(true);
+                  setEditingId(null);
+                  setEditingAutoDisbursement(null);
+                }}
+                className="btn-primary-modern"
+              >
+                Create New Auto-Disbursement
+              </button>
+            </div>
+          )}
+
+          {(showCreateForm || editingId) && (
+            <>
+              {/* Form Section - Top */}
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', alignItems: 'start', marginBottom: '18px' }}>
               {/* Row 1: Name | Distribution Type | Transfer Type */}
               <div className="form-field">
                 <label htmlFor="name">Name of Distribution *</label>
@@ -814,8 +835,8 @@ const AutoDisbursementSettingsPage = () => {
                 />
                 <small style={{ color: '#666', fontSize: '0.8em', marginTop: '3px', display: 'block' }}>Optional</small>
               </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '12px', marginTop: '18px', marginBottom: '30px' }}>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '12px', marginTop: '18px', marginBottom: '30px' }}>
             {!editingId ? (
               <button onClick={handleCreateAutoDisbursement} className="btn-primary-modern">
                 Add Auto-Disbursement
@@ -825,11 +846,13 @@ const AutoDisbursementSettingsPage = () => {
                 <button onClick={() => {
                     handleUpdateAutoDisbursement(editingId, newAutoDisbursement);
                     setEditingId(null);
+                    setShowCreateForm(false);
                   }} className="btn-primary-modern">
                   Update Auto-Disbursement
                 </button>
                 <button onClick={() => {
                     setEditingId(null);
+                    setShowCreateForm(false);
                     setNewAutoDisbursement(() => ({
                       name: '',
                       source_asset_id: '',
@@ -847,7 +870,9 @@ const AutoDisbursementSettingsPage = () => {
                 </button>
               </>
             )}
-          </div>
+              </div>
+            </>
+          )}
 
           {/* Divider */}
           <div style={{ borderTop: '1px solid #eee', marginTop: '30px', marginBottom: '20px' }}></div>
@@ -1002,6 +1027,7 @@ const AutoDisbursementSettingsPage = () => {
                                 rmd_overrides: ad.rmd_overrides || {},
                               }));
                               setEditingId(ad.id);
+                              setShowCreateForm(true);
                               setActiveTab('disbursements');
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} className="edit-icon-btn" title="Edit">

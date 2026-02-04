@@ -293,51 +293,49 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
         <table ref={tableRef} className="cashflow-table" style={{ width: '100%', tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('category')}>
-              Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '15%' }} onClick={() => handleSort('description')}>
-              Description {sortConfig.key === 'description' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('person')}>
-              Person {sortConfig.key === 'person' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('frequency')}>
-              Freq {sortConfig.key === 'frequency' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('yearly_value')}>
-              Yearly Value {sortConfig.key === 'yearly_value' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('start_date')}>
-              Start Date {sortConfig.key === 'start_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('end_date')}>
-              End Date {sortConfig.key === 'end_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            <th className="cashflow-table-cell sortable" style={{ width: '6%' }} onClick={() => handleSort('linked_item_id')}>
-              Dyn {sortConfig.key === 'linked_item_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-            </th>
-            {type === 'income' && (
-              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('annual_increase_percent')}>
-                Pct {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-            )}
-            {type === 'income' && (
-              <th className="cashflow-table-cell sortable" style={{ width: '6%' }} onClick={() => handleSort('taxable')}>
-                Tax {sortConfig.key === 'taxable' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-            )}
-            {type === 'expense' && (
-              <th className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('inflation_percent')}>
-                Inf % {sortConfig.key === 'inflation_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-            )}
-            {type === 'expense' && (
-              <th className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('tax_deductible')}>
-                Ded {sortConfig.key === 'tax_deductible' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-              </th>
-            )}
-            <th className="cashflow-table-cell" style={{ width: '8%' }}>Actions</th>
+            {[
+              <th key="category" className="cashflow-table-cell sortable" style={{ width: '8%' }} onClick={() => handleSort('category')}>
+                Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              <th key="description" className="cashflow-table-cell sortable" style={{ width: '15%' }} onClick={() => handleSort('description')}>
+                Description {sortConfig.key === 'description' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              <th key="person" className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('person')}>
+                Person {sortConfig.key === 'person' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              <th key="frequency" className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('frequency')}>
+                Freq {sortConfig.key === 'frequency' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              <th key="yearly_value" className="cashflow-table-cell sortable" style={{ width: '10%' }} onClick={() => handleSort('yearly_value')}>
+                Yearly Value {sortConfig.key === 'yearly_value' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              <th key="start_date" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('start_date')}>
+                Start Date {sortConfig.key === 'start_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              <th key="end_date" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('end_date')}>
+                End Date {sortConfig.key === 'end_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              <th key="linked_item_id" className="cashflow-table-cell sortable" style={{ width: '6%' }} onClick={() => handleSort('linked_item_id')}>
+                Dyn {sortConfig.key === 'linked_item_id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>,
+              ...(type === 'income' ? [
+                <th key="annual_increase_percent" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('annual_increase_percent')}>
+                  Pct {sortConfig.key === 'annual_increase_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="taxable" className="cashflow-table-cell sortable" style={{ width: '6%' }} onClick={() => handleSort('taxable')}>
+                  Tax {sortConfig.key === 'taxable' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+              ] : []),
+              ...(type === 'expense' ? [
+                <th key="inflation_percent" className="cashflow-table-cell sortable" style={{ width: '9%' }} onClick={() => handleSort('inflation_percent')}>
+                  Inf % {sortConfig.key === 'inflation_percent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+                <th key="tax_deductible" className="cashflow-table-cell sortable" style={{ width: '7%' }} onClick={() => handleSort('tax_deductible')}>
+                  Ded {sortConfig.key === 'tax_deductible' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>,
+              ] : []),
+              <th key="actions" className="cashflow-table-cell" style={{ width: '8%' }}>Actions</th>,
+            ]}
           </tr>
         </thead>
         <tbody>
@@ -467,29 +465,33 @@ export default function CashFlowView({ type, incomeItems, expenseItems, refreshC
             
             return (
               <tr key={item.id} style={rowStyle} title={tooltip}>
-              <td className="cashflow-table-cell">{categoryValue ? item.category : <span style={{ color: '#dc3545', fontStyle: 'italic', fontWeight: 'bold' }}>Missing: Category</span>}</td>
-              <td className="cashflow-table-cell">{item.description && item.description.trim() ? item.description : <span style={{ color: '#dc3545', fontStyle: 'italic', fontWeight: 'bold' }}>Missing: Description</span>}</td>
-              <td className="cashflow-table-cell">{item.person || 'Family'}</td>
-              <td className="cashflow-table-cell">{item.frequency === 'monthly' ? 'Monthly' : item.frequency === 'one-time' ? 'One-time' : 'Yearly'}</td>
-              <td className="cashflow-table-cell">{formatCurrency((isAutoGenerated || isCalculatedTaxItem || isStateTaxItem) ? calculatedYearlyValue : item.yearly_value)}</td>
-              <td className="cashflow-table-cell">{item.start_date || '-'}</td>
-              <td className="cashflow-table-cell">{item.end_date || 'No end date'}</td>
-              <td className="cashflow-table-cell">{(item.linked_item_id || (item.linked_asset_ids && item.linked_asset_ids.length > 0)) ? 'Yes' : 'No'}</td> {/* Dynamic Column Value - check both linked_item_id and linked_asset_ids */}
-              {type === 'income' && (
-                <td className="cashflow-table-cell">
-                  {isAutoGenerated && item.percentage !== null && item.percentage !== undefined 
-                    ? `${item.percentage}%` 
-                    : `${item.annual_increase_percent || 0}%`}
-                </td>
-              )}
-              {type === 'income' && <td className="cashflow-table-cell">{item.taxable ? 'Yes' : 'No'}</td>}
-              {type === 'expense' && <td className="cashflow-table-cell">{item.inflation_percent}%</td>}
-              {type === 'expense' && <td className="cashflow-table-cell">{item.tax_deductible ? 'Yes' : 'No'}</td>}
-              <td className="action-buttons-cell">
-                <button onClick={() => handleEditClick(item)} className="edit-icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
-                <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
-              </td>
-            </tr>
+                {[
+                  <td key="category" className="cashflow-table-cell">{categoryValue ? item.category : <span style={{ color: '#dc3545', fontStyle: 'italic', fontWeight: 'bold' }}>Missing: Category</span>}</td>,
+                  <td key="description" className="cashflow-table-cell">{item.description && item.description.trim() ? item.description : <span style={{ color: '#dc3545', fontStyle: 'italic', fontWeight: 'bold' }}>Missing: Description</span>}</td>,
+                  <td key="person" className="cashflow-table-cell">{item.person || 'Family'}</td>,
+                  <td key="frequency" className="cashflow-table-cell">{item.frequency === 'monthly' ? 'Monthly' : item.frequency === 'one-time' ? 'One-time' : 'Yearly'}</td>,
+                  <td key="yearly_value" className="cashflow-table-cell">{formatCurrency((isAutoGenerated || isCalculatedTaxItem || isStateTaxItem) ? calculatedYearlyValue : item.yearly_value)}</td>,
+                  <td key="start_date" className="cashflow-table-cell">{item.start_date || '-'}</td>,
+                  <td key="end_date" className="cashflow-table-cell">{item.end_date || 'No end date'}</td>,
+                  <td key="linked" className="cashflow-table-cell">{(item.linked_item_id || (item.linked_asset_ids && item.linked_asset_ids.length > 0)) ? 'Yes' : 'No'}</td>,
+                  ...(type === 'income' ? [
+                    <td key="annual_increase_percent" className="cashflow-table-cell">
+                      {isAutoGenerated && item.percentage !== null && item.percentage !== undefined
+                        ? `${item.percentage}%`
+                        : `${item.annual_increase_percent || 0}%`}
+                    </td>,
+                    <td key="taxable" className="cashflow-table-cell">{item.taxable ? 'Yes' : 'No'}</td>,
+                  ] : []),
+                  ...(type === 'expense' ? [
+                    <td key="inflation_percent" className="cashflow-table-cell">{item.inflation_percent}%</td>,
+                    <td key="tax_deductible" className="cashflow-table-cell">{item.tax_deductible ? 'Yes' : 'No'}</td>,
+                  ] : []),
+                  <td key="actions" className="action-buttons-cell">
+                    <button onClick={() => handleEditClick(item)} className="edit-icon-btn" title="Edit"><span role="img" aria-label="edit">✏️</span></button>
+                    <button onClick={() => remove(item.id)} className="delete-icon-btn" title="Delete"><span role="img" aria-label="delete">🗑️</span></button>
+                  </td>,
+                ]}
+              </tr>
             );
           })}
         </tbody>
