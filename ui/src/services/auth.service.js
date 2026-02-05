@@ -241,6 +241,45 @@ const AuthService = {
         return response.data;
     },
 
+    async listPasskeyCredentials() {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.get(API_URL + "mfa/passkey/credentials", {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    },
+
+    async updatePasskeyCredential(credentialId, payload) {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.patch(API_URL + `mfa/passkey/credentials/${credentialId}`, payload, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    },
+
+    async deletePasskeyCredential(credentialId) {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.delete(API_URL + `mfa/passkey/credentials/${credentialId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    },
+
     async getPasskeyAuthenticationOptions(mfaToken) {
         const response = await axios.post(API_URL + "mfa/passkey/authentication-options", {
             mfa_token: mfaToken,

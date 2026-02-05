@@ -717,3 +717,17 @@ class MfaPasskeyVerify(BaseModel):
     mfa_token: str
     credential: dict[str, Any]
     remember_device: bool | None = None
+
+
+class MfaPasskeyCredentialOut(BaseModel):
+    id: int
+    label: str | None = None
+    created_at: datetime
+    last_used_at: datetime | None = None
+    device_type: str | None = None
+    backed_up: bool | None = None
+    transports: Any | None = None
+
+
+class MfaPasskeyCredentialUpdate(BaseModel):
+    label: str | None = None

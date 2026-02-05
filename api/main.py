@@ -618,6 +618,7 @@ def verify_passkey_authentication(
     credential.sign_count = verification.new_sign_count
     credential.device_type = str(verification.credential_device_type)
     credential.backed_up = bool(verification.credential_backed_up)
+    credential.last_used_at = datetime.now(timezone.utc)
     user.mfa_passkey_challenge = None
     user.mfa_passkey_challenge_expires_at = None
     db.commit()
@@ -650,6 +651,80 @@ def verify_passkey_authentication(
         response["mfa_device_token"] = device_token
         response["mfa_device_expires_at"] = (datetime.utcnow() + timedelta(days=90)).isoformat()
     return response
+
+
+@app.get("/mfa/passkey/credentials", response_model=list[schemas.MfaPasskeyCredentialOut], tags=["auth"])
+def list_passkey_credentials(
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    credentials = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.user_id == current_user.id
+    ).order_by(models.MfaPasskeyCredential.created_at.desc()).all()
+    return [
+        schemas.MfaPasskeyCredentialOut(
+            id=cred.id,
+            label=cred.label,
+            created_at=cred.created_at,
+            last_used_at=cred.last_used_at,
+            device_type=cred.device_type,
+            backed_up=cred.backed_up,
+            transports=cred.transports,
+        )
+        for cred in credentials
+    ]
+
+
+@app.patch("/mfa/passkey/credentials/{credential_id}", response_model=schemas.MfaPasskeyCredentialOut, tags=["auth"])
+def update_passkey_credential(
+    credential_id: int,
+    payload: schemas.MfaPasskeyCredentialUpdate,
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    credential = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.id == credential_id,
+        models.MfaPasskeyCredential.user_id == current_user.id,
+    ).first()
+    if not credential:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Passkey not found.")
+    credential.label = payload.label
+    db.commit()
+    db.refresh(credential)
+    return schemas.MfaPasskeyCredentialOut(
+        id=credential.id,
+        label=credential.label,
+        created_at=credential.created_at,
+        last_used_at=credential.last_used_at,
+        device_type=credential.device_type,
+        backed_up=credential.backed_up,
+        transports=credential.transports,
+    )
+
+
+@app.delete("/mfa/passkey/credentials/{credential_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["auth"])
+def delete_passkey_credential(
+    credential_id: int,
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    credential = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.id == credential_id,
+        models.MfaPasskeyCredential.user_id == current_user.id,
+    ).first()
+    if not credential:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Passkey not found.")
+    db.delete(credential)
+    db.commit()
+    remaining = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.user_id == current_user.id
+    ).count()
+    if remaining == 0:
+        user = db.query(models.User).filter(models.User.id == current_user.id).first()
+        if user:
+            user.mfa_passkey_enabled = False
+            db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.post("/mfa/request-otp", tags=["auth"])

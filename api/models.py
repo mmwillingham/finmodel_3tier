@@ -157,10 +157,12 @@ class MfaPasskeyCredential(Base):
     credential_id = Column(String, unique=True, index=True, nullable=False)
     credential_public_key = Column(Text, nullable=False)
     sign_count = Column(Integer, default=0, nullable=False)
+    label = Column(String, nullable=True)
     device_type = Column(String, nullable=True)
     backed_up = Column(Boolean, default=False, nullable=False)
     transports = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
 
     user_owner = relationship("User", back_populates="mfa_passkey_credentials")
 

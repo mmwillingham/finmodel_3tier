@@ -16,26 +16,33 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "mfa_passkey_credentials",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("credential_id", sa.String(), nullable=False),
-        sa.Column("credential_public_key", sa.Text(), nullable=False),
-        sa.Column("sign_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("device_type", sa.String(), nullable=True),
-        sa.Column("backed_up", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("transports", sa.JSON(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.UniqueConstraint("credential_id", name="uq_mfa_passkey_credentials_credential_id"),
-    )
-    op.create_index(
-        "ix_mfa_passkey_credentials_user_id",
-        "mfa_passkey_credentials",
-        ["user_id"],
-    )
-
     conn = op.get_bind()
+    exists = conn.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema='public' AND table_name='mfa_passkey_credentials'"
+        )
+    ).fetchone()
+    if not exists:
+        op.create_table(
+            "mfa_passkey_credentials",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+            sa.Column("credential_id", sa.String(), nullable=False),
+            sa.Column("credential_public_key", sa.Text(), nullable=False),
+            sa.Column("sign_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
+            sa.Column("device_type", sa.String(), nullable=True),
+            sa.Column("backed_up", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+            sa.Column("transports", sa.JSON(), nullable=True),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+            sa.UniqueConstraint("credential_id", name="uq_mfa_passkey_credentials_credential_id"),
+        )
+        op.create_index(
+            "ix_mfa_passkey_credentials_user_id",
+            "mfa_passkey_credentials",
+            ["user_id"],
+        )
+
     has_user_fields = conn.execute(
         sa.text(
             "SELECT 1 FROM information_schema.columns "
