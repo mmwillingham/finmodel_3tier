@@ -277,6 +277,10 @@
         padding: 0 8px;
     }
 
+    .app-header .logo a span {
+        display: none;
+    }
+
     .mobile-menu-button {
         display: inline-flex;
     }
