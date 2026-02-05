@@ -445,9 +445,9 @@ def update_mfa_settings(
 
 @app.get("/mfa/passkey/registration-options", tags=["auth"])
 def get_passkey_registration_options(
+    request: Request,
     current_user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db),
-    request: Request,
 ):
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
@@ -514,9 +514,9 @@ def verify_passkey_registration(
 
 @app.post("/mfa/passkey/authentication-options", tags=["auth"])
 def get_passkey_authentication_options(
+    request: Request,
     payload: schemas.MfaPasskeyAuthOptions,
     db: Session = Depends(database.get_db),
-    request: Request,
 ):
     user = _get_mfa_user_from_token(payload.mfa_token, db)
     if not user.mfa_passkey_enabled or not user.mfa_passkey_credential_id:
