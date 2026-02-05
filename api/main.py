@@ -243,8 +243,12 @@ def login_for_access_token(
         methods = []
         if user.mfa_email_enabled and user.email:
             methods.append("email")
-        if user.mfa_passkey_enabled and user.mfa_passkey_credential_id:
-            methods.append("passkey")
+        if user.mfa_passkey_enabled:
+            passkey_exists = db.query(models.MfaPasskeyCredential).filter(
+                models.MfaPasskeyCredential.user_id == user.id
+            ).count() > 0
+            if passkey_exists:
+                methods.append("passkey")
         if not methods:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -402,11 +406,15 @@ def get_mfa_settings(
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    passkey_count = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.user_id == user.id
+    ).count()
     return schemas.MfaSettingsOut(
         mfa_enabled=user.mfa_enabled,
         mfa_email_enabled=user.mfa_email_enabled,
         mfa_passkey_enabled=user.mfa_passkey_enabled,
-        mfa_passkey_registered=bool(user.mfa_passkey_credential_id),
+        mfa_passkey_registered=passkey_count > 0,
+        mfa_passkey_count=passkey_count,
     )
 
 
@@ -420,7 +428,10 @@ def update_mfa_settings(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    passkey_registered = bool(user.mfa_passkey_credential_id)
+    passkey_count = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.user_id == user.id
+    ).count()
+    passkey_registered = passkey_count > 0
 
     if payload.mfa_enabled is not None:
         user.mfa_enabled = payload.mfa_enabled
@@ -445,7 +456,8 @@ def update_mfa_settings(
         mfa_enabled=user.mfa_enabled,
         mfa_email_enabled=user.mfa_email_enabled,
         mfa_passkey_enabled=user.mfa_passkey_enabled,
-        mfa_passkey_registered=bool(user.mfa_passkey_credential_id),
+        mfa_passkey_registered=passkey_count > 0,
+        mfa_passkey_count=passkey_count,
     )
 
 
@@ -462,11 +474,12 @@ def get_passkey_registration_options(
     rp_id = _get_webauthn_rp_id(request)
     rp_name = settings.WEBAUTHN_RP_NAME or settings.APP_NAME
     user_name = user.email or f"user-{user.id}"
-    exclude_credentials = []
-    if user.mfa_passkey_credential_id:
-        exclude_credentials.append(
-            PublicKeyCredentialDescriptor(id=base64url_to_bytes(user.mfa_passkey_credential_id))
-        )
+    exclude_credentials = [
+        PublicKeyCredentialDescriptor(id=base64url_to_bytes(cred.credential_id))
+        for cred in db.query(models.MfaPasskeyCredential)
+        .filter(models.MfaPasskeyCredential.user_id == user.id)
+        .all()
+    ]
 
     options = generate_registration_options(
         rp_id=rp_id,
@@ -493,6 +506,7 @@ def verify_passkey_registration(
     payload: schemas.MfaPasskeyRegister,
     current_user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db),
+    request: Request = None,
 ):
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
@@ -503,7 +517,7 @@ def verify_passkey_registration(
         verification = verify_registration_response(
             credential=payload.credential,
             expected_challenge=base64url_to_bytes(challenge),
-            expected_rp_id=_get_webauthn_rp_id(),
+            expected_rp_id=_get_webauthn_rp_id(request),
             expected_origin=_get_webauthn_origin(),
             require_user_verification=False,
         )
@@ -511,17 +525,29 @@ def verify_passkey_registration(
         logger.warning("Passkey registration failed", exc_info=exc)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey registration failed.")
 
-    user.mfa_passkey_credential_id = bytes_to_base64url(verification.credential_id)
-    user.mfa_passkey_public_key = bytes_to_base64url(verification.credential_public_key)
-    user.mfa_passkey_sign_count = verification.sign_count
-    user.mfa_passkey_device_type = str(verification.credential_device_type)
-    user.mfa_passkey_backed_up = bool(verification.credential_backed_up)
-    user.mfa_passkey_transports = payload.credential.get("response", {}).get("transports")
+    credential_id = bytes_to_base64url(verification.credential_id)
+    existing = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.credential_id == credential_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey already registered.")
+    db.add(models.MfaPasskeyCredential(
+        user_id=user.id,
+        credential_id=credential_id,
+        credential_public_key=bytes_to_base64url(verification.credential_public_key),
+        sign_count=verification.sign_count,
+        device_type=str(verification.credential_device_type),
+        backed_up=bool(verification.credential_backed_up),
+        transports=payload.credential.get("response", {}).get("transports"),
+    ))
     user.mfa_passkey_enabled = True
     user.mfa_passkey_challenge = None
     user.mfa_passkey_challenge_expires_at = None
     db.commit()
-    return {"ok": True, "mfa_passkey_registered": True}
+    passkey_count = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.user_id == user.id
+    ).count()
+    return {"ok": True, "mfa_passkey_registered": True, "mfa_passkey_count": passkey_count}
 
 
 @app.post("/mfa/passkey/authentication-options", tags=["auth"])
@@ -531,13 +557,20 @@ def get_passkey_authentication_options(
     db: Session = Depends(database.get_db),
 ):
     user = _get_mfa_user_from_token(payload.mfa_token, db)
-    if not user.mfa_passkey_enabled or not user.mfa_passkey_credential_id:
+    if not user.mfa_passkey_enabled:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey is not enabled.")
+
+    credentials = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.user_id == user.id
+    ).all()
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No passkeys registered.")
 
     options = generate_authentication_options(
         rp_id=_get_webauthn_rp_id(request),
         allow_credentials=[
-            PublicKeyCredentialDescriptor(id=base64url_to_bytes(user.mfa_passkey_credential_id))
+            PublicKeyCredentialDescriptor(id=base64url_to_bytes(cred.credential_id))
+            for cred in credentials
         ],
         user_verification=UserVerificationRequirement.REQUIRED,
     )
@@ -555,10 +588,17 @@ def verify_passkey_authentication(
     db: Session = Depends(database.get_db),
 ):
     user = _get_mfa_user_from_token(payload.mfa_token, db)
-    if not user.mfa_passkey_enabled or not user.mfa_passkey_credential_id:
+    if not user.mfa_passkey_enabled:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey is not enabled.")
-    if not user.mfa_passkey_public_key:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No passkey registered.")
+    credential_id = payload.credential.get("id")
+    if not credential_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey credential id missing.")
+    credential = db.query(models.MfaPasskeyCredential).filter(
+        models.MfaPasskeyCredential.user_id == user.id,
+        models.MfaPasskeyCredential.credential_id == credential_id,
+    ).first()
+    if not credential:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey not found.")
 
     challenge = _require_passkey_challenge(user)
     try:
@@ -567,17 +607,17 @@ def verify_passkey_authentication(
             expected_challenge=base64url_to_bytes(challenge),
             expected_rp_id=_get_webauthn_rp_id(),
             expected_origin=_get_webauthn_origin(),
-            credential_public_key=base64url_to_bytes(user.mfa_passkey_public_key),
-            credential_current_sign_count=user.mfa_passkey_sign_count or 0,
+            credential_public_key=base64url_to_bytes(credential.credential_public_key),
+            credential_current_sign_count=credential.sign_count or 0,
             require_user_verification=True,
         )
     except Exception as exc:
         logger.warning("Passkey authentication failed", exc_info=exc)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey authentication failed.")
 
-    user.mfa_passkey_sign_count = verification.new_sign_count
-    user.mfa_passkey_device_type = str(verification.credential_device_type)
-    user.mfa_passkey_backed_up = bool(verification.credential_backed_up)
+    credential.sign_count = verification.new_sign_count
+    credential.device_type = str(verification.credential_device_type)
+    credential.backed_up = bool(verification.credential_backed_up)
     user.mfa_passkey_challenge = None
     user.mfa_passkey_challenge_expires_at = None
     db.commit()

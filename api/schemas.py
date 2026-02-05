@@ -684,6 +684,7 @@ class MfaSettingsOut(BaseModel):
     mfa_email_enabled: bool = False
     mfa_passkey_enabled: bool = False
     mfa_passkey_registered: bool = False
+    mfa_passkey_count: int = 0
 
 
 class MfaSettingsUpdate(BaseModel):

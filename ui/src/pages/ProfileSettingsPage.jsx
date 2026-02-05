@@ -65,6 +65,7 @@ const ProfileSettingsPage = () => {
   const [mfaEmailEnabled, setMfaEmailEnabled] = useState(true);
   const [mfaPasskeyEnabled, setMfaPasskeyEnabled] = useState(false);
   const [mfaPasskeyRegistered, setMfaPasskeyRegistered] = useState(false);
+  const [mfaPasskeyCount, setMfaPasskeyCount] = useState(0);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyInfo, setPasskeyInfo] = useState('');
   const [passkeyError, setPasskeyError] = useState('');
@@ -102,6 +103,7 @@ const ProfileSettingsPage = () => {
         setMfaEmailEnabled(Boolean(mfa.mfa_email_enabled));
         setMfaPasskeyEnabled(Boolean(mfa.mfa_passkey_enabled));
         setMfaPasskeyRegistered(Boolean(mfa.mfa_passkey_registered));
+        setMfaPasskeyCount(Number(mfa.mfa_passkey_count || 0));
       } catch (e) {
       }
     };
@@ -544,8 +546,10 @@ const ProfileSettingsPage = () => {
                           throw new Error('Passkey options missing challenge.');
                         }
                         const credential = await startRegistration({ optionsJSON: registrationOptions });
-                        await AuthService.verifyPasskeyRegistration(credential);
-                        setMfaPasskeyRegistered(true);
+                        const verifyResp = await AuthService.verifyPasskeyRegistration(credential);
+                        const nextCount = Number(verifyResp?.mfa_passkey_count || (mfaPasskeyCount + 1));
+                        setMfaPasskeyCount(nextCount);
+                        setMfaPasskeyRegistered(nextCount > 0);
                         setMfaPasskeyEnabled(true);
                         setPasskeyInfo('Passkey registered successfully.');
                       } catch (err) {
@@ -557,8 +561,13 @@ const ProfileSettingsPage = () => {
                     disabled={!mfaEnabled || !mfaPasskeyEnabled || passkeyLoading}
                     style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
                   >
-                    {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Replace Passkey' : 'Register Passkey')}
+                    {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Add Passkey' : 'Register Passkey')}
                   </button>
+                  {mfaPasskeyCount > 0 && (
+                    <div style={{ color: '#666', marginTop: '6px' }}>
+                      Registered passkeys: {mfaPasskeyCount}
+                    </div>
+                  )}
                   {passkeyInfo && <div style={{ color: '#155724', marginTop: '6px' }}>{passkeyInfo}</div>}
                   {passkeyError && <div style={{ color: '#721c24', marginTop: '6px' }}>{passkeyError}</div>}
                 </div>

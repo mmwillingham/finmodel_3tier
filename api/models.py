@@ -35,6 +35,11 @@ class User(Base):
     mfa_passkey_transports = Column(JSON, nullable=True)
     mfa_passkey_challenge = Column(String, nullable=True)
     mfa_passkey_challenge_expires_at = Column(DateTime(timezone=True), nullable=True)
+    mfa_passkey_credentials = relationship(
+        "MfaPasskeyCredential",
+        back_populates="user_owner",
+        cascade="all, delete-orphan",
+    )
     # Relationship to Projections: one user can have many projections
     projections = relationship("Projection", back_populates="owner", cascade="all, delete-orphan")
     # Relationship to PasswordResetToken: one user can have many reset tokens (though we'll only allow one active)
@@ -140,6 +145,24 @@ class MfaTrustedDevice(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user_owner = relationship("User")
+
+
+class MfaPasskeyCredential(Base):
+    """
+    SQLAlchemy Model for WebAuthn passkey credentials.
+    """
+    __tablename__ = "mfa_passkey_credentials"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    credential_id = Column(String, unique=True, index=True, nullable=False)
+    credential_public_key = Column(Text, nullable=False)
+    sign_count = Column(Integer, default=0, nullable=False)
+    device_type = Column(String, nullable=True)
+    backed_up = Column(Boolean, default=False, nullable=False)
+    transports = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user_owner = relationship("User", back_populates="mfa_passkey_credentials")
 
 
 class Projection(Base):
