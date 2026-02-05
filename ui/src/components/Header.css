@@ -187,8 +187,28 @@
     justify-content: center;
 }
 
+.header-right-menu .checklist-button {
+    background-color: transparent;
+    color: #28a745;
+    border: 2px solid #28a745;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .header-right-menu .points-button:hover {
     background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.header-right-menu .checklist-button:hover {
+    background-color: rgba(40, 167, 69, 0.15);
     transform: scale(1.1);
 }
 
@@ -287,6 +307,7 @@
 
     .header-right-menu .user-info,
     .header-right-menu .points-button,
+    .header-right-menu .checklist-button,
     .account-switcher-wrapper,
     .header-public-links {
         display: none;

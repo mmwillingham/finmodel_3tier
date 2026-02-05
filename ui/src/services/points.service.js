@@ -11,6 +11,17 @@ const PointsService = {
     } catch (error) {
       throw error;
     }
+  },
+  /**
+   * Get the current user's points checklist
+   */
+  async getChecklist() {
+    try {
+      const response = await api.get('/points/checklist');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

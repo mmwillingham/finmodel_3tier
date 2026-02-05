@@ -90,6 +90,10 @@ const PointsModal = ({ isOpen, onClose }) => {
                     <span className="points-breakdown-value">{points.breakdown.auto_disbursements} × 30 = {points.breakdown.auto_disbursements * 30} pts</span>
                   </div>
                 )}
+                <div className="points-breakdown-item">
+                  <span className="points-breakdown-label">MFA Enabled:</span>
+                  <span className="points-breakdown-value">{points.breakdown.mfa_enabled || 0} × 100 = {(points.breakdown.mfa_enabled || 0) * 100} pts</span>
+                </div>
                 {points.breakdown.plaid_connections > 0 && (
                   <div className="points-breakdown-item">
                     <span className="points-breakdown-label">Connected Bank Accounts:</span>

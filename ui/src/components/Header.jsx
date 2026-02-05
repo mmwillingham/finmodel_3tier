@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import './Header.css'; // NEW: Import Header-specific CSS
 import SettingsDropdownMenu from './SettingsDropdownMenu'; // New component for the dropdown menu
 import PointsModal from './PointsModal'; // Points modal component
+import ChecklistModal from './ChecklistModal';
 import AboutModal from './AboutModal'; // About modal component
 import HelpModal from './HelpModal'; // Help modal component
 import AccountSwitcher from './AccountSwitcher'; // Account switcher component
@@ -16,6 +17,7 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
     const [showDropdown, setShowDropdown] = useState(false); // State to manage dropdown visibility
     const [showContactMenu, setShowContactMenu] = useState(false);
     const [showPointsModal, setShowPointsModal] = useState(false); // State for points modal
+    const [showChecklistModal, setShowChecklistModal] = useState(false);
     const [showAboutModal, setShowAboutModal] = useState(false); // State for about modal
     const [showHelpModal, setShowHelpModal] = useState(false); // State for help modal
     const [contactModal, setContactModal] = useState({ isOpen: false, contactType: '', label: '' });
@@ -128,6 +130,13 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                             >
                                 ⭐
                             </button>
+                            <button
+                                onClick={() => setShowChecklistModal(true)}
+                                className="checklist-button"
+                                title="View Checklist"
+                            >
+                                ✅
+                            </button>
                             <div className="hamburger-menu" onClick={toggleDropdown}>
                                 <div className="bar"></div>
                                 <div className="bar"></div>
@@ -155,6 +164,10 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
             <PointsModal 
                 isOpen={showPointsModal} 
                 onClose={() => setShowPointsModal(false)} 
+            />
+            <ChecklistModal
+                isOpen={showChecklistModal}
+                onClose={() => setShowChecklistModal(false)}
             />
             <AboutModal 
                 isOpen={showAboutModal} 
