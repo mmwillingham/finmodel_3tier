@@ -54,9 +54,8 @@ from webauthn import (
     verify_registration_response,
     verify_authentication_response,
     options_to_json,
-    base64url_to_bytes,
 )
-from webauthn.helpers.base64url import bytes_to_base64url
+from webauthn.helpers import bytes_to_base64url, base64url_to_bytes
 from webauthn.helpers.structs import PublicKeyCredentialDescriptor, UserVerificationRequirement
 
 logger = logging.getLogger(__name__)

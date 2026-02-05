@@ -165,24 +165,6 @@ const AuthService = {
         return response.data;
     },
 
-    /**
-     * Requests a verification SMS to the provided phone number for settings verification.
-     */
-    async requestPhoneVerification(phoneNumber) {
-        const token = AuthService.getToken();
-        if (!token) {
-            throw new Error("No authentication token found.");
-        }
-        const response = await axios.post(API_URL + "mfa/request-phone-verification", {
-            phone_number: phoneNumber,
-        }, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        return response.data;
-    },
-
     async verifyMfaOtp(mfaToken, method, code, rememberDevice = false) {
         const response = await axios.post(API_URL + "mfa/verify-otp", {
             mfa_token: mfaToken,
@@ -228,6 +210,62 @@ const AuthService = {
                 Authorization: `Bearer ${token}`,
             },
         });
+        return response.data;
+    },
+
+    async getPasskeyRegistrationOptions() {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.get(API_URL + "mfa/passkey/registration-options", {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    },
+
+    async verifyPasskeyRegistration(credential) {
+        const token = AuthService.getToken();
+        if (!token) {
+            throw new Error("No authentication token found.");
+        }
+        const response = await axios.post(API_URL + "mfa/passkey/verify-registration", {
+            credential: credential,
+        }, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    },
+
+    async getPasskeyAuthenticationOptions(mfaToken) {
+        const response = await axios.post(API_URL + "mfa/passkey/authentication-options", {
+            mfa_token: mfaToken,
+        });
+        return response.data;
+    },
+
+    async verifyPasskeyAuthentication(mfaToken, credential, rememberDevice = false) {
+        const response = await axios.post(API_URL + "mfa/passkey/verify", {
+            mfa_token: mfaToken,
+            credential: credential,
+            remember_device: rememberDevice,
+        });
+        if (response.data.mfa_device_token) {
+            localStorage.setItem("mfa_device_token", response.data.mfa_device_token);
+        }
+        if (response.data.access_token) {
+            AuthService.setToken(response.data.access_token);
+            const userDetails = await AuthService.getCurrentUser();
+            return {
+                token: response.data.access_token,
+                user: userDetails,
+                must_change_password: response.data.must_change_password || false
+            };
+        }
         return response.data;
     },
 

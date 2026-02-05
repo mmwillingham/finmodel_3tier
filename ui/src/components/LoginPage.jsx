@@ -4,6 +4,7 @@ import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import '../styles/AuthForms.css'; // Import new styling
+import { startAuthentication } from '@simplewebauthn/browser';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -168,7 +169,7 @@ const LoginPage = () => {
                 <div className="auth-modal-overlay" onClick={() => setMfaRequired(false)}>
                     <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
                         <h3>Two-Factor Authentication</h3>
-                        <p>Select a method and enter the verification code.</p>
+                        <p>Select a method to complete verification.</p>
                         {otpError && <p className="error-message">{otpError}</p>}
                         {otpInfo && <p className="info-message">{otpInfo}</p>}
 
@@ -185,44 +186,81 @@ const LoginPage = () => {
                                 disabled={otpLoading}
                             >
                                 {mfaMethods.includes('email') && <option value="email">Email</option>}
-                                {mfaMethods.includes('sms') && <option value="sms">Text message (NOT SUPPORTED YET)</option>}
+                                {mfaMethods.includes('passkey') && <option value="passkey">Passkey</option>}
                             </select>
                         </div>
-                        
-                        <div className="form-group">
-                            <button
-                                type="button"
-                                className="secondary-button"
-                                disabled={otpLoading}
-                                onClick={async () => {
-                                    setOtpError('');
-                                    setOtpInfo('');
-                                    setOtpLoading(true);
-                                    try {
-                                        const response = await AuthService.requestMfaOtp(mfaToken, mfaMethod);
-                                        setOtpInfo(`Code sent to ${response.destination || `your ${mfaMethod}`}.`);
-                                    } catch (err) {
-                                        setOtpError(err.response?.data?.detail || 'Failed to send code.');
-                                    } finally {
-                                        setOtpLoading(false);
-                                    }
-                                }}
-                            >
-                                {otpLoading ? 'Sending...' : 'Send code'}
-                            </button>
-                        </div>
 
-                        <div className="form-group">
-                            <label htmlFor="mfa-code">Verification code</label>
-                            <input
-                                id="mfa-code"
-                                type="text"
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value)}
-                                placeholder="Enter 6-digit code"
-                                disabled={otpLoading}
-                            />
-                        </div>
+                        {mfaMethod === 'passkey' ? (
+                            <div className="form-group">
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    disabled={otpLoading}
+                                    onClick={async () => {
+                                        setOtpError('');
+                                        setOtpInfo('');
+                                        setOtpLoading(true);
+                                        try {
+                                            const options = await AuthService.getPasskeyAuthenticationOptions(mfaToken);
+                                            const credential = await startAuthentication(options);
+                                            const verifyResponse = await AuthService.verifyPasskeyAuthentication(mfaToken, credential, rememberDevice);
+                                            await login();
+
+                                            const userData = verifyResponse.user || currentUser;
+                                            if (verifyResponse.must_change_password === true || (userData && userData.must_change_password === true)) {
+                                                navigate('/app', { state: { mustChangePassword: true } });
+                                            } else {
+                                                navigate('/app');
+                                            }
+                                            setMfaRequired(false);
+                                        } catch (err) {
+                                            setOtpError(err.response?.data?.detail || err.message || 'Passkey verification failed.');
+                                        } finally {
+                                            setOtpLoading(false);
+                                        }
+                                    }}
+                                >
+                                    {otpLoading ? 'Working...' : 'Use Passkey'}
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="form-group">
+                                    <button
+                                        type="button"
+                                        className="secondary-button"
+                                        disabled={otpLoading}
+                                        onClick={async () => {
+                                            setOtpError('');
+                                            setOtpInfo('');
+                                            setOtpLoading(true);
+                                            try {
+                                                const response = await AuthService.requestMfaOtp(mfaToken, mfaMethod);
+                                                setOtpInfo(`Code sent to ${response.destination || `your ${mfaMethod}`}.`);
+                                            } catch (err) {
+                                                setOtpError(err.response?.data?.detail || 'Failed to send code.');
+                                            } finally {
+                                                setOtpLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        {otpLoading ? 'Sending...' : 'Send code'}
+                                    </button>
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="mfa-code">Verification code</label>
+                                    <input
+                                        id="mfa-code"
+                                        type="text"
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                        placeholder="Enter 6-digit code"
+                                        disabled={otpLoading}
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         <div className="form-group">
                             <label htmlFor="mfa-remember" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -237,35 +275,37 @@ const LoginPage = () => {
                             </label>
                         </div>
 
-                        <div className="auth-modal-actions">
-                            <button
-                                type="button"
-                                className="submit-button"
-                                disabled={otpLoading || !otp}
-                                onClick={async () => {
-                                    setOtpError('');
-                                    setOtpLoading(true);
-                                    try {
-                                        const verifyResponse = await AuthService.verifyMfaOtp(mfaToken, mfaMethod, otp, rememberDevice);
-                                        await login();
+                        {mfaMethod !== 'passkey' && (
+                            <div className="auth-modal-actions">
+                                <button
+                                    type="button"
+                                    className="submit-button"
+                                    disabled={otpLoading || !otp}
+                                    onClick={async () => {
+                                        setOtpError('');
+                                        setOtpLoading(true);
+                                        try {
+                                            const verifyResponse = await AuthService.verifyMfaOtp(mfaToken, mfaMethod, otp, rememberDevice);
+                                            await login();
 
-                                        const userData = verifyResponse.user || currentUser;
-                                        if (verifyResponse.must_change_password === true || (userData && userData.must_change_password === true)) {
-                                            navigate('/app', { state: { mustChangePassword: true } });
-                                        } else {
-                                            navigate('/app');
+                                            const userData = verifyResponse.user || currentUser;
+                                            if (verifyResponse.must_change_password === true || (userData && userData.must_change_password === true)) {
+                                                navigate('/app', { state: { mustChangePassword: true } });
+                                            } else {
+                                                navigate('/app');
+                                            }
+                                            setMfaRequired(false);
+                                        } catch (err) {
+                                            setOtpError(err.response?.data?.detail || 'Invalid code.');
+                                        } finally {
+                                            setOtpLoading(false);
                                         }
-                                        setMfaRequired(false);
-                                    } catch (err) {
-                                        setOtpError(err.response?.data?.detail || 'Invalid code.');
-                                    } finally {
-                                        setOtpLoading(false);
-                                    }
-                                }}
-                            >
-                                Verify & Sign In
-                            </button>
-                        </div>
+                                    }}
+                                >
+                                    Verify & Sign In
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

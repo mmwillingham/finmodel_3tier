@@ -353,6 +353,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         if (!ad || !ad.target_asset_id || !cashAssetIds.includes(ad.target_asset_id)) {
           return;
         }
+        if (ad.distribution_type === 'taxable_ira') {
+          return;
+        }
         // Use calculateYearFraction to handle one-time items properly
         const disbursementYearFraction = calculateYearFraction(ad.start_date, ad.end_date, currentProjectionYear);
         
@@ -384,6 +387,9 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       autoDisbursements.forEach(ad => {
         if (!ad || !ad.source_asset_id || !cashAssetIds.includes(ad.source_asset_id) || cashAssetIds.includes(ad.target_asset_id)) {
           return; // Skip if source is not cash asset, or if target is also cash asset (handled above)
+        }
+        if (ad.distribution_type === 'taxable_ira') {
+          return;
         }
         // Use calculateYearFraction to handle one-time items properly
         const disbursementYearFraction = calculateYearFraction(ad.start_date, ad.end_date, currentProjectionYear);
@@ -637,10 +643,11 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     return defaultColor;
   };
 
-  const incomePieTotals = includeTransfers
+  const includeTransferTotals = includeTransfers && viewMode === 'sankey';
+  const incomePieTotals = includeTransferTotals
     ? extendTotalsWithTransfers(incomeCategoryTotals, transferSources)
     : { ...incomeCategoryTotals };
-  const expensePieTotals = includeTransfers
+  const expensePieTotals = includeTransferTotals
     ? extendTotalsWithTransfers(expenseCategoryTotals, transferSinks)
     : { ...expenseCategoryTotals };
   const incomePieEntries = buildPieChartEntries(incomePieTotals);

@@ -8,6 +8,7 @@ import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity.js';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
+import { startRegistration } from '@simplewebauthn/browser';
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
@@ -62,11 +63,11 @@ const ProfileSettingsPage = () => {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaEmailEnabled, setMfaEmailEnabled] = useState(true);
-  const [mfaSmsEnabled, setMfaSmsEnabled] = useState(false);
-  const [mfaPhoneNumber, setMfaPhoneNumber] = useState('');
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verifyInfo, setVerifyInfo] = useState('');
-  const [verifyError, setVerifyError] = useState('');
+  const [mfaPasskeyEnabled, setMfaPasskeyEnabled] = useState(false);
+  const [mfaPasskeyRegistered, setMfaPasskeyRegistered] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeyInfo, setPasskeyInfo] = useState('');
+  const [passkeyError, setPasskeyError] = useState('');
 
   useEffect(() => {
     if (!settings) {
@@ -99,8 +100,8 @@ const ProfileSettingsPage = () => {
         const mfa = await AuthService.getMfaSettings();
         setMfaEnabled(Boolean(mfa.mfa_enabled));
         setMfaEmailEnabled(Boolean(mfa.mfa_email_enabled));
-        setMfaSmsEnabled(Boolean(mfa.mfa_sms_enabled));
-        setMfaPhoneNumber(mfa.mfa_phone_number || "");
+        setMfaPasskeyEnabled(Boolean(mfa.mfa_passkey_enabled));
+        setMfaPasskeyRegistered(Boolean(mfa.mfa_passkey_registered));
       } catch (e) {
       }
     };
@@ -138,8 +139,7 @@ const ProfileSettingsPage = () => {
       await AuthService.updateMfaSettings({
         mfa_enabled: mfaEnabled,
         mfa_email_enabled: mfaEmailEnabled,
-        mfa_sms_enabled: mfaSmsEnabled,
-        mfa_phone_number: mfaPhoneNumber || null,
+        mfa_passkey_enabled: mfaPasskeyEnabled,
       });
       await refreshSettings();
       setMessage('Profile settings saved successfully!');
@@ -481,12 +481,12 @@ const ProfileSettingsPage = () => {
                     onChange={(e) => {
                       const checked = e.target.checked;
                       setMfaEnabled(checked);
-                      if (checked && !mfaEmailEnabled && !mfaSmsEnabled) {
+                      if (checked && !mfaEmailEnabled && !mfaPasskeyEnabled) {
                         setMfaEmailEnabled(true);
                       }
                       if (!checked) {
                         setMfaEmailEnabled(false);
-                        setMfaSmsEnabled(false);
+                        setMfaPasskeyEnabled(false);
                       }
                     }}
                   />
@@ -502,7 +502,6 @@ const ProfileSettingsPage = () => {
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setMfaEmailEnabled(checked);
-                    if (checked) setMfaSmsEnabled(false);
                   }}
                   disabled={!mfaEnabled}
                 />
@@ -517,60 +516,51 @@ const ProfileSettingsPage = () => {
                 />
               </div>
               <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
-                <label htmlFor="mfa-sms">SMS/Text Message Verification (Coming Soon)</label>
+                <label htmlFor="mfa-passkey">Passkey (WebAuthn)</label>
                 <input
-                  id="mfa-sms"
+                  id="mfa-passkey"
                   type="checkbox"
-                  checked={false}
-                  onChange={() => {}}
-                  disabled={true}
+                  checked={mfaPasskeyEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setMfaPasskeyEnabled(checked);
+                  }}
+                  disabled={!mfaEnabled}
                 />
               </div>
-              <div className="form-group-horizontal" style={{ opacity: (mfaEnabled && mfaSmsEnabled) ? 1 : 0.6 }}>
-                <label htmlFor="mfa-phone">SMS Phone Number</label>
-                <input
-                  id="mfa-phone"
-                  type="text"
-                  value={formatPhoneNumber(mfaPhoneNumber)}
-                  onChange={(e) => setMfaPhoneNumber(formatPhoneNumber(e.target.value))}
-                  placeholder="(555) 123-4567"
-                  disabled={!mfaEnabled || !mfaSmsEnabled}
-                />
-              </div>
-              {mfaEnabled && mfaSmsEnabled && (
-                <div className="form-group-horizontal" style={{ gap: '8px', alignItems: 'center' }}>
-                  <label />
-                  <div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setVerifyError('');
-                        setVerifyInfo('');
-                        setVerifyLoading(true);
-                        try {
-                          if (!mfaPhoneNumber) {
-                            throw new Error('Please enter a phone number.');
-                          }
-                          const resp = await AuthService.requestPhoneVerification(mfaPhoneNumber);
-                          setVerifyInfo(resp.message || 'Verification code sent.');
-                        } catch (err) {
-                          setVerifyError(err.response?.data?.detail || err.message || 'Failed to send verification.');
-                        } finally {
-                          setVerifyLoading(false);
-                        }
-                      }}
-                      disabled={!mfaEnabled || !mfaSmsEnabled || verifyLoading}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
-                    >
-                      {verifyLoading ? 'Sending...' : 'Verify'}
-                    </button>
-                    {verifyInfo && <div style={{ color: '#155724', marginTop: '6px' }}>{verifyInfo}</div>}
-                    {verifyError && <div style={{ color: '#721c24', marginTop: '6px' }}>{verifyError}</div>}
-                  </div>
+              <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
+                <label />
+                <div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setPasskeyError('');
+                      setPasskeyInfo('');
+                      setPasskeyLoading(true);
+                      try {
+                        const options = await AuthService.getPasskeyRegistrationOptions();
+                        const credential = await startRegistration(options);
+                        await AuthService.verifyPasskeyRegistration(credential);
+                        setMfaPasskeyRegistered(true);
+                        setMfaPasskeyEnabled(true);
+                        setPasskeyInfo('Passkey registered successfully.');
+                      } catch (err) {
+                        setPasskeyError(err.response?.data?.detail || err.message || 'Failed to register passkey.');
+                      } finally {
+                        setPasskeyLoading(false);
+                      }
+                    }}
+                    disabled={!mfaEnabled || passkeyLoading}
+                    style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
+                  >
+                    {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Replace Passkey' : 'Register Passkey')}
+                  </button>
+                  {passkeyInfo && <div style={{ color: '#155724', marginTop: '6px' }}>{passkeyInfo}</div>}
+                  {passkeyError && <div style={{ color: '#721c24', marginTop: '6px' }}>{passkeyError}</div>}
                 </div>
-              )}
+              </div>
               <small style={{ color: '#666' }}>
-                Enable 2FA and choose at least one method. SMS requires a phone number.
+                Enable 2FA and choose at least one method. Passkey requires registration.
               </small>
             </div>
           </div>
