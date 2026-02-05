@@ -57,8 +57,10 @@ from webauthn import (
 )
 from webauthn.helpers import bytes_to_base64url, base64url_to_bytes
 from webauthn.helpers.structs import (
+    AuthenticatorAttachment,
     AuthenticatorSelectionCriteria,
     PublicKeyCredentialDescriptor,
+    ResidentKeyRequirement,
     UserVerificationRequirement,
 )
 
@@ -471,8 +473,11 @@ def get_passkey_registration_options(
         rp_name=rp_name,
         user_id=str(user.id).encode("utf-8"),
         user_name=user_name,
+        user_display_name=user_name,
         authenticator_selection=AuthenticatorSelectionCriteria(
-            user_verification=UserVerificationRequirement.PREFERRED
+            authenticator_attachment=AuthenticatorAttachment.PLATFORM,
+            resident_key=ResidentKeyRequirement.PREFERRED,
+            user_verification=UserVerificationRequirement.PREFERRED,
         ),
         exclude_credentials=exclude_credentials or None,
     )
