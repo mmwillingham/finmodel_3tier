@@ -1161,6 +1161,7 @@ export default function SidebarLayout() {
                   : (cashFlowView === 'expense' ? (userSettings?.expense_categories || []) : (userSettings?.income_categories || []))
               }
               assets={assets}
+              autoDisbursements={autoDisbursements}
             />
           </div>
         )}

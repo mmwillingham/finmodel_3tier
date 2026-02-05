@@ -152,7 +152,10 @@ const AutoDisbursementSettingsPage = () => {
     }
     try {
       setRmdLoading(true);
-      const startYear = (userSettings && userSettings.tax_year) ? userSettings.tax_year : new Date().getFullYear();
+      const startYearFromDate = newAutoDisbursement.start_date
+        ? new Date(newAutoDisbursement.start_date).getFullYear()
+        : null;
+      const startYear = startYearFromDate || ((userSettings && userSettings.tax_year) ? userSettings.tax_year : new Date().getFullYear());
       // Request a 10-year schedule for preview
       const resp = await AutoDisbursementService.getRmd(newAutoDisbursement.source_asset_id, startYear, 10);
       if (Array.isArray(resp)) {
@@ -619,7 +622,7 @@ const AutoDisbursementSettingsPage = () => {
                   ref={nameRef}
                   type="text"
                   placeholder="e.g. IRA to Savings"
-                  value={newAutoDisbursement.name}
+                  value={newAutoDisbursement.name || ''}
                   onChange={(e) => {
                     const val = e.target.value;
                     setRmdError('');
@@ -644,6 +647,9 @@ const AutoDisbursementSettingsPage = () => {
                     <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
                       Taxable transfer from a non-Roth retirement account to a non-retirement account. Required: start date and owner birth date in profile.
                     </small>
+                    <small style={{ display: 'block', color: '#155724', backgroundColor: '#d4edda', padding: '6px 10px', borderRadius: '4px', marginTop: '6px', border: '1px solid #c3e6cb' }}>
+                      <strong>Note:</strong> Selecting Taxable Distribution automatically creates a "Taxable distribution" income row in the Cash Flow view so tax calculations include the transfer.
+                    </small>
                     <label style={{ display: 'block', marginTop: '8px' }}>
                       <input
                         type="checkbox"
@@ -663,9 +669,6 @@ const AutoDisbursementSettingsPage = () => {
                       />
                       Use RMD each year
                     </label>
-                    <small style={{ display: 'block', color: '#666', marginTop: '6px' }}>
-                      Selecting Taxable Distribution automatically creates a "Taxable distribution" income row in the Cash Flow view so tax calculations include the transfer.
-                    </small>
                   </>
                 )}
                 {newAutoDisbursement.distribution_type === 'non_taxable' && (
@@ -756,7 +759,7 @@ const AutoDisbursementSettingsPage = () => {
                   type="number"
                   step={newAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
                   placeholder={newAutoDisbursement.transfer_type === 'percentage' ? 'e.g., 5' : 'e.g., 5000'}
-                  value={newAutoDisbursement.transfer_value}
+                  value={newAutoDisbursement.transfer_value ?? ''}
                   ref={transferValueRef}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -811,7 +814,7 @@ const AutoDisbursementSettingsPage = () => {
                 <input
                   id="start_date"
                   type="date"
-                  value={newAutoDisbursement.start_date}
+                  value={newAutoDisbursement.start_date || ''}
                   ref={startDateRef}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -827,7 +830,7 @@ const AutoDisbursementSettingsPage = () => {
                 <input
                   id="end_date"
                   type="date"
-                  value={newAutoDisbursement.end_date}
+                  value={newAutoDisbursement.end_date || ''}
                   ref={endDateRef}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -922,7 +925,7 @@ const AutoDisbursementSettingsPage = () => {
                       <td>
                         <input
                           type="text"
-                          value={editingAutoDisbursement.name}
+                          value={editingAutoDisbursement.name || ''}
                           onChange={(e) => setEditingAutoDisbursement({ ...editingAutoDisbursement, name: e.target.value })}
                           style={{ width: '100%', padding: '5px' }}
                         />
@@ -970,7 +973,7 @@ const AutoDisbursementSettingsPage = () => {
                           <input
                             type="number"
                             step={editingAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
-                            value={editingAutoDisbursement.transfer_value}
+                          value={editingAutoDisbursement.transfer_value ?? ''}
                             onChange={(e) => setEditingAutoDisbursement({ ...editingAutoDisbursement, transfer_value: e.target.value })}
                             style={{ width: '100%', padding: '5px' }}
                           />

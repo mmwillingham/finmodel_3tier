@@ -20,7 +20,10 @@ router = APIRouter(
 @router.get("/state", response_model=schemas.StateTaxResult)
 def calculate_state_tax(
     current_user: schemas.UserOut = Depends(auth.get_current_user),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    total_income: float | None = None,
+    tax_deductible_expenses: float | None = None,
+    federal_tax_owed: float | None = None,
 ):
     user_settings = db.query(models.UserSettings).filter(models.UserSettings.owner_id == current_user.id).first()
     if not user_settings:
@@ -38,6 +41,20 @@ def calculate_state_tax(
             detail="State and filing status must be defined to calculate state tax."
         )
 
+    if total_income is not None and tax_deductible_expenses is not None:
+        _, state_standard_deduction, state_tax_owed = calculate_state_taxable_income(
+            total_income,
+            tax_deductible_expenses,
+            user_settings.state,
+            user_settings.tax_filing_status,
+            federal_tax_owed=federal_tax_owed or 0.0
+        )
+        return schemas.StateTaxResult(
+            state_taxable_income=total_income,
+            state_standard_deduction=state_standard_deduction,
+            state_tax=state_tax_owed
+        )
+
     income_items = db.query(models.CashFlowItem).filter(
         models.CashFlowItem.owner_id == current_user.id,
         models.CashFlowItem.is_income == True,
@@ -50,18 +67,18 @@ def calculate_state_tax(
         models.CashFlowItem.yearly_value.isnot(None)
     ).all()
 
-    total_income = sum(item.yearly_value for item in income_items if item.taxable and item.yearly_value)
-    tax_deductible_expenses = sum(
+    total_income_db = sum(item.yearly_value for item in income_items if item.taxable and item.yearly_value)
+    tax_deductible_expenses_db = sum(
         item.yearly_value for item in expense_items
         if item.tax_deductible and item.yearly_value and item.description not in {FEDERAL_TAX_EXPENSE_DESCRIPTION, STATE_TAX_EXPENSE_DESCRIPTION}
     )
 
     state_taxable_income, state_standard_deduction, state_tax_owed = calculate_state_taxable_income(
-        total_income,
-        tax_deductible_expenses,
+        total_income_db,
+        tax_deductible_expenses_db,
         user_settings.state,
         user_settings.tax_filing_status,
-        federal_tax_owed=0.0
+        federal_tax_owed=federal_tax_owed or 0.0
     )
 
     return schemas.StateTaxResult(

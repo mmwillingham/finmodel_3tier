@@ -5,101 +5,44 @@ import html2canvas from 'html2canvas';
 import { Line, Bar, Chart } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
-import { calculateYearFraction } from '../utils/dateUtils';
 import { calculateRmd } from '../utils/rmdCalculator';
+import { calculateYearFraction } from '../utils/dateUtils';
+import { buildTaxableDistributionEntries } from '../utils/taxableDistribution';
 import ProjectionService from '../services/projection.service';
 
 // Register Chart.js components for combo charts
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement);
 
-// Constant to identify the federal tax expense item (must match backend)
+// Constants to identify the tax expense items (must match backend)
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
+const STATE_TAX_EXPENSE_DESCRIPTION = "State Income Tax (Calculated)";
 
-const buildTaxableDistributionEntries = ({
-  autoDisbursements = [],
-  assets = [],
-  assetProjections = {},
-  currentYear,
-  selectedYear,
-  userSettings = {},
-}) => {
-  if (!Array.isArray(autoDisbursements) || autoDisbursements.length === 0) {
+const CASH_ASSET_KEYWORDS = ['cash', 'checking', 'savings', 'money market', 'deposit'];
+const getCashAssetIds = (userSettings, assets) => {
+  const configured = userSettings?.cash_asset_ids || [];
+  if (Array.isArray(configured) && configured.length > 0) {
+    return configured;
+  }
+  if (!Array.isArray(assets) || assets.length === 0) {
     return [];
   }
-
-  const projectionYear = currentYear + selectedYear;
-  const yearStart = new Date(projectionYear, 0, 1);
-  const yearEnd = new Date(projectionYear, 11, 31);
-
-  return autoDisbursements.flatMap((ad) => {
-    if (!ad || ad.distribution_type !== 'taxable_ira' || !ad.source_asset_id) {
-      return [];
-    }
-
-    const startDate = ad.start_date ? new Date(ad.start_date) : null;
-    const endDate = ad.end_date ? new Date(ad.end_date) : null;
-    if ((startDate && yearEnd < startDate) || (endDate && yearStart > endDate)) {
-      return [];
-    }
-
-    const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
-    if (!sourceAsset) {
-      return [];
-    }
-
-    const projections = assetProjections[sourceAsset.id] || [];
-    const startIndex = selectedYear === 0 ? 0 : Math.max(selectedYear - 1, 0);
-    let sourceBalance = projections[startIndex] ?? sourceAsset.value ?? 0;
-    if (selectedYear === 0 && projections[0] == null) {
-      sourceBalance = sourceAsset.value || 0;
-    }
-    sourceBalance = Math.abs(sourceBalance);
-
-    let transferAmount = 0;
-    if (ad.use_rmd && userSettings?.person1_birthdate) {
-      const overrideKey = projectionYear;
-      let overrideVal = ad.rmd_overrides ? (ad.rmd_overrides[overrideKey] ?? ad.rmd_overrides[String(overrideKey)]) : null;
-      if (overrideVal != null && overrideVal !== '') {
-        transferAmount = Number(overrideVal) || 0;
-      } else {
-        const spouseBirthdate = userSettings.person2_birthdate || null;
-        const rmdResult = calculateRmd(userSettings.person1_birthdate, sourceBalance, projectionYear, spouseBirthdate);
-        transferAmount = rmdResult?.rmd_amount || 0;
-      }
-    } else if (ad.transfer_type === 'percentage') {
-      transferAmount = sourceBalance * ((Number(ad.transfer_value) || 0) / 100.0);
-    } else {
-      transferAmount = Number(ad.transfer_value) || 0;
-    }
-
-    transferAmount = Math.max(0, transferAmount);
-    if (!Number.isFinite(transferAmount) || transferAmount === 0) {
-      return [];
-    }
-
-    return [{
-      id: `taxable-distribution-${ad.id}-${projectionYear}`,
-      description: "Taxable distribution",
-      category: ad.name || 'Taxable distribution',
-      yearly_value: transferAmount,
-      start_date: ad.start_date || null,
-      end_date: ad.end_date || null,
-      taxable: true,
-      annual_increase_percent: 0,
-      frequency: 'yearly',
-      linked_item_type: null,
-      percentage: null,
-    }];
-  });
+  return assets
+    .filter(asset => {
+      const category = (asset?.category || '').toString().toLowerCase();
+      return CASH_ASSET_KEYWORDS.some(keyword => category.includes(keyword));
+    })
+    .map(asset => asset.id)
+    .filter(Boolean);
 };
 
 // Simplified Sankey Diagram Component
-function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [], viewMode = 'sankey', includeTransfers = true }) {
+function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userSettings = null, cashFlowProjection = null, baseModel = null, formatCurrency, currentYear, projectionYears = 30, selectedYear = 0, autoDisbursements = [], viewMode = 'sankey', includeTransfers = true, stateTaxProjectionValue = 0 }) {
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
   );
-  
+
+  const cashAssetIds = getCashAssetIds(userSettings, assets);
   const cashInSourceIds = userSettings?.cash_in_source_ids || [];
   const cashOutSourceIds = userSettings?.cash_out_source_ids || [];
 
@@ -124,9 +67,8 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   const taxableDistributionItems = buildTaxableDistributionEntries({
     autoDisbursements,
     assets,
-    assetProjections,
     currentYear,
-    selectedYear,
+    targetYear: selectedYear,
     userSettings,
   });
 
@@ -326,14 +268,14 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
           currentProjectionYear
         );
         federalTax = taxResult.taxOwed || 0;
-        // Add taxes to expense category totals and totalCashOut
-        if (federalTax > 0) {
-          const taxCategory = federalTaxExpenseItem.category || 'Taxes';
+        const taxCategory = federalTaxExpenseItem.category || 'Taxes';
+        const combinedTax = (federalTax || 0) + (userSettings.calculate_state_tax ? stateTaxProjectionValue : 0);
+        if (combinedTax > 0) {
           if (!expenseCategoryTotals[taxCategory]) {
             expenseCategoryTotals[taxCategory] = 0;
           }
-          expenseCategoryTotals[taxCategory] += federalTax;
-          totalCashOut += federalTax;
+          expenseCategoryTotals[taxCategory] += combinedTax;
+          totalCashOut += combinedTax;
         }
       } catch (error) {
       }
@@ -343,7 +285,6 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   // Calculate beginning balance for selected year
   // Use BASE model's beginning balance for this year to ensure consistency
   // The beginning balance should be the accumulated ending balance from previous years
-  const cashAssetIds = userSettings?.cash_asset_ids || [];
   let beginningBalance = 0;
   
   if (baseModel && baseModel.beginningBalances && baseModel.beginningBalances[year] !== undefined) {
@@ -432,8 +373,8 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               const targetAsset = assets.find(a => a.id === ad.target_asset_id);
               const sourceName = sourceAsset ? sourceAsset.name : 'Source';
               const targetName = targetAsset ? targetAsset.name : 'Target';
-              transferSources[`Auto-Disbursement: ${sourceName} → ${targetName}`] = transferAmount;
-              totalCashIn += transferAmount; // Add to total cash in
+              const transferLabel = `Auto-Disbursement: ${sourceName} → ${targetName}`;
+              transferSources[transferLabel] = (transferSources[transferLabel] || 0) + transferAmount;
             }
           }
         }
@@ -461,7 +402,11 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
             }
             
             if (transferAmount > 0) {
-              totalCashOut += transferAmount; // Add to total cash out (cash leaving)
+              const sourceName = sourceAsset ? sourceAsset.name : 'Source';
+              const targetAsset = assets.find(a => a.id === ad.target_asset_id);
+              const targetName = targetAsset ? targetAsset.name : 'Target';
+              const transferLabel = `Auto-Disbursement: ${sourceName} → ${targetName}`;
+              transferSinks[transferLabel] = (transferSinks[transferLabel] || 0) + transferAmount;
             }
           }
         }
@@ -667,10 +612,13 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     const combined = { ...(totals || {}) };
     Object.entries(transfers || {}).forEach(([label, amount]) => {
       const value = Number(amount) || 0;
-      if (value <= 0) {
+      if (value <= 0 || !label) {
         return;
       }
-      combined[label] = (combined[label] || 0) + value;
+      if (combined[label]) {
+        return;
+      }
+      combined[label] = value;
     });
     return combined;
   };
@@ -1231,11 +1179,92 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const [error, setError] = useState(null);
   const [useSeparateYAxis, setUseSeparateYAxis] = useState(true); // Toggle for separate y-axis in BASE model
   const [showTotalAssets, setShowTotalAssets] = useState(false); // Toggle for showing Total Assets in BASE model
-  
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
   );
+  const cashAssetIds = useMemo(() => userSettings?.cash_asset_ids || [], [userSettings?.cash_asset_ids]);
+  const autoDisbursementCashFlowAdjustments = useMemo(() => {
+    const totalYears = Math.max((projectionYears ?? 0), 0) + 1;
+    const transferSourcesByYear = Array.from({ length: totalYears }, () => 0);
+    const transferSinksByYear = Array.from({ length: totalYears }, () => 0);
+
+    if (!autoDisbursements || autoDisbursements.length === 0 || !assets || assets.length === 0) {
+      return { transferSourcesByYear, transferSinksByYear };
+    }
+
+    const assetProjections = {};
+    assets.forEach(asset => {
+      assetProjections[asset.id] = [];
+      for (let year = 0; year < totalYears; year++) {
+        const projectionYear = currentYear + year;
+        const assetYearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
+        if (assetYearFraction > 0) {
+          const growthRate = (asset.annual_increase_percent || 0) / 100;
+          const assetValue = (asset.value || 0) * Math.pow(1 + growthRate, year);
+          assetProjections[asset.id].push(assetValue);
+        } else {
+          assetProjections[asset.id].push(0);
+        }
+      }
+    });
+
+    autoDisbursements.forEach(ad => {
+      if (!ad) {
+        return;
+      }
+
+      for (let year = 0; year < totalYears; year++) {
+        const projectionYear = currentYear + year;
+        const disbursementYearFraction = calculateYearFraction(ad.start_date, ad.end_date, projectionYear);
+        if (disbursementYearFraction <= 0) {
+          continue;
+        }
+
+        const sourceAsset = assets.find(asset => asset.id === ad.source_asset_id);
+        let sourceValue = assetProjections[ad.source_asset_id]?.[year] || 0;
+        if (projectionData && Array.isArray(projectionData) && projectionData[year] && sourceAsset?.name) {
+          const projectionKey = `${sourceAsset.name}_Value`;
+          if (projectionData[year][projectionKey] != null) {
+            sourceValue = projectionData[year][projectionKey];
+          }
+        }
+        let transferAmount = 0;
+        if (ad.use_rmd && userSettings?.person1_birthdate) {
+          const overrideKey = projectionYear;
+          const overrideVal = ad.rmd_overrides ? (ad.rmd_overrides[overrideKey] ?? ad.rmd_overrides[String(overrideKey)]) : null;
+          if (overrideVal != null && overrideVal !== '') {
+            transferAmount = Number(overrideVal) || 0;
+          } else {
+            const spouseBirthdate = userSettings.person2_birthdate || null;
+            const rmdResult = calculateRmd(userSettings.person1_birthdate, Math.abs(sourceValue), projectionYear, spouseBirthdate);
+            transferAmount = rmdResult?.rmd_amount || 0;
+          }
+        } else if (ad.transfer_type === 'percentage') {
+          transferAmount = sourceValue * ((ad.transfer_value || 0) / 100.0);
+        } else if (ad.transfer_type === 'fixed' || ad.transfer_type === 'dollar_amount') {
+          transferAmount = ad.transfer_value || 0;
+        }
+
+        if (transferAmount <= 0) {
+          continue;
+        }
+
+        if (cashAssetIds.includes(ad.target_asset_id)) {
+          transferSourcesByYear[year] += transferAmount;
+        }
+
+        if (cashAssetIds.includes(ad.source_asset_id) && !cashAssetIds.includes(ad.target_asset_id)) {
+          transferSinksByYear[year] += transferAmount;
+        }
+      }
+    });
+
+    return {
+      transferSourcesByYear,
+      transferSinksByYear
+    };
+  }, [autoDisbursements, assets, projectionYears, currentYear, cashAssetIds, projectionData, userSettings?.person1_birthdate, userSettings?.person2_birthdate]);
 
   // Fetch projection data from backend
   const fetchProjectionData = useCallback(async () => {
@@ -1502,7 +1531,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     const surplus = projectionData.map(dp => dp["Net Cash Flow"] || 0);
 
     // Calculate BASE model from cash assets
-    const cashAssetIds = userSettings?.cash_asset_ids || [];
+    const cashAssetIds = getCashAssetIds(userSettings, assets);
     const cashAssets = (assets || []).filter(a => cashAssetIds.includes(a.id));
     
     // Get cash asset names for looking up balances in projection data
@@ -1864,7 +1893,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
   // BASE Model calculation (Beginning, Additions, Subtractions, Ending)
   const calculateBaseModel = () => {
-    const cashAssetIds = userSettings?.cash_asset_ids || [];
+    const cashAssetIds = getCashAssetIds(userSettings, assets);
     const cashInSourceIds = userSettings?.cash_in_source_ids || [];
     const cashOutSourceIds = userSettings?.cash_out_source_ids || [];
     
@@ -2253,18 +2282,46 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
   // Parse projection data from backend
   const parsedData = parseProjectionData();
-  
+  const selectedProjectionEntry = projectionData?.find(dp => dp.Year === currentYear + sankeyYear) ?? projectionData?.[sankeyYear];
+  const categoryStateTaxProjectionValue = Math.max(0, Math.abs(selectedProjectionEntry?.[`${STATE_TAX_EXPENSE_DESCRIPTION}_Value`] || 0));
+  const { transferSourcesByYear: autoDisbursementSources, transferSinksByYear: autoDisbursementSinks } = autoDisbursementCashFlowAdjustments;
+  const hasSurplusCashAsset = Boolean(userSettings?.surplus_asset_id && cashAssetIds.includes(userSettings.surplus_asset_id));
+  const surplusArray = parsedData.surplus || [];
+  const surplusTransfers = surplusArray.map(value => (hasSurplusCashAsset && value > 0 ? value : 0));
+  const deficitTransfers = surplusArray.map(value => (hasSurplusCashAsset && value < 0 ? Math.abs(value) : 0));
+  const adjustedIncomeValues = (parsedData.incomeValues || []).map((value, index) => {
+    const surplusAddition = includeTransfers ? (surplusTransfers[index] || 0) : 0;
+    const autoTransferIn = includeTransfers ? (autoDisbursementSources[index] || 0) : 0;
+    return (value || 0) + surplusAddition + autoTransferIn;
+  });
+  const adjustedExpenseValues = (parsedData.expenseValues || []).map((value, index) => {
+    const deficitAddition = includeTransfers ? (deficitTransfers[index] || 0) : 0;
+    const autoTransferOut = includeTransfers ? (autoDisbursementSinks[index] || 0) : 0;
+    return (value || 0) + deficitAddition + autoTransferOut;
+  });
+  const adjustedSurplus = adjustedIncomeValues.map((value, index) => value - (adjustedExpenseValues[index] || 0));
+
   // Use parsed data or fallback to empty
   const cashFlowProjection = {
     years: parsedData.years,
-    incomeValues: parsedData.incomeValues,
-    expenseValues: parsedData.expenseValues,
-    surplus: parsedData.surplus,
-    surplusAssetTransfers: parsedData.surplus.map(s => s > 0 ? s : 0), // Surplus when positive
+    incomeValues: adjustedIncomeValues,
+    expenseValues: adjustedExpenseValues,
+    surplus: adjustedSurplus,
+    surplusAssetTransfers: surplusTransfers, // Surplus when positive
     autoDisbursementTransfers: {} // TODO: Add auto-disbursement transfers from backend if needed
   };
   
   const baseModel = parsedData.baseModel;
+  const displayBaseModel = baseModel ? {
+    ...baseModel,
+    cashInValues: cashFlowProjection.incomeValues || baseModel.cashInValues || [],
+    cashOutValues: cashFlowProjection.expenseValues || baseModel.cashOutValues || [],
+    endingBalances: (baseModel.beginningBalances || []).map((beginning, index) => {
+      const cashIn = (cashFlowProjection.incomeValues || [])[index] || 0;
+      const cashOut = (cashFlowProjection.expenseValues || [])[index] || 0;
+      return (beginning || 0) + cashIn - cashOut;
+    })
+  } : baseModel;
   
   if (loading) {
     return <div>Loading projections. Please be patient...</div>;
@@ -2514,7 +2571,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       {
         type: 'bar',
         label: 'Cash In',
-        data: baseModel?.cashInValues || [],
+        data: displayBaseModel?.cashInValues || [],
         backgroundColor: 'rgba(75, 192, 75, 0.6)',
         borderColor: 'rgb(75, 192, 75)',
         borderWidth: 1,
@@ -2523,7 +2580,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       {
         type: 'bar',
         label: 'Cash Out',
-        data: baseModel?.cashOutValues || [],
+        data: displayBaseModel?.cashOutValues || [],
         backgroundColor: 'rgba(255, 99, 99, 0.6)',
         borderColor: 'rgb(255, 99, 99)',
         borderWidth: 1,
@@ -2532,7 +2589,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       {
         type: 'line',
         label: 'Available Cash',
-        data: baseModel?.endingBalances || [],
+        data: displayBaseModel?.endingBalances || [],
         borderColor: 'rgb(153, 102, 255)',
         backgroundColor: 'rgba(153, 102, 255, 0.2)',
         borderWidth: 3,
@@ -2546,7 +2603,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
       ...(showTotalAssets ? [{
         type: 'line',
         label: 'Total Assets',
-        data: baseModel?.totalAssets || [],
+        data: displayBaseModel?.totalAssets || [],
         borderColor: 'rgb(255, 165, 0)',
         backgroundColor: 'rgba(255, 165, 0, 0.2)',
         borderWidth: 2,
@@ -2701,6 +2758,17 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         <>
           <h3>Income & Expense Projection</h3>
           <div style={{ marginBottom: "30px" }}>
+            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9em', color: '#333' }}>
+                <input
+                  type="checkbox"
+                  checked={includeTransfers}
+                  onChange={(e) => setIncludeTransfers(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                Include Surplus/Deficit Transfers
+              </label>
+            </div>
             <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
               <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(chartRef, "Income_Expense_Projection")}>Download PNG</button>
               <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(chartRef, "Income_Expense_Projection")}>Download PDF</button>
@@ -2781,6 +2849,15 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                   />
                   <span>Show Total Assets</span>
                 </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={includeTransfers}
+                    onChange={(e) => setIncludeTransfers(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>Include Surplus/Deficit Transfers</span>
+                </label>
               </div>
               <div style={{ marginBottom: "30px" }}>
                 <div className="chart-actions">
@@ -2809,11 +2886,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                   {displayYears.map((year, yearIndex) => (
                     <tr key={year}>
                       <td>{year}</td>
-                      <td>{safeFormatCurrency(baseModel?.beginningBalances?.[yearIndex] || 0)}</td>
-                      <td>{safeFormatCurrency(baseModel?.cashInValues?.[yearIndex] || 0)}</td>
-                      <td>{safeFormatCurrency(baseModel?.cashOutValues?.[yearIndex] || 0)}</td>
-                      <td>{safeFormatCurrency(baseModel?.endingBalances?.[yearIndex] || 0)}</td>
-                      {showTotalAssets && <td>{safeFormatCurrency(baseModel?.totalAssets?.[yearIndex] || 0)}</td>}
+                      <td>{safeFormatCurrency(displayBaseModel?.beginningBalances?.[yearIndex] || 0)}</td>
+                      <td>{safeFormatCurrency(displayBaseModel?.cashInValues?.[yearIndex] || 0)}</td>
+                      <td>{safeFormatCurrency(displayBaseModel?.cashOutValues?.[yearIndex] || 0)}</td>
+                      <td>{safeFormatCurrency(displayBaseModel?.endingBalances?.[yearIndex] || 0)}</td>
+                      {showTotalAssets && <td>{safeFormatCurrency(displayBaseModel?.totalAssets?.[yearIndex] || 0)}</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -2916,8 +2993,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                         projectionYears={projectionYears}
                         selectedYear={sankeyYear}
                         autoDisbursements={autoDisbursements || []}
-                      viewMode={sankeyViewMode}
-                      includeTransfers={includeTransfers}
+                        viewMode={sankeyViewMode}
+                        includeTransfers={includeTransfers}
+                        stateTaxProjectionValue={categoryStateTaxProjectionValue}
                       />
                     );
                 } catch (innerError) {
