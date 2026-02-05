@@ -158,10 +158,6 @@ def get_user_points(
             models.AutoDisbursement.owner_id == user_id
         ).scalar() or 0
 
-        plaid_connections_count = db.query(func.count(models.PlaidItem.id)).filter(
-            models.PlaidItem.owner_id == user_id
-        ).scalar() or 0
-
         # Count Plaid connections (connected bank accounts)
         plaid_connections_count = db.query(func.count(models.PlaidItem.id)).filter(
             models.PlaidItem.owner_id == user_id
@@ -254,6 +250,10 @@ def get_points_checklist(
 
         auto_disbursements_count = db.query(func.count(models.AutoDisbursement.id)).filter(
             models.AutoDisbursement.owner_id == user_id
+        ).scalar() or 0
+
+        plaid_connections_count = db.query(func.count(models.PlaidItem.id)).filter(
+            models.PlaidItem.owner_id == user_id
         ).scalar() or 0
 
         cash_asset_ids = (user_settings.cash_asset_ids if user_settings and user_settings.cash_asset_ids else [])
