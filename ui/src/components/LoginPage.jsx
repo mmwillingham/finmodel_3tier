@@ -186,7 +186,7 @@ const LoginPage = () => {
                                 disabled={otpLoading}
                             >
                                 {mfaMethods.includes('email') && <option value="email">Email</option>}
-                                {mfaMethods.includes('passkey') && <option value="passkey">Passkey</option>}
+                                {mfaMethods.includes('passkey') && <option value="passkey">Passkey (this device must be registered)</option>}
                             </select>
                         </div>
 
@@ -210,8 +210,9 @@ const LoginPage = () => {
                                             const verifyResponse = await AuthService.verifyPasskeyAuthentication(mfaToken, credential, rememberDevice);
                                             await login();
 
-                                            const userData = verifyResponse.user || currentUser;
-                                            if (verifyResponse.must_change_password === true || (userData && userData.must_change_password === true)) {
+                                            const userData = verifyResponse?.user || currentUser || await AuthService.getCurrentUser();
+                                            const mustChange = verifyResponse?.must_change_password === true || (userData && userData.must_change_password === true);
+                                            if (mustChange) {
                                                 navigate('/app', { state: { mustChangePassword: true } });
                                             } else {
                                                 navigate('/app');

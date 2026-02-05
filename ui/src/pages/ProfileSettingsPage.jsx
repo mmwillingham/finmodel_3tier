@@ -8,7 +8,7 @@ import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import './SettingsPages.css'; // General CSS for settings pages
 import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity.js';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
-import { startRegistration } from '@simplewebauthn/browser';
+import { browserSupportsWebAuthn, startRegistration } from '@simplewebauthn/browser';
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
@@ -69,6 +69,7 @@ const ProfileSettingsPage = () => {
   const [passkeyCredentials, setPasskeyCredentials] = useState([]);
   const [passkeySavingId, setPasskeySavingId] = useState(null);
   const [passkeyDeletingId, setPasskeyDeletingId] = useState(null);
+  const [passkeySupported, setPasskeySupported] = useState(true);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyInfo, setPasskeyInfo] = useState('');
   const [passkeyError, setPasskeyError] = useState('');
@@ -101,6 +102,7 @@ const ProfileSettingsPage = () => {
   useEffect(() => {
     const loadMfaSettings = async () => {
       try {
+        setPasskeySupported(browserSupportsWebAuthn());
         const mfa = await AuthService.getMfaSettings();
         setMfaEnabled(Boolean(mfa.mfa_enabled));
         setMfaEmailEnabled(Boolean(mfa.mfa_email_enabled));
@@ -522,149 +524,153 @@ const ProfileSettingsPage = () => {
                   style={{ width: '280px', textAlign: 'right', marginLeft: '10px', padding: '10px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#f5f5f5' }}
                 />
               </div>
-              <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
-                <label htmlFor="mfa-passkey">Passkey (WebAuthn)</label>
-                <input
-                  id="mfa-passkey"
-                  type="checkbox"
-                  checked={mfaPasskeyEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setMfaPasskeyEnabled(checked);
-                  }}
-                  disabled={!mfaEnabled}
-                />
-              </div>
-              <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
-                <label />
-                <div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setPasskeyError('');
-                      setPasskeyInfo('');
-                      setPasskeyLoading(true);
-                      try {
-                        const options = await AuthService.getPasskeyRegistrationOptions();
-                        const registrationOptions = options?.publicKey || options;
-                        if (!registrationOptions?.challenge) {
-                          throw new Error('Passkey options missing challenge.');
-                        }
-                        const credential = await startRegistration({ optionsJSON: registrationOptions });
-                        const verifyResp = await AuthService.verifyPasskeyRegistration(credential);
-                        const nextCount = Number(verifyResp?.mfa_passkey_count || (mfaPasskeyCount + 1));
-                        setMfaPasskeyCount(nextCount);
-                        setMfaPasskeyRegistered(nextCount > 0);
-                        setMfaPasskeyEnabled(true);
-                        setPasskeyInfo('Passkey registered successfully.');
-                        try {
-                          const credentials = await AuthService.listPasskeyCredentials();
-                          setPasskeyCredentials(Array.isArray(credentials) ? credentials : []);
-                        } catch (err) {
-                        }
-                      } catch (err) {
-                        setPasskeyError(err.response?.data?.detail || err.message || 'Failed to register passkey.');
-                      } finally {
-                        setPasskeyLoading(false);
-                      }
-                    }}
-                    disabled={!mfaEnabled || !mfaPasskeyEnabled || passkeyLoading}
-                    style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
-                  >
-                    {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Add Passkey' : 'Register Passkey')}
-                  </button>
-                  {mfaPasskeyCount > 0 && (
-                    <div style={{ color: '#666', marginTop: '6px' }}>
-                      Registered passkeys: {mfaPasskeyCount}
+              {passkeySupported && (
+                <>
+                  <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
+                    <label htmlFor="mfa-passkey">Passkey (WebAuthn)</label>
+                    <input
+                      id="mfa-passkey"
+                      type="checkbox"
+                      checked={mfaPasskeyEnabled}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setMfaPasskeyEnabled(checked);
+                      }}
+                      disabled={!mfaEnabled}
+                    />
+                  </div>
+                  <div className="form-group-horizontal" style={{ opacity: mfaEnabled ? 1 : 0.6 }}>
+                    <label />
+                    <div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setPasskeyError('');
+                          setPasskeyInfo('');
+                          setPasskeyLoading(true);
+                          try {
+                            const options = await AuthService.getPasskeyRegistrationOptions();
+                            const registrationOptions = options?.publicKey || options;
+                            if (!registrationOptions?.challenge) {
+                              throw new Error('Passkey options missing challenge.');
+                            }
+                            const credential = await startRegistration({ optionsJSON: registrationOptions });
+                            const verifyResp = await AuthService.verifyPasskeyRegistration(credential);
+                            const nextCount = Number(verifyResp?.mfa_passkey_count || (mfaPasskeyCount + 1));
+                            setMfaPasskeyCount(nextCount);
+                            setMfaPasskeyRegistered(nextCount > 0);
+                            setMfaPasskeyEnabled(true);
+                            setPasskeyInfo('Passkey registered successfully.');
+                            try {
+                              const credentials = await AuthService.listPasskeyCredentials();
+                              setPasskeyCredentials(Array.isArray(credentials) ? credentials : []);
+                            } catch (err) {
+                            }
+                          } catch (err) {
+                            setPasskeyError(err.response?.data?.detail || err.message || 'Failed to register passkey.');
+                          } finally {
+                            setPasskeyLoading(false);
+                          }
+                        }}
+                        disabled={!mfaEnabled || !mfaPasskeyEnabled || passkeyLoading}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
+                      >
+                        {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Register Another Device' : 'Register This Device')}
+                      </button>
+                      {mfaPasskeyCount > 0 && (
+                        <div style={{ color: '#666', marginTop: '6px' }}>
+                          Registered passkeys: {mfaPasskeyCount}
+                        </div>
+                      )}
+                      {passkeyInfo && <div style={{ color: '#155724', marginTop: '6px' }}>{passkeyInfo}</div>}
+                      {passkeyError && <div style={{ color: '#721c24', marginTop: '6px' }}>{passkeyError}</div>}
+                    </div>
+                  </div>
+                  {passkeyCredentials.length > 0 && (
+                    <div className="form-group-horizontal" style={{ alignItems: 'flex-start', marginTop: '6px' }}>
+                      <label>Passkeys</label>
+                      <div style={{ flex: 1 }}>
+                        {passkeyCredentials.map((cred) => (
+                          <div key={cred.id} style={{ marginBottom: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                              type="text"
+                              value={cred.label || ''}
+                              placeholder="Label (e.g., iPhone Face ID)"
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setPasskeyCredentials((prev) => prev.map((item) => (
+                                  item.id === cred.id ? { ...item, label: value } : item
+                                )));
+                              }}
+                              style={{ flex: 1 }}
+                              disabled={passkeySavingId === cred.id || passkeyDeletingId === cred.id}
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setPasskeyError('');
+                                setPasskeyInfo('');
+                                setPasskeySavingId(cred.id);
+                                try {
+                                  const updated = await AuthService.updatePasskeyCredential(cred.id, { label: cred.label || null });
+                                  setPasskeyCredentials((prev) => prev.map((item) => (
+                                    item.id === cred.id ? { ...item, label: updated.label } : item
+                                  )));
+                                  setPasskeyInfo('Passkey label saved.');
+                                } catch (err) {
+                                  setPasskeyError(err.response?.data?.detail || err.message || 'Failed to update passkey.');
+                                } finally {
+                                  setPasskeySavingId(null);
+                                }
+                              }}
+                              disabled={passkeySavingId === cred.id || passkeyDeletingId === cred.id}
+                              style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#6c757d', color: 'white', cursor: 'pointer' }}
+                            >
+                              {passkeySavingId === cred.id ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!window.confirm('Delete this passkey? You will no longer be able to use it to sign in.')) {
+                                  return;
+                                }
+                                setPasskeyError('');
+                                setPasskeyInfo('');
+                                setPasskeyDeletingId(cred.id);
+                                try {
+                                  await AuthService.deletePasskeyCredential(cred.id);
+                                  setPasskeyCredentials((prev) => prev.filter((item) => item.id !== cred.id));
+                                  const nextCount = Math.max(0, mfaPasskeyCount - 1);
+                                  setMfaPasskeyCount(nextCount);
+                                  setMfaPasskeyRegistered(nextCount > 0);
+                                  if (nextCount === 0) {
+                                    setMfaPasskeyEnabled(false);
+                                  }
+                                  setPasskeyInfo('Passkey deleted.');
+                                } catch (err) {
+                                  setPasskeyError(err.response?.data?.detail || err.message || 'Failed to delete passkey.');
+                                } finally {
+                                  setPasskeyDeletingId(null);
+                                }
+                              }}
+                              disabled={passkeyDeletingId === cred.id || passkeySavingId === cred.id}
+                              style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#dc3545', color: 'white', cursor: 'pointer' }}
+                            >
+                              {passkeyDeletingId === cred.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                            </div>
+                            <div style={{ color: '#666', fontSize: '0.85rem', marginTop: '4px' }}>
+                              {cred.last_used_at ? `Last used: ${new Date(cred.last_used_at).toLocaleString()}` : 'Last used: never'}
+                              {' · '}
+                              {cred.created_at ? `Added: ${new Date(cred.created_at).toLocaleDateString()}` : 'Added: unknown'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {passkeyInfo && <div style={{ color: '#155724', marginTop: '6px' }}>{passkeyInfo}</div>}
-                  {passkeyError && <div style={{ color: '#721c24', marginTop: '6px' }}>{passkeyError}</div>}
-                </div>
-              </div>
-              {passkeyCredentials.length > 0 && (
-                <div className="form-group-horizontal" style={{ alignItems: 'flex-start', marginTop: '6px' }}>
-                  <label>Passkeys</label>
-                  <div style={{ flex: 1 }}>
-                    {passkeyCredentials.map((cred) => (
-                      <div key={cred.id} style={{ marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                          type="text"
-                          value={cred.label || ''}
-                          placeholder="Label (e.g., iPhone Face ID)"
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setPasskeyCredentials((prev) => prev.map((item) => (
-                              item.id === cred.id ? { ...item, label: value } : item
-                            )));
-                          }}
-                          style={{ flex: 1 }}
-                          disabled={passkeySavingId === cred.id || passkeyDeletingId === cred.id}
-                        />
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            setPasskeyError('');
-                            setPasskeyInfo('');
-                            setPasskeySavingId(cred.id);
-                            try {
-                              const updated = await AuthService.updatePasskeyCredential(cred.id, { label: cred.label || null });
-                              setPasskeyCredentials((prev) => prev.map((item) => (
-                                item.id === cred.id ? { ...item, label: updated.label } : item
-                              )));
-                              setPasskeyInfo('Passkey label saved.');
-                            } catch (err) {
-                              setPasskeyError(err.response?.data?.detail || err.message || 'Failed to update passkey.');
-                            } finally {
-                              setPasskeySavingId(null);
-                            }
-                          }}
-                          disabled={passkeySavingId === cred.id || passkeyDeletingId === cred.id}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#6c757d', color: 'white', cursor: 'pointer' }}
-                        >
-                          {passkeySavingId === cred.id ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!window.confirm('Delete this passkey? You will no longer be able to use it to sign in.')) {
-                              return;
-                            }
-                            setPasskeyError('');
-                            setPasskeyInfo('');
-                            setPasskeyDeletingId(cred.id);
-                            try {
-                              await AuthService.deletePasskeyCredential(cred.id);
-                              setPasskeyCredentials((prev) => prev.filter((item) => item.id !== cred.id));
-                              const nextCount = Math.max(0, mfaPasskeyCount - 1);
-                              setMfaPasskeyCount(nextCount);
-                              setMfaPasskeyRegistered(nextCount > 0);
-                              if (nextCount === 0) {
-                                setMfaPasskeyEnabled(false);
-                              }
-                              setPasskeyInfo('Passkey deleted.');
-                            } catch (err) {
-                              setPasskeyError(err.response?.data?.detail || err.message || 'Failed to delete passkey.');
-                            } finally {
-                              setPasskeyDeletingId(null);
-                            }
-                          }}
-                          disabled={passkeyDeletingId === cred.id || passkeySavingId === cred.id}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#dc3545', color: 'white', cursor: 'pointer' }}
-                        >
-                          {passkeyDeletingId === cred.id ? 'Deleting...' : 'Delete'}
-                        </button>
-                        </div>
-                        <div style={{ color: '#666', fontSize: '0.85rem', marginTop: '4px' }}>
-                          {cred.last_used_at ? `Last used: ${new Date(cred.last_used_at).toLocaleString()}` : 'Last used: never'}
-                          {' · '}
-                          {cred.created_at ? `Added: ${new Date(cred.created_at).toLocaleDateString()}` : 'Added: unknown'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                </>
               )}
               <small style={{ color: '#666' }}>
                 Enable MFA and choose at least one method. Passkey requires registration.
