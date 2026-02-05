@@ -490,7 +490,7 @@ def get_passkey_registration_options(
         authenticator_selection=AuthenticatorSelectionCriteria(
             authenticator_attachment=AuthenticatorAttachment.PLATFORM,
             resident_key=ResidentKeyRequirement.PREFERRED,
-            user_verification=UserVerificationRequirement.PREFERRED,
+            user_verification=UserVerificationRequirement.REQUIRED,
         ),
         exclude_credentials=exclude_credentials or None,
     )
@@ -519,7 +519,7 @@ def verify_passkey_registration(
             expected_challenge=base64url_to_bytes(challenge),
             expected_rp_id=_get_webauthn_rp_id(request),
             expected_origin=_get_webauthn_origin(),
-            require_user_verification=False,
+            require_user_verification=True,
         )
     except Exception as exc:
         logger.warning("Passkey registration failed", exc_info=exc)
@@ -568,10 +568,6 @@ def get_passkey_authentication_options(
 
     options = generate_authentication_options(
         rp_id=_get_webauthn_rp_id(request),
-        allow_credentials=[
-            PublicKeyCredentialDescriptor(id=base64url_to_bytes(cred.credential_id))
-            for cred in credentials
-        ],
         user_verification=UserVerificationRequirement.REQUIRED,
     )
     options_json = options_to_json(options)
