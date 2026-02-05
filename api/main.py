@@ -56,7 +56,11 @@ from webauthn import (
     options_to_json,
 )
 from webauthn.helpers import bytes_to_base64url, base64url_to_bytes
-from webauthn.helpers.structs import PublicKeyCredentialDescriptor, UserVerificationRequirement
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    PublicKeyCredentialDescriptor,
+    UserVerificationRequirement,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -467,6 +471,9 @@ def get_passkey_registration_options(
         rp_name=rp_name,
         user_id=str(user.id).encode("utf-8"),
         user_name=user_name,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            user_verification=UserVerificationRequirement.PREFERRED
+        ),
         exclude_credentials=exclude_credentials or None,
     )
     options_json = options_to_json(options)
@@ -493,7 +500,7 @@ def verify_passkey_registration(
             expected_challenge=base64url_to_bytes(challenge),
             expected_rp_id=_get_webauthn_rp_id(),
             expected_origin=_get_webauthn_origin(),
-            require_user_verification=True,
+            require_user_verification=False,
         )
     except Exception as exc:
         logger.warning("Passkey registration failed", exc_info=exc)
