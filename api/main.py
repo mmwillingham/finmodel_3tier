@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text, func
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime, date, timezone
 from urllib.parse import urlparse
 from typing import List, Optional, Set
 from starlette.responses import RedirectResponse
@@ -347,7 +347,7 @@ def _get_webauthn_origin() -> str:
 
 def _store_passkey_challenge(user: models.User, challenge: str) -> None:
     user.mfa_passkey_challenge = challenge
-    user.mfa_passkey_challenge_expires_at = datetime.utcnow() + timedelta(
+    user.mfa_passkey_challenge_expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=settings.MFA_PASSKEY_CHALLENGE_TTL_MINUTES
     )
 
@@ -355,7 +355,7 @@ def _store_passkey_challenge(user: models.User, challenge: str) -> None:
 def _require_passkey_challenge(user: models.User) -> str:
     if not user.mfa_passkey_challenge or not user.mfa_passkey_challenge_expires_at:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey challenge not found.")
-    if user.mfa_passkey_challenge_expires_at < datetime.utcnow():
+    if user.mfa_passkey_challenge_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey challenge expired.")
     return user.mfa_passkey_challenge
 
