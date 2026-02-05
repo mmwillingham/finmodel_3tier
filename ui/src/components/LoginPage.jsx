@@ -202,7 +202,11 @@ const LoginPage = () => {
                                         setOtpLoading(true);
                                         try {
                                             const options = await AuthService.getPasskeyAuthenticationOptions(mfaToken);
-                                            const credential = await startAuthentication(options);
+                                            const authenticationOptions = options?.publicKey || options;
+                                            if (!authenticationOptions?.challenge) {
+                                                throw new Error('Passkey options missing challenge.');
+                                            }
+                                            const credential = await startAuthentication({ optionsJSON: authenticationOptions });
                                             const verifyResponse = await AuthService.verifyPasskeyAuthentication(mfaToken, credential, rememberDevice);
                                             await login();
 

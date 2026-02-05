@@ -317,7 +317,24 @@ def _get_mfa_destination(user: models.User, method: str) -> str:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA method.")
 
 
-def _get_webauthn_rp_id() -> str:
+def _get_webauthn_rp_id(request: Request | None = None) -> str:
+    if request:
+        origin = request.headers.get("origin")
+        if origin:
+            parsed = urlparse(origin)
+            if parsed.hostname:
+                origin_host = parsed.hostname
+                if settings.WEBAUTHN_RP_ID:
+                    if origin_host == settings.WEBAUTHN_RP_ID or origin_host.endswith(f".{settings.WEBAUTHN_RP_ID}"):
+                        return settings.WEBAUTHN_RP_ID
+                return origin_host
+        host = request.headers.get("host")
+        if host:
+            host_name = host.split(":")[0]
+            if settings.WEBAUTHN_RP_ID:
+                if host_name == settings.WEBAUTHN_RP_ID or host_name.endswith(f".{settings.WEBAUTHN_RP_ID}"):
+                    return settings.WEBAUTHN_RP_ID
+            return host_name
     if settings.WEBAUTHN_RP_ID:
         return settings.WEBAUTHN_RP_ID
     parsed = urlparse(settings.FRONTEND_URL or "")
@@ -430,12 +447,13 @@ def update_mfa_settings(
 def get_passkey_registration_options(
     current_user: schemas.UserOut = Depends(auth.get_current_user),
     db: Session = Depends(database.get_db),
+    request: Request,
 ):
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    rp_id = _get_webauthn_rp_id()
+    rp_id = _get_webauthn_rp_id(request)
     rp_name = settings.WEBAUTHN_RP_NAME or settings.APP_NAME
     user_name = user.email or f"user-{user.id}"
     exclude_credentials = []
@@ -498,13 +516,14 @@ def verify_passkey_registration(
 def get_passkey_authentication_options(
     payload: schemas.MfaPasskeyAuthOptions,
     db: Session = Depends(database.get_db),
+    request: Request,
 ):
     user = _get_mfa_user_from_token(payload.mfa_token, db)
     if not user.mfa_passkey_enabled or not user.mfa_passkey_credential_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passkey is not enabled.")
 
     options = generate_authentication_options(
-        rp_id=_get_webauthn_rp_id(),
+        rp_id=_get_webauthn_rp_id(request),
         allow_credentials=[
             PublicKeyCredentialDescriptor(id=base64url_to_bytes(user.mfa_passkey_credential_id))
         ],

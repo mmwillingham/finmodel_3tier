@@ -539,7 +539,11 @@ const ProfileSettingsPage = () => {
                       setPasskeyLoading(true);
                       try {
                         const options = await AuthService.getPasskeyRegistrationOptions();
-                        const credential = await startRegistration(options);
+                        const registrationOptions = options?.publicKey || options;
+                        if (!registrationOptions?.challenge) {
+                          throw new Error('Passkey options missing challenge.');
+                        }
+                        const credential = await startRegistration({ optionsJSON: registrationOptions });
                         await AuthService.verifyPasskeyRegistration(credential);
                         setMfaPasskeyRegistered(true);
                         setMfaPasskeyEnabled(true);
@@ -550,7 +554,7 @@ const ProfileSettingsPage = () => {
                         setPasskeyLoading(false);
                       }
                     }}
-                    disabled={!mfaEnabled || passkeyLoading}
+                    disabled={!mfaEnabled || !mfaPasskeyEnabled || passkeyLoading}
                     style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
                   >
                     {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Replace Passkey' : 'Register Passkey')}
@@ -560,7 +564,7 @@ const ProfileSettingsPage = () => {
                 </div>
               </div>
               <small style={{ color: '#666' }}>
-                Enable 2FA and choose at least one method. Passkey requires registration.
+                Enable MFA and choose at least one method. Passkey requires registration.
               </small>
             </div>
           </div>
