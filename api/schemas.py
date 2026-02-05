@@ -33,6 +33,7 @@ class UserOut(BaseModel):
     mfa_email_enabled: bool = False
     mfa_sms_enabled: bool = False
     mfa_phone_number: str | None = None
+    mfa_passkey_enabled: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 class TokenData(BaseModel):
@@ -681,15 +682,14 @@ class CustomChartOut(CustomChartBase):
 class MfaSettingsOut(BaseModel):
     mfa_enabled: bool = False
     mfa_email_enabled: bool = False
-    mfa_sms_enabled: bool = False
-    mfa_phone_number: str | None = None
+    mfa_passkey_enabled: bool = False
+    mfa_passkey_registered: bool = False
 
 
 class MfaSettingsUpdate(BaseModel):
     mfa_enabled: bool | None = None
     mfa_email_enabled: bool | None = None
-    mfa_sms_enabled: bool | None = None
-    mfa_phone_number: str | None = None
+    mfa_passkey_enabled: bool | None = None
 
 
 class MfaRequestOtp(BaseModel):
@@ -701,4 +701,18 @@ class MfaVerifyOtp(BaseModel):
     mfa_token: str
     method: str
     code: str
+    remember_device: bool | None = None
+
+
+class MfaPasskeyRegister(BaseModel):
+    credential: dict[str, Any]
+
+
+class MfaPasskeyAuthOptions(BaseModel):
+    mfa_token: str
+
+
+class MfaPasskeyVerify(BaseModel):
+    mfa_token: str
+    credential: dict[str, Any]
     remember_device: bool | None = None

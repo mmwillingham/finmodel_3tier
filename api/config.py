@@ -75,6 +75,12 @@ class Settings(BaseSettings):
     MFA_OTP_TTL_MINUTES: int = int(os.getenv("MFA_OTP_TTL_MINUTES", "10"))
     MFA_OTP_RATE_LIMIT_PER_HOUR: int = int(os.getenv("MFA_OTP_RATE_LIMIT_PER_HOUR", "5"))
     MFA_OTP_MAX_ATTEMPTS: int = int(os.getenv("MFA_OTP_MAX_ATTEMPTS", "5"))
+    MFA_PASSKEY_CHALLENGE_TTL_MINUTES: int = int(os.getenv("MFA_PASSKEY_CHALLENGE_TTL_MINUTES", "10"))
+
+    # WebAuthn / Passkey settings
+    WEBAUTHN_RP_ID: str | None = os.getenv("WEBAUTHN_RP_ID", None)
+    WEBAUTHN_RP_NAME: str = os.getenv("WEBAUTHN_RP_NAME", "Financial Projector")
+    WEBAUTHN_ORIGIN: str | None = os.getenv("WEBAUTHN_ORIGIN", None)
 
     # Twilio SMS settings
     TWILIO_ACCOUNT_SID: str | None = os.getenv("TWILIO_ACCOUNT_SID", "") or os.getenv("_TWILIO_ACCOUNT_SID", "")

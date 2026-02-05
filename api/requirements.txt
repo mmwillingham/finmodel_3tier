@@ -47,13 +47,13 @@ resolvelib
 rfc3986
 SQLAlchemy
 starlette
-twilio
 typing-extensions
 urllib3
 uvicorn
 uvloop
 watchfiles
 websockets
+webauthn
 wrapt
 locust
 plaid-python>=11.0.0
