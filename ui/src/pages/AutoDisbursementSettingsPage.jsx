@@ -70,6 +70,7 @@ const AutoDisbursementSettingsPage = () => {
   const [rmdSchedule, setRmdSchedule] = useState(null);
   const [userSettings, setUserSettings] = useState({});
   const [editingId, setEditingId] = useState(null);
+  const [showRmdHelp, setShowRmdHelp] = useState(false);
   const isViewingOther = viewingUserId && viewingUserId !== currentUser?.id;
   const { refreshSettings } = useSettingsContext();
 
@@ -545,11 +546,11 @@ const AutoDisbursementSettingsPage = () => {
 
       {/* Surplus Asset Tab */}
       {activeTab === 'surplus' && (
-        <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+        <div className="setting-group" style={{ display: 'block', marginBottom: '20px' }}>
           <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1em' }}>Surplus Asset</h3>
-          <div className="form-row" style={{ gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'flex-start' }}>
+          <div className="form-row" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="form-field">
-              <label htmlFor="surplus-asset">Surplus Asset</label>
+              <label htmlFor="surplus-asset">Surplus Asset </label>
               <select
                 id="surplus-asset"
                 value={surplusAssetId || ''}
@@ -567,7 +568,7 @@ const AutoDisbursementSettingsPage = () => {
                 Select an asset account where cash flow surplus/deficit will be automatically added or subtracted each year.
               </small>
             </div>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ padding: '10px 24px', whiteSpace: 'nowrap' }}>
                 Save
               </button>
@@ -576,23 +577,37 @@ const AutoDisbursementSettingsPage = () => {
               </button>
             </div>
           </div>
-          <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#f0f7ff', border: '1px solid #b3d9ff', borderRadius: '4px', fontSize: '0.9em', color: '#004085' }}>
+          <div style={{ borderTop: '1px solid #eee', marginTop: '30px', marginBottom: '20px' }}></div>
+
+          {/* Divider */}
+          <div style={{ borderTop: '1px solid #eee', marginTop: '30px', marginBottom: '20px' }}></div>
+
+          {/* Transfer Sequence Note */}            
+          <div style={{ marginTop: '20px', marginBottom: '20px', padding: '12px', backgroundColor: '#f0f7ff', border: '1px solid #b3d9ff', borderRadius: '4px', fontSize: '0.9em', color: '#004085' }}>
             <strong>Transfer Sequence:</strong>
             <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-              <li><strong>Auto-Disbursements</strong> are applied at the <strong>beginning of each year</strong>, before asset growth</li>
-              <li><strong>Surplus/Deficit Transfer</strong> is applied at the <strong>end of each year</strong>, after asset growth</li>
+              <li><strong>Auto-Disbursements</strong> are applied at the beginning of each year, before asset growth.</li>
+              <li><strong>Surplus/Deficit Transfer</strong> is applied at the end of each year, after asset growth.</li>
               <li>Sequence: <strong>Auto-Disbursements</strong> → <strong>Asset Growth</strong> → <strong>Surplus/Deficit Transfer</strong></li>
-              <li>This ensures auto-disbursements benefit from growth, while surplus/deficit represents end-of-year cash flow</li>
+              <li>This ensures auto-disbursements benefit from growth, while surplus/deficit represents end-of-year cash flow.</li>
             </ul>
           </div>
+
+
+
         </div>
       )}
+      
 
       {/* Auto-Disbursements Tab */}
       {activeTab === 'disbursements' && (
         <div className="setting-group card-modern" style={{ display: 'block', marginBottom: '20px' }}>
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1em' }}>
             Auto-Disbursements {assets.length > 0 && <span style={{ fontSize: '0.85em', color: '#666', fontWeight: 'normal' }}>({assets.length} assets available)</span>}
+            <small style={{ color: '#666', fontSize: '0.75em', marginTop: '6px', display: 'block' }}>
+              Examples: Annual IRA Distribution to Savings based on RMD calculations. Annual transfer of 20% of equity ETF to bond fund after retirement.
+            </small>
+
           </h3>
 
           {!showCreateForm && !editingId && (
@@ -667,8 +682,46 @@ const AutoDisbursementSettingsPage = () => {
                         }}
                         style={{ marginRight: 8 }}
                       />
-                      Use RMD each year
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Use RMD each year
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowRmdHelp(prev => !prev);
+                          }}
+                          aria-label="Help: Use RMD each year"
+                          aria-expanded={showRmdHelp}
+                          aria-controls="rmd-help-text"
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: '50%',
+                            border: '1px solid #6c757d',
+                            background: '#fff',
+                            color: '#6c757d',
+                            fontSize: 12,
+                            lineHeight: '16px',
+                            padding: 0,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          ?
+                        </button>
+                      </span>
                     </label>
+                    {showRmdHelp && (
+                      <small
+                        id="rmd-help-text"
+                        style={{ display: 'block', color: '#555', marginTop: '6px' }}
+                      >
+                        Application will calculate the Required Minimal distribution start date and yearly amount.
+                      </small>
+                    )}
                   </>
                 )}
                 {newAutoDisbursement.distribution_type === 'non_taxable' && (
@@ -887,10 +940,10 @@ const AutoDisbursementSettingsPage = () => {
           <div style={{ marginTop: '20px', marginBottom: '20px', padding: '12px', backgroundColor: '#f0f7ff', border: '1px solid #b3d9ff', borderRadius: '4px', fontSize: '0.9em', color: '#004085' }}>
             <strong>Transfer Sequence:</strong>
             <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-              <li><strong>Auto-Disbursements</strong> are applied at the <strong>beginning of each year</strong>, before asset growth</li>
-              <li><strong>Surplus/Deficit Transfer</strong> is applied at the <strong>end of each year</strong>, after asset growth</li>
+              <li><strong>Auto-Disbursements</strong> are applied at the beginning of each year, before asset growth.</li>
+              <li><strong>Surplus/Deficit Transfer</strong> is applied at the end of each year, after asset growth</li>
               <li>Sequence: <strong>Auto-Disbursements</strong> → <strong>Asset Growth</strong> → <strong>Surplus/Deficit Transfer</strong></li>
-              <li>This ensures auto-disbursements benefit from growth, while surplus/deficit represents end-of-year cash flow</li>
+              <li>This ensures auto-disbursements benefit from growth, while surplus/deficit represents end-of-year cash flow.</li>
             </ul>
           </div>
 

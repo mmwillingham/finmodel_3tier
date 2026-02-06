@@ -480,6 +480,9 @@ const ProfileSettingsPage = () => {
             <div className="settings-section mfa-section" style={{ marginTop: 0 }}>
               <h3>Multi-Factor Authentication</h3>
               <p>Secure your account with a verification code.</p>
+              <small style={{ color: '#666' }}>
+                Enable MFA and choose at least one method. Passkey requires registration.
+              </small>
               <div className="form-group-horizontal checkbox-group">
                 <label htmlFor="mfa-enabled">Enable MFA</label>
                 <label className="switch" aria-hidden>
@@ -672,40 +675,38 @@ const ProfileSettingsPage = () => {
                   )}
                 </>
               )}
-              <small style={{ color: '#666' }}>
-                Enable MFA and choose at least one method. Passkey requires registration.
-              </small>
             </div>
           </div>
         </div>
       </div>
 
       <div className="form-group-horizontal" style={{ marginTop: '12px' }}>
-        <button 
-          type="button" 
-          className="change-password-btn" 
-          onClick={() => setIsChangePasswordModalOpen(true)}
-          style={{ 
-            backgroundColor: '#007bff', 
-            color: 'white', 
-            border: 'none', 
-            padding: '10px 16px', 
-            borderRadius: '6px', 
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
-        >
-          Change Password
-        </button>
+
+
       </div>
 
-      <div className="settings-page-actions">
-        <button onClick={handleSave} className="save-button" disabled={loading}>
-          {loading ? 'Saving...' : 'Save'}
+        <div className="settings-page-actions">
+          <button 
+            type="button" 
+            className="change-password-btn" 
+            onClick={() => setIsChangePasswordModalOpen(true)}
+            style={{ 
+              backgroundColor: '#007bff', 
+              color: 'white', 
+              border: 'none', 
+              padding: '10px 16px', 
+              borderRadius: '6px', 
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
+          >
+          Change Password
         </button>
-        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
-      </div>
+  
+          <button onClick={handleSave} className="save-button">Save</button>
+          <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
+        </div>
 
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}

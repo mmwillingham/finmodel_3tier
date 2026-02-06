@@ -672,7 +672,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
 
   return (
     <div className="monte-carlo-projections" style={{ padding: '20px' }}>
-      <h2>Monte Carlo Projections</h2>
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Monte Carlo Projections</h2>
       <p>Run probabilistic simulations to see the range of possible financial outcomes.</p>
 
       {showProjectionYearSelector && (
@@ -698,7 +698,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       <div className="controls" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
           <div>
-            <label htmlFor="num-simulations">Number of Simulations: </label>
+            <label htmlFor="num-simulations">Simulations: </label>
             <input
               id="num-simulations"
               type="number"
@@ -709,6 +709,9 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               onChange={(e) => setNumSimulations(parseInt(e.target.value) || 1000)}
               style={{ width: '100px', padding: '5px' }}
             />
+            <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+              Number of simulations to run
+            </small>            
           </div>
           <div>
             <label htmlFor="volatility">Volatility (%): </label>

@@ -21,6 +21,15 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   const [projectionData, setProjectionData] = useState(null);
   const [error, setError] = useState(null);
   const [showTotalsInChart, setShowTotalsInChart] = useState(true); // Local state for "Show Totals" checkbox
+  const missingDataMessage = "No data yet. Add assets and/or liabilities to generate projections.";
+
+  const getProjectionErrorMessage = (err) => {
+    const status = err?.response?.status;
+    if (status === 403) {
+      return missingDataMessage;
+    }
+    return err?.message || "Failed to calculate projections";
+  };
 
   // Convert assets and liabilities to ProjectedAccountCreate format and call backend
   const fetchProjectionData = useCallback(async () => {
@@ -247,7 +256,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
         }
       }
     } catch (err) {
-      setError(err.message || "Failed to calculate projections");
+      setError(getProjectionErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -439,7 +448,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>{error === missingDataMessage ? error : `Error: ${error}`}</div>;
   }
 
   const {
@@ -566,7 +575,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   return (
     <div className="balance-sheet-projection">
       <div style={{ marginBottom: '15px' }}>
-        <h2 style={{ marginBottom: '8px' }}>Balance Sheet Projections</h2>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Net Worth Projections</h2>
         {showProjectionYearSelector && (
           <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label htmlFor="balance-sheet-years" style={{ fontWeight: 600 }}>Projection Years</label>

@@ -52,6 +52,7 @@
   display: inline-block;
   width: auto;
   min-width: 80px; /* Ensure consistent minimum width */
+  max-width: 280px; /* Ensure consistent maximum width */
   height: 36px; /* Ensure consistent height */
   box-sizing: border-box;
   transition: all 0.2s ease;

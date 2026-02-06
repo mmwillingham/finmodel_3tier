@@ -1186,6 +1186,15 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const [error, setError] = useState(null);
   const [useSeparateYAxis, setUseSeparateYAxis] = useState(true); // Toggle for separate y-axis in BASE model
   const [showTotalAssets, setShowTotalAssets] = useState(false); // Toggle for showing Total Assets in BASE model
+  const missingDataMessage = "No data yet. Add income and/or expenses to generate projections.";
+
+  const getProjectionErrorMessage = (err) => {
+    const status = err?.response?.status;
+    if (status === 403) {
+      return missingDataMessage;
+    }
+    return err?.message || "Failed to calculate projections";
+  };
   // Ensure formatCurrency has a default
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
@@ -1467,7 +1476,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
         }
       }
     } catch (err) {
-      setError(err.message || "Failed to calculate projections");
+      setError(getProjectionErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -2335,7 +2344,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   }
   
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>{error === missingDataMessage ? error : `Error: ${error}`}</div>;
   }
 
   // Build datasets array dynamically
@@ -2689,6 +2698,8 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
 
   return (
     <div className="cashflow-overview-container">
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Cash Flow Projections</h2>
+
       {showProjectionYearSelector && (
         <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <label htmlFor="cashflow-overview-years" style={{ fontWeight: 600 }}>Projection Years</label>

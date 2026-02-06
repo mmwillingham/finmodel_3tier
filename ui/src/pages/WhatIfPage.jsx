@@ -139,7 +139,7 @@ const WhatIfPage = () => {
 
           <button
             type="submit"
-            className="submit-button"
+            className="btn-primary-modern"
             disabled={loading || !question.trim()}
           >
             {loading ? 'Analyzing...' : 'Ask Question'}

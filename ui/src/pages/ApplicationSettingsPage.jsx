@@ -54,7 +54,7 @@ const ApplicationSettingsPage = () => {
       <div className="application-settings-form">
         <div className="form-group-horizontal">
           <label htmlFor="default-inflation">
-            Default Inflation Rate (%)
+            Inflation Rate Percentage (Default)
           </label>
           <input
             id="default-inflation"
@@ -66,7 +66,7 @@ const ApplicationSettingsPage = () => {
         </div>
         <div className="form-group-horizontal">
           <label htmlFor="projection-years">
-            Default Projection Years
+            Projection Years (Default)
           </label>
           <input
             id="projection-years"

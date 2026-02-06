@@ -51,7 +51,7 @@ const ContactFormModal = ({ isOpen, onClose, contactType, label }) => {
         </div>
         <form className="contact-modal-body" onSubmit={handleSubmit}>
           {error && <div className="contact-modal-error">{error}</div>}
-          <label htmlFor="contact-name">Name</label>
+          <label htmlFor="contact-name">Your Name</label>
           <input
             id="contact-name"
             type="text"
@@ -60,7 +60,7 @@ const ContactFormModal = ({ isOpen, onClose, contactType, label }) => {
             required
           />
 
-          <label htmlFor="contact-email">Email</label>
+          <label htmlFor="contact-email">Your Email</label>
           <input
             id="contact-email"
             type="email"

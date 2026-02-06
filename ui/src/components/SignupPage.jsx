@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import '../styles/AuthForms.css'; // Import new styling
 
@@ -13,6 +14,13 @@ const SignupPage = () => {
         e.preventDefault();
         setMessage('');
         setLoading(true);
+
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(email.trim())) {
+            setMessage('Please enter a valid email address.');
+            setLoading(false);
+            return;
+        }
 
         if (password !== confirmPassword) {
             setMessage('Passwords do not match.');
@@ -60,50 +68,60 @@ const SignupPage = () => {
 
     return (
         <div className="auth-container">
-            <h2>Create Your Account</h2>
-            <form onSubmit={handleSignup} className="auth-form">
-                {message && <p className={message.includes('successful') ? 'success-message' : 'error-message'}>{message}</p>}
+            <div className="auth-form-container">
+                <h2>Create Account</h2>
+                <form onSubmit={handleSignup} className="auth-form">
+                    {message && (
+                        <p className={message.includes('successful') ? 'success-message' : 'error-message'}>
+                            {message}
+                        </p>
+                    )}
 
-                <div className="form-group">
-                    <label htmlFor="email">Email:</label>
-                    <input
-                        type="email"
-                        id="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                </div>
+                    <div className="form-group">
+                        <label htmlFor="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            disabled={loading}
+                            placeholder="Enter your email"
+                        />
+                    </div>
 
-                <div className="form-group">
-                    <label htmlFor="password">Password:</label>
-                    <input
-                        type="password"
-                        id="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                </div>
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            disabled={loading}
+                        />
+                    </div>
 
-                <div className="form-group">
-                    <label htmlFor="confirm-password">Confirm Password:</label>
-                    <input
-                        type="password"
-                        id="confirm-password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                </div>
+                    <div className="form-group">
+                        <label htmlFor="confirm-password">Confirm Password</label>
+                        <input
+                            type="password"
+                            id="confirm-password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                            disabled={loading}
+                        />
+                    </div>
 
-                <button type="submit" disabled={loading} className="submit-button">
-                    {loading ? 'Signing Up...' : 'Sign Up'}
-                </button>
-            </form>
+                    <button type="submit" disabled={loading} className="submit-button">
+                        {loading ? 'Signing Up...' : 'Sign Up'}
+                    </button>
+                </form>
+                <p className="auth-switch">
+                    Already have an account? <Link to="/login">Log in here</Link>
+                </p>
+            </div>
         </div>
     );
 };
