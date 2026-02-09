@@ -51,7 +51,7 @@ steps:
         PYTHONPATH=/workspace alembic -c ./alembic.ini upgrade head
     env:
       - 'DB_USER=dbadmin'
-      - 'DB_NAME=finmodel1'
+      - 'DB_NAME=${_DB_NAME}'
       - 'CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE}'
     secretEnv:
       - 'DB_PASSWORD'
@@ -73,7 +73,7 @@ steps:
           --project ${PROJECT_ID} \
           --service-account ${_SERVICE_ACCOUNT} \
           --set-cloudsql-instances=${_SQL_INSTANCE} \
-          --set-env-vars="CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE},GCS_BUCKET_NAME=${_GCS_BUCKET},GCS_PROJECT_ID=${PROJECT_ID},PUBLIC_BACKEND_URL=${_BACKEND_URL},FRONTEND_URL=${_FRONTEND_URL},CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX},PLAID_ENV=sandbox,DB_USER=dbadmin,DB_NAME=finmodel1,MAIL_USERNAME=martin.willingham@gmail.com,MAIL_FROM=no_reply@gmail.com,MAIL_PORT=587,MAIL_SERVER=smtp.gmail.com,MAIL_TLS=True,MAIL_SSL=False,USE_CREDENTIALS=True,VALIDATE_CERTS=True" \
+          --set-env-vars="CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE},GCS_BUCKET_NAME=${_GCS_BUCKET},GCS_PROJECT_ID=${PROJECT_ID},PUBLIC_BACKEND_URL=${_BACKEND_URL},FRONTEND_URL=${_FRONTEND_URL},CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX},PLAID_ENV=sandbox,DB_USER=dbadmin,DB_NAME=${_DB_NAME},MAIL_USERNAME=martin.willingham@gmail.com,MAIL_FROM=no_reply@gmail.com,MAIL_PORT=587,MAIL_SERVER=smtp.gmail.com,MAIL_TLS=True,MAIL_SSL=False,USE_CREDENTIALS=True,VALIDATE_CERTS=True" \
           --set-secrets="DB_PASSWORD=_DB_PASSWORD:${_DB_SECRET_VER},SECRET_KEY=_SECRET_KEY:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,PLAID_SECRET=_PLAID_SECRET:1,PLAID_ENCRYPTION_KEY=_PLAID_ENCRYPTION_KEY:1,PLAID_CLIENT_ID=_PLAID_CLIENT_ID:1,OPENAI_API_KEY=_OPENAI_API_KEY:1,OPENAI_API_KEY_PRO=_OPENAI_API_KEY_PRO:1" \
           --cpu=1 \
           --memory=512Mi \
@@ -130,6 +130,9 @@ availableSecrets:
   secretManager:
     - versionName: 'projects/${PROJECT_ID}/secrets/_DB_PASSWORD/versions/${_DB_SECRET_VER}'
       env: 'DB_PASSWORD'
+
+substitutions:
+  _DB_NAME: 'finmodel1'
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
