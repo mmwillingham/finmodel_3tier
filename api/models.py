@@ -24,7 +24,6 @@ class User(Base):
     subscription_level = Column(Integer, default=1)  # 1=Free, 2=Premium, 3=Pro
     mfa_enabled = Column(Boolean, default=False)
     mfa_email_enabled = Column(Boolean, default=False)
-    mfa_sms_enabled = Column(Boolean, default=False)
     mfa_phone_number = Column(String, nullable=True)
     mfa_passkey_enabled = Column(Boolean, default=False)
     mfa_passkey_credential_id = Column(String, nullable=True)
@@ -118,7 +117,7 @@ class MfaOtpLog(Base):
     __tablename__ = "mfa_otp_logs"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    method = Column(String, nullable=False)  # email or sms
+    method = Column(String, nullable=False)  # email
     destination = Column(String, nullable=False)  # email or phone number
     code_hash = Column(String, nullable=False)
     attempt_count = Column(Integer, default=0, nullable=False)

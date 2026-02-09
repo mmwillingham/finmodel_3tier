@@ -31,7 +31,6 @@ class UserOut(BaseModel):
     subscription_level: int = 1
     mfa_enabled: bool = False
     mfa_email_enabled: bool = False
-    mfa_sms_enabled: bool = False
     mfa_phone_number: str | None = None
     mfa_passkey_enabled: bool = False
     model_config = ConfigDict(from_attributes=True)
