@@ -86,9 +86,9 @@ class Settings(BaseSettings):
     WEBAUTHN_ORIGIN: str | None = os.getenv("WEBAUTHN_ORIGIN", None)
 
     # Twilio SMS settings
-    TWILIO_ACCOUNT_SID: str | None = os.getenv("TWILIO_ACCOUNT_SID", "") or os.getenv("_TWILIO_ACCOUNT_SID", "")
-    TWILIO_AUTH_TOKEN: str | None = os.getenv("TWILIO_AUTH_TOKEN", "") or os.getenv("_TWILIO_AUTH_TOKEN", "")
-    TWILIO_FROM_NUMBER: str | None = os.getenv("TWILIO_FROM_NUMBER", "") or os.getenv("_TWILIO_FROM_NUMBER", "")
+    #TWILIO_ACCOUNT_SID: str | None = os.getenv("TWILIO_ACCOUNT_SID", "") or os.getenv("_TWILIO_ACCOUNT_SID", "")
+    #TWILIO_AUTH_TOKEN: str | None = os.getenv("TWILIO_AUTH_TOKEN", "") or os.getenv("_TWILIO_AUTH_TOKEN", "")
+    #TWILIO_FROM_NUMBER: str | None = os.getenv("TWILIO_FROM_NUMBER", "") or os.getenv("_TWILIO_FROM_NUMBER", "")
 
     # Method to generate DATABASE_URL after validation
     def model_post_init(self, __context: Any) -> None:
