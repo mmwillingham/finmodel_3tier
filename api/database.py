@@ -89,16 +89,24 @@ def get_engine_instance():
             else:
                 raise
 
-# Instantiate the engine once at startup
-engine = get_engine_instance()
+# Lazily initialize engine/session to avoid blocking app startup.
+_engine = None
+SessionLocal = None
 
-# Create a SessionLocal class that will be used to create new session instances
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def init_engine_and_session():
+    global _engine, SessionLocal
+    if _engine is None:
+        logger.info("Initializing database engine")
+        _engine = get_engine_instance()
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
+    return _engine
 
 Base = declarative_base()
 
 def get_db() -> Generator[Session, None, None]:
     """Dependency that provides a new SQLAlchemy session for each request."""
+    if SessionLocal is None:
+        init_engine_and_session()
     db = SessionLocal() # Create a new session from the pre-configured SessionLocal factory
     try:
         yield db
