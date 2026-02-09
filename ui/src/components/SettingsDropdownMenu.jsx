@@ -18,11 +18,21 @@ const SettingsDropdownMenu = ({ onSelect, onClose, onLogout }) => {
             {/* Hide all other settings when viewing another user's account */}
             {!viewingUserId && (
                 <>
-                    <button onClick={(e) => handleItemClick(e, '/settings/profile')}>Profile</button>
+                    <button
+                        onClick={(e) => handleItemClick(e, '/settings/profile')}
+                        data-tour-id="settings-profile"
+                    >
+                        Profile
+                    </button>
                     <button onClick={(e) => handleItemClick(e, '/settings/application')}>Application</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/export-import')}>Export/Import</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/refer-a-friend')}>Refer a Friend</button>
-                    <button onClick={(e) => handleItemClick(e, '/settings/authorized-users')}>Authorized Users</button>
+                    <button
+                        onClick={(e) => handleItemClick(e, '/settings/authorized-users')}
+                        data-tour-id="settings-authorized-users"
+                    >
+                        Authorized Users
+                    </button>
                     <button onClick={(e) => handleItemClick(e, '/settings/help')}>Help</button>
                     <button onClick={(e) => handleItemClick(e, '/settings/about')}>About</button>
                     {/* Admin-only items - placed after About */}

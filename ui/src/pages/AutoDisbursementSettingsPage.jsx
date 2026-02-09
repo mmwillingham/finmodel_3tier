@@ -511,6 +511,7 @@ const AutoDisbursementSettingsPage = () => {
         <button
           className={activeTab === 'surplus' ? 'active' : ''}
           onClick={() => setActiveTab('surplus')}
+          data-tour-id="auto-transfers-surplus-tab"
           style={{
             background: 'transparent',
             border: 'none',
@@ -528,6 +529,7 @@ const AutoDisbursementSettingsPage = () => {
         <button
           className={activeTab === 'disbursements' ? 'active' : ''}
           onClick={() => setActiveTab('disbursements')}
+          data-tour-id="auto-transfers-disbursements-tab"
           style={{
             background: 'transparent',
             border: 'none',

@@ -295,7 +295,11 @@ const AccountsSettingsPage = () => {
       )}
 
       {/* Plaid Bank Connection Section */}
-      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+      <div
+        className="setting-group card-modern"
+        style={{ marginBottom: '20px' }}
+        data-tour-id="accounts-connected"
+      >
         <h3 style={{ margin: 0, marginBottom: '12px', fontWeight: 'bold', fontSize: '1.2em' }}>Connect Bank Accounts (Plaid)</h3>
         <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '12px' }}>
           Securely connect your bank accounts to automatically sync account balances as assets.

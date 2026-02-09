@@ -167,6 +167,19 @@
     text-decoration: underline;
 }
 
+.header-tour-button {
+    background: none;
+    border: none;
+    color: #ffffff !important;
+    font-size: 0.95em;
+    cursor: pointer;
+    padding: 0;
+}
+
+.header-tour-button:hover {
+    text-decoration: underline;
+}
+
 .header-right-menu .user-info {
     font-size: 0.9em;
     flex-shrink: 0;

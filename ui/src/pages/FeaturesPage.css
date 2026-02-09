@@ -1,0 +1,36 @@
+.features-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.features-page > p {
+  color: #555555;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.features-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.feature-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #edf0f3;
+}
+
+.feature-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  color: #222222;
+}
+
+.feature-card p {
+  margin: 0;
+  color: #555555;
+  line-height: 1.6;
+}

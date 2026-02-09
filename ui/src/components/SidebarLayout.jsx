@@ -630,6 +630,7 @@ export default function SidebarLayout() {
               to="/documents"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-document-vault"
             >
               Document Vault
             </NavLink>
@@ -637,6 +638,7 @@ export default function SidebarLayout() {
               to="/accounts"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-accounts"
             >
               Accounts
             </NavLink>
@@ -651,6 +653,7 @@ export default function SidebarLayout() {
               to="/assets"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-assets"
             >
               Assets
             </NavLink>
@@ -658,6 +661,7 @@ export default function SidebarLayout() {
               to="/liabilities"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-liabilities"
             >
               Liabilities / Debts
             </NavLink>
@@ -665,6 +669,7 @@ export default function SidebarLayout() {
               to="/cashflow/income"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-income"
             >
               Income
             </NavLink>
@@ -672,6 +677,7 @@ export default function SidebarLayout() {
               to="/cashflow/expense"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-expenses"
             >
               Expenses
             </NavLink>
@@ -679,12 +685,14 @@ export default function SidebarLayout() {
               to="/automatic-transfers"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-automatic-transfers"
             >
               Automatic Transfers
             </NavLink>
             <button
               className={`nav-btn ${view === 'cash-handling' ? 'active' : ''}`}
               onClick={() => openDashboardView('cash-handling')}
+              data-tour-id="nav-cash-handling"
             >
               Cash Handling
             </button>
@@ -692,6 +700,7 @@ export default function SidebarLayout() {
               to="/settings/tax-handling"
               className={({ isActive }) => `nav-btn ${isActive || view === 'settings-tax-handling' ? 'active' : ''}`}
               onClick={handleNavSelection}
+              data-tour-id="nav-tax-handling"
             >
               Tax Handling
             </NavLink>
@@ -702,6 +711,7 @@ export default function SidebarLayout() {
             <button
               className={`nav-btn ${view === 'balance-sheet-projection' ? 'active' : ''}`}
               onClick={() => openDashboardView('balance-sheet-projection', { cashFlowView: null })}
+              data-tour-id="nav-net-worth"
             >
               Net Worth
             </button>
@@ -709,6 +719,7 @@ export default function SidebarLayout() {
             <button
               className={`nav-btn ${view === 'cashflow-projection' ? 'active' : ''}`}
               onClick={() => openDashboardView('cashflow-projection', { cashFlowView: null })}
+              data-tour-id="nav-cash-flow"
             >
               Cash Flow
             </button>
@@ -721,12 +732,14 @@ export default function SidebarLayout() {
             <button 
               className={`nav-btn ${view === 'custom-charts' && customChartView === 'list' ? 'active' : ''}`} 
               onClick={() => openDashboardView('custom-charts', { customChartView: 'list', selectedChartId: null, chartToViewId: null })}
+              data-tour-id="nav-custom-charts"
             >
               Custom
             </button>
             <button 
               className={`nav-btn ${view === 'what-if' ? 'active' : ''}`} 
               onClick={() => openDashboardView('what-if', { cashFlowView: null })}
+              data-tour-id="nav-what-if"
             >
               What If?
             </button>

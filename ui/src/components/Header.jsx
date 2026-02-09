@@ -9,6 +9,7 @@ import AboutModal from './AboutModal'; // About modal component
 import HelpModal from './HelpModal'; // Help modal component
 import AccountSwitcher from './AccountSwitcher'; // Account switcher component
 import ContactFormModal from './ContactFormModal';
+import TourModal from './TourModal';
 
 const Header = () => { // Removed setIsSettingsModalOpen prop
     const { currentUser, logout, viewingUserId } = useAuth();
@@ -21,6 +22,8 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
     const [showAboutModal, setShowAboutModal] = useState(false); // State for about modal
     const [showHelpModal, setShowHelpModal] = useState(false); // State for help modal
     const [contactModal, setContactModal] = useState({ isOpen: false, contactType: '', label: '' });
+    const [showTourModal, setShowTourModal] = useState(false);
+    const [tourStepIndex, setTourStepIndex] = useState(0);
 
     // Handle direct navigation to /settings/help or /settings/about
     useEffect(() => {
@@ -78,6 +81,10 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
         window.dispatchEvent(new CustomEvent('navigateToHome'));
     };
 
+    const handleTourSettingsMenuRequest = (shouldOpen) => {
+        setShowDropdown(shouldOpen);
+    };
+
     return (
         <header className="app-header">
             <nav>
@@ -112,6 +119,16 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                     {currentUser ? (
                         <div className="header-right-menu">
                             <div className="header-public-links">
+                                <button
+                                    type="button"
+                                    className="header-tour-button"
+                                    onClick={() => {
+                                        setTourStepIndex(0);
+                                        setShowTourModal(true);
+                                    }}
+                                >
+                                    Tour
+                                </button>
                                 <Link to="/features">Features</Link>
                                 <Link to="/pricing">Pricing</Link>
                             </div>
@@ -153,6 +170,16 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                         </div>
                     ) : (
                         <>
+                            <button
+                                type="button"
+                                className="header-tour-button"
+                                onClick={() => {
+                                    setTourStepIndex(0);
+                                    setShowTourModal(true);
+                                }}
+                            >
+                                Tour
+                            </button>
                             <Link to="/features">Features</Link>
                             <Link to="/pricing">Pricing</Link>
                             <Link to="/login">Login</Link>
@@ -194,6 +221,13 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                 contactType={contactModal.contactType}
                 label={contactModal.label}
                 onClose={() => setContactModal({ isOpen: false, contactType: '', label: '' })}
+            />
+            <TourModal
+                isOpen={showTourModal}
+                onClose={() => setShowTourModal(false)}
+                onRequestSettingsMenu={handleTourSettingsMenuRequest}
+                stepIndex={tourStepIndex}
+                onStepIndexChange={setTourStepIndex}
             />
         </header>
     );
