@@ -1,4 +1,4 @@
-teps:
+Steps:
   - name: 'bash'
     id: 'Generate Timestamp'
     entrypoint: 'bash'
