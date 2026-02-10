@@ -13,7 +13,7 @@ const SettingsDropdownMenu = ({ onSelect, onClose, onLogout }) => {
     };
 
     return (
-        <div className="settings-dropdown-menu" onMouseLeave={onClose}> {/* Close on mouse leave */}
+        <div className="settings-dropdown-menu">
             <button onClick={(e) => handleItemClick(e, '/settings/account-switcher')}>Switch Account</button>
             {/* Hide all other settings when viewing another user's account */}
             {!viewingUserId && (

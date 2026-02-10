@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Header.css'; // NEW: Import Header-specific CSS
@@ -24,6 +24,22 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
     const [contactModal, setContactModal] = useState({ isOpen: false, contactType: '', label: '' });
     const [showTourModal, setShowTourModal] = useState(false);
     const [tourStepIndex, setTourStepIndex] = useState(0);
+    const settingsDropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        if (!showDropdown) return;
+        const handleClickOutside = (e) => {
+            if (settingsDropdownRef.current && !settingsDropdownRef.current.contains(e.target)) {
+                setShowDropdown(false);
+            }
+        };
+        const id = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
+        return () => {
+            clearTimeout(id);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showDropdown]);
 
     // Handle direct navigation to /settings/help or /settings/about
     useEffect(() => {
@@ -154,10 +170,12 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                             >
                                 ✅
                             </button>
-                            <div className="hamburger-menu" onClick={toggleDropdown}>
-                                <div className="bar"></div>
-                                <div className="bar"></div>
-                                <div className="bar"></div>
+                            <div ref={settingsDropdownRef} className="settings-dropdown-wrapper" style={{ position: 'relative' }}>
+                                <div className="hamburger-menu" onClick={toggleDropdown}>
+                                    <div className="bar"></div>
+                                    <div className="bar"></div>
+                                    <div className="bar"></div>
+                                </div>
                                 {showDropdown && (
                                     <SettingsDropdownMenu 
                                         currentUser={currentUser} 

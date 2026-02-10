@@ -9,13 +9,17 @@ const TourModal = ({ isOpen, onClose, onRequestSettingsMenu, stepIndex, onStepIn
   const [tooltipStyle, setTooltipStyle] = useState({});
   const [tooltipPlacement, setTooltipPlacement] = useState('center');
   const tooltipRef = useRef(null);
+  const prevIsOpenRef = useRef(isOpen);
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Only close the settings menu when the tour *transitions* from open to closed,
+  // not on every render when the tour is closed (which was closing the dropdown on open).
   useEffect(() => {
-    if (!isOpen && onRequestSettingsMenu) {
+    if (prevIsOpenRef.current && !isOpen && onRequestSettingsMenu) {
       onRequestSettingsMenu(false);
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, onRequestSettingsMenu]);
 
   const totalSteps = tourSteps.length;
