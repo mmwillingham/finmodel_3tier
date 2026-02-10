@@ -24,10 +24,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   const missingDataMessage = "No data yet. Add assets and/or liabilities to generate projections.";
 
   const getProjectionErrorMessage = (err) => {
-    const status = err?.response?.status;
-    if (status === 403) {
-      return missingDataMessage;
-    }
+    const detail = err?.response?.data?.detail;
+    if (detail && typeof detail === "string") return detail;
+    if (err?.response?.status === 403) return missingDataMessage;
     return err?.message || "Failed to calculate projections";
   };
 

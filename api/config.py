@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     MAIL_FROM: str | None = os.getenv("MAIL_FROM", "")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
     MAIL_SERVER: str | None = os.getenv("MAIL_SERVER", "")
+    # Set via Cloud Build env: CORS_ORIGINS_REGEX (from _CORS_ORIGINS_REGEX). Include both
+    # https://ordaxium.com and https://www.ordaxium.com if users can reach the app either way.
     CORS_ORIGINS_REGEX: str = os.getenv(
         "CORS_ORIGINS_REGEX",
         r"^(http://localhost:3000|https://.*\.run\.app|https://ordaxium\.com|https://www\.ordaxium\.com|https://www\.modelmyretirement\.com)$",
@@ -107,6 +109,10 @@ class Settings(BaseSettings):
         if self.FRONTEND_URL is None:
             # Fallback to local for dev, or Cloud Run's environment will need to set it.
             self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        # If CORS regex is unset/empty (e.g. after GCP redo with missing trigger substitution), use default so CORS doesn't block frontend
+        _default_cors = r"^(http://localhost:3000|https://.*\.run\.app|https://ordaxium\.com|https://www\.ordaxium\.com|https://www\.modelmyretirement\.com)$"
+        if not (self.CORS_ORIGINS_REGEX and self.CORS_ORIGINS_REGEX.strip()):
+            self.CORS_ORIGINS_REGEX = _default_cors
 
 # Instantiate the settings object once to be imported everywhere
 settings = Settings()

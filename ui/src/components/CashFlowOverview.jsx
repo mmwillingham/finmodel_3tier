@@ -1189,10 +1189,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const missingDataMessage = "No data yet. Add income and/or expenses to generate projections.";
 
   const getProjectionErrorMessage = (err) => {
-    const status = err?.response?.status;
-    if (status === 403) {
-      return missingDataMessage;
-    }
+    const detail = err?.response?.data?.detail;
+    if (detail && typeof detail === "string") return detail;
+    if (err?.response?.status === 403) return missingDataMessage;
     return err?.message || "Failed to calculate projections";
   };
   // Ensure formatCurrency has a default
