@@ -36,6 +36,7 @@ import FeaturesPage from './pages/FeaturesPage.jsx';
 import PricingPage from './pages/PricingPage.jsx';
 import PublicHomePage from './pages/PublicHomePage.jsx';
 import CacheTestPage from './pages/CacheTestPage.jsx';
+import HealthPage from './pages/HealthPage.jsx';
 
 // The Main Application Structure
 function App() {
@@ -59,6 +60,8 @@ function App() {
                                         <Route path="/features" element={<FeaturesPage />} />
                                         <Route path="/pricing" element={<PricingPage />} />
                                         <Route path="/cache-test" element={<CacheTestPage />} />
+                                        <Route path="/health" element={<HealthPage />} />
+                                        <Route path="/health/" element={<HealthPage />} />
 
                                         {/* Protected Routes (Require JWT) */}
                                         <Route
