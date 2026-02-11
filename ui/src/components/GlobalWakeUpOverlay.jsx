@@ -3,10 +3,12 @@ import { useBackend } from '../context/BackendContext';
 import './GlobalWakeUpOverlay.css'; // We will create this next
 
 const GlobalWakeUpOverlay = () => {
-  const { isReady, isWaking } = useBackend();
+  const { isReady } = useBackend();
 
-  // If the backend is ready, or if it hasn't even started "waking" yet, show nothing.
-  if (isReady || !isWaking) return null;
+  // Show "engines starting" whenever the backend is not ready yet (initial load or
+  // containers spinning up). Previously we only showed when isWaking was true, which
+  // is only set after a failed request; when /health hangs for 30s we got a white screen.
+  if (isReady) return null;
 
   return (
     <div className="wakeup-overlay">

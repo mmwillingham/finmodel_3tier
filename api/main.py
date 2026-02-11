@@ -69,10 +69,22 @@ logger = logging.getLogger(__name__)
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
 
+# Track container start time
+start_time = datetime.now(timezone.utc)
+
+# Unique instance ID (revision + start timestamp)
+instance_id = f"{os.environ.get('K_REVISION')}-{int(start_time.timestamp())}"
+
 @app.get("/health", tags=["Health"])
 @app.get("/health/", tags=["Health"]) # Handles the trailing slash issue
 async def health_check():
-    return {"status": "ok", "message": "Backend is warming up the engines!"}
+    uptime_seconds = int((datetime.now(timezone.utc) - start_time).total_seconds())
+    return JSONResponse(content={
+        "status": "ok",
+        "message": "Backend is warming up the engines!",
+        "instance_id": instance_id,
+        "uptime_seconds": uptime_seconds
+    })
 
 PUBLIC_CACHE_PATHS = {
     "/",
