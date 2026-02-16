@@ -333,7 +333,7 @@ const AccountsSettingsPage = () => {
           <button 
             onClick={() => setShowNewBrokerageForm(!showNewBrokerageForm)} 
             className="btn-primary-modern"
-            style={{ padding: '10px 20px', fontSize: '0.95em', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
+            style={{ padding: '10px 20px', fontSize: '0.95em' }}
           >
             {showNewBrokerageForm ? 'Cancel' : '+ New Brokerage'}
           </button>
@@ -386,7 +386,7 @@ const AccountsSettingsPage = () => {
                 />
               </div>
             </div>
-            <button onClick={handleCreateBrokerage} className="btn-primary-modern" style={{ padding: '10px 20px', fontSize: '0.95em', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>Create Brokerage</button>
+            <button onClick={handleCreateBrokerage} className="btn-primary-modern" style={{ padding: '10px 20px', fontSize: '0.95em' }}>Create Brokerage</button>
           </div>
         )}
         {brokerages.length > 0 && (

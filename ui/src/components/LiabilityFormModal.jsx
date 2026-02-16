@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { FormControlLabel, Switch } from "@mui/material";
 import LiabilityService from "../services/liability.service";
 import SettingsService from "../services/settings.service";
+import { projectionSwitchSx } from "../utils/projectionUiStyles";
 import Modal from "./Modal"; // Import the generic Modal component
 import "./LiabilityFormModal.css"; // Specific styling for this form
 
@@ -295,7 +297,7 @@ export default function LiabilityFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name} (${newItem.loan_type === 'amortized' ? 'Amortized Loan' : 'Ordinary/Revolving'})` : `Add New Liability`}>
       <div className="liability-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* Loan Type, Name, Category */}
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}> {/* Loan Type, Name, Category */}
             <div className="form-field">
               <label htmlFor="loan_type">Loan Type</label>
               <select id="loan_type" value={newItem.loan_type} onChange={handleInputChange}>
@@ -327,7 +329,7 @@ export default function LiabilityFormModal({
           </div>
 
           {newItem.loan_type === "ordinary" && (
-            <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}> {/* Fields specific to Ordinary/Revolving loan */}
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}> {/* Fields specific to Ordinary/Revolving loan */}
               <div className="form-field">
                 <label htmlFor="value">Value *</label>
                 <input
@@ -381,7 +383,7 @@ export default function LiabilityFormModal({
 
           {newItem.loan_type === "amortized" && (
             <>
-            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}> {/* Fields specific to Amortized loan */}
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}> {/* Fields specific to Amortized loan */}
               <div className="form-field">
                   <label htmlFor="principal_amount">Principal Amount *</label>
                 <input
@@ -440,7 +442,7 @@ export default function LiabilityFormModal({
                 />
               </div>
               </div>
-              <div className="form-row" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
+              <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
               <div className="form-field">
                   <label htmlFor="monthly_payment">Calculated Monthly Payment</label>
                 <input
@@ -453,26 +455,32 @@ export default function LiabilityFormModal({
                 />
               </div>
             </div>
-            <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginTop: '15px' }}>
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', marginTop: '15px' }}>
               <div className="form-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="checkbox"
-                    checked={newItem.decrease_by_principal_yearly || false}
-                    onChange={(e) => setNewItem({ ...newItem, decrease_by_principal_yearly: e.target.checked })}
-                  />
-                  Decrease liability by principal amount each year
-                </label>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      sx={projectionSwitchSx}
+                      checked={newItem.decrease_by_principal_yearly || false}
+                      onChange={(e) => setNewItem({ ...newItem, decrease_by_principal_yearly: e.target.checked })}
+                    />
+                  }
+                  label="Decrease liability by principal amount each year"
+                  sx={{ m: 0 }}
+                />
               </div>
               <div className="form-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="checkbox"
-                    checked={newItem.create_payment_expense || false}
-                    onChange={(e) => setNewItem({ ...newItem, create_payment_expense: e.target.checked })}
-                  />
-                  Create corresponding expense for payment amount
-                </label>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      sx={projectionSwitchSx}
+                      checked={newItem.create_payment_expense || false}
+                      onChange={(e) => setNewItem({ ...newItem, create_payment_expense: e.target.checked })}
+                    />
+                  }
+                  label="Create corresponding expense for payment amount"
+                  sx={{ m: 0 }}
+                />
               </div>
               {newItem.create_payment_expense && (
                 <div className="form-field">

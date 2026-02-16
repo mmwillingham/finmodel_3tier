@@ -125,7 +125,7 @@
 }
 
 .btn-primary {
-  background-color: #0066cc;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -134,18 +134,18 @@
   font-size: 1rem;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .btn-primary:hover {
-  background-color: #0052a3;
-  box-shadow: 0 4px 8px rgba(0, 102, 204, 0.3);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
   transform: translateY(-1px);
 }
 
 .btn-primary:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .btn-secondary {

@@ -6,7 +6,7 @@ const checklistItems = [
   { key: 'has_account', label: 'Account' },
   { key: 'has_asset', label: 'Asset' },
   { key: 'has_cash_flow_item', label: 'Cash Flow Item' },
-  { key: 'has_referral_sent', label: 'Referal Sent' },
+  { key: 'has_referral_sent', label: 'Referral Sent' },
   { key: 'has_document_folder', label: 'Document Folder (in Document Vault)' },
   { key: 'has_document', label: 'Document (in Document Vault)' },
   { key: 'has_connected_account', label: 'Connected Account' },

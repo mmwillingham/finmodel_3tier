@@ -4,7 +4,9 @@ import { Line, Bar, Pie } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas'; // Added import for html2canvas
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import { FormControlLabel, Slider, Switch } from "@mui/material";
 import CustomChartService from '../services/customChart.service';
+import { projectionSwitchSx } from "../utils/projectionUiStyles";
 import CashFlowService from '../services/cashflow.service';
 import AssetService from '../services/asset.service';
 import LiabilityService from '../services/liability.service';
@@ -24,8 +26,13 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const currentYear = new Date().getFullYear();
   const [showChartTotals, setShowChartTotals] = useState(false); // State for individual chart totals
   const [showChartTotalsDisabled, setShowChartTotalsDisabled] = useState(false); // State to disable totals checkbox when data types differ
-    const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type (chart, table, or both)
+  const [currentDisplayType, setCurrentDisplayType] = useState("chart"); // New state for display type (chart, table, or both)
   const [hasItemizedSeries, setHasItemizedSeries] = useState(false); // State to track if chart has itemized series
+  const [sliderProjectionYears, setSliderProjectionYears] = useState(projectionYears ?? 30);
+
+  useEffect(() => {
+    setSliderProjectionYears(projectionYears ?? 30);
+  }, [projectionYears]);
 
   const formatValue = useCallback((value, displayType) => {
     if (displayType === 'percentage') {
@@ -279,14 +286,31 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
       return;
     }
 
-    const labels = parsedDataJson.map(dataPoint => dataPoint.Year);
+    const requestedProjectionYears = Number.isFinite(Number(projectionYears))
+      ? Math.max(0, Number(projectionYears))
+      : null;
+
+    // Apply projection-years window to chart/table output so slider changes
+    // immediately affect displayed points/rows for custom charts.
+    const filteredDataJson = requestedProjectionYears === null
+      ? parsedDataJson
+      : parsedDataJson.filter((dataPoint) => {
+          const parsedYear = parseInt(String(dataPoint.Year).replace(/\D/g, ''), 10);
+          if (Number.isNaN(parsedYear)) {
+            return true;
+          }
+          return parsedYear >= currentYear && parsedYear <= (currentYear + requestedProjectionYears);
+        });
+
+    const effectiveDataJson = filteredDataJson.length > 0 ? filteredDataJson : parsedDataJson;
+    const labels = effectiveDataJson.map(dataPoint => dataPoint.Year);
     let datasets = [];
 
     try {
       const seriesConfigurations = JSON.parse(fetchedConfig.series_configurations);
       seriesConfigurations.forEach((series) => {
 
-        const dataValues = parsedDataJson.map(dataPoint => {
+        const dataValues = effectiveDataJson.map(dataPoint => {
           const valueForSeries = getAggregatedValue(dataPoint, series);
           return valueForSeries;
         });
@@ -337,7 +361,7 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
     }
 
     setChartData({ labels, datasets });
-  }, [showChartTotals, getAggregatedValue, assets, liabilities, incomeItems, expenseItems]); // Added all necessary dependencies
+  }, [showChartTotals, getAggregatedValue, assets, liabilities, incomeItems, expenseItems, projectionYears, currentYear]); // Added all necessary dependencies
 
   useEffect(() => {
     const fetchAndPrepareChart = async () => {
@@ -616,17 +640,21 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
         </div>
       )}
       {showProjectionYearSelector && (
-        <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <label htmlFor="custom-chart-years" style={{ fontWeight: 600 }}>Projection Years</label>
-          <select
+        <div style={{ margin: '8px 0 12px', display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '320px' }}>
+          <label htmlFor="custom-chart-years" style={{ fontWeight: 600 }}>
+            Projection Years: <strong>{sliderProjectionYears}</strong>
+          </label>
+          <Slider
             id="custom-chart-years"
-            value={projectionYears}
-            onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
-          >
-            {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
-              <option key={years} value={years}>{years}</option>
-            ))}
-          </select>
+            size="small"
+            min={0}
+            max={maxProjectionYears ?? 50}
+            step={1}
+            value={sliderProjectionYears}
+            valueLabelDisplay="auto"
+            onChange={(_, value) => setSliderProjectionYears(Number(value))}
+            onChangeCommitted={(_, value) => onProjectionYearsChange?.(Number(value))}
+          />
           {isLimitedPlan && maxProjectionYears !== undefined && (
             <span style={{ fontSize: '0.85em', color: '#666' }}>
               Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
@@ -639,15 +667,18 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
           {onEdit && (
             <button onClick={() => onEdit(chartId)} className="btn-primary-modern">Edit</button>
           )}
-          <label className="show-totals-toggle" style={{ margin: 0 }}>
-          <input
-            type="checkbox"
-            checked={showChartTotals}
-            onChange={(e) => setShowChartTotals(e.target.checked)}
-            disabled={showChartTotalsDisabled}
+          <FormControlLabel
+            sx={{ m: 0 }}
+            control={
+              <Switch
+                sx={projectionSwitchSx}
+                checked={showChartTotals}
+                onChange={(e) => setShowChartTotals(e.target.checked)}
+                disabled={showChartTotalsDisabled}
+              />
+            }
+            label="Show Totals"
           />
-          Show Totals
-        </label>
         </div>
         {(currentDisplayType === "chart" || currentDisplayType === "both") && (
           <div style={{ display: 'flex', gap: '10px' }}>

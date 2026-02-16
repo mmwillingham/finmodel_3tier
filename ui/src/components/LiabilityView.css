@@ -1,20 +1,23 @@
 .add-new-item-btn {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  background-color: #0b57d0;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
   white-space: nowrap;
-  width: auto; /* Allow natural width based on content and padding */
-  height: auto; /* Allow natural height */
-  margin-bottom: 1.5rem; /* Add some space below the button */
+  width: auto;
+  height: auto;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
 }
 
 .add-new-item-btn:hover {
-  background-color: #084399;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .cashflow-table th.sortable {
@@ -72,4 +75,24 @@
   background-color: #f5f5f5 !important;
   border-radius: 4px !important;
   text-align: right !important;
+}
+
+/* Softer table treatment for improved readability */
+.cashflow-container .table-scroll {
+  border: 1px solid #e6edf5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.cashflow-container .cashflow-table th {
+  background-color: #f4f8fc !important;
+  border-bottom: 1px solid #e4ebf2 !important;
+}
+
+.cashflow-container .cashflow-table td {
+  border-bottom: 1px solid #eef3f7 !important;
+}
+
+.cashflow-container .cashflow-table tbody tr:hover {
+  background-color: #f9fbfe;
 }

@@ -107,8 +107,9 @@
 }
 
 .wizard-step.active .wizard-step-number {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .wizard-step-title {
@@ -119,7 +120,7 @@
 }
 
 .wizard-step.active .wizard-step-title {
-  color: #007bff;
+  color: #00a3e0;
   font-weight: 600;
 }
 
@@ -145,7 +146,7 @@
   margin-bottom: 20px;
   padding: 10px;
   background-color: #f8f9fa;
-  border-left: 3px solid #007bff;
+  border-left: 3px solid #00a3e0;
   border-radius: 4px;
 }
 
@@ -177,8 +178,8 @@
 .wizard-form input:focus,
 .wizard-form select:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: #00a3e0;
+  box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.35);
 }
 
 .wizard-message {
@@ -313,12 +314,14 @@
 }
 
 .wizard-btn-primary {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   color: white;
 }
 
 .wizard-btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .wizard-btn-secondary {
@@ -332,13 +335,13 @@
 
 .wizard-btn-link {
   background: none;
-  color: #007bff;
+  color: #00a3e0;
   text-decoration: underline;
   padding: 5px 10px;
 }
 
 .wizard-btn-link:hover {
-  color: #0056b3;
+  color: #006290;
 }
 
 .wizard-warning {

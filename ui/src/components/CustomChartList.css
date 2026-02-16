@@ -22,7 +22,8 @@
 
 .create-chart-btn {
   padding: 10px 20px;
-  background-color: #0b57d0;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   color: white;
   border: none;
   border-radius: 4px;
@@ -63,6 +64,21 @@
 
 .custom-charts-table tbody tr:hover {
   background-color: #f9f9f9;
+}
+
+.custom-charts-table tbody tr.custom-chart-row-clickable {
+  cursor: pointer;
+}
+
+.custom-charts-table tbody tr.custom-chart-row-clickable:hover td:first-child {
+  color: #0f2847;
+  text-decoration: underline;
+}
+
+.custom-chart-name-cell {
+  color: #0f2847;
+  text-decoration: underline;
+  font-weight: 600;
 }
 
 .custom-charts-table .actions-cell {

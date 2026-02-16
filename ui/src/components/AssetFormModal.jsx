@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { FormControlLabel, Switch } from "@mui/material";
 import AssetService from "../services/asset.service";
 import SettingsService from "../services/settings.service";
 import AccountService from "../services/account.service";
 import CashFlowService from "../services/cashflow.service";
+import { projectionSwitchSx } from "../utils/projectionUiStyles";
 import Modal from "./Modal"; // Import the generic Modal component
 import "./AssetFormModal.css"; // Specific styling for this form
 
@@ -218,6 +220,13 @@ export default function AssetFormModal({
     }
   }, [newItem.account_id, isRetirementAccount]);
 
+  // Roth flag only applies to retirement assets/accounts.
+  useEffect(() => {
+    if (!isRetirementAccount && newItem.is_roth) {
+      setNewItem((prev) => ({ ...prev, is_roth: false }));
+    }
+  }, [isRetirementAccount, newItem.is_roth]);
+
   const save = async () => {
     if (!newItem.name || !newItem.category || !newItem.value || !newItem.annual_change_type) return;
     
@@ -256,7 +265,7 @@ export default function AssetFormModal({
       account_id: newItem.account_id || null,
       start_date: newItem.start_date || null,
       end_date: newItem.end_date || null,
-      is_roth: !!newItem.is_roth,
+      is_roth: isRetirementAccount ? !!newItem.is_roth : false,
     };
     
     // For retirement accounts, always include retirement rates (even if null)
@@ -456,8 +465,8 @@ export default function AssetFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.name}` : `Add New Asset`}>
       <div className="asset-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}> {/* First row: Name, Category, Account, Value */} 
-            <div className="form-field">
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}> {/* First row: Name, Category, Account, Is Roth, Value */} 
+            <div className="form-field" style={{ maxWidth: '180px' }}>
               <label htmlFor="asset-name">Name *</label>
               <input
                 id="asset-name"
@@ -494,16 +503,25 @@ export default function AssetFormModal({
                   </option>
                 ))}
               </select>
-              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  id="asset-is-roth"
-                  type="checkbox"
-                  checked={!!newItem.is_roth}
-                  onChange={(e) => setNewItem({ ...newItem, is_roth: e.target.checked })}
-                />
-                <label htmlFor="asset-is-roth" style={{ margin: 0, cursor: 'pointer' }}>Is Roth?</label>
-              </div>
             </div>
+
+            {isRetirementAccount && (
+              <div className="form-field">
+                <label htmlFor="asset-is-roth">Roth</label>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      sx={projectionSwitchSx}
+                      id="asset-is-roth"
+                      checked={!!newItem.is_roth}
+                      onChange={(e) => setNewItem({ ...newItem, is_roth: e.target.checked })}
+                    />
+                  }
+                  label="Is Roth?"
+                  sx={{ m: 0, height: '40px' }}
+                />
+              </div>
+            )}
 
             <div className="form-field">
               <label htmlFor="asset-value">Value *</label>
@@ -533,7 +551,7 @@ export default function AssetFormModal({
             </div>
           </div>
 
-          <div className="form-row" style={{ gridTemplateColumns: isRetirementAccount ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: '12px' }}> {/* Second row: Percent, Annual Change, Start Date, End Date (and Total Growth Rate for retirement) */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}> {/* Second row: Percent, Annual Change, Start Date, End Date (and Total Growth Rate for retirement) */} 
             <div className="form-field">
               <label htmlFor="annual-change-percent">Internal Growth Rate (%)</label>
               <input
@@ -597,21 +615,24 @@ export default function AssetFormModal({
           {!isRetirementAccount && (
             <>
               <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
-                  <input
-                    id="track-interest-as-income"
-                    type="checkbox"
-                    checked={trackInterestAsIncome}
-                    onChange={(e) => {
-                      setTrackInterestAsIncome(e.target.checked);
-                      if (!e.target.checked) {
-                        setInterestRate(""); // Clear interest rate when unchecked
-                      }
-                    }}
+                <div className="form-field" style={{ flex: '1' }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        sx={projectionSwitchSx}
+                        id="track-interest-as-income"
+                        checked={trackInterestAsIncome}
+                        onChange={(e) => {
+                          setTrackInterestAsIncome(e.target.checked);
+                          if (!e.target.checked) {
+                            setInterestRate(""); // Clear interest rate when unchecked
+                          }
+                        }}
+                      />
+                    }
+                    label="Track Interest as Taxable Income"
+                    sx={{ m: 0 }}
                   />
-                  <label htmlFor="track-interest-as-income" style={{ margin: 0, cursor: 'pointer' }}>
-                    Track Interest as Taxable Income
-                  </label>
                 </div>
                 {trackInterestAsIncome && (
                   <div className="form-field" style={{ minWidth: '150px' }}>
@@ -642,21 +663,24 @@ export default function AssetFormModal({
               </div>
 
               <div className="form-row" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1' }}>
-                  <input
-                    id="track-dividends-as-income"
-                    type="checkbox"
-                    checked={trackDividendsAsIncome}
-                    onChange={(e) => {
-                      setTrackDividendsAsIncome(e.target.checked);
-                      if (!e.target.checked) {
-                        setDividendRate(""); // Clear dividend rate when unchecked
-                      }
-                    }}
+                <div className="form-field" style={{ flex: '1' }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        sx={projectionSwitchSx}
+                        id="track-dividends-as-income"
+                        checked={trackDividendsAsIncome}
+                        onChange={(e) => {
+                          setTrackDividendsAsIncome(e.target.checked);
+                          if (!e.target.checked) {
+                            setDividendRate(""); // Clear dividend rate when unchecked
+                          }
+                        }}
+                      />
+                    }
+                    label="Track Dividends as Taxable Income"
+                    sx={{ m: 0 }}
                   />
-                  <label htmlFor="track-dividends-as-income" style={{ margin: 0, cursor: 'pointer' }}>
-                    Track Dividends as Taxable Income
-                  </label>
                 </div>
                 {trackDividendsAsIncome && (
                   <div className="form-field" style={{ minWidth: '150px' }}>

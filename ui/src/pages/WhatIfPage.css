@@ -55,8 +55,8 @@
 
 .example-button:hover:not(:disabled) {
   background: #e9ecef;
-  border-color: #007bff;
-  color: #007bff;
+  border-color: #00a3e0;
+  color: #00a3e0;
 }
 
 .example-button:disabled {
@@ -92,8 +92,8 @@
 
 .question-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: #00a3e0;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.25);
 }
 
 .question-input:disabled {
@@ -112,18 +112,20 @@
 
 .submit-button {
   padding: 12px 24px;
-  background: #007bff;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 1em;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .submit-button:hover:not(:disabled) {
-  background: #0056b3;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .submit-button:disabled {

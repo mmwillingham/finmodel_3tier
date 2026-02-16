@@ -1,12 +1,14 @@
 .sidebar-layout {
   display: flex;
-  height: 100vh;
-  margin-top: 60px; /* Account for fixed header height */
-  background: var(--bg, #f6f7fb);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  overflow-x: hidden; /* Prevent horizontal scrollbar due to off-screen content */
-  position: relative; /* Ensure layout is positioned correctly */
-  align-items: flex-start; /* Align items to top */
+  height: 100%;
+  min-height: calc(100vh - 60px);
+  margin-top: 0;
+  width: 100%;
+  background: var(--surface);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+  align-items: flex-start;
 }
 
 .sidebar {
@@ -14,15 +16,19 @@
   min-width: 150px;
   max-width: 600px;
   padding: 16px;
-  background: #ffffff;
+  background: var(--surface-card);
   border-right: 1px solid rgba(0,0,0,0.06);
   box-shadow: 2px 0 6px rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow-y: auto; /* Enable vertical scrolling for sidebar content */
+  overflow-y: auto;
   position: relative;
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  padding-top: 6px;
 }
 
 .sidebar-resize-handle {
@@ -38,18 +44,19 @@
 }
 
 .sidebar-resize-handle:hover {
-  background: #0b57d0;
+  background: #00a3e0;
   opacity: 0.3;
 }
 
 .sidebar-resize-handle:active {
-  background: #0b57d0;
+  background: #00a3e0;
   opacity: 0.5;
 }
 
 .main-content {
   flex: 1;
   min-width: 0; /* Prevent flex item from overflowing */
+  width: 100%;
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -60,8 +67,12 @@
   overflow-x: hidden; /* Prevent horizontal scrolling from affecting layout */
 }
 
+.main-content > * {
+  width: 100%;
+}
+
 .right-top, .right-bottom {
-  background: #fff;
+  background: var(--surface-card);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -76,7 +87,7 @@
 .right-bottom { flex: 1; min-height: 180px; overflow: auto; }
 
 .right-content {
-  background: #fff;
+  background: var(--surface-card);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -97,7 +108,7 @@
 .sidebar-title {
   margin: 0 0 12px 0;
   font-size: 14px;
-  color: #333;
+  color: var(--fg);
 }
 
 .nav-section {
@@ -107,21 +118,24 @@
 .nav-section h3 {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #666;
+  color: var(--fg-muted);
   text-transform: uppercase;
+  margin-top: 0;
   margin-bottom: 0.75rem;
   padding: 0 1rem;
+  line-height: 1.35;
 }
 
 .nav-section .nav-btn {
   display: block;
   width: 100%;
   padding: 0.75rem 1rem;
-  padding-left: 2rem; /* Indent clickable items */
+  padding-left: 2rem;
   margin-bottom: 0.5rem;
   background: none;
   border: none;
   text-align: left;
+  color: var(--fg);
   cursor: pointer;
   font-size: 1rem;
   color: #333;
@@ -131,16 +145,16 @@
 }
 
 .nav-section .nav-btn:hover {
-  background-color: #f0f0f0;
+  background-color: var(--surface-elevated);
   transform: translateX(4px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .nav-section .nav-btn.active {
-  background-color: #0b57d0;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(11, 87, 208, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 163, 224, 0.3);
 }
 
 .settings-btn {
@@ -179,7 +193,7 @@
 
 .wizard-card h4 {
   margin-top: 0;
-  color: #007bff;
+  color: #00a3e0;
 }
 
 .wizard-card p {
@@ -223,7 +237,7 @@
 
 .metric-link-anchor {
   font-size: 0.8rem;
-  color: #0b57d0;
+  color: #00a3e0;
   text-decoration: none;
   font-weight: 600;
 }
@@ -248,7 +262,7 @@
 
 .metric-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0b57d0, #6c63ff);
+  background: linear-gradient(90deg, #0F2847, #00a3e0);
 }
 
 .metric-card--chart {
@@ -348,7 +362,8 @@
   top: 72px;
   left: 12px;
   z-index: 920;
-  background: #0b57d0;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   color: #fff;
   border: none;
   border-radius: 999px;
@@ -360,7 +375,8 @@
 
 @media (max-width: 768px) {
   .sidebar-layout {
-    margin-top: 60px;
+    margin-top: 0;
+    height: calc(100vh - 60px);
   }
 
   .nav-section .nav-btn {

@@ -328,7 +328,7 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }) {
                               padding: '6px 12px',
                               borderRadius: '4px',
                               border: 'none',
-                              backgroundColor: '#007bff',
+                              background: 'linear-gradient(135deg, #0F2847 0%, #00a3e0 100%)',
                               color: 'white',
                               cursor: 'pointer',
                               whiteSpace: 'nowrap'

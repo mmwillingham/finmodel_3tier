@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FormControlLabel, Switch } from "@mui/material";
 import CustomChartService from '../services/customChart.service';
-import AccountService from '../services/account.service';
-import MultiSelectCheckbox from './MultiSelectCheckbox'; // Import the multi-select checkbox component
+import { projectionSwitchSx } from "../utils/projectionUiStyles";
 import './CustomChartForm.css'; // We will create this CSS file
 
 const chartTypes = ["line", "bar", "pie"];
@@ -96,6 +96,7 @@ export default function CustomChartForm({
           category: series.category || '', 
           selected_item_id: series.selected_item_id || null,
           selected_account_ids: series.selected_account_ids || [], // Load account filter if present
+          include_selected_assets: series.include_selected_assets ?? ((series.selected_account_ids || []).length > 0),
           itemize: series.itemize || false, // Load itemize flag if present
         })));
           setXAxisLabel(chart.x_axis_label || "");
@@ -140,6 +141,7 @@ export default function CustomChartForm({
       category: "", // New category field
       selected_item_id: null, // Initialize selected_item_id
       selected_account_ids: [], // Initialize account filter
+      include_selected_assets: false, // Keep list hidden by default
       itemize: false, // Initialize itemize flag
     }]);
   };
@@ -152,6 +154,7 @@ export default function CustomChartForm({
       newSeries[index].category = '';
       newSeries[index].selected_item_id = null;
       newSeries[index].selected_account_ids = [];
+      newSeries[index].include_selected_assets = false;
       // Set default label to data type name (capitalized) when only data type is selected
       const dataTypeLabel = value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
       newSeries[index].label = dataTypeLabel;
@@ -160,6 +163,10 @@ export default function CustomChartForm({
     // Handle account multi-select changes
     if (field === 'selected_account_ids') {
       newSeries[index].selected_account_ids = value || [];
+    }
+    if (field === 'include_selected_assets' && !value) {
+      // Turning off selector means include all asset accounts.
+      newSeries[index].selected_account_ids = [];
     }
     // Reset selected_item_id if category changes, and set default label to category
     if (field === 'category') {
@@ -217,6 +224,14 @@ export default function CustomChartForm({
 
   const handleRemoveSeries = (index) => {
     setSeriesConfigurations(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleSelectedAccount = (seriesIndex, accountId) => {
+    const currentSelected = seriesConfigurations[seriesIndex].selected_account_ids || [];
+    const nextSelected = currentSelected.includes(accountId)
+      ? currentSelected.filter((id) => id !== accountId)
+      : [...currentSelected, accountId];
+    handleSeriesChange(seriesIndex, 'selected_account_ids', nextSelected);
   };
 
   const handleSubmit = async (e) => {
@@ -452,7 +467,7 @@ export default function CustomChartForm({
             <button type="submit" disabled={loading} className="btn-primary-modern">
               {loading ? "Saving..." : (chartId ? "Update" : "Create Chart")}
             </button>
-            <button type="button" onClick={onCancel} disabled={loading} className="btn-primary-modern" style={{ backgroundColor: '#6c757d' }}>Cancel</button>
+            <button type="button" onClick={onCancel} disabled={loading} className="btn-secondary-modern">Cancel</button>
           </div>
         </div>
         <button type="button" className="btn-primary-modern" onClick={handleAddSeries}>Add Series</button>
@@ -487,21 +502,38 @@ export default function CustomChartForm({
                 {/* Account multi-selector, only for assets */}
                 {currentSeriesDataType === 'assets' && accounts && accounts.length > 0 && (
                   <div className="form-group">
-                    <label>Account(s):</label>
-                    <MultiSelectCheckbox
-                      options={accounts.map(account => ({
-                        id: account.id,
-                        brokerage: account.brokerage,
-                        account_name: account.account_name,
-                      }))}
-                      selectedValues={series.selected_account_ids || []}
-                      onChange={(selectedValues) => {
-                        handleSeriesChange(index, 'selected_account_ids', selectedValues);
-                      }}
-                      placeholder="Select accounts..."
-                      maxHeight={200}
-                      showCategory={false}
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          sx={projectionSwitchSx}
+                          checked={!!series.include_selected_assets}
+                          onChange={(e) => handleSeriesChange(index, 'include_selected_assets', e.target.checked)}
+                        />
+                      }
+                      label="Include selected"
                     />
+                    {series.include_selected_assets && (
+                      <>
+                        <div className="custom-chart-account-list">
+                          {accounts.map((account) => {
+                            const checked = (series.selected_account_ids || []).includes(account.id);
+                            return (
+                              <label key={account.id} className="custom-chart-account-option">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleSelectedAccount(index, account.id)}
+                                />
+                                <span>{account.brokerage} - {account.account_name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <small style={{ display: 'block', color: '#666', marginTop: '4px' }}>
+                          Choose accounts to include. Disable "Include Selected" to include all accounts.
+                        </small>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -612,16 +644,19 @@ export default function CustomChartForm({
                 {/* Itemize option - show if no specific item is selected */}
                 {!series.selected_item_id && (
                   <div className="form-group">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={series.itemize || false}
-                        onChange={(e) => {
-                          handleSeriesChange(index, 'itemize', e.target.checked);
-                        }}
-                      />
-                      Itemize (show individual items)
-                    </label>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          sx={projectionSwitchSx}
+                          checked={series.itemize || false}
+                          onChange={(e) => {
+                            handleSeriesChange(index, 'itemize', e.target.checked);
+                          }}
+                        />
+                      }
+                      label="Itemize (show individual items)"
+                      sx={{ m: 0 }}
+                    />
                     <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
                       When enabled, each {(currentSeriesDataType === 'assets' ? 'asset' : 
                                             currentSeriesDataType === 'liabilities' ? 'liability' : 

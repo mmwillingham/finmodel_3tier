@@ -218,12 +218,12 @@ const DocumentsPage = ({ hideSidebar = false }) => {
   const content = (
     <div className="documents-page">
           <div className="documents-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1rem' }}>
-              <h1 style={{ margin: 0 }}>📁 Documents</h1>
+            <div className="documents-header-top">
+              <h1 className="documents-title">📁 Documents</h1>
               <AccountSwitcher compact={true} />
             </div>
             <div className="documents-actions">
-              <button onClick={() => setShowWalkthrough(true)} className="btn-secondary" title="Show Tutorial">
+              <button onClick={() => setShowWalkthrough(true)} className="btn-primary" title="Show Tutorial">
                 ❓ Tutorial
               </button>
               <button onClick={() => setShowNewFolderModal(true)} className="btn-primary">
@@ -291,7 +291,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
                           style={{ 
                             background: 'none', 
                             border: 'none', 
-                            color: '#007bff', 
+                            color: '#00a3e0', 
                             cursor: 'pointer',
                             textAlign: 'left',
                             padding: 0,

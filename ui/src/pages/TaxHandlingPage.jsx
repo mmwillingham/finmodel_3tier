@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Alert, Box, Button, CircularProgress, FormControlLabel, Stack, Switch, TextField, Typography } from "@mui/material";
+import { projectionActionButtonSx, projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 import SettingsService from "../services/settings.service";
 import { useSettingsContext } from "../context/SettingsContext.jsx";
 import { useSettingsBackButton } from "../hooks/useSettingsBackButton";
@@ -45,102 +47,78 @@ const TaxHandlingPage = () => {
   };
 
   if (settingsLoading) {
-    return <div className="loading-message">Loading tax settings...</div>;
+    return (
+      <Stack direction="row" spacing={1} alignItems="center">
+        <CircularProgress size={18} />
+        <Typography variant="body2">Loading tax settings...</Typography>
+      </Stack>
+    );
   }
 
   return (
-    <div className="settings-page-container">
-      <h2>Tax Handling</h2>
-      {message && <div className="message">{message}</div>}
-      <div className="application-settings-form">
-        <div className="form-group-horizontal">
-          <label htmlFor="tax-year">Tax Year</label>
-          <input
-            id="tax-year"
-            type="number"
-            min="2020"
-            max="2100"
-            value={taxYear}
-            onChange={(e) => setTaxYear(e.target.value)}
-            placeholder="2025"
-          />
-        </div>
+    <Box>
+      <Typography variant="h5" fontWeight="600" sx={{ mb: 2 }}>
+        Tax Handling
+      </Typography>
+      {message && (
+        <Alert severity={message.toLowerCase().includes("error") ? "error" : "success"} sx={{ mb: 2 }}>
+          {message}
+        </Alert>
+      )}
 
-        <div className="form-group-horizontal checkbox-group">
-          <label htmlFor="calculate-federal-tax">
-            Calculate Federal Income Tax
-          </label>
-          <label className="switch" aria-hidden>
-            <input
+      <Stack spacing={2.5} sx={{ maxWidth: 560 }}>
+        <TextField
+          id="tax-year"
+          label="Tax Year"
+          type="number"
+          size="small"
+          inputProps={{ min: 2020, max: 2100 }}
+          value={taxYear}
+          onChange={(e) => setTaxYear(e.target.value)}
+        />
+
+        <FormControlLabel
+          control={
+            <Switch
               id="calculate-federal-tax"
-              type="checkbox"
               checked={calculateFederalTax}
               onChange={(e) => setCalculateFederalTax(e.target.checked)}
             />
-            <span className="slider" />
-          </label>
-        </div>
+          }
+          label="Calculate Federal Income Tax"
+        />
         {calculateFederalTax && (
-          <div
-            style={{
-              padding: "10px",
-              backgroundColor: "#fff3cd",
-              border: "1px solid #ffeaa7",
-              borderRadius: "4px",
-              marginBottom: "10px",
-            }}
-          >
-            <small>
-              <strong>Note:</strong> This will create a "Federal Income Tax
-              (Calculated)" expense item. Tax filing status and Person 1
-              birthdate must be set in Profile Settings.
-            </small>
-          </div>
+          <Alert severity="warning" variant="outlined">
+            <strong>Note:</strong> This creates a "Federal Income Tax (Calculated)" expense item. Tax filing status and Person 1 birthdate must be set in Profile Settings.
+          </Alert>
         )}
 
-        <div className="form-group-horizontal checkbox-group">
-          <label htmlFor="calculate-state-tax">
-            Calculate State Income Tax
-          </label>
-
-          <label className="switch" aria-hidden>
-            <input
+        <FormControlLabel
+          control={
+            <Switch
               id="calculate-state-tax"
-              type="checkbox"
               checked={calculateStateTax}
               onChange={(e) => setCalculateStateTax(e.target.checked)}
             />
-            <span className="slider" />
-          </label>
-        </div>
+          }
+          label="Calculate State Income Tax"
+        />
         {calculateStateTax && (
-          <div
-            style={{
-              padding: "10px",
-              backgroundColor: "#fff3cd",
-              border: "1px solid #ffeaa7",
-              borderRadius: "4px",
-              marginBottom: "10px",
-            }}
-          >
-            <small>
-              <strong>Note:</strong> This will create a "State Income Tax
-              (Calculated)" expense item. You must set your state in your
-              Profile Settings to accurately calculate state taxes.
-            </small>
-          </div>
+          <Alert severity="warning" variant="outlined">
+            <strong>Note:</strong> This creates a "State Income Tax (Calculated)" expense item. Set your state in Profile Settings for accurate calculations.
+          </Alert>
         )}
 
-        <div className="settings-page-actions">
-          <button onClick={handleSave} className="save-button">
+        <Stack direction="row" spacing={1.5}>
+          <Button onClick={handleSave} variant="contained" sx={projectionActionButtonSx}>
             Save
-          </button>
-          <button onClick={() => navigate("/app")} className="cancel-button">
+          </Button>
+          <Button onClick={() => navigate("/app")} variant="outlined" sx={projectionSecondaryButtonSx}>
             Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Stack>
+      </Stack>
+    </Box>
   );
 };
 

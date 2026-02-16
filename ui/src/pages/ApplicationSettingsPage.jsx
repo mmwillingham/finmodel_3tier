@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, CircularProgress, FormControlLabel, Stack, Switch, TextField, Typography } from "@mui/material";
+import { projectionActionButtonSx, projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 import SettingsService from '../services/settings.service';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
@@ -43,57 +45,67 @@ const ApplicationSettingsPage = () => {
 
 
   if (settingsLoading) {
-    return <div className="loading-message">Loading application settings...</div>;
+    return (
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1 }}>
+        <CircularProgress size={18} />
+        <Typography variant="body2">Loading application settings...</Typography>
+      </Stack>
+    );
   }
 
   return (
-    <div className="settings-page-container">
-      <h2>Application Settings</h2>
-      {message && <div className="message">{message}</div>}
+    <Box>
+      <Typography variant="h5" fontWeight="600" sx={{ mb: 2 }}>
+        Application Settings
+      </Typography>
+      {message && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {message}
+        </Alert>
+      )}
 
-      <div className="application-settings-form">
-        <div className="form-group-horizontal">
-          <label htmlFor="default-inflation">
-            Inflation Rate Percentage (Default)
-          </label>
-          <input
-            id="default-inflation"
-            type="number"
-            step="0.1"
-            value={inflationPercent}
-            onChange={(e) => setInflationPercent(e.target.value)}
-          />
-        </div>
-        <div className="form-group-horizontal">
-          <label htmlFor="projection-years">
-            Projection Years (Default)
-          </label>
-          <input
-            id="projection-years"
-            type="number"
-            value={projectionYears}
-            onChange={(e) => setProjectionYears(e.target.value)}
-            placeholder="20"
-          />
-        </div>
-        <div className="form-group-horizontal checkbox-group">
-          <label htmlFor="show-chart-totals">
-            Show Chart Totals (Default)
-          </label>
-          <input
-            id="show-chart-totals"
-            type="checkbox"
-            checked={showChartTotals}
-            onChange={(e) => setShowChartTotals(e.target.checked)}
-          />
-        </div>
-        {/* Tax handling moved to Tax Handling page */}
-        <div className="settings-page-actions">
-          <button onClick={handleSave} className="save-button">Save</button>
-          <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
-        </div>
-      </div>
-    </div>
+      <Stack spacing={2.5} sx={{ maxWidth: 520 }}>
+        <TextField
+          id="default-inflation"
+          label="Inflation Rate Percentage (Default)"
+          type="number"
+          size="small"
+          inputProps={{ step: 0.1 }}
+          value={inflationPercent}
+          onChange={(e) => setInflationPercent(e.target.value)}
+        />
+
+        <TextField
+          id="projection-years"
+          label="Projection Years (Default)"
+          type="number"
+          size="small"
+          value={projectionYears}
+          onChange={(e) => setProjectionYears(e.target.value)}
+          placeholder="20"
+        />
+
+        <FormControlLabel
+          control={
+            <Switch
+              id="show-chart-totals"
+              checked={showChartTotals}
+              onChange={(e) => setShowChartTotals(e.target.checked)}
+            />
+          }
+          label="Show Chart Totals (Default)"
+        />
+
+        <Stack direction="row" spacing={1.5}>
+          <Button onClick={handleSave} variant="contained" sx={projectionActionButtonSx}>
+            Save
+          </Button>
+          <Button onClick={() => navigate('/app')} variant="outlined" sx={projectionSecondaryButtonSx}>
+            Cancel
+          </Button>
+        </Stack>
+      </Stack>
+    </Box>
   );
 };
 

@@ -53,43 +53,40 @@ export default function MultiSelectCheckbox({
 
   // Resize functionality is handled directly in handleResizeStart
 
-  const handleResizeStart = (e) => {
+  const handleResizePointerStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.stopImmediatePropagation) {
       e.stopImmediatePropagation();
     }
-    
+
     isResizingRef.current = true;
     resizeStartYRef.current = e.clientY;
     resizeStartHeightRef.current = dropdownHeight;
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
 
-    // Attach move and up handlers directly
-    const handleMouseMove = (moveEvent) => {
+    const handlePointerMove = (moveEvent) => {
       if (!isResizingRef.current) return;
-      
       const deltaY = moveEvent.clientY - resizeStartYRef.current;
       const newHeight = resizeStartHeightRef.current + deltaY;
       const minHeight = 150;
       const maxHeight = 500;
-      
       if (newHeight >= minHeight && newHeight <= maxHeight) {
         setDropdownHeight(newHeight);
       }
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       isResizingRef.current = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
     };
 
-    document.addEventListener('mousemove', handleMouseMove, { passive: false });
-    document.addEventListener('mouseup', handleMouseUp, { passive: false });
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp, { passive: false });
   };
 
   const toggleOption = (id) => {
@@ -194,7 +191,7 @@ export default function MultiSelectCheckbox({
           <div 
             ref={resizeHandleRef}
             className="multi-select-checkbox-resize-handle"
-            onMouseDown={handleResizeStart}
+            onPointerDown={handleResizePointerStart}
           />
         </div>
       )}

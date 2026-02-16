@@ -1,7 +1,7 @@
-/* Header.css */
+/* Header.css — Design system: Navy–Teal gradient */
 
 .app-header {
-    background-color: #282c34;
+    background: linear-gradient(135deg, #0F2847 0%, #006290 50%, #00a3e0 100%);
     padding: 10px 20px;
     color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -10,7 +10,7 @@
     top: 0;
     left: 0;
     z-index: 1000;
-    overflow: visible; /* Allow dropdowns to overflow */
+    overflow: visible;
 }
 
 .app-header nav {
@@ -180,9 +180,17 @@
     text-decoration: underline;
 }
 
-.header-right-menu .user-info {
+.header-right-menu .user-info,
+.app-header .user-info {
     font-size: 0.9em;
     flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.app-header .user-info strong,
+.header-right-menu .user-info strong {
+    color: #ffffff;
+    font-weight: 600;
 }
 
 .header-right-menu .points-button {

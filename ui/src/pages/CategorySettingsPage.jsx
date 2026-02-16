@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
+import { projectionActionButtonSx, projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 import SettingsService from '../services/settings.service';
 import { useAuth } from '../context/AuthContext';
 import CategoryEditorModal from '../components/CategoryEditorModal';
@@ -106,36 +108,42 @@ const CategorySettingsPage = () => {
   };
 
   if (loading) {
-    return <div className="loading-message">Loading categories...</div>;
+    return (
+      <Stack direction="row" spacing={1} alignItems="center">
+        <CircularProgress size={18} />
+        <Typography variant="body2">Loading categories...</Typography>
+      </Stack>
+    );
   }
 
   if (error) {
-    return <div className="error-message">Error: {error}</div>;
+    return <Alert severity="error">Error: {error}</Alert>;
   }
 
   const renderCategorySection = (title, categories, setIsModalOpen, categoryType) => (
-    <div className="category-section-item">
-        <div className="category-header">
-            <label style={{ fontWeight: 700, fontSize: '1.1em', color: 'var(--color-heading)' }}>{title}</label>
-            <button
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
+            <Typography variant="subtitle1" fontWeight="700">{title}</Typography>
+            <Button
               type="button"
-              className="category-manage-button"
+              variant="outlined"
+              size="small"
               onClick={() => !isViewingOther && setIsModalOpen(true)}
               disabled={isViewingOther}
-              style={{ cursor: isViewingOther ? 'not-allowed' : 'pointer' }}
+              sx={{ textTransform: "none" }}
             >
               Manage
-            </button>
-        </div>
-        <div className="category-tags-display">
+            </Button>
+        </Stack>
+        <Box className="category-tags-display">
             {categories.length > 0 ? (
                 categories.map((cat, index) => (
                     <span key={index} className="category-tag">{cat}</span>
                 ))
             ) : (
-                <span className="no-categories-text">No {title.toLowerCase().replace(' categories', '')} defined.</span>
+                <Typography variant="body2" color="text.secondary">No {title.toLowerCase().replace(' categories', '')} defined.</Typography>
             )}
-        </div>
+        </Box>
         <CategoryEditorModal
             isOpen={(() => {
                 switch(categoryType) {
@@ -159,43 +167,43 @@ const CategorySettingsPage = () => {
             categories={categories}
             title={title}
         />
-    </div>
+    </Paper>
 );
 
   return (
-    <div className="settings-page-container">
-      <h2>My Categories</h2>
+    <Box>
+      <Typography variant="h5" fontWeight="600" sx={{ mb: 2 }}>My Categories</Typography>
       {isViewingOther && (
-        <div className="message" style={{ backgroundColor: '#e2e3ff', color: '#1e1b4b', border: '1px solid #b3b7ff', marginBottom: '20px' }}>
+        <Alert severity="info" sx={{ mb: 2 }}>
           You are viewing another account. Categories are shown for reference only and cannot be modified.
-        </div>
+        </Alert>
       )}
-      {message && <div className="message">{message}</div>}
+      {message && <Alert severity={message.toLowerCase().includes('error') ? "error" : "success"} sx={{ mb: 2 }}>{message}</Alert>}
 
-      <div style={{ marginBottom: '20px' }}>
-        <button 
+      <Box sx={{ mb: 2 }}>
+        <Button 
           onClick={handleLoadDefaultCategories} 
-          className="save-button" 
+          variant="contained"
           disabled={loadingDefaults}
-          style={{ backgroundColor: '#17a2b8', borderColor: '#17a2b8' }}
+          sx={projectionActionButtonSx}
         >
           {loadingDefaults ? 'Loading...' : 'Load Default Categories'}
-        </button>
-        <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+        </Button>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
           Adds all default categories to your existing categories (duplicates will be skipped).
-        </small>
-      </div>
+        </Typography>
+      </Box>
 
-      <div className="setting-group category-settings-group">
+      <Stack spacing={2}>
         {renderCategorySection('Asset Categories', assetCategoriesState, setIsAssetModalOpen, 'asset')}
         {renderCategorySection('Liability Categories', liabilityCategoriesState, setIsLiabilityModalOpen, 'liability')}
         {renderCategorySection('Income Categories', incomeCategoriesState, setIsIncomeModalOpen, 'income')}
         {renderCategorySection('Expense Categories', expenseCategoriesState, setIsExpenseModalOpen, 'expense')}
-      </div>
-      <div className="settings-page-actions">
-        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
-      </div>
-    </div>
+      </Stack>
+      <Stack direction="row" sx={{ mt: 2 }}>
+        <Button onClick={() => navigate('/app')} variant="outlined" sx={projectionSecondaryButtonSx}>Close</Button>
+      </Stack>
+    </Box>
   );
 };
 

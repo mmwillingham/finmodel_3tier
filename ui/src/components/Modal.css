@@ -15,8 +15,8 @@
   background: white;
   padding: 0; /* No padding here, handled by header/body */
   border-radius: 8px;
-  width: 70vw !important; /* Reduced width since buttons are below fields */
-  max-width: 1200px !important; /* Maximum width constraint */
+  width: min(92vw, 1280px) !important;
+  max-width: 1280px !important;
   max-height: 85vh !important; /* Reduce height to avoid vertical scrolling */
   height: auto !important; /* Use auto height instead of fixed */
   overflow-y: auto;

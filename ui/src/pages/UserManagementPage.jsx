@@ -229,7 +229,7 @@ const UserManagementPage = () => {
           className="create-user-btn"
           style={{ 
             marginLeft: 'auto', 
-            backgroundColor: '#007bff', 
+            background: 'linear-gradient(135deg, #0F2847 0%, #00a3e0 100%)', 
             color: 'white', 
             border: 'none', 
             padding: '8px 16px', 
@@ -237,8 +237,8 @@ const UserManagementPage = () => {
             cursor: 'pointer',
             transition: 'background-color 0.2s'
           }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
+          onMouseEnter={(e) => { e.target.style.filter = 'brightness(1.08)'; }}
+          onMouseLeave={(e) => { e.target.style.background = 'linear-gradient(135deg, #0F2847 0%, #00a3e0 100%)'; }}
         >
           {showCreateForm ? 'Cancel' : 'Create User'}
         </button>
@@ -302,7 +302,7 @@ const UserManagementPage = () => {
                 className="create-button" 
                 disabled={loading}
                 style={{ 
-                  backgroundColor: '#007bff', 
+                  background: 'linear-gradient(135deg, #0F2847 0%, #00a3e0 100%)', 
                   color: 'white', 
                   border: 'none', 
                   padding: '8px 16px', 
@@ -311,8 +311,8 @@ const UserManagementPage = () => {
                   transition: 'background-color 0.2s',
                   opacity: loading ? 0.6 : 1
                 }}
-                onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#0056b3')}
-                onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#007bff')}
+                onMouseEnter={(e) => { if (!loading) e.target.style.filter = 'brightness(1.08)'; }}
+                onMouseLeave={(e) => { e.target.style.filter = 'none'; }}
               >
                 Create User
               </button>

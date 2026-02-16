@@ -1,13 +1,15 @@
+/* Design system: all settings pages use same surface/card tokens */
 .settings-page-container {
-    padding: 15px 20px; /* Reduced vertical padding */
+    padding: 15px 20px;
     max-width: 600px;
     margin: 20px auto;
-    background-color: var(--color-background-soft);
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    background-color: var(--surface-card);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
     box-sizing: border-box;
-    position: relative; /* Ensure it doesn't affect parent positioning */
-    overflow: visible; /* Allow content to scroll within */
+    position: relative;
+    overflow: visible;
+    color: var(--fg);
 }
 
 
@@ -49,7 +51,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 .switch input:checked + .slider {
-  background-color: #007bff;
+  background-color: #00a3e0;
 }
 .switch input:checked + .slider:before {
   transform: translateX(24px);
@@ -79,13 +81,14 @@
     margin-right: 0 !important;
     max-width: 100% !important;
     width: 100% !important;
-    background-color: var(--color-background-soft) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    background-color: var(--surface-card) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
     box-sizing: border-box !important;
     position: relative !important;
     left: 0 !important;
     right: 0 !important;
+    color: var(--fg) !important;
 }
 
 /* Override any centering styles in help content HTML */
@@ -173,19 +176,21 @@
     padding: 10px 12px;
     text-align: left;
     font-weight: 600;
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #e0edfb;
+    background-color: var(--surface-elevated);
+    color: var(--fg);
+    border-bottom: 2px solid rgba(0, 163, 224, 0.3);
     white-space: nowrap;
 }
 
 .setting-group .accounts-table td {
     padding: 10px 12px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--surface-elevated);
     vertical-align: middle;
+    color: var(--fg);
 }
 
 .setting-group .accounts-table tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--surface-elevated);
 }
 
 .setting-group .accounts-table tr:last-child td {
@@ -221,11 +226,12 @@
 .referral-stats-box {
     margin-bottom: 24px;
     padding: 20px;
-    background-color: #f0f7ff;
-    border-radius: 8px;
-    border: 1px solid #b3d9ff;
+    background-color: var(--surface-elevated);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 163, 224, 0.25);
     word-wrap: break-word;
     overflow-wrap: break-word;
+    color: var(--fg);
 }
 
 .referral-stats-grid {
@@ -245,7 +251,7 @@
 }
 
 .stat-blue {
-    color: #0b57d0;
+    color: #00a3e0;
 }
 
 .stat-green {
@@ -257,13 +263,13 @@
 }
 
 .stat-label {
-    color: #666;
+    color: var(--fg-muted);
     font-size: 0.9em;
 }
 
 .referral-description {
     margin-bottom: 20px;
-    color: #666;
+    color: var(--fg-muted);
     line-height: 1.5;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -331,14 +337,15 @@
 .settings-page-container .form-group-horizontal input[type="date"],
 .settings-page-container .form-group-horizontal input[type="tel"],
 .settings-page-container .form-group-horizontal select {
-    width: 150px; /* Adjust width as needed */
+    width: 150px;
     text-align: right;
     margin-left: 10px;
     padding: 10px 12px;
     border: none;
     border-radius: 8px;
     font-size: 0.95rem;
-    background-color: #fff;
+    background-color: var(--surface-card);
+    color: var(--fg);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
@@ -358,7 +365,7 @@
 .settings-page-container .form-group-horizontal input[type="tel"]:focus,
 .settings-page-container .form-group-horizontal select:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .settings-page-container .form-group-horizontal.checkbox-group {
@@ -411,12 +418,12 @@
 .settings-page-container label {
     font-weight: 600;
     margin-bottom: 8px;
-    color: var(--color-label);
+    color: var(--fg);
     font-size: 0.95em;
 }
 
 .settings-page-container .save-button {
-    background-color: #007bff;
+    background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
     color: white;
     padding: 12px 25px;
     border: none;
@@ -424,12 +431,14 @@
     cursor: pointer;
     font-size: 1em;
     font-weight: 600;
-    transition: background-color 0.2s ease;
-    margin-top: 0; /* Remove margin, will be handled by actions container */
+    transition: filter 0.2s ease, box-shadow 0.2s ease;
+    margin-top: 0;
+    box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .settings-page-container .save-button:hover {
-    background-color: #0056b3;
+    filter: brightness(1.08);
+    box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .settings-page-container .change-password-btn,
@@ -626,7 +635,8 @@
     border: none;
     border-radius: 8px;
     padding: 10px 12px;
-    background-color: #fff;
+    background-color: var(--surface-card);
+    color: var(--fg);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -637,7 +647,7 @@
 
 .application-settings-form .form-group-horizontal input[type="number"]:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .application-settings-form .form-group-horizontal.checkbox-group input[type="checkbox"] {
@@ -655,8 +665,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 0; /* increased vertical spacing between rows */
-    border-bottom: 1px solid var(--color-border);
+    padding: 14px 0;
+    border-bottom: 1px solid var(--surface-elevated);
 }
 
 .profile-settings-form .form-group-horizontal:last-of-type {
@@ -672,14 +682,15 @@
 .profile-settings-form .form-group-horizontal input[type="date"],
 .profile-settings-form .form-group-horizontal input[type="tel"],
 .profile-settings-form .form-group-horizontal select {
-    width: 150px; /* Adjust width as needed */
+    width: 150px;
     text-align: right;
     margin-left: 10px;
     padding: 10px 12px;
     border: none;
     border-radius: 8px;
     font-size: 0.95rem;
-    background-color: #fff;
+    background-color: var(--surface-card);
+    color: var(--fg);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
@@ -697,7 +708,7 @@
 .profile-settings-form .form-group-horizontal input[type="tel"]:focus,
 .profile-settings-form .form-group-horizontal select:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .profile-settings-form .form-group-horizontal .change-password-btn {
@@ -957,21 +968,25 @@
 }
 
 .user-management-table .delete-user-btn {
-    background-color: #2563eb;
+    background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
     color: white;
+    box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .user-management-table .delete-user-btn:hover {
-    background-color: #1d4ed8;
+    filter: brightness(1.08);
+    box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .user-management-table .set-admin-status-btn {
-    background-color: #2563eb;
+    background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
     color: white;
+    box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .user-management-table .set-admin-status-btn:hover {
-    background-color: #1d4ed8;
+    filter: brightness(1.08);
+    box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 /* Pagination Styles */
@@ -1015,23 +1030,25 @@
     align-items: center;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--surface-elevated);
 }
 
 .cancel-button {
-    background-color: var(--color-background);
-    color: var(--color-text);
+    background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+    color: white;
     padding: 12px 25px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    border: none;
     border-radius: 6px;
     cursor: pointer;
     font-size: 1em;
     font-weight: 600;
-    transition: background-color 0.2s ease;
+    transition: filter 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(71, 85, 105, 0.3);
 }
 
 .cancel-button:hover {
-    background-color: var(--color-background-soft);
+    filter: brightness(1.08);
+    box-shadow: 0 4px 8px rgba(71, 85, 105, 0.4);
 }
 
 .save-button:disabled {

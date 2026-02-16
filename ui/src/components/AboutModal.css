@@ -99,14 +99,14 @@
 }
 
 .about-admin-controls .save-button {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
-  border-color: #007bff;
+  border: none;
 }
 
 .about-admin-controls .save-button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .about-admin-controls button:hover {

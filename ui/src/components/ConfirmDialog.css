@@ -91,7 +91,8 @@
 }
 
 .confirm-dialog-confirm {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   color: white;
 }
 
@@ -109,6 +110,6 @@
 }
 
 .confirm-dialog-button:focus {
-  outline: 2px solid #0b57d0;
+  outline: 2px solid #00a3e0;
   outline-offset: 2px;
 }

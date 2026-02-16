@@ -1,11 +1,13 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line, Bar } from "react-chartjs-2";
+import { Box, Button, FormControl, InputLabel, LinearProgress, MenuItem, Paper, Select, Slider, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
+import { projectionActionButtonSx, projectionSecondaryButtonSx, projectionSectionCardSx, projectionTableContainerSx } from "../utils/projectionUiStyles";
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
@@ -25,6 +27,11 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
   const [selectedView, setSelectedView] = useState("fan");
   const [successRate, setSuccessRate] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sliderProjectionYears, setSliderProjectionYears] = useState(projectionYears ?? 30);
+
+  useEffect(() => {
+    setSliderProjectionYears(projectionYears ?? 30);
+  }, [projectionYears]);
 
   const runMonteCarloSimulation = () => {
     setLoading(true);
@@ -671,271 +678,257 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
   };
 
   return (
-    <div className="monte-carlo-projections" style={{ padding: '20px' }}>
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Monte Carlo Projections</h2>
-      <p>Run probabilistic simulations to see the range of possible financial outcomes.</p>
+    <Box sx={{ width: "100%" }}>
+      <Paper variant="outlined" sx={projectionSectionCardSx}>
+        <Typography variant="h5" fontWeight="600" gutterBottom>
+          Monte Carlo Projections
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Run probabilistic simulations to see the range of possible financial outcomes.
+        </Typography>
 
-      {showProjectionYearSelector && (
-        <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <label htmlFor="monte-carlo-years" style={{ fontWeight: 600 }}>Projection Years</label>
-          <select
-            id="monte-carlo-years"
-            value={projectionYears}
-            onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
-          >
-            {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
-              <option key={years} value={years}>{years}</option>
-            ))}
-          </select>
-          {isLimitedPlan && maxProjectionYears !== undefined && (
-            <span style={{ fontSize: '0.85em', color: '#666' }}>
-              Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
-            </span>
-          )}
-        </div>
-      )}
+        {showProjectionYearSelector && (
+          <Stack sx={{ width: { xs: "100%", md: 300 }, mb: 2 }} spacing={0.5}>
+            <Typography variant="body2" color="text.secondary">
+              Projection Years: <strong>{sliderProjectionYears}</strong>
+            </Typography>
+            <Slider
+              id="monte-carlo-years"
+              size="small"
+              min={0}
+              max={maxProjectionYears ?? 50}
+              step={1}
+              value={sliderProjectionYears}
+              valueLabelDisplay="auto"
+              onChange={(_, value) => setSliderProjectionYears(Number(value))}
+              onChangeCommitted={(_, value) => onProjectionYearsChange?.(Number(value))}
+            />
+            {isLimitedPlan && maxProjectionYears !== undefined && (
+              <Typography variant="body2" color="text.secondary">
+                Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
+              </Typography>
+            )}
+          </Stack>
+        )}
 
-      <div className="controls" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div>
-            <label htmlFor="num-simulations">Simulations: </label>
-            <input
-              id="num-simulations"
-              type="number"
-              min="100"
-              max="10000"
-              step="100"
-              value={numSimulations}
-              onChange={(e) => setNumSimulations(parseInt(e.target.value) || 1000)}
-              style={{ width: '100px', padding: '5px' }}
-            />
-            <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-              Number of simulations to run
-            </small>            
-          </div>
-          <div>
-            <label htmlFor="volatility">Volatility (%): </label>
-            <input
-              id="volatility"
-              type="number"
-              min="0"
-              max="50"
-              step="1"
-              value={volatility}
-              onChange={(e) => setVolatility(parseFloat(e.target.value) || 15)}
-              style={{ width: '100px', padding: '5px' }}
-            />
-            <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-              Standard deviation for random variations in growth rates
-            </small>
-          </div>
-          <button
-            onClick={runMonteCarloSimulation}
-            disabled={loading}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#0b57d0',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {loading ? 'Running Simulations...' : 'Run Monte Carlo Simulation'}
-          </button>
-          {results && (
-            <button
-              onClick={exportToPDF}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              Export to PDF
-            </button>
-          )}
-        </div>
-      </div>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "flex-end" }}>
+          <TextField
+            id="num-simulations"
+            label="Simulations"
+            type="number"
+            size="small"
+            value={numSimulations}
+            onChange={(e) => setNumSimulations(parseInt(e.target.value, 10) || 1000)}
+            inputProps={{ min: 100, max: 10000, step: 100 }}
+            helperText="Number of simulations to run"
+          />
+          <TextField
+            id="volatility"
+            label="Volatility (%)"
+            type="number"
+            size="small"
+            value={volatility}
+            onChange={(e) => setVolatility(parseFloat(e.target.value) || 15)}
+            inputProps={{ min: 0, max: 50, step: 1 }}
+            helperText="Standard deviation for random growth variation"
+          />
+          <Stack direction="row" spacing={1}>
+            <Button onClick={runMonteCarloSimulation} disabled={loading} variant="contained" sx={projectionActionButtonSx}>
+              {loading ? "Running Simulations..." : "Run Monte Carlo Simulation"}
+            </Button>
+            {results && (
+              <Button onClick={exportToPDF} variant="outlined" sx={projectionSecondaryButtonSx}>
+                Export to PDF
+              </Button>
+            )}
+          </Stack>
+        </Stack>
+        {loading && <LinearProgress sx={{ mt: 2 }} />}
+      </Paper>
 
       {results && (
-        <div ref={chartRef}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '20px', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label htmlFor="monte-carlo-view" style={{ fontWeight: 600 }}>View</label>
-              <select
-                id="monte-carlo-view"
-                value={selectedView}
-                onChange={(e) => setSelectedView(e.target.value)}
-                style={{ padding: '6px 10px', minWidth: '200px' }}
-              >
-                <option value="fan">Fan Chart</option>
-                <option value="spaghetti">Spaghetti Plot</option>
-                <option value="histogram">Terminal Value Histogram</option>
-                <option value="success">Success Rate</option>
-              </select>
-            </div>
-            <div style={{ minWidth: '220px', padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <div style={{ fontSize: '0.85rem', color: '#555' }}>Success Rate</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 600 }}>
-                {successRate !== null ? `${successRate.toFixed(1)}%` : 'Calculating...'}
-              </div>
-              <div style={{ height: '6px', width: '100%', backgroundColor: '#f0f0f0', borderRadius: '4px', margin: '8px 0' }}>
-                <div
-                  style={{
-                    width: `${Math.min(100, Math.max(0, successRate ?? 0))}%`,
-                    height: '100%',
-                    borderRadius: '4px',
-                    backgroundColor: '#0b57d0',
-                  }}
+        <Box ref={chartRef}>
+          <Paper variant="outlined" sx={projectionSectionCardSx}>
+            <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
+              <FormControl size="small" sx={{ minWidth: 220 }}>
+                <InputLabel id="monte-carlo-view-label">View</InputLabel>
+                <Select
+                  labelId="monte-carlo-view-label"
+                  id="monte-carlo-view"
+                  value={selectedView}
+                  label="View"
+                  onChange={(e) => setSelectedView(e.target.value)}
+                >
+                  <MenuItem value="fan">Fan Chart</MenuItem>
+                  <MenuItem value="spaghetti">Spaghetti Plot</MenuItem>
+                  <MenuItem value="histogram">Terminal Value Histogram</MenuItem>
+                  <MenuItem value="success">Success Rate</MenuItem>
+                </Select>
+              </FormControl>
+              <Paper variant="outlined" sx={{ p: 2, minWidth: 260 }}>
+                <Typography variant="body2" color="text.secondary">Success Rate</Typography>
+                <Typography variant="h4" fontWeight="600">
+                  {successRate !== null ? `${successRate.toFixed(1)}%` : "Calculating..."}
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min(100, Math.max(0, successRate ?? 0))}
+                  sx={{ mt: 1, mb: 1, height: 8, borderRadius: 4 }}
                 />
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                % of simulations with terminal net worth &gt; 0
-              </div>
-            </div>
-          </div>
+                <Typography variant="caption" color="text.secondary">
+                  % of simulations with terminal net worth &gt; 0
+                </Typography>
+              </Paper>
+            </Stack>
+          </Paper>
 
           {selectedView === 'fan' && (
-            <>
-              <h3>Net Worth Projections (Fan Chart)</h3>
-              <div style={{ height: '400px', marginBottom: '40px' }}>
+            <Paper variant="outlined" sx={projectionSectionCardSx}>
+              <Typography variant="h6" fontWeight="600" gutterBottom>
+                Net Worth Projections (Fan Chart)
+              </Typography>
+              <Box sx={{ height: 400 }}>
                 <Line data={netWorthChartData} options={fanChartOptions} />
-              </div>
-            </>
+              </Box>
+            </Paper>
           )}
 
           {selectedView === 'spaghetti' && (
-            <>
-              <h3>Spaghetti Plot</h3>
-              <div style={{ height: '400px', marginBottom: '40px' }}>
+            <Paper variant="outlined" sx={projectionSectionCardSx}>
+              <Typography variant="h6" fontWeight="600" gutterBottom>
+                Spaghetti Plot
+              </Typography>
+              <Box sx={{ height: 400 }}>
                 {spaghettiChartData ? (
                   <Line data={spaghettiChartData} options={spaghettiChartOptions} />
                 ) : (
-                  <p>No simulation data available yet.</p>
+                  <Typography>No simulation data available yet.</Typography>
                 )}
-              </div>
-            </>
+              </Box>
+            </Paper>
           )}
 
           {selectedView === 'histogram' && (
-            <>
-              <h3>Terminal Value Distribution Histogram</h3>
-              <div style={{ height: '400px', marginBottom: '40px' }}>
+            <Paper variant="outlined" sx={projectionSectionCardSx}>
+              <Typography variant="h6" fontWeight="600" gutterBottom>
+                Terminal Value Distribution Histogram
+              </Typography>
+              <Box sx={{ height: 400 }}>
                 {histogramData ? (
                   <Bar data={histogramData} options={histogramOptions} />
                 ) : (
-                  <p>No distribution data available yet.</p>
+                  <Typography>No distribution data available yet.</Typography>
                 )}
-              </div>
-            </>
+              </Box>
+            </Paper>
           )}
 
           {selectedView === 'success' && (
-            <div style={{ marginBottom: '40px', padding: '20px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <h3>Success Rate Details</h3>
-              <p style={{ marginBottom: '12px' }}>Success = terminal net worth &gt; 0</p>
-              <div style={{ fontSize: '2rem', fontWeight: 600 }}>
+            <Paper variant="outlined" sx={projectionSectionCardSx}>
+              <Typography variant="h6" fontWeight="600">Success Rate Details</Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>Success = terminal net worth &gt; 0</Typography>
+              <Typography variant="h4" fontWeight="600">
                 {successRate !== null ? `${successRate.toFixed(1)}%` : 'Calculating...'}
-              </div>
-              <div style={{ height: '12px', backgroundColor: '#f0f0f0', borderRadius: '6px', margin: '12px 0' }}>
-                <div
-                  style={{
-                    width: `${Math.min(100, Math.max(0, successRate ?? 0))}%`,
-                    height: '100%',
-                    borderRadius: '6px',
-                    backgroundColor: '#0b57d0',
-                  }}
-                />
-              </div>
-              <p style={{ margin: 0, color: '#555' }}>Confidence the Monte Carlo projection ends in positive net worth.</p>
-            </div>
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(100, Math.max(0, successRate ?? 0))}
+                sx={{ mt: 1, mb: 1.5, height: 10, borderRadius: 4 }}
+              />
+              <Typography variant="body2" color="text.secondary">
+                Confidence the Monte Carlo projection ends in positive net worth.
+              </Typography>
+            </Paper>
           )}
 
-          {/* Net Worth Table */}
-          <h3>Statistical Summary - Net Worth</h3>
-          <div style={{ overflowX: 'auto', marginBottom: '40px' }}>
-            <table ref={tableRef} style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f0f0f0' }}>
-                  <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>EoY</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>10th %ile</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>25th %ile</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Median</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Mean</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>75th %ile</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>90th %ile</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((stat, index) => (
-                  <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                    <td style={{ padding: '10px', border: '1px solid #ddd' }}>{stat.year}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p10)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p25)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd', fontWeight: 'bold' }}>{formatCurrency(stat.netWorth.p50)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.mean)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p75)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netWorth.p90)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Paper variant="outlined" sx={projectionSectionCardSx}>
+            <Typography variant="h6" fontWeight="600" gutterBottom>
+              Statistical Summary - Net Worth
+            </Typography>
+            <TableContainer sx={projectionTableContainerSx}>
+              <Table size="small" ref={tableRef}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>EoY</TableCell>
+                    <TableCell align="right">10th %ile</TableCell>
+                    <TableCell align="right">25th %ile</TableCell>
+                    <TableCell align="right">Median</TableCell>
+                    <TableCell align="right">Mean</TableCell>
+                    <TableCell align="right">75th %ile</TableCell>
+                    <TableCell align="right">90th %ile</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {results.map((stat, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{stat.year}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netWorth.p10)}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netWorth.p25)}</TableCell>
+                      <TableCell align="right"><strong>{formatCurrency(stat.netWorth.p50)}</strong></TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netWorth.mean)}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netWorth.p75)}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netWorth.p90)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
 
-          {/* Net Cash Flow Chart */}
-          <h3>Net Cash Flow Projections</h3>
-          <div style={{ height: '400px', marginBottom: '40px' }}>
-            <Line data={netCashFlowChartData} options={{
-              ...chartOptions,
-              plugins: {
-                ...chartOptions.plugins,
-                title: {
-                  ...chartOptions.plugins.title,
-                  text: `Monte Carlo Net Cash Flow Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+          <Paper variant="outlined" sx={projectionSectionCardSx}>
+            <Typography variant="h6" fontWeight="600" gutterBottom>
+              Net Cash Flow Projections
+            </Typography>
+            <Box sx={{ height: 400 }}>
+              <Line data={netCashFlowChartData} options={{
+                ...chartOptions,
+                plugins: {
+                  ...chartOptions.plugins,
+                  title: {
+                    ...chartOptions.plugins.title,
+                    text: `Monte Carlo Net Cash Flow Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+                  },
                 },
-              },
-            }} />
-          </div>
+              }} />
+            </Box>
+          </Paper>
 
-          {/* Net Cash Flow Table */}
-          <h3>Statistical Summary - Net Cash Flow</h3>
-          <div style={{ overflowX: 'auto', marginBottom: '40px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f0f0f0' }}>
-                  <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #ddd' }}>EoY</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>10th %ile</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>25th %ile</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Median</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>Mean</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>75th %ile</th>
-                  <th style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>90th %ile</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((stat, index) => (
-                  <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                    <td style={{ padding: '10px', border: '1px solid #ddd' }}>{stat.year}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netCashFlow.p10)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netCashFlow.p25)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd', fontWeight: 'bold' }}>{formatCurrency(stat.netCashFlow.p50)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netCashFlow.mean)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netCashFlow.p75)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', border: '1px solid #ddd' }}>{formatCurrency(stat.netCashFlow.p90)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <Paper variant="outlined" sx={{ ...projectionSectionCardSx, mb: 0 }}>
+            <Typography variant="h6" fontWeight="600" gutterBottom>
+              Statistical Summary - Net Cash Flow
+            </Typography>
+            <TableContainer sx={projectionTableContainerSx}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>EoY</TableCell>
+                    <TableCell align="right">10th %ile</TableCell>
+                    <TableCell align="right">25th %ile</TableCell>
+                    <TableCell align="right">Median</TableCell>
+                    <TableCell align="right">Mean</TableCell>
+                    <TableCell align="right">75th %ile</TableCell>
+                    <TableCell align="right">90th %ile</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {results.map((stat, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{stat.year}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netCashFlow.p10)}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netCashFlow.p25)}</TableCell>
+                      <TableCell align="right"><strong>{formatCurrency(stat.netCashFlow.p50)}</strong></TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netCashFlow.mean)}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netCashFlow.p75)}</TableCell>
+                      <TableCell align="right">{formatCurrency(stat.netCashFlow.p90)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
 

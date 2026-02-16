@@ -1,15 +1,12 @@
 .documents-page {
   padding: 20px;
-  max-width: 1400px;
+  max-width: 100%;
   width: 100%;
   height: 100%;
   overflow-y: auto;
 }
 
 .documents-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
   padding: 20px;
   background-color: #fff;
@@ -17,7 +14,17 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.documents-header h1 {
+.documents-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.documents-title {
   margin: 0;
   font-size: 2rem;
   color: #333;
@@ -31,6 +38,7 @@
 .documents-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .breadcrumb {
@@ -174,18 +182,20 @@
 }
 
 .btn-primary {
-  background-color: #0066cc;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background-color 0.2s;
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .btn-primary:hover {
-  background-color: #0052a3;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .btn-secondary {
@@ -308,13 +318,13 @@
   padding: 15px;
   background-color: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid #0b57d0;
+  border-left: 4px solid #00a3e0;
 }
 
 .walkthrough-step h3 {
   margin-top: 0;
   margin-bottom: 10px;
-  color: #0b57d0;
+  color: #00a3e0;
   font-size: 1.2em;
 }
 
@@ -325,5 +335,26 @@
 }
 
 .walkthrough-step strong {
-  color: #0b57d0;
+  color: #00a3e0;
+}
+
+@media (max-width: 980px) {
+  .documents-header-top {
+    align-items: flex-start;
+  }
+
+  .documents-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .documents-title {
+    font-size: 1.5rem;
+  }
+
+  .documents-actions .btn-primary {
+    flex: 1 1 180px;
+  }
 }

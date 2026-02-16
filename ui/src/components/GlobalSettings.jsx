@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Button } from "@mui/material";
 import globalSettingsService from '../services/globalSettings.service';
 import { useAuth } from '../context/AuthContext';
 import CategoryEditorModal from './CategoryEditorModal'; // Import the CategoryEditorModal
 import AuthService from '../services/auth.service';
+import { projectionActionButtonSx } from "../utils/projectionUiStyles";
 
 const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettingsSaved prop
     const { currentUser: user } = useAuth();
@@ -134,9 +136,9 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
         <div className="category-section-item">
             <div className="category-header">
                 <label style={{ fontWeight: 700, fontSize: '1.1em', color: 'var(--color-heading)' }}>{type} Categories</label>
-                <button type="button" className="category-manage-button" onClick={() => {
+                <Button type="button" variant="contained" sx={projectionActionButtonSx} onClick={() => {
                     setIsModalOpen(true);
-                }}>Manage</button>
+                }}>Manage</Button>
             </div>
             <div className="category-tags-display">
                 {categories.length > 0 ? (
@@ -200,9 +202,9 @@ const GlobalSettings = ({ onGlobalSettingsSaved }) => { // Accept onGlobalSettin
                         </div>
                     </div>
                     <div style={{ marginTop: '12px' }}>
-                        <button type="button" className="category-manage-button" onClick={handleSaveLimits}>
+                        <Button type="button" variant="contained" sx={projectionActionButtonSx} onClick={handleSaveLimits}>
                             Save Limits
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

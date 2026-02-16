@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useNavigate, NavLink } from "react-router-dom";
+import { Box, Paper } from "@mui/material";
 import CashFlowService from "../services/cashflow.service";
 import AssetService from "../services/asset.service";
 import LiabilityService from "../services/liability.service";
@@ -423,6 +424,14 @@ export default function SidebarLayout() {
       maximumFractionDigits: 0,
     }).format(v ?? 0);
 
+  const renderMuiPageShell = (content) => (
+    <Box sx={{ py: 1 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 2 }}>
+        {content}
+      </Paper>
+    </Box>
+  );
+
     const refreshCashflow = async () => {
     if (!loading) setLoading(true);
     const [inc, exp] = await Promise.all([
@@ -622,7 +631,15 @@ export default function SidebarLayout() {
             <NavLink
               to="/app"
               className={() => `nav-btn ${view === 'new-home' ? 'active' : ''}`}
-              onClick={handleNavSelection}
+              onClick={(e) => {
+                e.preventDefault();
+                openDashboardView('new-home', {
+                  cashFlowView: null,
+                  customChartView: null,
+                  selectedChartId: null,
+                  chartToViewId: null,
+                });
+              }}
             >
               Home
             </NavLink>
@@ -755,68 +772,68 @@ export default function SidebarLayout() {
         )}
         
         {!loading && view === "documents" && (
-          <DocumentsPage hideSidebar={true} />
+          renderMuiPageShell(<DocumentsPage hideSidebar={true} />)
         )}
 
         {!loading && view === "accounts" && (
-          <AccountsSettingsPage />
+          renderMuiPageShell(<AccountsSettingsPage />)
         )}
 
         {!loading && view === "automatic-transfers" && (
-          <AutoDisbursementSettingsPage />
+          renderMuiPageShell(<AutoDisbursementSettingsPage />)
         )}
 
         {!loading && view === "cash-handling" && (
-          <CashHandlingPage />
+          renderMuiPageShell(<CashHandlingPage />)
         )}
 
         {/* Settings Pages */}
         {!loading && (location.pathname.startsWith("/settings/categories") || location.pathname === "/categories") && (
-          <CategorySettingsPage />
+          renderMuiPageShell(<CategorySettingsPage />)
         )}
 
         {!loading && view === "settings-profile" && (
-          <ProfileSettingsPage />
+          renderMuiPageShell(<ProfileSettingsPage />)
         )}
 
         {!loading && view === "settings-tax-handling" && (
-          <TaxHandlingPage />
+          renderMuiPageShell(<TaxHandlingPage />)
         )}
 
         {!loading && view === "settings-application" && (
-          <ApplicationSettingsPage />
+          renderMuiPageShell(<ApplicationSettingsPage />)
         )}
 
         {!loading && view === "settings-authorized-users" && (
-          <AuthorizedUsersPage />
+          renderMuiPageShell(<AuthorizedUsersPage />)
         )}
 
         {!loading && view === "settings-export-import" && (
-          <ExportImportPage />
+          renderMuiPageShell(<ExportImportPage />)
         )}
 
         {!loading && view === "settings-refer-a-friend" && (
-          <ReferAFriendPage />
+          renderMuiPageShell(<ReferAFriendPage />)
         )}
 
         {!loading && view === "settings-help" && (
-          <HelpPage />
+          renderMuiPageShell(<HelpPage />)
         )}
 
         {!loading && view === "settings-about" && (
-          <AboutPage />
+          renderMuiPageShell(<AboutPage />)
         )}
 
         {!loading && view === "settings-account-switcher" && (
-          <AccountSwitcherPage />
+          renderMuiPageShell(<AccountSwitcherPage />)
         )}
 
         {!loading && view === "settings-admin-users" && (
-          <UserManagementPage />
+          renderMuiPageShell(<UserManagementPage />)
         )}
 
         {!loading && view === "settings-admin-global-categories" && (
-          <DefaultCategoriesPage />
+          renderMuiPageShell(<DefaultCategoriesPage />)
         )}
 
         {!loading && (view === "new-home" || view === null || view === undefined) && (location.pathname === "/app" || location.pathname === "/") && (
@@ -958,7 +975,14 @@ export default function SidebarLayout() {
           <div className="dashboard-metrics">
               <div className="metric-card metric-card--chart">
                 <div className="metric-link">
-                  <NavLink to="/balance-sheet-projection" className="metric-link-anchor">
+                  <NavLink
+                    to="/app"
+                    className="metric-link-anchor"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openDashboardView('balance-sheet-projection', { cashFlowView: null });
+                    }}
+                  >
                     View Net Worth Projection →
                   </NavLink>
                 </div>
@@ -981,7 +1005,14 @@ export default function SidebarLayout() {
               </div>
               <div className="metric-card metric-card--chart">
                 <div className="metric-link">
-                  <NavLink to="/cashflow-projection" className="metric-link-anchor">
+                  <NavLink
+                    to="/app"
+                    className="metric-link-anchor"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openDashboardView('cashflow-projection', { cashFlowView: null });
+                    }}
+                  >
                     View Cash Flow Projection →
                   </NavLink>
                 </div>
@@ -1076,158 +1107,178 @@ export default function SidebarLayout() {
 
         {/* Projection Detail might still be needed if accessed directly or via a new component */}
         {!loading && view === "detail" && selectedProjectionId && (
-          <div className="projection-detail">
-            <h2>Projection Detail</h2>
-            <ProjectionDetail 
-              projectionId={selectedProjectionId} 
-              onBack={() => setView("new-home")}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="projection-detail">
+              <h2>Projection Detail</h2>
+              <ProjectionDetail 
+                projectionId={selectedProjectionId} 
+                onBack={() => setView("new-home")}
+              />
+            </div>
+          )
         )}
 
         {!loading && view === "balance-sheet-projection" && (
-          <div className="balance-sheet-projection-wrapper">
-            <BalanceSheetProjection 
-              assets={assets}
-              liabilities={liabilities}
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              projectionYears={projectionYearsOverride ?? projectionYears}
-              formatCurrency={formatCurrency}
-              showChartTotals={showChartTotals}
-              showProjectionYearSelector
-              onProjectionYearsChange={handleProjectionYearsChange}
-              maxProjectionYears={maxProjectionYears}
-              isLimitedPlan={isLimitedPlan}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="balance-sheet-projection-wrapper">
+              <BalanceSheetProjection 
+                assets={assets}
+                liabilities={liabilities}
+                incomeItems={incomeItems}
+                expenseItems={expenseItems}
+                projectionYears={projectionYearsOverride ?? projectionYears}
+                formatCurrency={formatCurrency}
+                showChartTotals={showChartTotals}
+                showProjectionYearSelector
+                onProjectionYearsChange={handleProjectionYearsChange}
+                maxProjectionYears={maxProjectionYears}
+                isLimitedPlan={isLimitedPlan}
+              />
+            </div>
+          )
         )}
 
         {!loading && view === "cashflow-projection" && (
-          <div className="cashflow-overview-wrapper">
-            <CashFlowOverview
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              projectionYears={projectionYearsOverride ?? projectionYears}
-              formatCurrency={formatCurrency}
-              assets={assets}
-            userSettings={viewingUserSettings || userSettings}
-              autoDisbursements={autoDisbursements}
-              liabilities={liabilities}
-              showProjectionYearSelector
-              onProjectionYearsChange={handleProjectionYearsChange}
-              maxProjectionYears={maxProjectionYears}
-              isLimitedPlan={isLimitedPlan}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="cashflow-overview-wrapper">
+              <CashFlowOverview
+                incomeItems={incomeItems}
+                expenseItems={expenseItems}
+                projectionYears={projectionYearsOverride ?? projectionYears}
+                formatCurrency={formatCurrency}
+                assets={assets}
+              userSettings={viewingUserSettings || userSettings}
+                autoDisbursements={autoDisbursements}
+                liabilities={liabilities}
+                showProjectionYearSelector
+                onProjectionYearsChange={handleProjectionYearsChange}
+                maxProjectionYears={maxProjectionYears}
+                isLimitedPlan={isLimitedPlan}
+              />
+            </div>
+          )
         )}
 
         {!loading && view === "monte-carlo" && (
-          <div className="monte-carlo-wrapper">
-            <MonteCarloProjections
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              assets={assets}
-              liabilities={liabilities}
-              projectionYears={projectionYearsOverride ?? projectionYears}
-              formatCurrency={formatCurrency}
-              showProjectionYearSelector
-              onProjectionYearsChange={handleProjectionYearsChange}
-              maxProjectionYears={maxProjectionYears}
-              isLimitedPlan={isLimitedPlan}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="monte-carlo-wrapper">
+              <MonteCarloProjections
+                incomeItems={incomeItems}
+                expenseItems={expenseItems}
+                assets={assets}
+                liabilities={liabilities}
+                projectionYears={projectionYearsOverride ?? projectionYears}
+                formatCurrency={formatCurrency}
+                showProjectionYearSelector
+                onProjectionYearsChange={handleProjectionYearsChange}
+                maxProjectionYears={maxProjectionYears}
+                isLimitedPlan={isLimitedPlan}
+              />
+            </div>
+          )
         )}
 
         {!loading && view === "assets" && (
-          <div className="assets-view">
-            <AssetView 
-              assets={assets}
-              refreshAssets={refreshAssets}
-              refreshCashflow={refreshCashflow}
-              accounts={accounts}
-              validCategories={viewingUserId && viewingUserId !== currentUser?.id ? assetCategories : (userSettings?.asset_categories || [])}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="assets-view">
+              <AssetView 
+                assets={assets}
+                refreshAssets={refreshAssets}
+                refreshCashflow={refreshCashflow}
+                accounts={accounts}
+                validCategories={viewingUserId && viewingUserId !== currentUser?.id ? assetCategories : (userSettings?.asset_categories || [])}
+              />
+            </div>
+          )
         )}
         {!loading && view === "liabilities" && (
-          <div className="liabilities-view">
-            <LiabilityView 
-              liabilities={liabilities}
-              refreshLiabilities={refreshLiabilities}
-              refreshCashflow={refreshCashflow}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="liabilities-view">
+              <LiabilityView 
+                liabilities={liabilities}
+                refreshLiabilities={refreshLiabilities}
+                refreshCashflow={refreshCashflow}
+              />
+            </div>
+          )
         )}
 
         {!loading && view === "cashflow" && (
-          <div className="cashflow-view">
-            <CashFlowView 
-              key={`cashflow-${cashFlowView}-${expenseCategories.join(',')}-${incomeCategories.join(',')}-${expenseItems.length}-${incomeItems.length}`}
-              type={cashFlowView}
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              refreshCashflow={refreshCashflow}
-              validCategories={
-                viewingUserId && viewingUserId !== currentUser?.id 
-                  ? (cashFlowView === 'expense' ? expenseCategories : incomeCategories)
-                  : (cashFlowView === 'expense' ? (userSettings?.expense_categories || []) : (userSettings?.income_categories || []))
-              }
-              assets={assets}
-              autoDisbursements={autoDisbursements}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="cashflow-view">
+              <CashFlowView 
+                key={`cashflow-${cashFlowView}-${expenseCategories.join(',')}-${incomeCategories.join(',')}-${expenseItems.length}-${incomeItems.length}`}
+                type={cashFlowView}
+                incomeItems={incomeItems}
+                expenseItems={expenseItems}
+                refreshCashflow={refreshCashflow}
+                validCategories={
+                  viewingUserId && viewingUserId !== currentUser?.id 
+                    ? (cashFlowView === 'expense' ? expenseCategories : incomeCategories)
+                    : (cashFlowView === 'expense' ? (userSettings?.expense_categories || []) : (userSettings?.income_categories || []))
+                }
+                assets={assets}
+                autoDisbursements={autoDisbursements}
+              />
+            </div>
+          )
         )}
 
 
         {!loading && view === "custom-charts" && customChartView === "list" && (
-          <div className="custom-charts-list">
-            <CustomChartList onEditChart={handleEditChart} onCreateNewChart={handleCreateNewChart} onViewChart={handleViewChart} />
-          </div>
+          renderMuiPageShell(
+            <div className="custom-charts-list">
+              <CustomChartList onEditChart={handleEditChart} onCreateNewChart={handleCreateNewChart} onViewChart={handleViewChart} />
+            </div>
+          )
         )}
 
         {!loading && view === "custom-charts" && (customChartView === "create" || customChartView === "edit") && (
-          <div className="custom-charts-form">
-            <CustomChartForm 
-              chartId={selectedChartId} 
-              onChartSaved={() => { setView('custom-charts'); setCustomChartView('list'); refreshAllData(); }}
-              onCancel={() => { setView('custom-charts'); setCustomChartView('list'); }}
-              assets={assets}
-              liabilities={liabilities}
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              projectionYears={projectionYears}
-              assetCategories={assetCategories}
-              liabilityCategories={liabilityCategories}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
-              accounts={accounts}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="custom-charts-form">
+              <CustomChartForm 
+                chartId={selectedChartId} 
+                onChartSaved={() => { setView('custom-charts'); setCustomChartView('list'); refreshAllData(); }}
+                onCancel={() => { setView('custom-charts'); setCustomChartView('list'); }}
+                assets={assets}
+                liabilities={liabilities}
+                incomeItems={incomeItems}
+                expenseItems={expenseItems}
+                projectionYears={projectionYears}
+                assetCategories={assetCategories}
+                liabilityCategories={liabilityCategories}
+                incomeCategories={incomeCategories}
+                expenseCategories={expenseCategories}
+                accounts={accounts}
+              />
+            </div>
+          )
         )}
 
         {!loading && view === "custom-charts" && customChartView === "view" && chartToViewId && (
-          <div className="custom-charts-view">
-            <CustomChartView 
-              chartId={chartToViewId}
-              assets={assets}
-              liabilities={liabilities}
-              incomeItems={incomeItems}
-              expenseItems={expenseItems}
-              projectionYears={projectionYearsOverride ?? projectionYears}
-              formatCurrency={formatCurrency}
-              onBack={() => { setView('custom-charts'); setCustomChartView('list'); setChartToViewId(null); }}
-              onEdit={handleEditChart}
-              showProjectionYearSelector
-              onProjectionYearsChange={handleProjectionYearsChange}
-              maxProjectionYears={maxProjectionYears}
-              isLimitedPlan={isLimitedPlan}
-            />
-          </div>
+          renderMuiPageShell(
+            <div className="custom-charts-view">
+              <CustomChartView 
+                chartId={chartToViewId}
+                assets={assets}
+                liabilities={liabilities}
+                incomeItems={incomeItems}
+                expenseItems={expenseItems}
+                projectionYears={projectionYearsOverride ?? projectionYears}
+                formatCurrency={formatCurrency}
+                onBack={() => { setView('custom-charts'); setCustomChartView('list'); setChartToViewId(null); }}
+                onEdit={handleEditChart}
+                showProjectionYearSelector
+                onProjectionYearsChange={handleProjectionYearsChange}
+                maxProjectionYears={maxProjectionYears}
+                isLimitedPlan={isLimitedPlan}
+              />
+            </div>
+          )
         )}
 
         {!loading && view === "what-if" && (
-          <WhatIfPage />
+          renderMuiPageShell(<WhatIfPage />)
         )}
       </main>
       <ChangePasswordModal 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Alert, Box, Button, Checkbox, CircularProgress, FormControlLabel, Paper, Stack, Switch, Typography } from "@mui/material";
+import { projectionActionButtonSx, projectionCheckboxSx, projectionSwitchSx } from "../utils/projectionUiStyles";
 import SettingsService from '../services/settings.service';
 import AssetService from '../services/asset.service';
 import CashFlowService from '../services/cashflow.service';
@@ -17,6 +19,8 @@ const CashHandlingPage = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showEnabledCashInOnly, setShowEnabledCashInOnly] = useState(false);
+  const [showEnabledCashOutOnly, setShowEnabledCashOutOnly] = useState(false);
   const { refreshSettings } = useSettingsContext();
 
   const loadSettings = useCallback(async () => {
@@ -101,151 +105,151 @@ const CashHandlingPage = () => {
     });
   };
 
+  const handleSelectIndividualIncomeItemsToggle = (enabled) => {
+    setShowEnabledCashInOnly(enabled);
+    if (!enabled) {
+      // Reset to default behavior: none selected means "include all"
+      setCashInSourceIds([]);
+    }
+  };
+
+  const handleSelectIndividualExpensesToggle = (enabled) => {
+    setShowEnabledCashOutOnly(enabled);
+    if (!enabled) {
+      // Reset to default behavior: none selected means "include all"
+      setCashOutSourceIds([]);
+    }
+  };
+
   if (loading) {
-    return <div style={{ padding: '20px' }}>Loading cash handling settings...</div>;
+    return (
+      <Stack direction="row" spacing={1} alignItems="center">
+        <CircularProgress size={18} />
+        <Typography variant="body2">Loading cash handling settings...</Typography>
+      </Stack>
+    );
   }
 
   return (
-    <div className="settings-page-container">
-      <div className="settings-header">
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Cash Handling</h1>
-        <p>Configure which assets and income/expense items are used for Cash Flow calculations.</p>
-      </div>
+    <Box>
+      <Typography variant="h5" fontWeight="600" sx={{ mb: 1 }}>
+        Cash Handling
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+        Configure which assets and income/expense items are used for cash-flow calculations.
+      </Typography>
 
-      {error && (
-        <div style={{ padding: '10px', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '4px', marginBottom: '20px', color: '#c00' }}>
-          {error}
-        </div>
-      )}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
 
-      {message && (
-        <div style={{ padding: '10px', backgroundColor: '#efe', border: '1px solid #cfc', borderRadius: '4px', marginBottom: '20px', color: '#0a0' }}>
-          {message}
-        </div>
-      )}
-
-      <div className="setting-group">
-        <div className="form-group-horizontal" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <label htmlFor="cash-assets" style={{ marginBottom: '10px', fontWeight: 600 }}>
+      <Stack spacing={2.5}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 1 }}>
             Cash Assets (for Cash Flow Diagrams)
-          </label>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
-            gap: '8px', 
-            width: '100%',
-            maxHeight: '50vh',
-            overflowY: 'auto',
-            border: '1px solid #ddd',
-            padding: '10px',
-            borderRadius: '4px'
-          }}>
+          </Typography>
+          <Box sx={{ maxHeight: "50vh", overflowY: "auto", border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
             {assets.length === 0 ? (
-              <span style={{ color: '#666', fontStyle: 'italic' }}>No assets found. Add assets first.</span>
+              <Typography variant="body2" color="text.secondary">No assets found. Add assets first.</Typography>
             ) : (
-              assets.map((asset) => (
-                <label key={asset.id} className="selectable-item-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={cashAssetIds.includes(asset.id)}
-                    onChange={() => handleCashAssetToggle(asset.id)}
-                    style={{ cursor: 'pointer' }}
+              <Stack spacing={0.5}>
+                {assets.map((asset) => (
+                  <FormControlLabel
+                    key={asset.id}
+                    control={<Checkbox sx={projectionCheckboxSx} checked={cashAssetIds.includes(asset.id)} onChange={() => handleCashAssetToggle(asset.id)} />}
+                    label={`${asset.name} (${asset.category})`}
                   />
-                  <span>{asset.name} ({asset.category})</span>
-                </label>
-              ))
+                ))}
+              </Stack>
             )}
-          </div>
-          <small style={{ marginTop: '5px', color: '#666' }}>
-            Select assets that should be considered as cash for the Csh Flow Diagram visualizations.
-          </small>
-        </div>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+            Select assets that should be considered cash for diagram visualizations.
+          </Typography>
+        </Paper>
 
-        <div className="form-group-horizontal" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <label htmlFor="cash-in-sources" style={{ marginBottom: '10px', fontWeight: 600 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} sx={{ mb: 1 }}>
+            <Typography variant="subtitle1" fontWeight="600">
             Cash-In Sources (for Cash Flow Diagrams)
-          </label>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
-            gap: '8px', 
-            width: '100%',
-            maxHeight: '50vh',
-            overflowY: 'auto',
-            border: '1px solid #ddd',
-            padding: '10px',
-            borderRadius: '4px'
-          }}>
-            {incomeItems.length === 0 ? (
-              <span style={{ color: '#666', fontStyle: 'italic' }}>No income items found. Add income items first.</span>
+            </Typography>
+            <FormControlLabel
+              control={<Switch sx={projectionSwitchSx} checked={showEnabledCashInOnly} onChange={(e) => handleSelectIndividualIncomeItemsToggle(e.target.checked)} />}
+              label="Select individual Income Items"
+            />
+          </Stack>
+          <Box sx={{ maxHeight: "50vh", overflowY: "auto", border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+            {!showEnabledCashInOnly ? (
+              <Typography variant="body2" color="text.secondary">
+                Enable "Select individual Income Items" to choose specific income sources. When disabled, all income items are included.
+              </Typography>
+            ) : incomeItems.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">No income items found. Add income items first.</Typography>
             ) : (
-              incomeItems.map((item) => {
-                const isChecked = cashInSourceIds.length === 0 || cashInSourceIds.includes(item.id);
-                return (
-                  <label key={item.id} className="selectable-item-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleCashInSourceToggle(item.id)}
-                      style={{ cursor: 'pointer' }}
+              <Stack spacing={0.5}>
+                {incomeItems
+                  .map((item) => {
+                  const isChecked = cashInSourceIds.length === 0 || cashInSourceIds.includes(item.id);
+                  return (
+                    <FormControlLabel
+                      key={item.id}
+                      control={<Checkbox sx={projectionCheckboxSx} checked={isChecked} onChange={() => handleCashInSourceToggle(item.id)} />}
+                      label={`${item.description || item.name} (${item.category})`}
                     />
-                    <span>{item.description || item.name} ({item.category})</span>
-                  </label>
-                );
-              })
+                  );
+                  })}
+              </Stack>
             )}
-          </div>
-          <small style={{ marginTop: '5px', color: '#666' }}>
-            Select income items to include as cash-in sources. If none selected, all income items will be included (default).
-          </small>
-        </div>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+            If none are selected, all income items are included.
+          </Typography>
+        </Paper>
 
-        <div className="form-group-horizontal" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <label htmlFor="cash-out-sources" style={{ marginBottom: '10px', fontWeight: 600 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} sx={{ mb: 1 }}>
+            <Typography variant="subtitle1" fontWeight="600">
             Cash-Out Destinations (for Cash Flow Diagrams)
-          </label>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
-            gap: '8px', 
-            width: '100%',
-            maxHeight: '50vh',
-            overflowY: 'auto',
-            border: '1px solid #ddd',
-            padding: '10px',
-            borderRadius: '4px'
-          }}>
-            {expenseItems.length === 0 ? (
-              <span style={{ color: '#666', fontStyle: 'italic' }}>No expense items found. Add expense items first.</span>
+            </Typography>
+            <FormControlLabel
+              control={<Switch sx={projectionSwitchSx} checked={showEnabledCashOutOnly} onChange={(e) => handleSelectIndividualExpensesToggle(e.target.checked)} />}
+              label="Select Individual Expenses"
+            />
+          </Stack>
+          <Box sx={{ maxHeight: "50vh", overflowY: "auto", border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+            {!showEnabledCashOutOnly ? (
+              <Typography variant="body2" color="text.secondary">
+                Enable "Select Individual Expenses" to choose specific expense sources. When disabled, all expense items are included.
+              </Typography>
+            ) : expenseItems.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">No expense items found. Add expense items first.</Typography>
             ) : (
-              expenseItems.map((item) => {
-                const isChecked = cashOutSourceIds.length === 0 || cashOutSourceIds.includes(item.id);
-                return (
-                  <label key={item.id} className="selectable-item-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleCashOutSourceToggle(item.id)}
-                      style={{ cursor: 'pointer' }}
+              <Stack spacing={0.5}>
+                {expenseItems
+                  .map((item) => {
+                  const isChecked = cashOutSourceIds.length === 0 || cashOutSourceIds.includes(item.id);
+                  return (
+                    <FormControlLabel
+                      key={item.id}
+                      control={<Checkbox sx={projectionCheckboxSx} checked={isChecked} onChange={() => handleCashOutSourceToggle(item.id)} />}
+                      label={`${item.description || item.name} (${item.category})`}
                     />
-                    <span>{item.description || item.name} ({item.category})</span>
-                  </label>
-                );
-              })
+                  );
+                  })}
+              </Stack>
             )}
-          </div>
-          <small style={{ marginTop: '5px', color: '#666' }}>
-            Select expense items to include as cash-out destinations. If none selected, all expense items will be included (default).
-          </small>
-        </div>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+            If none are selected, all expense items are included.
+          </Typography>
+        </Paper>
 
-        <div style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
-          <button onClick={handleSave} className="btn-primary" style={{ padding: '10px 20px' }}>
+        <Stack direction="row" spacing={1.5}>
+          <Button onClick={handleSave} variant="contained" sx={projectionActionButtonSx}>
             Save Changes
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Stack>
+      </Stack>
+    </Box>
   );
 };
 

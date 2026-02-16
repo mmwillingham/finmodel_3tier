@@ -72,7 +72,7 @@
 }
 
 .info-message {
-  color: #2563eb;
+  color: #00a3e0;
   font-size: 0.9rem;
   margin-bottom: 10px;
   text-align: center;
@@ -92,12 +92,14 @@
 }
 
 .submit-button {
-  background-color: #0b57d0;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .submit-button:hover {
-  background-color: #084399;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .google-signin-button {
@@ -125,7 +127,7 @@
 }
 
 .auth-switch a, .link-button {
-  color: #0b57d0; /* Match primary button color */
+  color: #00a3e0;
   text-decoration: none;
   cursor: pointer;
   background: none;

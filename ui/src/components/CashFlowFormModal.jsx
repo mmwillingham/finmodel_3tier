@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { FormControlLabel, Switch } from "@mui/material";
 import CashFlowService from "../services/cashflow.service";
 import SettingsService from "../services/settings.service";
 import AssetService from "../services/asset.service"; // New import
 import LiabilityService from "../services/liability.service"; // New import
+import { projectionSwitchSx } from "../utils/projectionUiStyles";
 import Modal from "./Modal"; // Import the generic Modal component
 import MultiSelectCheckbox from "./MultiSelectCheckbox"; // Import the multi-select checkbox component
 import { useAuth } from '../context/AuthContext';
@@ -368,7 +370,7 @@ export default function CashFlowFormModal({
     <Modal isOpen={isOpen} onClose={cancelEdit} title={itemToEdit ? `Edit ${itemToEdit.description}` : `Add New ${type === 'income' ? 'Income' : 'Expense'} Item`}>
       <div className="cashflow-form-modal-content">
         <div className="add-item-form">
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(8, 1fr)', gap: '10px' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency - expanded to 8 columns */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}> {/* First row: Person, Description, Category, Dynamic, Value, Frequency */} 
             <div className="form-field">
               <label htmlFor="person-select">Person</label>
               <select id="person-select" value={newItem.person || "Family"} onChange={(e) => setNewItem({ ...newItem, person: e.target.value })}> 
@@ -404,7 +406,7 @@ export default function CashFlowFormModal({
             </div>
 
             <div className="form-field">
-              <label htmlFor="is-dynamic-select">Dynamic</label>
+              <label htmlFor="is-dynamic-select">Dynamic (Ex: Pct to IRA)</label>
               <select
                 id="is-dynamic-select"
                 value={isDynamic ? "Yes" : "No"}
@@ -430,18 +432,18 @@ export default function CashFlowFormModal({
             <div className="form-field">
               <label htmlFor="value-input">Value{!isDynamic ? ' *' : ''}</label>
               {((itemToEdit?.description?.startsWith("Social Security - ")) || (newItem.description?.startsWith("Social Security - "))) && (
-                <div style={{ marginTop: '5px', marginBottom: '8px', fontSize: '0.9em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <label htmlFor="allow-overwrite-checkbox" style={{ cursor: 'pointer', margin: 0 }}>
-                    Allow Overwrite
-                  </label>
-                  <input
-                    type="checkbox"
-                    id="allow-overwrite-checkbox"
-                    checked={allowValueOverwrite}
-                    onChange={(e) => setAllowValueOverwrite(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </div>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      sx={projectionSwitchSx}
+                      id="allow-overwrite-checkbox"
+                      checked={allowValueOverwrite}
+                      onChange={(e) => setAllowValueOverwrite(e.target.checked)}
+                    />
+                  }
+                  label="Allow Overwrite"
+                  sx={{ mt: 0.25, mb: 1, fontSize: '0.9em' }}
+                />
               )}
               {(() => {
                 const description = itemToEdit?.description || newItem.description;
@@ -567,7 +569,7 @@ export default function CashFlowFormModal({
             const isFederalTax = description === FEDERAL_TAX_EXPENSE_DESCRIPTION;
             if (isFederalTax) {
               return (
-                <div className="form-row" style={{ gridTemplateColumns: '1fr', marginTop: '10px' }}>
+                <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginTop: '10px' }}>
                   <div style={{ fontSize: '0.85em', color: '#666', fontStyle: 'italic', lineHeight: '1.4', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
                     This value is calculated automatically during projections based on your taxable income and tax filing status.
                     <br />
@@ -580,7 +582,7 @@ export default function CashFlowFormModal({
           })()}
 
           {/* New row for dynamic item configuration */}
-          <div className="form-row" style={{ gridTemplateColumns: type === "expense" ? 'repeat(6, 1fr)' : 'repeat(7, 1fr)', gap: '10px' }}>
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
 
             {isDynamic && (
               <> 
@@ -656,7 +658,7 @@ export default function CashFlowFormModal({
             {/* NEW: Contributes to Asset field, only for expenses */}
             {type === "expense" && (
               <div className="form-field">
-                <label htmlFor="contributes-to-asset-select">Contributes to Asset</label>
+                <label htmlFor="contributes-to-asset-select">Contributes to Asset (Ex: $100 to HSA) </label>
                 <select
                   id="contributes-to-asset-select"
                   value={newItem.contributes_to_asset_id || ""}
@@ -677,19 +679,24 @@ export default function CashFlowFormModal({
 
           {/* NEW: Dividend Reinvestment fields - only shown for income items with "Dividends" category or description */}
           {type === "income" && (newItem.category?.toLowerCase().includes("dividend") || newItem.description?.toLowerCase().includes("dividend")) && (
-            <div className="form-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
               <div className="form-field">
-                <label htmlFor="reinvest-dividends-checkbox">Reinvest Dividends</label>
-                <input
-                  id="reinvest-dividends-checkbox"
-                  type="checkbox"
-                  checked={reinvestDividends}
-                  onChange={(e) => {
-                    setReinvestDividends(e.target.checked);
-                    if (!e.target.checked) {
-                      setReinvestmentAccountId(null); // Clear account selection if unchecked
-                    }
-                  }}
+                <FormControlLabel
+                  control={
+                    <Switch
+                      sx={projectionSwitchSx}
+                      id="reinvest-dividends-checkbox"
+                      checked={reinvestDividends}
+                      onChange={(e) => {
+                        setReinvestDividends(e.target.checked);
+                        if (!e.target.checked) {
+                          setReinvestmentAccountId(null); // Clear account selection if unchecked
+                        }
+                      }}
+                    />
+                  }
+                  label="Reinvest Dividends"
+                  sx={{ m: 0 }}
                 />
               </div>
               {reinvestDividends && (
@@ -712,7 +719,7 @@ export default function CashFlowFormModal({
             </div>
           )}
 
-          <div className="form-row" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}> {/* Second row (original): Annual Increase %, Start Date, End Date, Taxable/Deductible - expanded to 6 columns */} 
+          <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}> {/* Second row: Annual Increase %, Start Date, End Date, Taxable/Deductible */} 
             {type === "income" && (
               <div className="form-field">
                 <label htmlFor="annual-increase">Annual Increase %</label>

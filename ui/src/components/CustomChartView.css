@@ -132,7 +132,8 @@
 
 .download-btn,
 .edit-btn {
-  background-color: #0b57d0;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   color: white;
   border: none;
   padding: 10px 20px;

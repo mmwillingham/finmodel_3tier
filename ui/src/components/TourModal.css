@@ -10,9 +10,9 @@
 
 .tour-highlight {
   position: fixed;
-  border: 2px solid #2563eb;
+  border: 2px solid #00a3e0;
   border-radius: 8px;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 0 4px rgba(0, 163, 224, 0.25);
   pointer-events: none;
   z-index: 1401;
 }
@@ -129,14 +129,15 @@
 }
 
 .tour-button-primary {
-  background-color: #2563eb;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: #ffffff;
-  border-color: #2563eb;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 .tour-button-primary:hover {
-  background-color: #1d4ed8;
-  border-color: #1d4ed8;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 .tour-button-secondary {

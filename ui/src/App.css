@@ -77,8 +77,10 @@ html, body {
 .container.container-with-sidebar {
     margin: 0 !important;
     max-width: 100% !important;
+    width: 100% !important;
     padding: 0 !important;
     margin-top: 0 !important;
+    min-height: calc(100vh - 60px);
 }
 
 /* Also override for any container that has sidebar-layout (fallback if :has not supported) */
@@ -91,18 +93,20 @@ html, body {
 
 /* Basic styling for buttons and forms for consistency */
 button {
-    background-color: #007bff;
+    background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
     color: white;
     border: none;
-    padding: 8px 16px; /* Reduced padding */
-    border-radius: 4px; /* Slightly softer border-radius */
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 0.95em; /* Slightly smaller font */
-    transition: background-color 0.2s ease;
+    font-size: 0.95em;
+    transition: filter 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
 }
 
 button:hover {
-    background-color: #0056b3;
+    filter: brightness(1.08);
+    box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
 button:disabled {

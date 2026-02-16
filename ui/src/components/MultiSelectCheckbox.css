@@ -20,7 +20,7 @@
 }
 
 .multi-select-checkbox-trigger:hover:not(.disabled) {
-  border-color: #0b57d0;
+  border-color: #00a3e0;
 }
 
 .multi-select-checkbox-trigger.disabled {

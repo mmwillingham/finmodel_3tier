@@ -225,20 +225,33 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
           </thead>
           <tbody>
             {sortedCharts.map((chart) => (
-              <tr key={chart.id}>
-                <td>{chart.name}</td>
+              <tr
+                key={chart.id}
+                className="custom-chart-row-clickable"
+                onClick={() => onViewChart(chart.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onViewChart(chart.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open custom chart ${chart.name}`}
+              >
+                <td className="custom-chart-name-cell">{chart.name}</td>
                 <td>{chart.chart_type}</td>
                 <td>{formatDate(chart.created_at)}</td>
                 <td>{formatDate(chart.updated_at)}</td>
                 <td className="actions-cell">
-                  <button onClick={() => onViewChart(chart.id)} className="btn-icon" title="View">
+                  <button onClick={(e) => { e.stopPropagation(); onViewChart(chart.id); }} className="btn-icon" title="View">
                     📊
                   </button>
-                  <button onClick={() => onEditChart(chart.id)} className="btn-icon" title="Edit">
+                  <button onClick={(e) => { e.stopPropagation(); onEditChart(chart.id); }} className="btn-icon" title="Edit">
                     ✏️
                   </button>
                   <button 
-                    onClick={() => handleRecalculate(chart.id)} 
+                    onClick={(e) => { e.stopPropagation(); handleRecalculate(chart.id); }}
                     className="btn-icon" 
                     title="Recalculate"
                     disabled={recalculatingChartId === chart.id}
@@ -246,7 +259,7 @@ export default function CustomChartList({ onEditChart, onCreateNewChart, onViewC
                   >
                     {recalculatingChartId === chart.id ? '⏳' : '🔄'}
                   </button>
-                  <button onClick={() => handleDelete(chart.id)} className="btn-icon" title="Delete">
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(chart.id); }} className="btn-icon" title="Delete">
                     🗑️
                   </button>
                 </td>

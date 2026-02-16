@@ -114,7 +114,9 @@ const Header = () => { // Removed setIsSettingsModalOpen prop
                 </button>
                 <div className="logo">
                     <Link to={currentUser ? "/app" : "/"} onClick={handleLogoClick}>
+                        {/* 
                         <img src="/vault-logo.jpg" alt="" style={{ height: '32px', verticalAlign: 'middle', marginRight: '8px' }} onError={(e) => { e.target.src = '/vault-logo.png'; }} />
+                        */}                        
                         <span>Model My Retirement</span>
                     </Link>
                 </div>

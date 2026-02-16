@@ -19,7 +19,8 @@
 
 .add-new-item-button {
   padding: 0.75rem 1.5rem;
-  background-color: #0b57d0;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   color: white;
   border: none;
   border-radius: 4px;
@@ -99,7 +100,7 @@
   padding: 0.3rem !important;
   cursor: pointer !important;
   font-size: 1.1rem !important;
-  color: #0b57d0 !important;
+  color: #00a3e0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -126,4 +127,24 @@
   background-color: #f5f5f5 !important;
   border-radius: 4px !important;
   text-align: right !important;
+}
+
+/* Softer table treatment for improved readability */
+.cashflow-container .table-scroll {
+  border: 1px solid #e6edf5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.cashflow-container .cashflow-table th {
+  background-color: #f4f8fc !important;
+  border-bottom: 1px solid #e4ebf2 !important;
+}
+
+.cashflow-container .cashflow-table td {
+  border-bottom: 1px solid #eef3f7 !important;
+}
+
+.cashflow-container .cashflow-table tbody tr:hover {
+  background-color: #f9fbfe;
 }

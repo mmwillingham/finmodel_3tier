@@ -2,12 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design system: Design_System_for_Fintech_SaaS (Figma Make) — 8px grid, 6/12/16px radius, teal focus */
+:root {
+  --surface: #f8fafb;
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --fg: #0F2847;
+  --fg-muted: #64748b;
+  --focus-ring: rgba(0, 163, 224, 0.35);
+}
+
+.dark {
+  --surface: #0d1117;
+  --surface-card: #161b22;
+  --surface-elevated: #21262d;
+  --fg: #e6edf3;
+  --fg-muted: #8b949e;
+  --focus-ring: rgba(0, 163, 224, 0.4);
+}
+
 /* Custom Tailwind Utility Classes */
 .input-modern {
   padding: 0.625rem 0.75rem;
   border: 0;
-  border-radius: 0.5rem;
-  background-color: white;
+  border-radius: 6px;
+  background-color: var(--surface-card);
   font-size: 0.875rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -19,7 +38,7 @@
 
 .input-modern:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1), 0 2px 4px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .btn-modern {
@@ -41,9 +60,9 @@
 }
 
 .btn-primary-modern {
-  background-color: #2563eb;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
   color: white;
-  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -51,32 +70,45 @@
   padding: 8px 16px;
   display: inline-block;
   width: auto;
-  min-width: 80px; /* Ensure consistent minimum width */
-  max-width: 280px; /* Ensure consistent maximum width */
-  height: 36px; /* Ensure consistent height */
+  min-width: 80px;
+  max-width: 280px;
+  height: 36px;
   box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
 .btn-primary-modern:hover {
-  background-color: #1d4ed8;
-  box-shadow: 0 4px 8px rgba(0, 102, 204, 0.3);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(0, 163, 224, 0.35);
 }
 
+/* Cancel / secondary: same size and shape as primary, different gradient (slate → gray) */
 .btn-secondary-modern {
-  background-color: #4b5563;
+  background: linear-gradient(135deg, #475569 0%, #64748b 100%);
   color: white;
-  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  padding: 8px 16px;
+  display: inline-block;
+  width: auto;
+  min-width: 80px;
+  max-width: 280px;
+  height: 36px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(71, 85, 105, 0.3);
 }
 
 .btn-secondary-modern:hover {
-  background-color: #374151;
-  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 8px rgba(71, 85, 105, 0.4);
 }
 
 .card-modern {
-  background-color: white;
-  border-radius: 0.75rem;
+  background-color: var(--surface-card);
+  border-radius: 12px;
   padding: 1.25rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -92,7 +124,7 @@
 
 .focus-ring:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5), 0 0 0 4px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .transition-smooth {
@@ -101,25 +133,44 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', /* Updated font stack */
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #ffffff;
-  color: #333333;
+  background-color: var(--surface);
+  color: var(--fg);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Keep all checkboxes aligned to primary accent color app-wide */
+input[type="checkbox"] {
+  accent-color: #00a3e0;
 }
 
-/* Header Styles */
+.MuiCheckbox-root {
+  color: #00a3e0 !important;
+}
+
+.MuiCheckbox-root.Mui-checked {
+  color: #00a3e0 !important;
+}
+
+.loading-message {
+  color: var(--fg);
+}
+
+/* Financial/data numbers: Fira Code per design system */
+.font-finance,
+[data-font-finance] {
+  font-family: 'Fira Code', ui-monospace, monospace;
+}
+
+code {
+  font-family: 'Fira Code', ui-monospace, monospace;
+}
+
+/* Header Styles — design system tokens */
 .app-header {
-  background-color: #ffffff;
+  background-color: var(--surface-card);
   border-bottom: none;
   padding: 1rem 2rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -134,14 +185,14 @@ code {
 }
 
 .app-header .logo {
-  font-size: 1.3rem; /* Slightly smaller logo font */
+  font-size: 1.3rem;
   font-weight: bold;
   flex: 0 0 auto;
 }
 
 .app-header .logo a {
   text-decoration: none;
-  color: #333;
+  color: var(--fg);
 }
 
 .app-header .nav-links {
@@ -154,14 +205,15 @@ code {
 
 .app-header .nav-links a {
   text-decoration: none;
-  color: #333;
+  color: var(--fg);
   padding: 0.5rem 1rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .app-header .nav-links a:hover {
-  background-color: #e9ecef;
+  background-color: var(--surface-elevated);
+  color: var(--fg);
 }
 
 .app-header .logout-button {
@@ -169,7 +221,7 @@ code {
   background-color: #dc3545;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -181,7 +233,6 @@ code {
 .app-header .user-info {
   flex: 0 0 auto;
   font-size: 0.9rem;
-  color: #666;
   white-space: nowrap;
   margin-left: auto;
   padding-left: 1rem;

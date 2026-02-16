@@ -114,6 +114,32 @@
   margin-bottom: 0;
 }
 
+.custom-chart-account-list {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #d9e3ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.custom-chart-account-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eef3f8;
+  font-weight: 400 !important;
+  cursor: pointer;
+}
+
+.custom-chart-account-option:last-child {
+  border-bottom: none;
+}
+
+.custom-chart-account-option:hover {
+  background: #f4f9ff;
+}
+
 .custom-chart-form-container .series-item button {
   background-color: #dc3545;
   color: white;
@@ -147,7 +173,8 @@
 }
 
 .custom-chart-form-container .modal-actions button[type="submit"] {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  box-shadow: 0 2px 4px rgba(0, 163, 224, 0.25);
   color: white;
 }
 

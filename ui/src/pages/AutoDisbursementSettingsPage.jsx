@@ -518,8 +518,8 @@ const AutoDisbursementSettingsPage = () => {
             padding: '10px 20px',
             fontSize: '1.1em',
             cursor: 'pointer',
-            color: activeTab === 'surplus' ? '#007bff' : '#555',
-            borderBottom: activeTab === 'surplus' ? '2px solid #007bff' : '2px solid transparent',
+            color: activeTab === 'surplus' ? '#00a3e0' : '#555',
+            borderBottom: activeTab === 'surplus' ? '2px solid #00a3e0' : '2px solid transparent',
             fontWeight: activeTab === 'surplus' ? 'bold' : 'normal',
             transition: 'all 0.3s ease'
           }}
@@ -536,8 +536,8 @@ const AutoDisbursementSettingsPage = () => {
             padding: '10px 20px',
             fontSize: '1.1em',
             cursor: 'pointer',
-            color: activeTab === 'disbursements' ? '#007bff' : '#555',
-            borderBottom: activeTab === 'disbursements' ? '2px solid #007bff' : '2px solid transparent',
+            color: activeTab === 'disbursements' ? '#00a3e0' : '#555',
+            borderBottom: activeTab === 'disbursements' ? '2px solid #00a3e0' : '2px solid transparent',
             fontWeight: activeTab === 'disbursements' ? 'bold' : 'normal',
             transition: 'all 0.3s ease'
           }}
@@ -574,7 +574,7 @@ const AutoDisbursementSettingsPage = () => {
               <button onClick={handleSaveSurplusAsset} className="btn-primary-modern" style={{ padding: '10px 24px', whiteSpace: 'nowrap' }}>
                 Save
               </button>
-              <button type="button" onClick={handleCancel} className="btn-primary-modern" style={{ backgroundColor: '#6c757d', padding: '10px 24px', whiteSpace: 'nowrap' }}>
+              <button type="button" onClick={handleCancel} className="btn-secondary-modern" style={{ padding: '10px 24px', whiteSpace: 'nowrap' }}>
                 Cancel
               </button>
             </div>
@@ -827,7 +827,7 @@ const AutoDisbursementSettingsPage = () => {
                 />
                 {recommendedRmd && (
                   <div style={{ marginTop: '6px' }}>
-                    <small style={{ color: '#007bff' }}>
+                    <small style={{ color: '#00a3e0' }}>
                       {`Recommended RMD for year ${recommendedRmd.year}: ${(
                         (recommendedRmd.rmd_amount != null && !isNaN(Number(recommendedRmd.rmd_amount)))
                           ? `$${Math.round(Number(recommendedRmd.rmd_amount)).toLocaleString()}`

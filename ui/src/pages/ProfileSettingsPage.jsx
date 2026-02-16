@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
 import SettingsService from '../services/settings.service';
 import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +10,7 @@ import './SettingsPages.css'; // General CSS for settings pages
 import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity.js';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { browserSupportsWebAuthn, startRegistration } from '@simplewebauthn/browser';
+import { projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
@@ -165,37 +167,38 @@ const ProfileSettingsPage = () => {
   };
 
   if (settingsLoading) {
-    return <div className="loading-message">Loading profile settings...</div>;
+    return (
+      <Stack direction="row" spacing={1} alignItems="center">
+        <CircularProgress size={18} />
+        <Typography variant="body2">Loading profile settings...</Typography>
+      </Stack>
+    );
   }
 
   // Show message if viewing another account's data
   if (viewingUserId) {
     return (
-      <div className="settings-page-container">
-        <h2>Profile Settings</h2>
-        <div style={{ 
-          padding: '20px', 
-          background: '#fff3cd', 
-          borderRadius: '6px',
-          border: '1px solid #ffc107',
-          marginBottom: '20px'
-        }}>
-          <strong style={{ display: 'block', marginBottom: '8px' }}>
-            ⚠️ Viewing Another Account
-          </strong>
-          <p style={{ margin: 0, color: '#666' }}>
+      <Box>
+        <Typography variant="h5" fontWeight="600" sx={{ mb: 2 }}>Profile Settings</Typography>
+        <Alert severity="warning" variant="outlined">
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Viewing Another Account</Typography>
+          <Typography variant="body2">
             You are currently viewing data from another account. Profile settings can only be edited for your own account.
             Please switch to viewing your own account in <strong>Settings → Switch Account View</strong> to edit your profile.
-          </p>
-        </div>
-      </div>
+          </Typography>
+        </Alert>
+      </Box>
     );
   }
 
   return (
     <div className="settings-page-container">
       <h2>Profile Settings</h2>
-      {message && <div className="message">{message}</div>}
+      {message && (
+        <Alert severity={message.toLowerCase().includes('error') ? 'error' : 'success'} sx={{ mb: 2 }}>
+          {message}
+        </Alert>
+      )}
 
       <div className="profile-settings-form">
         <div className="people-grid">
@@ -576,7 +579,8 @@ const ProfileSettingsPage = () => {
                           }
                         }}
                         disabled={!mfaEnabled || !mfaPasskeyEnabled || passkeyLoading}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}
+                        className="btn-primary-modern"
+                        style={{ padding: '8px 12px' }}
                       >
                         {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Register Another Device' : 'Register This Device')}
                       </button>
@@ -686,26 +690,17 @@ const ProfileSettingsPage = () => {
       </div>
 
         <div className="settings-page-actions">
-          <button 
+          <Button 
             type="button" 
-            className="change-password-btn" 
+            variant="contained"
             onClick={() => setIsChangePasswordModalOpen(true)}
-            style={{ 
-              backgroundColor: '#007bff', 
-              color: 'white', 
-              border: 'none', 
-              padding: '10px 16px', 
-              borderRadius: '6px', 
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
+            sx={{ textTransform: 'none' }}
           >
-          Change Password
-        </button>
+            Change Password
+          </Button>
   
-          <button onClick={handleSave} className="save-button">Save</button>
-          <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
+          <Button onClick={handleSave} variant="contained" sx={{ textTransform: 'none' }}>Save</Button>
+          <Button onClick={() => navigate('/app')} variant="outlined" sx={projectionSecondaryButtonSx}>Cancel</Button>
         </div>
 
       <ChangePasswordModal

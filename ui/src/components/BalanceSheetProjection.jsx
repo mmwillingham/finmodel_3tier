@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line, Pie } from "react-chartjs-2";
+import { Alert, Box, Button, FormControlLabel, Paper, Slider, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { projectionActionButtonSx, projectionSectionCardSx, projectionTableContainerSx } from "../utils/projectionUiStyles";
 import ProjectionService from '../services/projection.service';
 
 export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals, compact = false, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
@@ -21,6 +23,7 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   const [projectionData, setProjectionData] = useState(null);
   const [error, setError] = useState(null);
   const [showTotalsInChart, setShowTotalsInChart] = useState(true); // Local state for "Show Totals" checkbox
+  const [sliderProjectionYears, setSliderProjectionYears] = useState(projectionYears ?? 30);
   const missingDataMessage = "No data yet. Add assets and/or liabilities to generate projections.";
 
   const getProjectionErrorMessage = (err) => {
@@ -265,6 +268,10 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
     fetchProjectionData();
   }, [fetchProjectionData]);
 
+  useEffect(() => {
+    setSliderProjectionYears(projectionYears ?? 30);
+  }, [projectionYears]);
+
   // Parse projection data into the format needed for charts/tables
   const parseProjectionData = () => {
     if (!projectionData || !Array.isArray(projectionData) || projectionData.length === 0) {
@@ -443,11 +450,19 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   };
 
   if (loading) {
-    return <div>Loading projections. Please be patient...</div>;
+    return (
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Typography>Loading projections. Please be patient...</Typography>
+      </Paper>
+    );
   }
 
   if (error) {
-    return <div>{error === missingDataMessage ? error : `Error: ${error}`}</div>;
+    return (
+      <Alert severity={error === missingDataMessage ? "info" : "error"} variant="outlined">
+        {error === missingDataMessage ? error : `Error: ${error}`}
+      </Alert>
+    );
   }
 
   const {
@@ -460,7 +475,11 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   } = parseProjectionData();
 
   if (years.length === 0) {
-    return <div>No projection data available</div>;
+    return (
+      <Alert severity="info" variant="outlined">
+        No projection data available
+      </Alert>
+    );
   }
 
   // Prepare pie chart data for assets (using last year's data)
@@ -572,90 +591,101 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   }
 
   return (
-    <div className="balance-sheet-projection">
-      <div style={{ marginBottom: '15px' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Net Worth Projections</h2>
-        {showProjectionYearSelector && (
-          <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label htmlFor="balance-sheet-years" style={{ fontWeight: 600 }}>Projection Years</label>
-            <select
-              id="balance-sheet-years"
-              value={projectionYears}
-              onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
-            >
-              {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
-                <option key={years} value={years}>{years}</option>
+    <Box sx={{ width: "100%" }}>
+      <Paper variant="outlined" sx={projectionSectionCardSx}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          alignItems={{ xs: "flex-start", md: "center" }}
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Typography variant="h5" fontWeight="600">
+            Net Worth Projections
+          </Typography>
+          {showProjectionYearSelector && (
+            <Stack sx={{ width: { xs: "100%", md: 300 } }} spacing={0.5}>
+              <Typography variant="body2" color="text.secondary">
+                Projection Years: <strong>{sliderProjectionYears}</strong>
+              </Typography>
+              <Slider
+                id="balance-sheet-years"
+                size="small"
+                min={0}
+                max={maxProjectionYears ?? 50}
+                step={1}
+                value={sliderProjectionYears}
+                valueLabelDisplay="auto"
+                onChange={(_, value) => setSliderProjectionYears(Number(value))}
+                onChangeCommitted={(_, value) => onProjectionYearsChange?.(Number(value))}
+              />
+              {isLimitedPlan && maxProjectionYears !== undefined && (
+                <Typography variant="body2" color="text.secondary">
+                  Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: "italic" }}>
+          Note: All values are calculated as of December 31st of the specified year.
+        </Typography>
+      </Paper>
+
+      <Paper variant="outlined" sx={projectionSectionCardSx}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} spacing={2}>
+          <Typography variant="h6" fontWeight="600">Overall Financial Snapshot</Typography>
+          <Stack direction="row" spacing={1}>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPng(overallChartRef, "Overall_Financial_Snapshot")}>Download PNG</Button>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPdf(overallChartRef, "Overall_Financial_Snapshot")}>Download PDF</Button>
+          </Stack>
+        </Stack>
+        <Line ref={overallChartRef} data={overallChartData} options={chartOptions} />
+      </Paper>
+
+      <Paper variant="outlined" sx={{ ...projectionSectionCardSx, mb: 4 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} spacing={2}>
+          <Typography variant="subtitle1" fontWeight="600">Overall Financial Snapshot Table</Typography>
+          <Stack direction="row" spacing={1}>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadTablePdf(overallTableRef, "Overall_Financial_Snapshot_Table")}>Download PDF</Button>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadCombinedProjectionCsv("Overall_Financial_Snapshot_Table")}>Download CSV</Button>
+          </Stack>
+        </Stack>
+        <TableContainer sx={{ ...projectionTableContainerSx, maxHeight: 440 }}>
+          <Table stickyHeader size="small" ref={overallTableRef}>
+            <TableHead>
+              <TableRow>
+                <TableCell>EoY</TableCell>
+                <TableCell align="right">Total Assets</TableCell>
+                <TableCell align="right">Total Liabilities</TableCell>
+                <TableCell align="right">Net Worth</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {displayYearsIndices.map((index) => (
+                <TableRow key={years[index]}>
+                  <TableCell>{years[index]}</TableCell>
+                  <TableCell align="right">{formatCurrency(totalAssetValues[index])}</TableCell>
+                  <TableCell align="right">{formatCurrency(totalLiabilityValues[index])}</TableCell>
+                  <TableCell align="right">{formatCurrency(netWorthValues[index])}</TableCell>
+                </TableRow>
               ))}
-            </select>
-            {isLimitedPlan && maxProjectionYears !== undefined && (
-              <span style={{ fontSize: '0.85em', color: '#666' }}>
-                Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
-              </span>
-            )}
-          </div>
-        )}
-        <p style={{ fontSize: '0.9em', color: '#666', fontStyle: 'italic', margin: 0 }}>
-          Note: All values are calculated as of December 31st of the specified year. For example, values for 2026 represent the balance sheet position as of December 31, 2026.
-        </p>
-      </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-      {/* Overall Financial Snapshot Chart */}
-      <h3>Overall Financial Snapshot</h3>
-      <div style={{ marginBottom: "30px" }}>
-        <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-          <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(overallChartRef, "Overall_Financial_Snapshot")}>Download PNG</button>
-          <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(overallChartRef, "Overall_Financial_Snapshot")}>Download PDF</button>
-        </div>
-        <Line
-          ref={overallChartRef}
-          data={overallChartData}
-          options={chartOptions}
-        />
-      </div>
-
-      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(overallTableRef, "Overall_Financial_Snapshot_Table")}>Download PDF</button>
-        <button className="btn-primary-modern" onClick={() => handleDownloadCombinedProjectionCsv("Overall_Financial_Snapshot_Table")}>Download CSV</button>
-      </div>
-      <table ref={overallTableRef} className="cashflow-table">
-        <thead>
-          <tr>
-            <th>EoY</th>
-            <th>Total Assets</th>
-            <th>Total Liabilities</th>
-            <th>Net Worth</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayYearsIndices.map((index) => (
-            <tr key={years[index]}>
-              <td>{years[index]}</td>
-              <td>{formatCurrency(totalAssetValues[index])}</td>
-              <td>{formatCurrency(totalLiabilityValues[index])}</td>
-              <td>{formatCurrency(netWorthValues[index])}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Individual Asset Projections Chart */}
-      <h3 style={{ marginTop: "50px" }}>Individual Asset Projections</h3>
-      <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={showTotalsInChart}
-            onChange={(e) => setShowTotalsInChart(e.target.checked)}
-            style={{ cursor: 'pointer' }}
+      <Paper variant="outlined" sx={projectionSectionCardSx}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} spacing={2} sx={{ mb: 2 }}>
+          <Typography variant="h6" fontWeight="600">Individual Asset Projections</Typography>
+          <FormControlLabel
+            control={<Switch checked={showTotalsInChart} onChange={(e) => setShowTotalsInChart(e.target.checked)} />}
+            label="Show Totals"
           />
-          <span>Show Totals</span>
-        </label>
-      </div>
-      <div style={{ marginBottom: "30px" }}>
-        <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-          <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</button>
-          <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</button>
-        </div>
+        </Stack>
+        <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mb: 2 }}>
+          <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</Button>
+          <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</Button>
+        </Stack>
         <Line
           ref={individualAssetChartRef}
           data={{
@@ -664,14 +694,14 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
               ...individualAssetProjections.map((asset, index) => ({
                 label: asset.name,
                 data: asset.projectedValues,
-                borderColor: `hsl(${index * 60}, 70%, 50%)`, // Dynamic color
+                borderColor: `hsl(${index * 60}, 70%, 50%)`,
                 backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.2)`,
                 fill: false,
               })),
               ...(showTotalsInChart ? [{
                 label: "Total Assets",
                 data: totalAssetValues,
-                borderColor: "rgb(0, 0, 0)", // Black color for total
+                borderColor: "rgb(0, 0, 0)",
                 backgroundColor: "rgba(0, 0, 0, 0.2)",
                 fill: false,
                 borderWidth: 3,
@@ -690,13 +720,14 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             },
           }}
         />
-      </div>
+      </Paper>
 
-      {/* Asset Pie Chart */}
       {assetPieData && individualAssetProjections.length > 0 && (
-        <div style={{ marginBottom: "30px" }}>
-          <h4>Asset Distribution - {lastYear}</h4>
-          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <Paper variant="outlined" sx={projectionSectionCardSx}>
+          <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+            Asset Distribution - {lastYear}
+          </Typography>
+          <Box sx={{ maxWidth: 500, mx: "auto" }}>
             <Pie
               ref={individualAssetPieChartRef}
               data={assetPieData}
@@ -724,51 +755,57 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
                 }
               }}
             />
-          </div>
-        </div>
+          </Box>
+        </Paper>
       )}
 
-      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(individualAssetTableRef, "Individual_Asset_Projections_Table")}>Download PDF</button>
-        <button className="btn-primary-modern" onClick={() => handleDownloadIndividualProjectionsCsv(individualAssetProjections, "Individual_Asset_Projections_Table")}>Download CSV</button>
-      </div>
-      <table ref={individualAssetTableRef} className="cashflow-table" style={{ marginBottom: "50px" }}>
-        <thead>
-          <tr>
-            <th>Asset Name (Category)</th>
-            {displayYearsIndices.map((index) => (
-              <th key={years[index]}>{years[index]}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {individualAssetProjections.map((asset) => (
-            <tr key={asset.id}>
-              <td>{`${asset.name} (${asset.category})`}</td>
-              {displayYearsIndices.map((index) => (
-                <td key={years[index]}>{formatCurrency(asset.projectedValues[index])}</td>
+      <Paper variant="outlined" sx={{ ...projectionSectionCardSx, mb: 4 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} spacing={2}>
+          <Typography variant="subtitle1" fontWeight="600">Individual Asset Table</Typography>
+          <Stack direction="row" spacing={1}>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadTablePdf(individualAssetTableRef, "Individual_Asset_Projections_Table")}>Download PDF</Button>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadIndividualProjectionsCsv(individualAssetProjections, "Individual_Asset_Projections_Table")}>Download CSV</Button>
+          </Stack>
+        </Stack>
+        <TableContainer sx={projectionTableContainerSx}>
+          <Table size="small" ref={individualAssetTableRef}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Asset Name (Category)</TableCell>
+                {displayYearsIndices.map((index) => (
+                  <TableCell key={years[index]} align="right">{years[index]}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {individualAssetProjections.map((asset) => (
+                <TableRow key={asset.id}>
+                  <TableCell>{`${asset.name} (${asset.category})`}</TableCell>
+                  {displayYearsIndices.map((index) => (
+                    <TableCell key={years[index]} align="right">{formatCurrency(asset.projectedValues[index])}</TableCell>
+                  ))}
+                </TableRow>
               ))}
-            </tr>
-          ))}
-          <tr>
-            <td><b>Total Assets</b></td>
-            {displayYearsIndices.map(index => (
-              <td key={`total-asset-${years[index]}`}><b>{formatCurrency(totalAssetValues[index])}</b></td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+              <TableRow>
+                <TableCell><strong>Total Assets</strong></TableCell>
+                {displayYearsIndices.map(index => (
+                  <TableCell key={`total-asset-${years[index]}`} align="right"><strong>{formatCurrency(totalAssetValues[index])}</strong></TableCell>
+                ))}
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-      {/* Individual Liability Projections Chart */}
       {liabilities.length > 0 && (
-        <h3 style={{ marginTop: "50px" }}>Individual Liability Projections</h3>
-      )}
-      {liabilities.length > 0 && (
-        <div style={{ marginBottom: "30px" }}>
-          <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-            <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</button>
-            <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</button>
-          </div>
+        <Paper variant="outlined" sx={projectionSectionCardSx}>
+          <Typography variant="h6" fontWeight="600" gutterBottom>
+            Individual Liability Projections
+          </Typography>
+          <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mb: 2 }}>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</Button>
+            <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</Button>
+          </Stack>
           <Line
             ref={individualLiabilityChartRef}
             data={{
@@ -777,14 +814,14 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
                 ...individualLiabilityProjections.map((liability, index) => ({
                   label: liability.name,
                   data: liability.projectedValues,
-                  borderColor: `hsl(${index * 60 + 30}, 70%, 50%)`, // Dynamic color, offset from assets
+                  borderColor: `hsl(${index * 60 + 30}, 70%, 50%)`,
                   backgroundColor: `hsla(${index * 60 + 30}, 70%, 50%, 0.2)`,
                   fill: false,
                 })),
                 ...(showTotalsInChart ? [{
                   label: "Total Liabilities",
                   data: totalLiabilityValues,
-                  borderColor: "rgb(0, 0, 0)", // Black color for total
+                  borderColor: "rgb(0, 0, 0)",
                   backgroundColor: "rgba(0, 0, 0, 0.2)",
                   fill: false,
                   borderWidth: 3,
@@ -803,14 +840,15 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
               },
             }}
           />
-        </div>
+        </Paper>
       )}
 
-      {/* Liability Pie Chart */}
       {liabilityPieData && individualLiabilityProjections.length > 0 && (
-        <div style={{ marginBottom: "30px" }}>
-          <h4>Liability Distribution - {lastYear}</h4>
-          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <Paper variant="outlined" sx={projectionSectionCardSx}>
+          <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+            Liability Distribution - {lastYear}
+          </Typography>
+          <Box sx={{ maxWidth: 500, mx: "auto" }}>
             <Pie
               ref={individualLiabilityPieChartRef}
               data={liabilityPieData}
@@ -838,44 +876,49 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
                 }
               }}
             />
-          </div>
-        </div>
+          </Box>
+        </Paper>
       )}
 
       {liabilities.length > 0 && (
-        <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-          <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(individualLiabilityTableRef, "Individual_Liability_Projections_Table")}>Download PDF</button>
-          <button className="btn-primary-modern" onClick={() => handleDownloadIndividualProjectionsCsv(individualLiabilityProjections, "Individual_Liability_Projections_Table")}>Download CSV</button>
-        </div>
-      )}
-      {liabilities.length > 0 && (
-        <table ref={individualLiabilityTableRef} className="cashflow-table">
-          <thead>
-            <tr>
-              <th>Liability Name</th>
-              {displayYearsIndices.map((index) => (
-                <th key={years[index]}>{years[index]}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {individualLiabilityProjections.map((liability) => (
-              <tr key={liability.id}>
-                <td>{liability.name}</td>
-                {displayYearsIndices.map((index) => (
-                  <td key={years[index]}>{formatCurrency(liability.projectedValues[index])}</td>
+        <Paper variant="outlined" sx={{ ...projectionSectionCardSx, mb: 0 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} spacing={2}>
+            <Typography variant="subtitle1" fontWeight="600">Individual Liability Table</Typography>
+            <Stack direction="row" spacing={1}>
+              <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadTablePdf(individualLiabilityTableRef, "Individual_Liability_Projections_Table")}>Download PDF</Button>
+              <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadIndividualProjectionsCsv(individualLiabilityProjections, "Individual_Liability_Projections_Table")}>Download CSV</Button>
+            </Stack>
+          </Stack>
+          <TableContainer sx={projectionTableContainerSx}>
+            <Table size="small" ref={individualLiabilityTableRef}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Liability Name</TableCell>
+                  {displayYearsIndices.map((index) => (
+                    <TableCell key={years[index]} align="right">{years[index]}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {individualLiabilityProjections.map((liability) => (
+                  <TableRow key={liability.id}>
+                    <TableCell>{liability.name}</TableCell>
+                    {displayYearsIndices.map((index) => (
+                      <TableCell key={years[index]} align="right">{formatCurrency(liability.projectedValues[index])}</TableCell>
+                    ))}
+                  </TableRow>
                 ))}
-              </tr>
-            ))}
-            <tr>
-              <td><b>Total Liabilities</b></td>
-              {displayYearsIndices.map(index => (
-                <td key={`total-liability-${years[index]}`}><b>{formatCurrency(totalLiabilityValues[index])}</b></td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+                <TableRow>
+                  <TableCell><strong>Total Liabilities</strong></TableCell>
+                  {displayYearsIndices.map(index => (
+                    <TableCell key={`total-liability-${years[index]}`} align="right"><strong>{formatCurrency(totalLiabilityValues[index])}</strong></TableCell>
+                  ))}
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       )}
-    </div>
+    </Box>
   );
 }

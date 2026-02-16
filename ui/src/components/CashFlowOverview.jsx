@@ -3,11 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line, Bar, Chart } from "react-chartjs-2";
+import { Alert, Box, Button, Checkbox, FormControl, FormControlLabel, InputLabel, List, ListItem, ListItemText, MenuItem, Paper, Select, Slider, Stack, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateRmd } from '../utils/rmdCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
 import { buildTaxableDistributionEntries } from '../utils/taxableDistribution';
+import { projectionActionButtonSx, projectionSectionCardSx, projectionTableContainerSx } from "../utils/projectionUiStyles";
 import ProjectionService from '../services/projection.service';
 
 // Register Chart.js components for combo charts
@@ -1171,6 +1173,14 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   );
 }
 
+function TabPanel({ children, value, index }) {
+  return (
+    <div role="tabpanel" hidden={value !== index} aria-hidden={value !== index}>
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+
 export default function CashFlowOverview({ incomeItems = [], expenseItems = [], projectionYears = 30, formatCurrency, assets = [], userSettings = null, autoDisbursements = [], liabilities = [], compact = false, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
   const { currentUser } = useAuth();
   const currentYear = new Date().getFullYear();
@@ -1186,6 +1196,7 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const [error, setError] = useState(null);
   const [useSeparateYAxis, setUseSeparateYAxis] = useState(true); // Toggle for separate y-axis in BASE model
   const [showTotalAssets, setShowTotalAssets] = useState(false); // Toggle for showing Total Assets in BASE model
+  const [sliderProjectionYears, setSliderProjectionYears] = useState(projectionYears ?? 30);
   const missingDataMessage = "No data yet. Add income and/or expenses to generate projections.";
 
   const getProjectionErrorMessage = (err) => {
@@ -1198,6 +1209,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   const safeFormatCurrency = formatCurrency || ((v) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v ?? 0)
   );
+
+  useEffect(() => {
+    setSliderProjectionYears(projectionYears ?? 30);
+  }, [projectionYears]);
+
   const cashAssetIds = useMemo(() => userSettings?.cash_asset_ids || [], [userSettings?.cash_asset_ids]);
   const autoDisbursementCashFlowAdjustments = useMemo(() => {
     const totalYears = Math.max((projectionYears ?? 0), 0) + 1;
@@ -2695,307 +2711,411 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
     },
   };
 
+  const activeAutoDisbursementColumns = (autoDisbursements || [])
+    .filter(ad => cashFlowProjection?.autoDisbursementTransfers?.[ad.id]);
+
+  const autoDisbursementHeaders = activeAutoDisbursementColumns.map(ad => {
+    const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
+    const targetAsset = assets.find(a => a.id === ad.target_asset_id);
+    const sourceName = sourceAsset ? sourceAsset.name : 'Source';
+    const targetName = targetAsset ? targetAsset.name : 'Target';
+    return {
+      id: ad.id,
+      label: `Auto-Disbursement: ${sourceName} → ${targetName}`,
+    };
+  });
+
   return (
-    <div className="cashflow-overview-container">
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Cash Flow Projections</h2>
-
-      {showProjectionYearSelector && (
-        <div style={{ margin: '8px 0 12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <label htmlFor="cashflow-overview-years" style={{ fontWeight: 600 }}>Projection Years</label>
-          <select
-            id="cashflow-overview-years"
-            value={projectionYears}
-            onChange={(e) => onProjectionYearsChange?.(parseInt(e.target.value, 10))}
-          >
-            {Array.from({ length: (maxProjectionYears ?? 30) + 1 }, (_, i) => i).map((years) => (
-              <option key={years} value={years}>{years}</option>
-            ))}
-          </select>
-          {isLimitedPlan && maxProjectionYears !== undefined && (
-            <span style={{ fontSize: '0.85em', color: '#666' }}>
-              Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
-            </span>
+    <Box sx={{ width: "100%" }}>
+      <Paper variant="outlined" sx={projectionSectionCardSx}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Typography variant="h5" fontWeight="600">
+            Cash Flow Projections
+          </Typography>
+          {showProjectionYearSelector && (
+            <Stack sx={{ width: { xs: "100%", md: 300 } }} spacing={0.5}>
+              <Typography variant="body2" color="text.secondary">
+                Projection Years: <strong>{sliderProjectionYears}</strong>
+              </Typography>
+              <Slider
+                id="cashflow-overview-years"
+                size="small"
+                min={0}
+                max={maxProjectionYears ?? 50}
+                step={1}
+                value={sliderProjectionYears}
+                valueLabelDisplay="auto"
+                onChange={(_, value) => setSliderProjectionYears(Number(value))}
+                onChangeCommitted={(_, value) => onProjectionYearsChange?.(Number(value))}
+              />
+              {isLimitedPlan && maxProjectionYears !== undefined && (
+                <Typography variant="body2" color="text.secondary">
+                  Free plan max {maxProjectionYears} years. <a href="/pricing">Upgrade</a>
+                </Typography>
+              )}
+            </Stack>
           )}
-        </div>
-      )}
-      <div style={{ marginBottom: '20px', borderBottom: '2px solid #eee' }}>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button
-            onClick={() => setActiveTab('overview')}
-            style={{
-              background: activeTab === 'overview' ? '#007bff' : 'transparent',
-              color: activeTab === 'overview' ? 'white' : '#555',
-              border: 'none',
-              padding: '10px 20px',
-              fontSize: '1em',
-              cursor: 'pointer',
-              borderBottom: activeTab === 'overview' ? '2px solid #007bff' : '2px solid transparent',
-              fontWeight: activeTab === 'overview' ? 'bold' : 'normal',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('base')}
-            style={{
-              background: activeTab === 'base' ? '#007bff' : 'transparent',
-              color: activeTab === 'base' ? 'white' : '#555',
-              border: 'none',
-              padding: '10px 20px',
-              fontSize: '1em',
-              cursor: 'pointer',
-              borderBottom: activeTab === 'base' ? '2px solid #007bff' : '2px solid transparent',
-              fontWeight: activeTab === 'base' ? 'bold' : 'normal',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            BASE Model
-          </button>
-          <button
-            onClick={() => setActiveTab('sankey')}
-            style={{
-              background: activeTab === 'sankey' ? '#007bff' : 'transparent',
-              color: activeTab === 'sankey' ? 'white' : '#555',
-              border: 'none',
-              padding: '10px 20px',
-              fontSize: '1em',
-              cursor: 'pointer',
-              borderBottom: activeTab === 'sankey' ? '2px solid #007bff' : '2px solid transparent',
-              fontWeight: activeTab === 'sankey' ? 'bold' : 'normal',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Category View
-          </button>
-        </div>
-      </div>
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+          Track cash in, cash out, and yearly surplus trends across projection scenarios.
+        </Typography>
+        <Tabs
+          value={activeTab}
+          onChange={(_, value) => setActiveTab(value)}
+          textColor="primary"
+          indicatorColor="primary"
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={{ mt: 2 }}
+          aria-label="Cash flow overview tabs"
+        >
+          <Tab label="Overview" value="overview" />
+          <Tab label="BASE Model" value="base" />
+          <Tab label="Category View" value="sankey" />
+        </Tabs>
+      </Paper>
 
-      {activeTab === 'overview' && (
-        <>
-          <h3>Income & Expense Projection</h3>
-          <div style={{ marginBottom: "30px" }}>
-            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'flex-end' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9em', color: '#333' }}>
-                <input
-                  type="checkbox"
+      <TabPanel value={activeTab} index="overview">
+        <Paper variant="outlined" sx={projectionSectionCardSx}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            justifyContent="space-between"
+            alignItems="center"
+            spacing={2}
+            sx={{ mb: 2 }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
                   checked={includeTransfers}
                   onChange={(e) => setIncludeTransfers(e.target.checked)}
-                  style={{ cursor: 'pointer' }}
                 />
-                Include Surplus/Deficit Transfers
-              </label>
-            </div>
-            <div className="chart-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-              <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(chartRef, "Income_Expense_Projection")}>Download PNG</button>
-              <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(chartRef, "Income_Expense_Projection")}>Download PDF</button>
-            </div>
+              }
+              label="Include Surplus/Deficit Transfers"
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button
+                size="small"
+                variant="contained"
+                sx={projectionActionButtonSx}
+                onClick={() => handleDownloadChartPng(chartRef, "Income_Expense_Projection")}
+              >
+                Download PNG
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                sx={projectionActionButtonSx}
+                onClick={() => handleDownloadChartPdf(chartRef, "Income_Expense_Projection")}
+              >
+                Download PDF
+              </Button>
+            </Stack>
+          </Stack>
+          <Box>
             <Line ref={chartRef} data={cashFlowChartData} options={chartOptions} />
-          </div>
+          </Box>
+        </Paper>
 
-      <div className="table-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '15px' }}>
-        <button className="btn-primary-modern" onClick={() => handleDownloadTablePdf(tableRef, "Cash_Flow_Overview_Table")}>Download PDF</button>
-        <button className="btn-primary-modern" onClick={() => handleDownloadCashFlowCsv("Cash_Flow_Overview_Table")}>Download CSV</button>
-      </div>
-      <table ref={tableRef} className="cashflow-table">
-        <thead>
-          <tr>
-            <th>Year</th>
-            <th>Cash In</th>
-            <th>Cash Out</th>
-            <th>Surplus</th>
-            {autoDisbursements.map(ad => {
-              if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
-              const sourceAsset = assets.find(a => a.id === ad.source_asset_id);
-              const targetAsset = assets.find(a => a.id === ad.target_asset_id);
-              const sourceName = sourceAsset ? sourceAsset.name : 'Source';
-              const targetName = targetAsset ? targetAsset.name : 'Target';
-              return <th key={ad.id}>{`Auto-Disbursement: ${sourceName} → ${targetName}`}</th>;
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {displayYears.map((year, yearIndex) => (
-            <tr key={year}>
-              <td>{year}</td>
-              <td>{safeFormatCurrency(cashFlowProjection?.incomeValues?.[yearIndex] || 0)}</td>
-              <td>{safeFormatCurrency(cashFlowProjection?.expenseValues?.[yearIndex] || 0)}</td>
-              <td>{safeFormatCurrency(cashFlowProjection?.surplus?.[yearIndex] || 0)}</td>
-              {autoDisbursements.map(ad => {
-                if (!cashFlowProjection?.autoDisbursementTransfers?.[ad.id]) return null;
-                return (
-                  <td key={ad.id}>
-                    {safeFormatCurrency(cashFlowProjection?.autoDisbursementTransfers?.[ad.id]?.[yearIndex] || 0)}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-        </>
-      )}
+        <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            alignItems="center"
+            justifyContent="space-between"
+            spacing={2}
+            sx={{ mb: 2 }}
+          >
+            <Typography variant="subtitle1" fontWeight="600">
+              Cash Flow Table
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button
+                size="small"
+                variant="contained"
+                sx={projectionActionButtonSx}
+                onClick={() => handleDownloadTablePdf(tableRef, "Cash_Flow_Overview_Table")}
+              >
+                Download PDF
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                sx={projectionActionButtonSx}
+                onClick={() => handleDownloadCashFlowCsv("Cash_Flow_Overview_Table")}
+              >
+                Download CSV
+              </Button>
+            </Stack>
+          </Stack>
+          <TableContainer sx={{ ...projectionTableContainerSx, maxHeight: 440 }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Year</TableCell>
+                  <TableCell align="right">Cash In</TableCell>
+                  <TableCell align="right">Cash Out</TableCell>
+                  <TableCell align="right">Surplus</TableCell>
+                  {autoDisbursementHeaders.map((column) => (
+                    <TableCell key={column.id} align="right">
+                      {column.label}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {displayYears.map((year, yearIndex) => (
+                  <TableRow key={year}>
+                    <TableCell>{year}</TableCell>
+                    <TableCell align="right">
+                      {safeFormatCurrency(cashFlowProjection?.incomeValues?.[yearIndex] || 0)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {safeFormatCurrency(cashFlowProjection?.expenseValues?.[yearIndex] || 0)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {safeFormatCurrency(cashFlowProjection?.surplus?.[yearIndex] || 0)}
+                    </TableCell>
+                    {autoDisbursementHeaders.map((column) => (
+                      <TableCell key={column.id} align="right">
+                        {safeFormatCurrency(
+                          cashFlowProjection?.autoDisbursementTransfers?.[column.id]?.[yearIndex] || 0
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </TabPanel>
 
-      {activeTab === 'base' && (
-        <>
-          <h3>BASE Model (Beginning, Additions, Subtractions, Ending)</h3>
-          {(!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) ? (
-            <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
-              <strong>Note:</strong> Please configure cash assets in Cash Handling then refresh your browser to view the BASE Model.
-              <br /><br />
-              <em>After updating settings, please refresh the page to see the changes.</em>
-            </div>
-          ) : (
+      <TabPanel value={activeTab} index="base">
+        <Typography variant="h6" fontWeight="600" gutterBottom>
+          BASE Model (Beginning, Additions, Subtractions, Ending)
+        </Typography>
+        {(!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) ? (
+          <Alert severity="warning" variant="outlined" sx={{ mb: 3 }}>
             <>
-              <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={useSeparateYAxis}
-                    onChange={(e) => setUseSeparateYAxis(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <span>Use separate y-axis for Available Cash</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={showTotalAssets}
-                    onChange={(e) => setShowTotalAssets(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <span>Show Total Assets</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
+              <Typography variant="body2" fontWeight="600">
+                Note:
+              </Typography>
+              <Typography variant="body2">
+                Please configure cash assets in Cash Handling then refresh your browser to view the BASE Model.
+              </Typography>
+              <Typography variant="body2" fontStyle="italic">
+                After updating settings, please refresh the page to see the changes.
+              </Typography>
+            </>
+          </Alert>
+        ) : (
+          <>
+            <Paper variant="outlined" sx={projectionSectionCardSx}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+                justifyContent="flex-start"
+                sx={{ mb: 2 }}
+              >
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={useSeparateYAxis}
+                      onChange={(e) => setUseSeparateYAxis(e.target.checked)}
+                    />
+                  }
+                  label="Use separate y-axis for Available Cash"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={showTotalAssets}
+                      onChange={(e) => setShowTotalAssets(e.target.checked)}
+                    />
+                  }
+                  label="Show Total Assets"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={includeTransfers}
+                      onChange={(e) => setIncludeTransfers(e.target.checked)}
+                    />
+                  }
+                  label="Include Surplus/Deficit Transfers"
+                />
+              </Stack>
+              <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mb: 2 }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  sx={projectionActionButtonSx}
+                  onClick={() => handleDownloadChartPng(baseChartRef, "BASE_Model")}
+                >
+                  Download PNG
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  sx={projectionActionButtonSx}
+                  onClick={() => handleDownloadChartPdf(baseChartRef, "BASE_Model")}
+                >
+                  Download PDF
+                </Button>
+              </Stack>
+              <Box>
+                <Chart ref={baseChartRef} type="bar" data={baseChartData} options={baseChartOptions} />
+              </Box>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
+              >
+                <Typography variant="subtitle1" fontWeight="600">
+                  BASE Model Table
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Visual Cue:</strong> The purple line represents Available Cash.
+                  If it slopes down, you are spending more than you earn; if it slopes up, your available spending power is growing.
+                </Typography>
+              </Stack>
+              <TableContainer sx={{ ...projectionTableContainerSx, maxHeight: 440 }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Year</TableCell>
+                      <TableCell align="right">Beginning Balance</TableCell>
+                      <TableCell align="right">Cash In (Additions)</TableCell>
+                      <TableCell align="right">Cash Out (Subtractions)</TableCell>
+                      <TableCell align="right">Ending Balance (Available Cash)</TableCell>
+                      {showTotalAssets && <TableCell align="right">Total Assets</TableCell>}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {displayYears.map((year, yearIndex) => (
+                      <TableRow key={year}>
+                        <TableCell>{year}</TableCell>
+                        <TableCell align="right">
+                          {safeFormatCurrency(displayBaseModel?.beginningBalances?.[yearIndex] || 0)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {safeFormatCurrency(displayBaseModel?.cashInValues?.[yearIndex] || 0)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {safeFormatCurrency(displayBaseModel?.cashOutValues?.[yearIndex] || 0)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {safeFormatCurrency(displayBaseModel?.endingBalances?.[yearIndex] || 0)}
+                        </TableCell>
+                        {showTotalAssets && (
+                          <TableCell align="right">
+                            {safeFormatCurrency(displayBaseModel?.totalAssets?.[yearIndex] || 0)}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          </>
+        )}
+      </TabPanel>
+
+      <TabPanel value={activeTab} index="sankey">
+        <Paper variant="outlined" sx={projectionSectionCardSx}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
+            spacing={2}
+          >
+            <Typography variant="h6" fontWeight="600">
+              Category View
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" flexWrap="wrap">
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <InputLabel id="sankey-year-label">Year</InputLabel>
+                <Select
+                  labelId="sankey-year-label"
+                  id="sankey-year-select"
+                  value={sankeyYear}
+                  label="Year"
+                  onChange={(e) => setSankeyYear(parseInt(e.target.value, 10))}
+                >
+                  {Array.from({ length: Math.min(projectionYears + 1, 31) }, (_, i) => (
+                    <MenuItem key={i} value={i}>
+                      {currentYear + i}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="sankey-view-label">View</InputLabel>
+                <Select
+                  labelId="sankey-view-label"
+                  id="sankey-view-select"
+                  value={sankeyViewMode}
+                  label="View"
+                  onChange={(e) => setSankeyViewMode(e.target.value)}
+                >
+                  <MenuItem value="sankey">Sankey Diagram</MenuItem>
+                  <MenuItem value="pie">Pie Charts</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControlLabel
+                control={
+                  <Checkbox
                     checked={includeTransfers}
                     onChange={(e) => setIncludeTransfers(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
                   />
-                  <span>Include Surplus/Deficit Transfers</span>
-                </label>
-              </div>
-              <div style={{ marginBottom: "30px" }}>
-                <div className="chart-actions">
-                  <button className="btn-primary-modern" onClick={() => handleDownloadChartPng(baseChartRef, "BASE_Model")}>Download PNG</button>
-                  <button className="btn-primary-modern" onClick={() => handleDownloadChartPdf(baseChartRef, "BASE_Model")}>Download PDF</button>
-                </div>
-                <Chart ref={baseChartRef} type="bar" data={baseChartData} options={baseChartOptions} />
-              </div>
-              <p style={{ color: '#666', fontSize: '0.9em', marginBottom: '20px' }}>
-                <strong>Visual Cue:</strong> The purple line represents your "runway" (Available Cash). 
-                If the line slopes down, you are spending more than you earn (even if you have a high balance). 
-                If it slopes up, your available spending power is growing.
-              </p>
-              <table className="cashflow-table" style={{ marginTop: '20px' }}>
-                <thead>
-                  <tr>
-                    <th>Year</th>
-                    <th>Beginning Balance</th>
-                    <th>Cash In (Additions)</th>
-                    <th>Cash Out (Subtractions)</th>
-                    <th>Ending Balance (Available Cash)</th>
-                    {showTotalAssets && <th>Total Assets</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayYears.map((year, yearIndex) => (
-                    <tr key={year}>
-                      <td>{year}</td>
-                      <td>{safeFormatCurrency(displayBaseModel?.beginningBalances?.[yearIndex] || 0)}</td>
-                      <td>{safeFormatCurrency(displayBaseModel?.cashInValues?.[yearIndex] || 0)}</td>
-                      <td>{safeFormatCurrency(displayBaseModel?.cashOutValues?.[yearIndex] || 0)}</td>
-                      <td>{safeFormatCurrency(displayBaseModel?.endingBalances?.[yearIndex] || 0)}</td>
-                      {showTotalAssets && <td>{safeFormatCurrency(displayBaseModel?.totalAssets?.[yearIndex] || 0)}</td>}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-        </>
-      )}
-
-      {activeTab === 'sankey' && (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h3 style={{ margin: 0 }}>Category View</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label htmlFor="sankey-year-select" style={{ fontWeight: '500' }}>Year:</label>
-              <select
-                id="sankey-year-select"
-                value={sankeyYear}
-                onChange={(e) => setSankeyYear(parseInt(e.target.value))}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '0.9em',
-                  backgroundColor: 'white',
-                  cursor: 'pointer'
-                }}
-              >
-                {Array.from({ length: Math.min(projectionYears + 1, 31) }, (_, i) => (
-                  <option key={i} value={i}>
-                    {currentYear + i}
-                  </option>
-                ))}
-              </select>
-              <label htmlFor="sankey-view-select" style={{ fontWeight: '500' }}>View:</label>
-              <select
-                id="sankey-view-select"
-                value={sankeyViewMode}
-                onChange={(e) => setSankeyViewMode(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '0.9em',
-                  backgroundColor: 'white',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="sankey">Sankey Diagram</option>
-                <option value="pie">Pie Charts</option>
-              </select>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
-                <input
-                  type="checkbox"
-                  checked={includeTransfers}
-                  onChange={(e) => setIncludeTransfers(e.target.checked)}
-                  style={{ cursor: 'pointer' }}
-                />
-                Include Surplus/Deficit Transfers
-              </label>
-            </div>
-          </div>
-          <div style={{ 
-            overflowY: 'scroll', 
-            overflowX: 'auto',
-            height: '80vh',
-            border: '1px solid #ddd', 
-            borderRadius: '4px', 
-            backgroundColor: '#f8f9fa',
-            width: '100%',
-            position: 'relative'
-          }}>
-            <div style={{ width: '100%', minWidth: '1200px', padding: '20px', display: 'block' }}>
+                }
+                label="Include Surplus/Deficit Transfers"
+              />
+            </Stack>
+          </Stack>
+          <Box
+            sx={{
+              position: "relative",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              bgcolor: "background.paper",
+              width: "100%",
+              overflowY: "auto",
+              overflowX: "auto",
+              maxHeight: { xs: "auto", md: "70vh" },
+            }}
+          >
+            <Box sx={{ width: "100%", minWidth: 1200, p: 2, display: "block" }}>
               {(() => {
                 try {
                   if (!userSettings?.cash_asset_ids || userSettings.cash_asset_ids.length === 0) {
                     return (
-                      <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
-                        <strong>Note:</strong> Please configure cash assets in Cash Handling then refresh your browser to view the Sankey Diagram.
-                        <br /><br />
-                        <em>After updating settings, please refresh the page to see the changes.</em>
-                      </div>
+                      <Alert severity="warning" variant="outlined">
+                        <Typography variant="body2" fontWeight="600">
+                          Note:
+                        </Typography>
+                        <Typography variant="body2">
+                          Please configure cash assets in Cash Handling then refresh your browser to view the Sankey Diagram.
+                        </Typography>
+                        <Typography variant="body2" fontStyle="italic">
+                          After updating settings, please refresh the page to see the changes.
+                        </Typography>
+                      </Alert>
                     );
                   }
-                  // Safely render SankeyDiagram with error boundary
                   try {
-                    // Create a key that changes when relevant data changes to force re-render
-                    const sankeyKey = `sankey-${sankeyYear}-${userSettings?.surplus_asset_id || 'none'}-${baseModel ? 'hasBaseModel' : 'noBaseModel'}-${cashFlowProjection ? 'hasProjection' : 'noProjection'}-${sankeyViewMode}-${includeTransfers ? 'withTransfers' : 'noTransfers'}`;
+                    const sankeyKey = `sankey-${sankeyYear}-${userSettings?.surplus_asset_id || "none"}-${baseModel ? "hasBaseModel" : "noBaseModel"}-${cashFlowProjection ? "hasProjection" : "noProjection"}-${sankeyViewMode}-${includeTransfers ? "withTransfers" : "noTransfers"}`;
                     return (
                       <SankeyDiagram
                         key={sankeyKey}
@@ -3015,44 +3135,62 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
                         stateTaxProjectionValue={categoryStateTaxProjectionValue}
                       />
                     );
-                } catch (innerError) {
+                  } catch (innerError) {
+                    return (
+                      <Alert severity="error" variant="outlined">
+                        <Typography variant="subtitle2" fontWeight="600">
+                          Error:
+                        </Typography>
+                        <Typography variant="body2">
+                          Failed to render Sankey Diagram. Please check the console for details.
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {innerError?.message || "Unknown error"}
+                        </Typography>
+                      </Alert>
+                    );
+                  }
+                } catch (renderError) {
                   return (
-                    <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
-                      <strong>Error:</strong> Failed to render Sankey Diagram.
-                      <br />
-                      <small>Error: {innerError?.message || 'Unknown error'}</small>
-                      <br />
-                      <small style={{ fontSize: '0.8em', marginTop: '10px', display: 'block' }}>
-                        Check the browser console (F12) for more details.
-                      </small>
-                    </div>
+                    <Alert severity="error" variant="outlined">
+                      <Typography variant="subtitle2" fontWeight="600">
+                        Error:
+                      </Typography>
+                      <Typography variant="body2">
+                        Failed to render Sankey Diagram. Please check the console for details.
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {renderError?.message || "Unknown error"}
+                      </Typography>
+                    </Alert>
                   );
                 }
-              } catch (error) {
-                return (
-                  <div style={{ padding: '20px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', marginBottom: '20px', color: '#721c24' }}>
-                    <strong>Error:</strong> Failed to render Sankey Diagram. Please check the console for details.
-                    <br />
-                    <small>{error?.message || 'Unknown error'}</small>
-                  </div>
-                );
-              }
-            })()}
-            </div>
-          </div>
-          {sankeyViewMode !== 'pie' && (
-            <div style={{ marginTop: '20px', fontSize: '0.9em', color: '#666', padding: '0 10px' }}>
-              <p><strong>How to read:</strong></p>
-              <ul style={{ marginLeft: '20px' }}>
-                <li>Left side shows cash sources (income) grouped by category</li>
-                <li>Center shows your wallet/main account (total cash)</li>
-                <li>Right side shows where cash goes (expenses by category and available cash/savings)</li>
-                <li>Line thickness represents the flow amount</li>
-              </ul>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+              })()}
+            </Box>
+          </Box>
+        </Paper>
+        {sankeyViewMode !== "pie" && (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+              How to read:
+            </Typography>
+            <List dense disablePadding>
+              <ListItem disablePadding>
+                <ListItemText primary="Left side shows cash sources (income) grouped by category" />
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemText primary="Center shows your wallet/main account (total cash)" />
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemText primary="Right side shows where cash goes (expenses by category and available cash/savings)" />
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemText primary="Line thickness represents the flow amount" />
+              </ListItem>
+            </List>
+          </Paper>
+        )}
+      </TabPanel>
+    </Box>
   );
 }

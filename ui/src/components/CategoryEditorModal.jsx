@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 import SettingsService from '../services/settings.service'; // NEW: Import SettingsService
+import { projectionActionButtonSx, projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 import './CategoryEditorModal.css'; // CORRECTED: Import CategoryEditorModal's own CSS
 
 // Helper function to reorder arrays
@@ -95,14 +96,21 @@ export default function CategoryEditorModal({ isOpen, onClose, onSave, categorie
     onClose();
   };
 
-  if (!isOpen) return null;
-
-  // Render the modal using a Portal to ensure it's outside the main DOM flow
-  return createPortal(
-    <div className="category-editor-modal-overlay" onClick={onClose}>
-      <div className="category-editor-modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Manage {title}</h3>
-        <p style={{ fontSize: '0.85em', color: '#666', marginTop: '-10px', marginBottom: '15px' }}>Double click to rename</p>
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      PaperProps={{ className: "category-editor-modal", sx: { borderRadius: 2 } }}
+    >
+      <DialogTitle sx={{ pb: 0.5, textAlign: "center", fontSize: "1.25rem", fontWeight: 700 }}>
+        Manage {title}
+      </DialogTitle>
+      <DialogContent dividers sx={{ pt: 1.5 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Click a category to rename it
+        </Typography>
 
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="droppable-categories">
@@ -135,23 +143,25 @@ export default function CategoryEditorModal({ isOpen, onClose, onSave, categorie
                       >
                         {editingIndex === index ? (
                           <>
-                            <input
-                              type="text"
+                            <TextField
+                              size="small"
                               value={editingText}
                               onChange={(e) => setEditingText(e.target.value)}
-                              onKeyPress={(e) => {
-                                  if (e.key === 'Enter') {
-                                      handleSaveEdit(index);
-                                  }
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSaveEdit(index);
+                                }
                               }}
                             />
-                            <button onClick={() => handleSaveEdit(index)}>Save</button>
-                            <button onClick={() => handleCancelEdit()}>Cancel</button>
+                            <Button size="small" variant="contained" sx={{ ...projectionActionButtonSx, minWidth: 72 }} onClick={() => handleSaveEdit(index)}>Save</Button>
+                            <Button size="small" variant="outlined" sx={{ ...projectionSecondaryButtonSx, minWidth: 72 }} onClick={() => handleCancelEdit()}>Cancel</Button>
                           </>
                         ) : (
                           <>
-                            <span onClick={() => handleEditClick(index, category)}>{category}</span>
-                            <button onClick={() => handleRemoveCategory(index)}>x</button>
+                            <Typography component="span" onClick={() => handleEditClick(index, category)} sx={{ flexGrow: 1, cursor: "pointer", px: 0.5 }}>
+                              {category}
+                            </Typography>
+                            <Button size="small" variant="outlined" sx={{ ...projectionSecondaryButtonSx, minWidth: 36, width: 36, p: 0 }} onClick={() => handleRemoveCategory(index)}>x</Button>
                           </>
                         )}
                       </div>
@@ -164,27 +174,26 @@ export default function CategoryEditorModal({ isOpen, onClose, onSave, categorie
           </Droppable>
         </DragDropContext>
 
-        <div className="add-category-form">
-          <input
-            type="text"
+        <Stack className="add-category-form" direction="row" spacing={1.25} alignItems="center">
+          <TextField
+            size="small"
+            fullWidth
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
-            onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                    handleAddCategory();
-                }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleAddCategory();
+              }
             }}
             placeholder="Add new category"
           />
-          <button onClick={() => handleAddCategory()}>Add</button>
-        </div>
-
-        <div className="modal-actions">
-          <button onClick={handleModalSave}>Save Changes</button>
-          <button onClick={() => onClose()}>Cancel</button>
-        </div>
-      </div>
-    </div>,
-    document.body
+          <Button variant="contained" sx={{ ...projectionActionButtonSx, minWidth: 80 }} onClick={() => handleAddCategory()}>Add</Button>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "divider" }}>
+        <Button variant="contained" sx={projectionActionButtonSx} onClick={handleModalSave}>Save Changes</Button>
+        <Button variant="outlined" sx={projectionSecondaryButtonSx} onClick={() => onClose()}>Cancel</Button>
+      </DialogActions>
+    </Dialog>
   );
 }

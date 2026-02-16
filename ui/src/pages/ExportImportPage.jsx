@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button, Checkbox, FormControlLabel } from "@mui/material";
 import { useAuth } from '../context/AuthContext';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ExportImportService from '../services/exportImport.service';
+import { projectionActionButtonSx, projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 import './SettingsPages.css';
 
 const ExportImportPage = () => {
@@ -156,62 +158,13 @@ const ExportImportPage = () => {
         </div>
         
         <div className="data-types-grid">
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={exportOptions.include_accounts}
-              onChange={() => toggleExportOption('include_accounts')}
-            />
-            <span>Accounts</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={exportOptions.include_assets}
-              onChange={() => toggleExportOption('include_assets')}
-            />
-            <span>Assets</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={exportOptions.include_liabilities}
-              onChange={() => toggleExportOption('include_liabilities')}
-            />
-            <span>Liabilities</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={exportOptions.include_income}
-              onChange={() => toggleExportOption('include_income')}
-            />
-            <span>Income Items</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={exportOptions.include_expenses}
-              onChange={() => toggleExportOption('include_expenses')}
-            />
-            <span>Expense Items</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={exportOptions.include_projections}
-              onChange={() => toggleExportOption('include_projections')}
-            />
-            <span>Projections</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={exportOptions.include_charts}
-              onChange={() => toggleExportOption('include_charts')}
-            />
-            <span>Custom Charts</span>
-          </label>
+          <FormControlLabel control={<Checkbox checked={exportOptions.include_accounts} onChange={() => toggleExportOption('include_accounts')} />} label="Accounts" />
+          <FormControlLabel control={<Checkbox checked={exportOptions.include_assets} onChange={() => toggleExportOption('include_assets')} />} label="Assets" />
+          <FormControlLabel control={<Checkbox checked={exportOptions.include_liabilities} onChange={() => toggleExportOption('include_liabilities')} />} label="Liabilities" />
+          <FormControlLabel control={<Checkbox checked={exportOptions.include_income} onChange={() => toggleExportOption('include_income')} />} label="Income Items" />
+          <FormControlLabel control={<Checkbox checked={exportOptions.include_expenses} onChange={() => toggleExportOption('include_expenses')} />} label="Expense Items" />
+          <FormControlLabel control={<Checkbox checked={exportOptions.include_projections} onChange={() => toggleExportOption('include_projections')} />} label="Projections" />
+          <FormControlLabel control={<Checkbox checked={exportOptions.include_charts} onChange={() => toggleExportOption('include_charts')} />} label="Custom Charts" />
         </div>
 
         <div className="export-format-section">
@@ -246,13 +199,14 @@ const ExportImportPage = () => {
         </div>
 
         <div className="section-actions">
-          <button 
+          <Button 
             onClick={handleExport} 
-            className="save-button"
+            variant="contained"
+            sx={projectionActionButtonSx}
             disabled={loading}
           >
             {loading ? 'Exporting...' : `Export Data as ${exportFormat.toUpperCase()}`}
-          </button>
+          </Button>
         </div>
         
         {exportMessage && (
@@ -275,62 +229,13 @@ const ExportImportPage = () => {
         </div>
 
         <div className="data-types-grid">
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={importOptions.include_accounts}
-              onChange={() => toggleImportOption('include_accounts')}
-            />
-            <span>Accounts</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={importOptions.include_assets}
-              onChange={() => toggleImportOption('include_assets')}
-            />
-            <span>Assets</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={importOptions.include_liabilities}
-              onChange={() => toggleImportOption('include_liabilities')}
-            />
-            <span>Liabilities</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={importOptions.include_income}
-              onChange={() => toggleImportOption('include_income')}
-            />
-            <span>Income Items</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={importOptions.include_expenses}
-              onChange={() => toggleImportOption('include_expenses')}
-            />
-            <span>Expense Items</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={importOptions.include_projections}
-              onChange={() => toggleImportOption('include_projections')}
-            />
-            <span>Projections</span>
-          </label>
-          <label className="data-type-checkbox">
-            <input
-              type="checkbox"
-              checked={importOptions.include_charts}
-              onChange={() => toggleImportOption('include_charts')}
-            />
-            <span>Custom Charts</span>
-          </label>
+          <FormControlLabel control={<Checkbox checked={importOptions.include_accounts} onChange={() => toggleImportOption('include_accounts')} />} label="Accounts" />
+          <FormControlLabel control={<Checkbox checked={importOptions.include_assets} onChange={() => toggleImportOption('include_assets')} />} label="Assets" />
+          <FormControlLabel control={<Checkbox checked={importOptions.include_liabilities} onChange={() => toggleImportOption('include_liabilities')} />} label="Liabilities" />
+          <FormControlLabel control={<Checkbox checked={importOptions.include_income} onChange={() => toggleImportOption('include_income')} />} label="Income Items" />
+          <FormControlLabel control={<Checkbox checked={importOptions.include_expenses} onChange={() => toggleImportOption('include_expenses')} />} label="Expense Items" />
+          <FormControlLabel control={<Checkbox checked={importOptions.include_projections} onChange={() => toggleImportOption('include_projections')} />} label="Projections" />
+          <FormControlLabel control={<Checkbox checked={importOptions.include_charts} onChange={() => toggleImportOption('include_charts')} />} label="Custom Charts" />
         </div>
 
         <div className="file-input-section">
@@ -351,13 +256,14 @@ const ExportImportPage = () => {
         </div>
 
         <div className="section-actions">
-          <button 
+          <Button 
             onClick={handleImport} 
-            className="save-button"
+            variant="contained"
+            sx={projectionActionButtonSx}
             disabled={loading || !importFile}
           >
             {loading ? 'Importing...' : 'Import Data'}
-          </button>
+          </Button>
         </div>
         
         {importMessage && (
@@ -378,7 +284,7 @@ const ExportImportPage = () => {
       </div>
 
       <div className="settings-page-actions">
-        <button onClick={() => navigate('/app')} className="cancel-button">Back</button>
+        <Button onClick={() => navigate('/app')} variant="outlined" sx={projectionSecondaryButtonSx}>Back</Button>
       </div>
     </div>
   );

@@ -63,12 +63,12 @@
 }
 
 .settings-tabs button:hover {
-    color: #007bff;
+    color: #00a3e0;
 }
 
 .settings-tabs button.active {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
+    color: #00a3e0;
+    border-bottom: 2px solid #00a3e0;
     font-weight: bold;
 }
 
@@ -281,7 +281,7 @@
 }
 
 .change-password-btn {
-    background-color: #007bff; /* Bootstrap primary blue */
+    background-color: #00a3e0; /* Bootstrap primary blue */
     color: white;
     border: none;
     padding: 8px 15px;
@@ -346,7 +346,7 @@
 }
 
 .admin-tab-content .set-admin-status-btn {
-    background-color: #007bff; /* Blue for make admin */
+    background-color: #00a3e0; /* Blue for make admin */
     color: white;
 }
 

@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import GlobalSettings from '../components/GlobalSettings';
 import { useNavigate } from 'react-router-dom';
+import { Button } from "@mui/material";
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
+import { projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 import './SettingsPages.css'; // General CSS for settings pages
 
 const DefaultCategoriesPage = () => {
@@ -25,7 +27,7 @@ const DefaultCategoriesPage = () => {
     <div className="settings-page-container">
       <GlobalSettings onGlobalSettingsSaved={refreshUserSettings} />
       <div className="settings-page-actions">
-        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
+        <Button onClick={() => navigate('/app')} variant="outlined" sx={projectionSecondaryButtonSx}>Cancel</Button>
       </div>
     </div>
   );
