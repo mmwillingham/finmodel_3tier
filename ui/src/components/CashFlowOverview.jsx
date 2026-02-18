@@ -584,7 +584,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         {
           data,
           backgroundColor,
-          borderColor: '#fff',
+          borderColor: 'rgba(2, 6, 23, 0.9)',
           borderWidth: 2,
         },
       ],
@@ -598,11 +598,17 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
       legend: {
         position: 'bottom',
         labels: {
+          color: '#cbd5e1',
           boxWidth: 12,
           padding: 12,
         },
       },
       tooltip: {
+        backgroundColor: 'rgba(2, 6, 23, 0.96)',
+        titleColor: '#f8fafc',
+        bodyColor: '#e2e8f0',
+        borderColor: 'rgba(56, 189, 248, 0.45)',
+        borderWidth: 1,
         callbacks: {
           label: (context) => {
             const value = Number(context.raw) || 0;
@@ -671,35 +677,37 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
     const paneStyle = {
       flex: '1 1 320px',
       minWidth: '300px',
-      backgroundColor: 'white',
+      backgroundColor: 'rgba(15, 23, 42, 0.78)',
       borderRadius: '8px',
-      border: '1px solid #e0e0e0',
+      border: '1px solid transparent',
       padding: '20px',
-      boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
+      boxShadow: '0 10px 24px rgba(2, 6, 23, 0.35)',
+      color: '#e2e8f0',
     };
 
     const tableCardStyle = {
       flex: '1 1 300px',
       minWidth: '280px',
-      backgroundColor: '#fff',
+      backgroundColor: 'rgba(15, 23, 42, 0.78)',
       borderRadius: '8px',
-      border: '1px solid #e0e0e0',
+      border: '1px solid transparent',
       padding: '16px',
-      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
+      boxShadow: '0 8px 20px rgba(2, 6, 23, 0.32)',
+      color: '#e2e8f0',
     };
 
     const tableHeaderCell = {
       textAlign: 'left',
       padding: '6px 8px',
       fontSize: '0.85em',
-      color: '#555',
+      color: '#94a3b8',
     };
 
     const tableValueCell = {
       padding: '6px 8px',
-      borderTop: '1px solid #f0f0f0',
+      borderTop: '1px solid rgba(148, 163, 184, 0.20)',
       fontSize: '0.9em',
-      color: '#333',
+      color: '#e2e8f0',
     };
 
     return (
@@ -707,34 +715,34 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
         <div style={paneStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
             <h4 style={{ margin: 0 }}>Cash In Categories</h4>
-            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(incomePieTotal)}</span>
+            <span style={{ fontSize: '0.9em', color: '#cbd5e1' }}>{safeFormatCurrency(incomePieTotal)}</span>
           </div>
           {incomePieChartData ? (
             <div style={{ minHeight: '320px' }}>
               <Chart type="pie" data={incomePieChartData} options={pieChartOptions} />
             </div>
           ) : (
-            <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No cash in data available for this year.</p>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em' }}>No cash in data available for this year.</p>
           )}
         </div>
         <div style={paneStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
             <h4 style={{ margin: 0 }}>Cash Out Categories</h4>
-            <span style={{ fontSize: '0.9em', color: '#555' }}>{safeFormatCurrency(expensePieTotal)}</span>
+            <span style={{ fontSize: '0.9em', color: '#cbd5e1' }}>{safeFormatCurrency(expensePieTotal)}</span>
           </div>
           {expensePieChartData ? (
             <div style={{ minHeight: '320px' }}>
               <Chart type="pie" data={expensePieChartData} options={pieChartOptions} />
             </div>
           ) : (
-            <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No expenses available for this year.</p>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em' }}>No expenses available for this year.</p>
           )}
         </div>
         <div style={{ marginTop: '12px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
           <div style={tableCardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
               <h5 style={{ margin: 0 }}>Cash In Data</h5>
-              <span style={{ fontSize: '0.85em', color: '#777' }}>{incomePieEntries.length} categories</span>
+              <span style={{ fontSize: '0.85em', color: '#94a3b8' }}>{incomePieEntries.length} categories</span>
             </div>
             {incomePieEntriesSorted.length > 0 ? (
               <div style={{ overflowX: 'auto' }}>
@@ -755,21 +763,21 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
                       </tr>
                     ))}
                     <tr>
-                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111' }}>Total</td>
-                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{safeFormatCurrency(incomePieTotal)}</td>
-                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{formatPercent(incomePieTotal, incomePieTotal)}</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid rgba(148, 163, 184, 0.30)', fontSize: '0.9em', fontWeight: '600', color: '#e2e8f0' }}>Total</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid rgba(148, 163, 184, 0.30)', fontSize: '0.9em', fontWeight: '600', color: '#e2e8f0', textAlign: 'right' }}>{safeFormatCurrency(incomePieTotal)}</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid rgba(148, 163, 184, 0.30)', fontSize: '0.9em', fontWeight: '600', color: '#e2e8f0', textAlign: 'right' }}>{formatPercent(incomePieTotal, incomePieTotal)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No cash in categories to show.</p>
+              <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em' }}>No cash in categories to show.</p>
             )}
           </div>
           <div style={tableCardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
               <h5 style={{ margin: 0 }}>Cash Out Data</h5>
-              <span style={{ fontSize: '0.85em', color: '#777' }}>{expensePieEntries.length} categories</span>
+              <span style={{ fontSize: '0.85em', color: '#94a3b8' }}>{expensePieEntries.length} categories</span>
             </div>
             {expensePieEntriesSorted.length > 0 ? (
               <div style={{ overflowX: 'auto' }}>
@@ -790,15 +798,15 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
                       </tr>
                     ))}
                     <tr>
-                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111' }}>Total</td>
-                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{safeFormatCurrency(expensePieTotal)}</td>
-                      <td style={{ padding: '6px 8px', borderTop: '1px solid #222', fontSize: '0.9em', fontWeight: '600', color: '#111', textAlign: 'right' }}>{formatPercent(expensePieTotal, expensePieTotal)}</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid rgba(148, 163, 184, 0.30)', fontSize: '0.9em', fontWeight: '600', color: '#e2e8f0' }}>Total</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid rgba(148, 163, 184, 0.30)', fontSize: '0.9em', fontWeight: '600', color: '#e2e8f0', textAlign: 'right' }}>{safeFormatCurrency(expensePieTotal)}</td>
+                      <td style={{ padding: '6px 8px', borderTop: '1px solid rgba(148, 163, 184, 0.30)', fontSize: '0.9em', fontWeight: '600', color: '#e2e8f0', textAlign: 'right' }}>{formatPercent(expensePieTotal, expensePieTotal)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p style={{ margin: 0, color: '#555', fontSize: '0.9em' }}>No expenses categories to show.</p>
+              <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9em' }}>No expenses categories to show.</p>
             )}
           </div>
         </div>
@@ -809,7 +817,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
   // Early return if no data
   if (incomeCategories.length === 0 && expenseCategories.length === 0) {
     return (
-      <div style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '20px' }}>
+      <div style={{ padding: '20px', backgroundColor: 'rgba(245, 158, 11, 0.16)', border: '1px solid rgba(245, 158, 11, 0.34)', borderRadius: '4px', marginBottom: '20px', color: '#fef3c7' }}>
         <strong>Note:</strong> No income or expense data available to display in the Sankey Diagram.
       </div>
     );
@@ -838,7 +846,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               <text
                 x={pos.x + nodeWidth + 10}
                 y={pos.y + pos.height / 2}
-                fill="#333"
+                fill="#e2e8f0"
                 fontSize="12"
                 fontWeight="bold"
                 dominantBaseline="middle"
@@ -875,7 +883,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               <text
                 x={pos.x + nodeWidth + 10}
                 y={pos.y + pos.height / 2}
-                fill="#333"
+                fill="#e2e8f0"
                 fontSize="12"
                 dominantBaseline="middle"
               >
@@ -907,7 +915,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               <text
                 x={pos.x + nodeWidth + 10}
                 y={pos.y + pos.height / 2}
-                fill="#333"
+                fill="#e2e8f0"
                 fontSize="12"
                 dominantBaseline="middle"
               >
@@ -970,7 +978,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               <text
                 x={pos.x - nodeWidth - 10}
                 y={pos.y + pos.height / 2}
-                fill="#333"
+                fill="#e2e8f0"
                 fontSize="12"
                 fontWeight="bold"
                 textAnchor="end"
@@ -1007,7 +1015,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               <text
                 x={pos.x - nodeWidth - 10}
                 y={pos.y + pos.height / 2}
-                fill="#333"
+                fill="#e2e8f0"
                 fontSize="12"
                 textAnchor="end"
                 dominantBaseline="middle"
@@ -1040,7 +1048,7 @@ function SankeyDiagram({ incomeItems = [], expenseItems = [], assets = [], userS
               <text
                 x={pos.x - nodeWidth - 10}
                 y={pos.y + pos.height / 2}
-                fill="#333"
+                fill="#e2e8f0"
                 fontSize="12"
                 textAnchor="end"
                 dominantBaseline="middle"
@@ -2355,7 +2363,11 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
   } : baseModel;
   
   if (loading) {
-    return <div>Loading projections. Please be patient...</div>;
+    return (
+      <Box className="projection-loading-message">
+        <Typography>Loading projections. Please be patient...</Typography>
+      </Box>
+    );
   }
   
   if (error) {
@@ -2771,7 +2783,20 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           indicatorColor="primary"
           variant="scrollable"
           allowScrollButtonsMobile
-          sx={{ mt: 2 }}
+          sx={{
+            mt: 2,
+            "& .MuiTab-root": {
+              color: "#94a3b8",
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+            },
+            "& .Mui-selected": {
+              color: "#38bdf8 !important",
+            },
+            "& .MuiTabs-indicator": {
+              backgroundColor: "#38bdf8",
+            },
+          }}
           aria-label="Cash flow overview tabs"
         >
           <Tab label="Overview" value="overview" />
@@ -3086,10 +3111,9 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           <Box
             sx={{
               position: "relative",
-              border: "1px solid",
-              borderColor: "divider",
+              border: "1px solid transparent",
               borderRadius: 2,
-              bgcolor: "background.paper",
+              bgcolor: "rgba(15, 23, 42, 0.72)",
               width: "100%",
               overflowY: "auto",
               overflowX: "auto",
@@ -3170,7 +3194,14 @@ export default function CashFlowOverview({ incomeItems = [], expenseItems = [], 
           </Box>
         </Paper>
         {sankeyViewMode !== "pie" && (
-          <Paper variant="outlined" sx={{ p: 2 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              ...projectionSectionCardSx,
+              p: 2,
+              mb: 0,
+            }}
+          >
             <Typography variant="subtitle1" fontWeight="600" gutterBottom>
               How to read:
             </Typography>

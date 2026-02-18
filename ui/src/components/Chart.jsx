@@ -13,6 +13,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import { createDarkLineChartOptions, DARK_CHART_SERIES_COLORS } from "../utils/darkChartTheme";
 import "./Chart.css";
 
 ChartJS.register(
@@ -26,7 +27,7 @@ ChartJS.register(
   Filler
 );
 
-const CHART_COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#00bcd4", "#ff7300", "#7cb342"];
+const CHART_COLORS = ["#34d399", "#38bdf8", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee"];
 
 const getAccountKeys = (rows) =>
   !rows?.length ? [] : Object.keys(rows[0]).filter((k) => k.endsWith("_Value") && k !== "Total_Value");
@@ -81,8 +82,8 @@ export default function Chart() {
       borderColor: CHART_COLORS[i % CHART_COLORS.length],
       backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + "40",
       borderWidth: 2,
-      pointRadius: 0,
-      tension: 0.1,
+      pointRadius: 1.5,
+      tension: 0.3,
       fill: false,
     });
   });
@@ -91,51 +92,21 @@ export default function Chart() {
     datasets.push({
       label: "Total",
       data: chartData.map((row) => row.Total_Value ?? 0),
-      borderColor: "#000000",
-      backgroundColor: "#00000040",
+      borderColor: DARK_CHART_SERIES_COLORS.expected,
+      backgroundColor: "rgba(56, 189, 248, 0.20)",
       borderWidth: 3,
       pointRadius: 0,
-      tension: 0.1,
+      tension: 0.3,
       fill: false,
     });
   }
 
   const data = { labels, datasets };
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: latestProj.name || "Projection Over Time" },
-      tooltip: {
-        callbacks: {
-          label: (ctx) => {
-            const label = ctx.dataset.label ? `${ctx.dataset.label}: ` : "";
-            return (
-              label +
-              new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-                ctx.parsed.y ?? 0
-              )
-            );
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (v) =>
-            new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: "USD",
-              minimumFractionDigits: 0,
-            }).format(v),
-        },
-      },
-      x: { title: { display: true, text: "Year" } },
-    },
-  };
+  const options = createDarkLineChartOptions({
+    title: latestProj.name || "Projection Over Time",
+    beginAtZero: true,
+    xAxisTitle: "Year",
+  });
 
   return (
     <div style={{ height: 400, width: "100%" }}>

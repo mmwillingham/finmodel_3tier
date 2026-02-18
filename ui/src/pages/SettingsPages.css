@@ -1380,4 +1380,168 @@
   font-size: 0.9em;
 }
 
+/* Premium dark overrides for settings-area pages */
+.page-shell-card .settings-page-container,
+.page-shell-card .help-page-container {
+  background:
+    radial-gradient(130% 110% at 50% 100%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%) !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  box-shadow: 0 16px 28px rgba(2, 6, 23, 0.34) !important;
+  color: #e2e8f0 !important;
+}
+
+.page-shell-card .settings-page-container h2,
+.page-shell-card .settings-page-container h3,
+.page-shell-card .settings-page-container h4,
+.page-shell-card .settings-page-container p,
+.page-shell-card .settings-page-container label,
+.page-shell-card .settings-page-container span,
+.page-shell-card .help-content-display h1,
+.page-shell-card .help-content-display h2,
+.page-shell-card .help-content-display h3,
+.page-shell-card .help-content-display p,
+.page-shell-card .help-content-display li {
+  color: #e2e8f0 !important;
+}
+
+.page-shell-card .settings-page-container .setting-group > div,
+.page-shell-card .settings-page-container .export-import-section,
+.page-shell-card .settings-page-container .referral-stats-box,
+.page-shell-card .settings-page-container .data-types-grid,
+.page-shell-card .settings-page-container .file-input-section,
+.page-shell-card .settings-page-container .person-column,
+.page-shell-card .settings-page-container .post-grid > div,
+.page-shell-card .help-content-display {
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.06) 0%, rgba(56, 189, 248, 0) 70%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%) !important;
+  border: 1px solid transparent !important;
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.28) !important;
+  color: #e2e8f0 !important;
+}
+
+.page-shell-card .settings-page-container .accounts-table,
+.page-shell-card .settings-page-container .user-management-table,
+.page-shell-card .settings-page-container .referrals-table {
+  background-color: rgba(2, 6, 23, 0.35) !important;
+}
+
+.page-shell-card .settings-page-container .accounts-table th,
+.page-shell-card .settings-page-container .user-management-table th,
+.page-shell-card .settings-page-container .referrals-table th {
+  background-color: rgba(15, 23, 42, 0.78) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+.page-shell-card .settings-page-container .accounts-table td,
+.page-shell-card .settings-page-container .user-management-table td,
+.page-shell-card .settings-page-container .referrals-table td {
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+.page-shell-card .settings-page-container .accounts-table tr:hover,
+.page-shell-card .settings-page-container .user-management-table tr:hover,
+.page-shell-card .settings-page-container .referrals-table tr:hover,
+.page-shell-card .settings-page-container .data-type-checkbox:hover {
+  background-color: rgba(56, 189, 248, 0.10) !important;
+}
+
+.page-shell-card .settings-page-container .input-modern,
+.page-shell-card .settings-page-container input,
+.page-shell-card .settings-page-container select,
+.page-shell-card .settings-page-container textarea,
+.page-shell-card .settings-page-container .file-input,
+.page-shell-card .settings-page-container .format-select,
+.page-shell-card .settings-page-container .filename-input-field {
+  background-color: rgba(15, 23, 42, 0.72) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+.page-shell-card .settings-page-container .category-tag {
+  background: rgba(56, 189, 248, 0.16) !important;
+  color: #7dd3fc !important;
+}
+
+/* Catch inline legacy light backgrounds used in a few settings pages (e.g., Accounts) */
+.page-shell-card .settings-page-container [style*="background-color: #fff"],
+.page-shell-card .settings-page-container [style*="background-color:#fff"],
+.page-shell-card .settings-page-container [style*="background-color: #f8f9fa"],
+.page-shell-card .settings-page-container [style*="background-color:#f8f9fa"],
+.page-shell-card .settings-page-container [style*="background-color: #e0edfb"],
+.page-shell-card .settings-page-container [style*="background-color:#e0edfb"],
+.page-shell-card .settings-page-container [style*="background-color: #fff7e6"],
+.page-shell-card .settings-page-container [style*="background-color:#fff7e6"],
+.page-shell-card .settings-page-container [style*="background-color: #fee"],
+.page-shell-card .settings-page-container [style*="background-color:#fee"],
+.page-shell-card .settings-page-container [style*="background-color: #efe"],
+.page-shell-card .settings-page-container [style*="background-color:#efe"] {
+  background-color: rgba(15, 23, 42, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  color: #e2e8f0 !important;
+}
+
+/* Catch additional inline light surfaces used by Accounts/Auto-Disbursements pages */
+.page-shell-card .settings-page-container [style*="background-color: #f0f7ff"],
+.page-shell-card .settings-page-container [style*="background-color:#f0f7ff"],
+.page-shell-card .settings-page-container [style*="background-color: #d4edda"],
+.page-shell-card .settings-page-container [style*="background-color:#d4edda"],
+.page-shell-card .settings-page-container [style*="background-color: #fff3cd"],
+.page-shell-card .settings-page-container [style*="background-color:#fff3cd"],
+.page-shell-card .settings-page-container [style*="background-color: #e2e3ff"],
+.page-shell-card .settings-page-container [style*="background-color:#e2e3ff"],
+.page-shell-card .settings-page-container [style*="background: #fff"],
+.page-shell-card .settings-page-container [style*="background:#fff"] {
+  background-color: rgba(15, 23, 42, 0.72) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+.page-shell-card .settings-page-container [style*="color: #666"],
+.page-shell-card .settings-page-container [style*="color:#666"],
+.page-shell-card .settings-page-container [style*="color: #555"],
+.page-shell-card .settings-page-container [style*="color:#555"],
+.page-shell-card .settings-page-container [style*="color: #333"],
+.page-shell-card .settings-page-container [style*="color:#333"] {
+  color: #cbd5e1 !important;
+}
+
+/* Keep tabs/headers readable on automatic transfer screen */
+.page-shell-card .settings-page-container.auto-disbursements-page .settings-tabs {
+  border-bottom-color: rgba(148, 163, 184, 0.28) !important;
+}
+
+.page-shell-card .settings-page-container.auto-disbursements-page .setting-group,
+.page-shell-card .settings-page-container:has(.plaid-connections) .setting-group,
+.page-shell-card .settings-page-container:has(.accounts-table) .setting-group.card-modern {
+  background:
+    radial-gradient(120% 100% at 50% 100%, rgba(56, 189, 248, 0.06) 0%, rgba(56, 189, 248, 0) 70%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%) !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  color: #e2e8f0 !important;
+}
+
+.accounts-plaid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.accounts-plaid-main {
+  min-width: 0;
+}
+
+.accounts-plaid-side {
+  min-width: 0;
+}
+
+@media (max-width: 1000px) {
+  .accounts-plaid-layout {
+    grid-template-columns: 1fr;
+  }
+}
 

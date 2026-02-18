@@ -2,6 +2,11 @@ export const projectionSectionCardSx = {
   p: { xs: 2, md: 3 },
   mb: 3,
   borderRadius: 2,
+  border: "1px solid transparent",
+  background:
+    "radial-gradient(130% 110% at 50% 100%, rgba(56, 189, 248, 0.09) 0%, rgba(56, 189, 248, 0) 68%), linear-gradient(180deg, #0f172a 0%, #111827 100%)",
+  boxShadow: "0 14px 28px rgba(2, 6, 23, 0.32)",
+  color: "#e2e8f0",
 };
 
 export const projectionActionButtonSx = {
@@ -19,11 +24,12 @@ export const projectionActionButtonSx = {
 
 export const projectionSecondaryButtonSx = {
   textTransform: "none",
-  borderColor: "#0F2847",
-  color: "#0F2847",
+  borderColor: "rgba(148, 163, 184, 0.44)",
+  color: "#e2e8f0",
+  background: "rgba(15, 23, 42, 0.35)",
   "&:hover": {
-    borderColor: "#0F2847",
-    backgroundColor: "rgba(15, 40, 71, 0.06)",
+    borderColor: "#38bdf8",
+    backgroundColor: "rgba(56, 189, 248, 0.12)",
   },
 };
 
@@ -46,8 +52,20 @@ export const projectionSwitchSx = {
 
 export const projectionTableContainerSx = {
   overflowX: "auto",
+  border: "1px solid rgba(148, 163, 184, 0.22)",
+  borderRadius: 1.5,
+  bgcolor: "rgba(2, 6, 23, 0.35)",
   "& .MuiTableCell-head": {
     fontWeight: 600,
-    bgcolor: "grey.50",
+    bgcolor: "rgba(15, 23, 42, 0.75)",
+    color: "#cbd5e1",
+    borderColor: "rgba(148, 163, 184, 0.22)",
+  },
+  "& .MuiTableCell-body": {
+    color: "#e2e8f0",
+    borderColor: "rgba(148, 163, 184, 0.18)",
+  },
+  "& .MuiTableRow-root:hover": {
+    bgcolor: "rgba(56, 189, 248, 0.08)",
   },
 };

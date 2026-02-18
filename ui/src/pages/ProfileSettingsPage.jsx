@@ -10,7 +10,7 @@ import './SettingsPages.css'; // General CSS for settings pages
 import { calculateFRADate, formatFRADisplay, calculateMonthlyBenefit, getMinRetirementDate } from '../utils/socialSecurity.js';
 import { useSettingsContext } from '../context/SettingsContext.jsx';
 import { browserSupportsWebAuthn, startRegistration } from '@simplewebauthn/browser';
-import { projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
+import { projectionActionButtonSx, projectionSecondaryButtonSx } from "../utils/projectionUiStyles";
 
 const formatPhoneNumber = (value) => {
     if (!value) return "";
@@ -246,7 +246,7 @@ const ProfileSettingsPage = () => {
 
             <div style={{ width: '100%', marginTop: '18px', paddingTop: '10px', borderTop: '1px dashed var(--color-border)' }}>
               <h4 style={{ marginBottom: '10px' }}>Social Security</h4>
-              <div style={{ padding: '10px 15px', backgroundColor: '#e7f3ff', borderLeft: '4px solid #0066cc', borderRadius: '4px', fontSize: '0.9rem', color: '#004085', marginBottom: '12px' }}>
+              <div style={{ padding: '10px 15px', backgroundColor: 'rgba(56, 189, 248, 0.16)', borderLeft: '4px solid #38bdf8', borderRadius: '4px', fontSize: '0.9rem', color: '#bae6fd', marginBottom: '12px' }}>
                 <strong>Note:</strong> The calculated monthly benefit is an approximation. For the most accurate estimate, refer to ssa.gov.
               </div>
               <div className="form-group-horizontal">
@@ -256,7 +256,7 @@ const ProfileSettingsPage = () => {
                   type="text"
                   value={formatFRADisplay(person1Birthdate)}
                   disabled
-                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  style={{ backgroundColor: 'rgba(15, 23, 42, 0.66)', color: '#cbd5e1', cursor: 'not-allowed' }}
                   placeholder="Calculated from date of birth"
                 />
               </div>
@@ -302,7 +302,7 @@ const ProfileSettingsPage = () => {
                     `$${calculateMonthlyBenefit(parseFloat(person1SSPIA), person1SSRetirementDate, calculateFRADate(person1Birthdate), person1Birthdate).toFixed(2)}` :
                     ''}
                   disabled
-                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  style={{ backgroundColor: 'rgba(15, 23, 42, 0.66)', color: '#cbd5e1', cursor: 'not-allowed' }}
                   placeholder="Calculated based on PIA and retirement date"
                 />
               </div>
@@ -353,7 +353,7 @@ const ProfileSettingsPage = () => {
 
             <div style={{ width: '100%', marginTop: '18px', paddingTop: '10px', borderTop: '1px dashed var(--color-border)' }}>
               <h4 style={{ marginBottom: '10px' }}>Social Security</h4>
-              <div style={{ padding: '10px 15px', backgroundColor: '#e7f3ff', borderLeft: '4px solid #0066cc', borderRadius: '4px', fontSize: '0.9rem', color: '#004085', marginBottom: '12px' }}>
+              <div style={{ padding: '10px 15px', backgroundColor: 'rgba(56, 189, 248, 0.16)', borderLeft: '4px solid #38bdf8', borderRadius: '4px', fontSize: '0.9rem', color: '#bae6fd', marginBottom: '12px' }}>
                 <strong>Note:</strong> Spousal benefits are the higher of their own benefit or 1/2 of spouse's. Assumes Person 1 is the higher earner and both are alive.
               </div>
               <div className="form-group-horizontal">
@@ -363,7 +363,7 @@ const ProfileSettingsPage = () => {
                   type="text"
                   value={formatFRADisplay(person2Birthdate)}
                   disabled
-                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  style={{ backgroundColor: 'rgba(15, 23, 42, 0.66)', color: '#cbd5e1', cursor: 'not-allowed' }}
                   placeholder="Calculated from date of birth"
                 />
               </div>
@@ -409,7 +409,7 @@ const ProfileSettingsPage = () => {
                     `$${calculateMonthlyBenefit(parseFloat(person2SSPIA), person2SSRetirementDate, calculateFRADate(person2Birthdate), person2Birthdate).toFixed(2)}` :
                     ''}
                   disabled
-                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                  style={{ backgroundColor: 'rgba(15, 23, 42, 0.66)', color: '#cbd5e1', cursor: 'not-allowed' }}
                   placeholder="Calculated based on PIA and retirement date (higher of own or spousal benefit)"
                 />
               </div>
@@ -483,7 +483,7 @@ const ProfileSettingsPage = () => {
             <div className="settings-section mfa-section" style={{ marginTop: 0 }}>
               <h3>Multi-Factor Authentication</h3>
               <p>Secure your account with a verification code.</p>
-              <small style={{ color: '#666' }}>
+              <small style={{ color: '#94a3b8' }}>
                 Enable MFA and choose at least one method. Passkey requires registration.
               </small>
               <div className="form-group-horizontal checkbox-group">
@@ -527,7 +527,7 @@ const ProfileSettingsPage = () => {
                   type="text"
                   readOnly
                   value={(currentUser && (currentUser.username || currentUser.email)) || ''}
-                  style={{ width: '280px', textAlign: 'right', marginLeft: '10px', padding: '10px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#f5f5f5' }}
+                  style={{ width: '280px', textAlign: 'right', marginLeft: '10px', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(148, 163, 184, 0.28)', color: '#e2e8f0', backgroundColor: 'rgba(15, 23, 42, 0.72)' }}
                 />
               </div>
               {passkeySupported && (
@@ -585,7 +585,7 @@ const ProfileSettingsPage = () => {
                         {passkeyLoading ? 'Working...' : (mfaPasskeyRegistered ? 'Register Another Device' : 'Register This Device')}
                       </button>
                       {mfaPasskeyCount > 0 && (
-                        <div style={{ color: '#666', marginTop: '6px' }}>
+                        <div style={{ color: '#94a3b8', marginTop: '6px' }}>
                           Registered passkeys: {mfaPasskeyCount}
                         </div>
                       )}
@@ -667,7 +667,7 @@ const ProfileSettingsPage = () => {
                               {passkeyDeletingId === cred.id ? 'Deleting...' : 'Delete'}
                             </button>
                             </div>
-                            <div style={{ color: '#666', fontSize: '0.85rem', marginTop: '4px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '4px' }}>
                               {cred.last_used_at ? `Last used: ${new Date(cred.last_used_at).toLocaleString()}` : 'Last used: never'}
                               {' · '}
                               {cred.created_at ? `Added: ${new Date(cred.created_at).toLocaleDateString()}` : 'Added: unknown'}
@@ -694,12 +694,12 @@ const ProfileSettingsPage = () => {
             type="button" 
             variant="contained"
             onClick={() => setIsChangePasswordModalOpen(true)}
-            sx={{ textTransform: 'none' }}
+            sx={{ ...projectionActionButtonSx, textTransform: 'none' }}
           >
             Change Password
           </Button>
   
-          <Button onClick={handleSave} variant="contained" sx={{ textTransform: 'none' }}>Save</Button>
+          <Button onClick={handleSave} variant="contained" sx={{ ...projectionActionButtonSx, textTransform: 'none' }}>Save</Button>
           <Button onClick={() => navigate('/app')} variant="outlined" sx={projectionSecondaryButtonSx}>Cancel</Button>
         </div>
 

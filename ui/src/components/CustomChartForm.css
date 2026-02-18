@@ -2,9 +2,12 @@
 
 .custom-chart-form-container {
   padding: 20px;
-  background-color: #f8f9fa;
+  background:
+    radial-gradient(120% 100% at 50% 100%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 70%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 16px 30px rgba(2, 6, 23, 0.35);
   max-width: 700px;
   margin: 20px auto;
   /* Ensure scroll events propagate to parent container */
@@ -12,7 +15,7 @@
 }
 
 .custom-chart-form-container h3 {
-  color: #333;
+  color: #e2e8f0;
   margin-bottom: 25px;
   text-align: center;
 }
@@ -41,7 +44,7 @@
 
 .custom-chart-form-container label {
   font-weight: 600;
-  color: #555;
+  color: #cbd5e1;
   font-size: 0.95em;
 }
 
@@ -49,12 +52,11 @@
 .custom-chart-form-container input[type="number"],
 .custom-chart-form-container select {
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(148, 163, 184, 0.30);
   border-radius: 6px;
   font-size: 1em;
-  /* Ensure text is visible in all browsers - Firefox was showing faint text */
-  color: #333 !important;
-  background-color: #fff;
+  color: #f8fafc !important;
+  background-color: rgba(15, 23, 42, 0.74);
   /* Prevent form elements from interfering with parent scrolling */
   overscroll-behavior: none;
   /* Chrome-specific: prevent form elements from capturing wheel events */
@@ -63,8 +65,8 @@
 
 /* Ensure option text is also visible in Firefox */
 .custom-chart-form-container select option {
-  color: #333;
-  background-color: #fff;
+  color: #f8fafc;
+  background-color: #0f172a;
 }
 
 
@@ -80,7 +82,7 @@
 
 .custom-chart-form-container .checkbox-group label {
   font-weight: normal;
-  color: #333;
+  color: #e2e8f0;
   display: flex;
   align-items: center;
 }
@@ -88,8 +90,8 @@
 .custom-chart-form-container h4 {
   margin-top: 30px;
   margin-bottom: 15px;
-  color: #444;
-  border-bottom: 1px solid #eee;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
   padding-bottom: 5px;
 }
 
@@ -100,10 +102,10 @@
 }
 
 .custom-chart-form-container .series-item {
-  border: 1px solid #e0e0e0;
+  border: 1px solid rgba(148, 163, 184, 0.24);
   padding: 15px;
   border-radius: 8px;
-  background-color: #ffffff;
+  background-color: rgba(15, 23, 42, 0.76);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 15px;
@@ -117,9 +119,9 @@
 .custom-chart-account-list {
   max-height: 180px;
   overflow-y: auto;
-  border: 1px solid #d9e3ee;
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 8px;
-  background: #fff;
+  background: rgba(15, 23, 42, 0.78);
 }
 
 .custom-chart-account-option {
@@ -127,9 +129,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-bottom: 1px solid #eef3f8;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.20);
   font-weight: 400 !important;
   cursor: pointer;
+  color: #e2e8f0;
 }
 
 .custom-chart-account-option:last-child {
@@ -137,7 +140,7 @@
 }
 
 .custom-chart-account-option:hover {
-  background: #f4f9ff;
+  background: rgba(56, 189, 248, 0.12);
 }
 
 .custom-chart-form-container .series-item button {
@@ -189,4 +192,8 @@
 
 .custom-chart-form-container .modal-actions button[type="button"]:hover {
   background-color: #545b62;
+}
+
+.custom-chart-form-container small {
+  color: #94a3b8 !important;
 }

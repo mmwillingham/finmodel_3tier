@@ -11,19 +11,10 @@ import {
   Filler,
 } from "chart.js";
 import ApiService from "../services/api.service";
+import { createDarkLineChartOptions, DARK_CHART_SERIES_COLORS } from "../utils/darkChartTheme";
+import "./Chart.css";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
-
-const COLORS = [
-  "#0b57d0",
-  "#d9534f",
-  "#f0ad4e",
-  "#5cb85c",
-  "#5bc0de",
-  "#9366cc",
-  "#ff7f50",
-  "#8a8a8a",
-];
 
 export default function ProjectionChart({ projection, projectionId }) {
   const [proj, setProj] = useState(projection ?? null);
@@ -114,10 +105,12 @@ export default function ProjectionChart({ projection, projectionId }) {
   datasets.push({
     label: "Net Worth",
     data: netWorthData,
-    borderColor: COLORS[0], // Use first color for Net Worth
-    backgroundColor: `${COLORS[0]}22`,
-    tension: 0.2,
-    fill: true,
+    borderColor: DARK_CHART_SERIES_COLORS.expected,
+    backgroundColor: "rgba(56, 189, 248, 0.14)",
+    tension: 0.35,
+    borderWidth: 2.5,
+    pointRadius: 1.5,
+    fill: false,
   });
 
   // --- Add Total Assets and Total Liabilities ---
@@ -125,49 +118,32 @@ export default function ProjectionChart({ projection, projectionId }) {
   datasets.push({
     label: "Total Assets",
     data: totalAssetsData,
-    borderColor: COLORS[3], // Green
-    backgroundColor: `${COLORS[3]}22`,
-    tension: 0.2,
-    fill: false,
+    borderColor: DARK_CHART_SERIES_COLORS.optimistic,
+    backgroundColor: "rgba(52, 211, 153, 0.16)",
+    tension: 0.32,
+    pointRadius: 1.5,
+    fill: true,
   });
 
   const totalLiabilitiesData = chartData.map(row => row["Total Liabilities"] || 0);
   datasets.push({
     label: "Total Liabilities",
     data: totalLiabilitiesData,
-    borderColor: COLORS[1], // Red
-    backgroundColor: `${COLORS[1]}22`,
-    tension: 0.2,
+    borderColor: DARK_CHART_SERIES_COLORS.liabilities,
+    backgroundColor: "rgba(251, 113, 133, 0.16)",
+    tension: 0.3,
+    pointRadius: 1.5,
     fill: false,
   });
 
 
   const data = { labels, datasets };
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true },
-      tooltip: { mode: "index", intersect: false },
-    },
-    scales: {
-      x: { display: true },
-      y: {
-        display: true,
-        beginAtZero: false, // Net worth can go below zero
-        ticks: {
-          callback: function (value) {
-            return new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: "USD",
-              notation: "compact",
-              compactDisplay: "short",
-            }).format(value);
-          },
-        },
-      },
-    },
-  };
+  const options = createDarkLineChartOptions({
+    beginAtZero: false,
+    xAxisTitle: "End of Year",
+    compactYAxis: true,
+    showLegend: true,
+  });
 
   return (
     <div>

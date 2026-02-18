@@ -297,37 +297,42 @@ const AccountsSettingsPage = () => {
       {/* Plaid Bank Connection Section */}
       <div
         className="setting-group card-modern"
-        style={{ marginBottom: '20px' }}
+        style={{ marginBottom: '20px', display: 'block' }}
         data-tour-id="accounts-connected"
       >
-        <h3 style={{ margin: 0, marginBottom: '12px', fontWeight: 'bold', fontSize: '1.2em' }}>Connect Bank Accounts (Plaid)</h3>
-        <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '12px' }}>
-          Securely connect your bank accounts to automatically sync account balances as assets.
-        </p>
-        <PlaidLinkButton
-          onSuccess={(syncData) => {
-            setMessage(`Successfully connected ${syncData.accounts_synced} account(s). ${syncData.assets_created_or_updated} asset(s) created or updated.`);
-            setTimeout(() => setMessage(''), 5000);
-            // Optionally refresh accounts if needed
-            loadData();
-          }}
-          onError={(err) => {
-            const errorMsg = err.response?.data?.detail || 'Failed to connect account.';
-            setMessage(`Error: ${errorMsg}`);
-            setTimeout(() => setMessage(''), 5000);
-          }}
-        />
-        <PlaidConnections
-          onSyncSuccess={(syncData) => {
-            setMessage(`Successfully synced ${syncData.accounts_synced} account(s). ${syncData.assets_created_or_updated} asset(s) updated.`);
-            setTimeout(() => setMessage(''), 5000);
-            loadData();
-          }}
-        />
+        <div className="accounts-plaid-layout">
+          <div className="accounts-plaid-main">
+            <h3 style={{ margin: 0, marginBottom: '12px', fontWeight: 'bold', fontSize: '1.2em' }}>Connect Bank Accounts (Plaid)</h3>
+            <p style={{ fontSize: '0.9em', color: '#cbd5e1', marginBottom: '12px' }}>
+              Securely connect your bank accounts to automatically sync account balances as assets.
+            </p>
+            <PlaidLinkButton
+              onSuccess={(syncData) => {
+                setMessage(`Successfully connected ${syncData.accounts_synced} account(s). ${syncData.assets_created_or_updated} asset(s) created or updated.`);
+                setTimeout(() => setMessage(''), 5000);
+                loadData();
+              }}
+              onError={(err) => {
+                const errorMsg = err.response?.data?.detail || 'Failed to connect account.';
+                setMessage(`Error: ${errorMsg}`);
+                setTimeout(() => setMessage(''), 5000);
+              }}
+            />
+          </div>
+          <div className="accounts-plaid-side">
+            <PlaidConnections
+              onSyncSuccess={(syncData) => {
+                setMessage(`Successfully synced ${syncData.accounts_synced} account(s). ${syncData.assets_created_or_updated} asset(s) updated.`);
+                setTimeout(() => setMessage(''), 5000);
+                loadData();
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Brokerage Management Section */}
-      <div className="setting-group card-modern" style={{ marginBottom: '20px' }}>
+      <div className="setting-group card-modern" style={{ marginBottom: '20px', display: 'block' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ margin: 0 }}>Brokerages</h3>
           <button 
@@ -339,7 +344,7 @@ const AccountsSettingsPage = () => {
           </button>
         </div>
         {showNewBrokerageForm && (
-          <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px', marginBottom: '12px' }}>
+          <div style={{ padding: '12px', backgroundColor: 'rgba(15, 23, 42, 0.72)', borderRadius: '6px', marginBottom: '12px', border: '1px solid rgba(148, 163, 184, 0.26)' }}>
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
               <div className="form-field">
                 <label htmlFor="brokerage_name">Brokerage Name *</label>
@@ -397,10 +402,12 @@ const AccountsSettingsPage = () => {
                 className="badge-modern"
                 style={{ 
                   padding: '6px 12px', 
-                  backgroundColor: '#e0edfb', 
+                  backgroundColor: 'rgba(15, 23, 42, 0.86)', 
                   borderRadius: '6px', 
                   fontSize: '0.85em',
                   fontWeight: 500,
+                  color: '#e2e8f0',
+                  border: '1px solid rgba(148, 163, 184, 0.22)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px'
@@ -438,7 +445,7 @@ const AccountsSettingsPage = () => {
                       backgroundColor: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
-                      color: '#007bff',
+                      color: '#38bdf8',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center'
@@ -452,12 +459,12 @@ const AccountsSettingsPage = () => {
           </div>
         )}
         {renamingBrokerageId && (
-          <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#fff7e6', borderRadius: '6px', border: '1px solid #ffe0b2', maxWidth: '420px' }}>
+          <div style={{ marginTop: '12px', padding: '12px', backgroundColor: 'rgba(245, 158, 11, 0.14)', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.35)', maxWidth: '420px' }}>
             <div style={{ marginBottom: '8px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Rename Brokerage</span>
               <button
                 onClick={handleCancelRename}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9em', color: '#333' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.9em', color: '#e2e8f0' }}
               >
                 Cancel
               </button>
@@ -473,7 +480,7 @@ const AccountsSettingsPage = () => {
               <button
                 onClick={handleConfirmRename}
                 className="btn-primary-modern"
-                style={{ padding: '6px 16px', fontSize: '0.9em', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
+                style={{ padding: '6px 16px', fontSize: '0.9em', background: 'linear-gradient(135deg, #0F2847 0%, #00a3e0 100%)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
               >
                 Save
               </button>

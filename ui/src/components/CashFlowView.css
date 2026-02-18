@@ -148,3 +148,29 @@
 .cashflow-container .cashflow-table tbody tr:hover {
   background-color: #f9fbfe;
 }
+
+/* Premium dark overrides */
+.main-content .cashflow-container .table-scroll {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.main-content .cashflow-table th {
+  background-color: rgba(15, 23, 42, 0.78) !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24) !important;
+}
+
+.main-content .cashflow-table td {
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18) !important;
+}
+
+.main-content .cashflow-table tbody tr:hover {
+  background-color: rgba(56, 189, 248, 0.10);
+}
+
+.main-content .total {
+  background-color: rgba(15, 23, 42, 0.7) !important;
+  color: #f8fafc !important;
+}

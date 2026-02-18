@@ -7,28 +7,37 @@
 
 .plaid-error {
   padding: 12px;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  background-color: rgba(251, 113, 133, 0.14);
+  border: 1px solid rgba(251, 113, 133, 0.35);
   border-radius: 4px;
   margin-bottom: 15px;
 }
 
 .plaid-connections {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #f8f9fa;
+  margin-top: 0;
+  padding: 12px;
+  background:
+    radial-gradient(120% 100% at 50% 100%, rgba(56, 189, 248, 0.06) 0%, rgba(56, 189, 248, 0) 70%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
   border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .plaid-connection-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 10px;
   margin-bottom: 10px;
-  background-color: white;
-  border: 1px solid #dee2e6;
+  background-color: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 4px;
+  box-sizing: border-box;
 }
 
 .plaid-connection-info {
@@ -38,16 +47,36 @@
 .plaid-connection-name {
   font-weight: 500;
   margin-bottom: 4px;
+  color: #e2e8f0;
 }
 
 .plaid-connection-meta {
   font-size: 0.9em;
-  color: #6c757d;
+  color: #94a3b8;
 }
 
 .plaid-connection-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+  min-width: 150px;
+}
+
+.plaid-connection-actions .btn-primary-modern {
+  min-width: 72px;
+  height: 32px;
+  padding: 6px 12px !important;
+  max-width: none;
+}
+
+@media (max-width: 1024px) {
+  .plaid-connection-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
 }
 
 .spinner {

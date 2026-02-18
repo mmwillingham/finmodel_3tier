@@ -3,9 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line, Pie } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler } from "chart.js";
 import { Alert, Box, Button, FormControlLabel, Paper, Slider, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { projectionActionButtonSx, projectionSectionCardSx, projectionTableContainerSx } from "../utils/projectionUiStyles";
+import { createDarkLineChartOptions, createDarkPieChartOptions, darkChartPanelSx, DARK_CHART_SERIES_COLORS } from "../utils/darkChartTheme";
 import ProjectionService from '../services/projection.service';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 export default function BalanceSheetProjection({ assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, showChartTotals, compact = false, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
   const { userSettings, currentUser } = useAuth();
@@ -326,29 +330,11 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
     };
   };
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "top",
-      },
-      title: {
-        display: true,
-        text: `Model My Retirement - Overall Financial Snapshot${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
-      },
-    },
-    scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'End of Year',
-        },
-      },
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
+  const chartOptions = createDarkLineChartOptions({
+    title: `Model My Retirement - Overall Financial Snapshot${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+    beginAtZero: true,
+    xAxisTitle: "End of Year",
+  });
 
   // Show every 5th year in tables
   const displayYearsIndices = [];
@@ -452,7 +438,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
   if (loading) {
     return (
       <Paper variant="outlined" sx={{ p: 3 }}>
-        <Typography>Loading projections. Please be patient...</Typography>
+        <Box className="projection-loading-message">
+          <Typography>Loading projections. Please be patient...</Typography>
+        </Box>
       </Paper>
     );
   }
@@ -534,20 +522,30 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
       {
         label: "Total Assets",
         data: totalAssetValues,
-        borderColor: "rgb(75, 192, 192)",
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        borderColor: DARK_CHART_SERIES_COLORS.optimistic,
+        backgroundColor: "rgba(52, 211, 153, 0.18)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
       },
       {
         label: "Total Liabilities",
         data: totalLiabilityValues,
-        borderColor: "rgb(255, 99, 132)",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        borderColor: DARK_CHART_SERIES_COLORS.liabilities,
+        backgroundColor: "rgba(251, 113, 133, 0.16)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
       },
       {
         label: "Net Worth",
         data: netWorthValues,
-        borderColor: "rgb(54, 162, 235)",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        borderColor: DARK_CHART_SERIES_COLORS.expected,
+        backgroundColor: "rgba(56, 189, 248, 0.14)",
+        fill: false,
+        tension: 0.35,
+        pointRadius: 2,
+        borderWidth: 2.4,
       },
     ],
   };
@@ -584,9 +582,9 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
 
   if (compact) {
     return (
-      <div className="balance-sheet-compact-chart">
+      <Box className="balance-sheet-compact-chart" sx={{ ...darkChartPanelSx, p: 1.5 }}>
         <Line data={overallChartData} options={compactChartOptions} height={180} />
-      </div>
+      </Box>
     );
   }
 
@@ -639,7 +637,18 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPdf(overallChartRef, "Overall_Financial_Snapshot")}>Download PDF</Button>
           </Stack>
         </Stack>
-        <Line ref={overallChartRef} data={overallChartData} options={chartOptions} />
+        <Box
+          sx={{
+            ...darkChartPanelSx,
+            mt: 1,
+            minHeight: 360,
+            "& canvas": {
+              height: "100% !important",
+            },
+          }}
+        >
+          <Line ref={overallChartRef} data={overallChartData} options={chartOptions} />
+        </Box>
       </Paper>
 
       <Paper variant="outlined" sx={{ ...projectionSectionCardSx, mb: 4 }}>
@@ -686,40 +695,39 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
           <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</Button>
           <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</Button>
         </Stack>
-        <Line
-          ref={individualAssetChartRef}
-          data={{
-            labels: years,
-            datasets: [
-              ...individualAssetProjections.map((asset, index) => ({
-                label: asset.name,
-                data: asset.projectedValues,
-                borderColor: `hsl(${index * 60}, 70%, 50%)`,
-                backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.2)`,
-                fill: false,
-              })),
-              ...(showTotalsInChart ? [{
-                label: "Total Assets",
-                data: totalAssetValues,
-                borderColor: "rgb(0, 0, 0)",
-                backgroundColor: "rgba(0, 0, 0, 0.2)",
-                fill: false,
-                borderWidth: 3,
-                pointRadius: 0,
-              }] : []),
-            ],
-          }}
-          options={{
-            ...chartOptions,
-            plugins: {
-              ...chartOptions.plugins,
-              title: {
-                ...chartOptions.plugins.title,
-                text: `Model My Retirement - Individual Asset Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
-              },
-            },
-          }}
-        />
+        <Box sx={darkChartPanelSx}>
+          <Line
+            ref={individualAssetChartRef}
+            data={{
+              labels: years,
+              datasets: [
+                ...individualAssetProjections.map((asset, index) => ({
+                  label: asset.name,
+                  data: asset.projectedValues,
+                  borderColor: `hsl(${index * 46 + 140}, 78%, 58%)`,
+                  backgroundColor: `hsla(${index * 46 + 140}, 78%, 58%, 0.12)`,
+                  fill: false,
+                  tension: 0.3,
+                  pointRadius: 1.5,
+                })),
+                ...(showTotalsInChart ? [{
+                  label: "Total Assets",
+                  data: totalAssetValues,
+                  borderColor: DARK_CHART_SERIES_COLORS.expected,
+                  backgroundColor: "rgba(56, 189, 248, 0.20)",
+                  fill: false,
+                  borderWidth: 3,
+                  pointRadius: 0,
+                }] : []),
+              ],
+            }}
+            options={createDarkLineChartOptions({
+              title: `Model My Retirement - Individual Asset Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+              beginAtZero: true,
+              xAxisTitle: "End of Year",
+            })}
+          />
+        </Box>
       </Paper>
 
       {assetPieData && individualAssetProjections.length > 0 && (
@@ -728,33 +736,17 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             Asset Distribution - {lastYear}
           </Typography>
           <Box sx={{ maxWidth: 500, mx: "auto" }}>
-            <Pie
-              ref={individualAssetPieChartRef}
-              data={assetPieData}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: "right",
-                  },
-                  title: {
-                    display: true,
-                    text: `Asset Distribution - ${lastYear}`,
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: function(context) {
-                        const label = context.label || '';
-                        const value = formatCurrency(context.parsed);
-                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((context.parsed / total) * 100).toFixed(1);
-                        return `${label}: ${value} (${percentage}%)`;
-                      }
-                    }
-                  }
-                }
-              }}
-            />
+            <Box sx={darkChartPanelSx}>
+              <Pie
+                ref={individualAssetPieChartRef}
+                data={assetPieData}
+                options={createDarkPieChartOptions({
+                  title: `Asset Distribution - ${lastYear}`,
+                  legendPosition: "right",
+                  formatValue: formatCurrency,
+                })}
+              />
+            </Box>
           </Box>
         </Paper>
       )}
@@ -806,40 +798,47 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPng(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PNG</Button>
             <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPdf(individualLiabilityChartRef, "Individual_Liability_Projections")}>Download PDF</Button>
           </Stack>
-          <Line
-            ref={individualLiabilityChartRef}
-            data={{
-              labels: years,
-              datasets: [
-                ...individualLiabilityProjections.map((liability, index) => ({
-                  label: liability.name,
-                  data: liability.projectedValues,
-                  borderColor: `hsl(${index * 60 + 30}, 70%, 50%)`,
-                  backgroundColor: `hsla(${index * 60 + 30}, 70%, 50%, 0.2)`,
-                  fill: false,
-                })),
-                ...(showTotalsInChart ? [{
-                  label: "Total Liabilities",
-                  data: totalLiabilityValues,
-                  borderColor: "rgb(0, 0, 0)",
-                  backgroundColor: "rgba(0, 0, 0, 0.2)",
-                  fill: false,
-                  borderWidth: 3,
-                  pointRadius: 0,
-                }] : []),
-              ],
-            }}
-            options={{
-              ...chartOptions,
-              plugins: {
-                ...chartOptions.plugins,
-                title: {
-                  ...chartOptions.plugins.title,
-                  text: `Model My Retirement - Individual Liability Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
-                },
+          <Box
+            sx={{
+              ...darkChartPanelSx,
+              minHeight: 360,
+              "& canvas": {
+                height: "100% !important",
               },
             }}
-          />
+          >
+            <Line
+              ref={individualLiabilityChartRef}
+              data={{
+                labels: years,
+                datasets: [
+                  ...individualLiabilityProjections.map((liability, index) => ({
+                    label: liability.name,
+                    data: liability.projectedValues,
+                    borderColor: `hsl(${index * 44 + 338}, 84%, 70%)`,
+                    backgroundColor: `hsla(${index * 44 + 338}, 84%, 70%, 0.10)`,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 1.5,
+                  })),
+                  ...(showTotalsInChart ? [{
+                    label: "Total Liabilities",
+                    data: totalLiabilityValues,
+                    borderColor: DARK_CHART_SERIES_COLORS.liabilities,
+                    backgroundColor: "rgba(251, 113, 133, 0.16)",
+                    fill: false,
+                    borderWidth: 3,
+                    pointRadius: 0,
+                  }] : []),
+                ],
+              }}
+              options={createDarkLineChartOptions({
+                title: `Model My Retirement - Individual Liability Projections${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
+                beginAtZero: true,
+                xAxisTitle: "End of Year",
+              })}
+            />
+          </Box>
         </Paper>
       )}
 
@@ -849,33 +848,17 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
             Liability Distribution - {lastYear}
           </Typography>
           <Box sx={{ maxWidth: 500, mx: "auto" }}>
-            <Pie
-              ref={individualLiabilityPieChartRef}
-              data={liabilityPieData}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: "right",
-                  },
-                  title: {
-                    display: true,
-                    text: `Liability Distribution - ${lastYear}`,
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: function(context) {
-                        const label = context.label || '';
-                        const value = formatCurrency(context.parsed);
-                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((context.parsed / total) * 100).toFixed(1);
-                        return `${label}: ${value} (${percentage}%)`;
-                      }
-                    }
-                  }
-                }
-              }}
-            />
+            <Box sx={darkChartPanelSx}>
+              <Pie
+                ref={individualLiabilityPieChartRef}
+                data={liabilityPieData}
+                options={createDarkPieChartOptions({
+                  title: `Liability Distribution - ${lastYear}`,
+                  legendPosition: "right",
+                  formatValue: formatCurrency,
+                })}
+              />
+            </Box>
           </Box>
         </Paper>
       )}

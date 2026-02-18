@@ -34,3 +34,24 @@
   color: #555555;
   line-height: 1.6;
 }
+
+/* Premium dark overrides */
+.page-shell-card .features-page > p {
+  color: #94a3b8;
+}
+
+.page-shell-card .feature-card {
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.30);
+}
+
+.page-shell-card .feature-card h3 {
+  color: #e2e8f0;
+}
+
+.page-shell-card .feature-card p {
+  color: #cbd5e1;
+}

@@ -26,15 +26,15 @@
 }
 
 .account-switcher.compact .account-switcher-select {
-    background: white;
-    color: #333;
+    background: rgba(15, 23, 42, 0.92);
+    color: #e2e8f0;
     padding: 4px 8px;
     font-size: 0.9em;
 }
 
 .account-switcher label {
     font-weight: 600;
-    color: #333;
+    color: #e2e8f0;
     font-size: 14px;
     white-space: nowrap;
 }
@@ -45,8 +45,8 @@
     border: none;
     border-radius: 6px;
     font-size: 14px;
-    background: white;
-    color: #333;
+    background: rgba(15, 23, 42, 0.92);
+    color: #e2e8f0;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -67,8 +67,8 @@
 
 /* Ensure dropdown options are visible */
 .account-switcher-select option {
-    background: white;
-    color: #333;
+    background: #0f172a;
+    color: #e2e8f0;
     padding: 8px;
 }
 

@@ -2,16 +2,20 @@
 
 .custom-chart-view-container {
   padding: 20px;
-  background-color: #f8f9fa;
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid transparent;
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.32);
   max-width: 900px;
   margin: 20px auto;
   text-align: center;
+  color: #e2e8f0;
 }
 
 .custom-chart-view-container h3 {
-  color: #333;
+  color: #e2e8f0;
   margin-bottom: 25px;
 }
 
@@ -42,6 +46,12 @@
   position: relative;
   width: 100%;
   height: 400px; /* Fixed height for chart only; table flows below */
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
 }
 
 .custom-chart-view-container .loading,
@@ -67,19 +77,19 @@
   width: 100%;
   border-collapse: collapse;
   margin: 20px 0;
-  background-color: white;
+  background-color: rgba(2, 6, 23, 0.35);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .custom-chart-table thead {
-  background-color: #f8f9fa;
+  background-color: rgba(15, 23, 42, 0.78);
 }
 
 .custom-chart-table th,
 .custom-chart-table td {
   padding: 12px 8px;
   text-align: left;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -88,19 +98,19 @@
 
 .custom-chart-table th {
   font-weight: 600;
-  color: #495057;
+  color: #cbd5e1;
   position: sticky;
   top: 0;
-  background-color: #f8f9fa;
+  background-color: rgba(15, 23, 42, 0.88);
   z-index: 10;
 }
 
 .custom-chart-table tbody tr:hover {
-  background-color: #f8f9fa;
+  background-color: rgba(56, 189, 248, 0.08);
 }
 
 .custom-chart-table tbody td {
-  color: #212529;
+  color: #e2e8f0;
 }
 
 .table-container {
@@ -112,7 +122,7 @@
 .table-container h3 {
   text-align: left;
   margin-bottom: 15px;
-  color: #333;
+  color: #e2e8f0;
 }
 
 .table-actions {

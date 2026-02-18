@@ -258,7 +258,11 @@
 }
 
 .modal-content {
-  background: white;
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.10) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  color: #e2e8f0;
   border-radius: 8px;
   padding: 30px;
   max-width: 500px;
@@ -278,12 +282,18 @@
   width: 100%;
   padding: 10px;
   margin-bottom: 15px;
-  border: none;
+  border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 6px;
   font-size: 1rem;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  box-shadow: 0 1px 3px rgba(2, 6, 23, 0.22), 0 1px 2px rgba(2, 6, 23, 0.18);
   transition: all 0.2s ease;
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
 }
 
 .form-input:hover {
@@ -357,4 +367,48 @@
   .documents-actions .btn-primary {
     flex: 1 1 180px;
   }
+}
+
+/* Premium dark overrides */
+.page-shell-card .documents-header,
+.page-shell-card .folder-card,
+.page-shell-card .documents-table,
+.page-shell-card .empty-state,
+.page-shell-card .walkthrough-step,
+.page-shell-card .modal-content {
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  color: #e2e8f0 !important;
+}
+
+.page-shell-card .documents-title,
+.page-shell-card .documents-section h3,
+.page-shell-card .folders-section h3,
+.page-shell-card .folder-name,
+.page-shell-card .walkthrough-step p,
+.page-shell-card .modal-content h2,
+.page-shell-card .breadcrumb-separator {
+  color: #e2e8f0 !important;
+}
+
+.page-shell-card .breadcrumb {
+  background: rgba(15, 23, 42, 0.72) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+}
+
+.page-shell-card .documents-table th {
+  background: rgba(15, 23, 42, 0.78) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+.page-shell-card .documents-table td {
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+.page-shell-card .documents-table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.08) !important;
 }

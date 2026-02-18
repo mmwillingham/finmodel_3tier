@@ -204,7 +204,11 @@
 }
 
 .modal-content {
-  background: white;
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.10) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  color: #e2e8f0;
   border-radius: 8px;
   padding: 30px;
   max-width: 600px;
@@ -221,7 +225,7 @@
 }
 
 .modal-hint {
-  color: #666;
+  color: #94a3b8;
   font-size: 0.9rem;
   margin-bottom: 20px;
 }
@@ -230,12 +234,18 @@
   width: 100%;
   padding: 10px;
   margin-bottom: 15px;
-  border: none;
+  border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 6px;
   font-size: 1rem;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  box-shadow: 0 1px 3px rgba(2, 6, 23, 0.22), 0 1px 2px rgba(2, 6, 23, 0.18);
   transition: all 0.2s ease;
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
 }
 
 .form-input:hover {
@@ -250,7 +260,8 @@
 .permissions-section {
   margin: 20px 0;
   padding: 20px;
-  background: #f8f9fa;
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 4px;
 }
 
@@ -274,11 +285,13 @@
 
 .permission-selector select {
   padding: 8px;
-  border: none;
+  border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 6px;
   font-size: 1rem;
   width: 200px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  box-shadow: 0 1px 3px rgba(2, 6, 23, 0.22), 0 1px 2px rgba(2, 6, 23, 0.18);
   transition: all 0.2s ease;
   cursor: pointer;
 }

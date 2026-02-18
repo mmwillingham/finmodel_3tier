@@ -160,3 +160,37 @@
 .answer-content p:last-child {
   margin-bottom: 0;
 }
+
+/* Premium dark overrides */
+.page-shell-card .what-if-container,
+.page-shell-card .answer-content,
+.page-shell-card .example-button {
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%) !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  color: #e2e8f0 !important;
+}
+
+.page-shell-card .what-if-container h1,
+.page-shell-card .what-if-description,
+.page-shell-card .examples-section h3,
+.page-shell-card .form-group label,
+.page-shell-card .answer-section h3,
+.page-shell-card .answer-content {
+  color: #e2e8f0 !important;
+}
+
+.page-shell-card .question-input {
+  background: rgba(15, 23, 42, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  color: #f8fafc !important;
+}
+
+.page-shell-card .question-input:disabled {
+  background: rgba(15, 23, 42, 0.52) !important;
+}
+
+.page-shell-card .answer-section {
+  border-top-color: rgba(148, 163, 184, 0.24) !important;
+}

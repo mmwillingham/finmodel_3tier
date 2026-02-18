@@ -126,6 +126,7 @@ const LoginPage = () => {
                             required
                             disabled={loading}
                             placeholder="Enter your user name or email"
+                            autoComplete="username"
                         />
                     </div>
 
@@ -138,6 +139,7 @@ const LoginPage = () => {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             disabled={loading}
+                            autoComplete="current-password"
                         />
                     </div>
 

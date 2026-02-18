@@ -7,8 +7,10 @@ html, body {
     font-family: 'Inter', sans-serif; /* A more modern, cleaner font */
     font-size: 15px; /* Slightly smaller base font */
     line-height: 1.5; /* Improved line spacing */
-    background-color: #f8f9fa; /* Lighter background */
-    color: #333;
+    background:
+      radial-gradient(120% 120% at 50% 0%, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0) 58%),
+      linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    color: #e2e8f0;
 }
 
 :root {
@@ -76,11 +78,12 @@ html, body {
 /* Override container centering when it contains SidebarLayout */
 .container.container-with-sidebar {
     margin: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
+    max-width: none !important;
+    width: 100vw !important;
     padding: 0 !important;
     margin-top: 0 !important;
     min-height: calc(100vh - 60px);
+    display: block;
 }
 
 /* Also override for any container that has sidebar-layout (fallback if :has not supported) */

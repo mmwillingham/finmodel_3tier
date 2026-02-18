@@ -3,17 +3,18 @@ import { useAuth } from '../context/AuthContext';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas'; // Added import for html2canvas
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { FormControlLabel, Slider, Switch } from "@mui/material";
 import CustomChartService from '../services/customChart.service';
 import { projectionSwitchSx } from "../utils/projectionUiStyles";
+import { createDarkLineChartOptions, createDarkPieChartOptions } from "../utils/darkChartTheme";
 import CashFlowService from '../services/cashflow.service';
 import AssetService from '../services/asset.service';
 import LiabilityService from '../services/liability.service';
 import './CustomChartView.css'; // We will create this CSS file
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 export default function CustomChartView({ chartId, assets, liabilities, incomeItems, expenseItems, projectionYears, formatCurrency, onBack, onEdit, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }) {
   const { userSettings, viewingUserId } = useAuth();
@@ -455,87 +456,45 @@ export default function CustomChartView({ chartId, assets, liabilities, incomeIt
   const getChartComponent = () => {
     if (!chartConfig || chartData.datasets.length === 0) return null;
 
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: {
-        padding: {
-          top: 20,
-          right: 20,
-          bottom: 20,
-          left: 20
-        }
-      },
-      plugins: {
-        legend: {
-          position: 'top',
-        },
-        title: {
-          display: true,
-          text: `${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`,
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              let label = context.dataset.label || '';
-              if (label) {
-                label += ': ';
-              }
-              if (context.parsed.y !== null) {
-                label += formatValue(context.parsed.y, "currency"); // Default to currency formatting
-              } else if (context.parsed !== null) { // For pie charts, context.parsed is a single value
-                label += formatValue(context.parsed, "currency"); // Default to currency formatting
-              }
-              return label;
-            }
-          }
-        },
-      },
-      scales: {
-        x: {
-          title: {
-            display: !!chartConfig.x_axis_label,
-            text: chartConfig.x_axis_label,
-          },
-        },
-        y: {
-          beginAtZero: true,
-          title: {
-            display: !!chartConfig.y_axis_label,
-            text: chartConfig.y_axis_label,
-          },
-          ticks: {
-            callback: function(value) {
-              return formatValue(value, "currency"); // Default to currency formatting
-            }
-          }
-        },
-      },
-      ...(chartConfig.chart_type === 'pie' && {
-        scales: { // No scales for pie chart
-          x: { display: false },
-          y: { display: false },
-        },
-        plugins: { // Re-configure plugins for pie charts specifically
-          legend: { position: 'top' },
-          title: { display: true, text: `${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}` },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.label || '';
-                if (label) {
-                  label += ': ';
+    const chartTitle = `${chartConfig.name}${userSettings?.person1_first_name && userSettings?.person1_last_name ? ` - ${userSettings.person1_first_name} ${userSettings.person1_last_name}` : ''}`;
+    const options = chartConfig.chart_type === 'pie'
+      ? createDarkPieChartOptions({
+          title: chartTitle,
+          legendPosition: 'top',
+          formatValue: formatCurrency,
+        })
+      : {
+          ...createDarkLineChartOptions({
+            title: chartTitle,
+            xAxisTitle: chartConfig.x_axis_label || "End of Year",
+            beginAtZero: true,
+          }),
+          scales: {
+            x: {
+              ...createDarkLineChartOptions().scales.x,
+              title: {
+                display: !!chartConfig.x_axis_label,
+                text: chartConfig.x_axis_label || "",
+                color: "#94a3b8",
+              },
+            },
+            y: {
+              ...createDarkLineChartOptions().scales.y,
+              beginAtZero: true,
+              title: {
+                display: !!chartConfig.y_axis_label,
+                text: chartConfig.y_axis_label || "",
+                color: "#94a3b8",
+              },
+              ticks: {
+                color: "#94a3b8",
+                callback: function(value) {
+                  return formatValue(value, "currency");
                 }
-                if (context.parsed !== null) {
-                  label += formatCurrency(context.parsed);
-                }
-                return label;
               }
-            }
+            },
           },
-        }
-      })
-    };
+        };
 
     switch (chartConfig.chart_type) {
       case 'line':

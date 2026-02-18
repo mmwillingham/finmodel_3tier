@@ -141,6 +141,26 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Force app shell to span full viewport width */
+.container.container-with-sidebar {
+  --surface: #020617;
+  --surface-card: #0f172a;
+  --surface-elevated: #111827;
+  --fg: #e2e8f0;
+  --fg-muted: #94a3b8;
+  --focus-ring: rgba(56, 189, 248, 0.38);
+  margin: 0 !important;
+  width: 100vw !important;
+  max-width: none !important;
+  min-height: calc(100vh - 60px);
+  padding: 0 !important;
+}
+
+.settings-content-wrapper > .container.container-with-sidebar {
+  width: 100% !important;
+  max-width: none !important;
+}
+
 /* Keep all checkboxes aligned to primary accent color app-wide */
 input[type="checkbox"] {
   accent-color: #00a3e0;

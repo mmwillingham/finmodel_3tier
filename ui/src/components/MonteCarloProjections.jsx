@@ -4,13 +4,14 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Line, Bar } from "react-chartjs-2";
 import { Box, Button, FormControl, InputLabel, LinearProgress, MenuItem, Paper, Select, Slider, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
 import { projectionActionButtonSx, projectionSecondaryButtonSx, projectionSectionCardSx, projectionTableContainerSx } from "../utils/projectionUiStyles";
+import { createDarkLineChartOptions, darkChartPanelSx, DARK_CHART_SERIES_COLORS } from "../utils/darkChartTheme";
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 // Constant to identify the federal tax expense item (must match backend)
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
@@ -438,49 +439,57 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       {
         label: '10th Percentile',
         data: results.map(d => d.netWorth.p10),
-        borderColor: 'rgba(255, 99, 132, 0.5)',
-        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+        borderColor: 'rgba(251, 113, 133, 0.75)',
+        backgroundColor: 'rgba(251, 113, 133, 0.1)',
         borderDash: [5, 5],
         fill: false,
+        pointRadius: 0,
       },
       {
         label: '25th Percentile',
         data: results.map(d => d.netWorth.p25),
-        borderColor: 'rgba(255, 159, 64, 0.5)',
-        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+        borderColor: 'rgba(251, 191, 36, 0.75)',
+        backgroundColor: 'rgba(251, 191, 36, 0.1)',
         borderDash: [3, 3],
         fill: false,
+        pointRadius: 0,
       },
       {
         label: 'Median (50th)',
         data: results.map(d => d.netWorth.p50),
-        borderColor: 'rgba(54, 162, 235, 1)',
-        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-        fill: false,
+        borderColor: DARK_CHART_SERIES_COLORS.expected,
+        backgroundColor: 'rgba(56, 189, 248, 0.18)',
+        fill: true,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        tension: 0.35,
       },
       {
         label: 'Mean',
         data: results.map(d => d.netWorth.mean),
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+        borderColor: DARK_CHART_SERIES_COLORS.optimistic,
+        backgroundColor: 'rgba(52, 211, 153, 0.1)',
         borderDash: [2, 2],
         fill: false,
+        pointRadius: 0,
       },
       {
         label: '75th Percentile',
         data: results.map(d => d.netWorth.p75),
-        borderColor: 'rgba(255, 159, 64, 0.5)',
-        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+        borderColor: 'rgba(251, 191, 36, 0.75)',
+        backgroundColor: 'rgba(251, 191, 36, 0.1)',
         borderDash: [3, 3],
         fill: false,
+        pointRadius: 0,
       },
       {
         label: '90th Percentile',
         data: results.map(d => d.netWorth.p90),
-        borderColor: 'rgba(255, 99, 132, 0.5)',
-        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+        borderColor: 'rgba(251, 113, 133, 0.75)',
+        backgroundColor: 'rgba(251, 113, 133, 0.1)',
         borderDash: [5, 5],
         fill: false,
+        pointRadius: 0,
       },
     ],
   } : null;
@@ -606,14 +615,24 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
     scales: {
       x: {
         ticks: {
+          color: '#94a3b8',
           callback: (value, index) => {
             const label = histogramData?.labels?.[index];
             return label ? label.split(' - ')[0] : '';
           },
         },
+        grid: {
+          color: 'rgba(148, 163, 184, 0.16)',
+        },
       },
       y: {
         beginAtZero: true,
+        ticks: {
+          color: '#94a3b8',
+        },
+        grid: {
+          color: 'rgba(148, 163, 184, 0.16)',
+        },
       },
     },
   };
@@ -624,33 +643,11 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
 
   const chartTitleFor = (label) => `Monte Carlo ${label}${userLabelSuffix}`;
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: chartTitleFor('Projections'),
-      },
-    },
-    scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'End of Year',
-        },
-      },
-      y: {
-        beginAtZero: false,
-        ticks: {
-          callback: (value) => formatCurrency(value),
-        },
-      },
-    },
-  };
+  const chartOptions = createDarkLineChartOptions({
+    title: chartTitleFor('Projections'),
+    beginAtZero: false,
+    xAxisTitle: 'End of Year',
+  });
 
   const fanChartOptions = {
     ...chartOptions,
@@ -787,7 +784,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               <Typography variant="h6" fontWeight="600" gutterBottom>
                 Net Worth Projections (Fan Chart)
               </Typography>
-              <Box sx={{ height: 400 }}>
+              <Box sx={{ ...darkChartPanelSx, height: 400 }}>
                 <Line data={netWorthChartData} options={fanChartOptions} />
               </Box>
             </Paper>
@@ -798,7 +795,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               <Typography variant="h6" fontWeight="600" gutterBottom>
                 Spaghetti Plot
               </Typography>
-              <Box sx={{ height: 400 }}>
+              <Box sx={{ ...darkChartPanelSx, height: 400 }}>
                 {spaghettiChartData ? (
                   <Line data={spaghettiChartData} options={spaghettiChartOptions} />
                 ) : (
@@ -813,7 +810,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               <Typography variant="h6" fontWeight="600" gutterBottom>
                 Terminal Value Distribution Histogram
               </Typography>
-              <Box sx={{ height: 400 }}>
+              <Box sx={{ ...darkChartPanelSx, height: 400 }}>
                 {histogramData ? (
                   <Bar data={histogramData} options={histogramOptions} />
                 ) : (
@@ -879,7 +876,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
             <Typography variant="h6" fontWeight="600" gutterBottom>
               Net Cash Flow Projections
             </Typography>
-            <Box sx={{ height: 400 }}>
+            <Box sx={{ ...darkChartPanelSx, height: 400 }}>
               <Line data={netCashFlowChartData} options={{
                 ...chartOptions,
                 plugins: {
