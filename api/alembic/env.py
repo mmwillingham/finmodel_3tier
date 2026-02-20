@@ -71,29 +71,28 @@ async def run_migrations_online() -> None:
         db_user = os.getenv("DB_USER")
         db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")
         db_name = os.getenv("DB_NAME")
+        db_host = os.getenv("DB_HOST")
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
-        use_cloud_sql_proxy_tcp = os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true"
+        # Check if we should use TCP (Direct VPC) or Unix Socket
+        # We use TCP if DB_HOST is an IP or if specifically requested
+        use_tcp = (db_host and not db_host.startswith('/')) or \
+                  os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true"
 
         if not all([db_user, db_password, db_name]):
-            raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
+            raise ValueError("Missing database environment variables")
 
-        if use_cloud_sql_proxy_tcp: # Prioritize TCP connection if explicitly requested
-            local_db_host = os.getenv("DB_HOST", "127.0.0.1")
-            local_db_port = os.getenv("DB_PORT", "5432")
-            connectable_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
-            )
-        elif cloud_sql_connection_name: # Fallback to Unix socket if cloud SQL connection name is provided and TCP is not explicitly requested
+        if use_tcp:
+            # This handles Direct VPC (Private IP) and Local TCP Proxy
+            host = db_host or "127.0.0.1"
+            port = os.getenv("DB_PORT", "5432")
+            connectable_url = f"postgresql+pg8000://{db_user}:{db_password}@{host}:{port}/{db_name}"
+        elif cloud_sql_connection_name:
+            # Fallback to Unix socket
             unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
-            connectable_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={unix_socket_path}"
-            )
-        else: # Regular local database connection without Cloud SQL Proxy
-            local_db_host = os.getenv("DB_HOST", "localhost")
-            local_db_port = os.getenv("DB_PORT", "5432")
-            connectable_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
-            )
+            connectable_url = f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={unix_socket_path}"
+        else:
+            # Default local fallback
+            connectable_url = f"postgresql+pg8000://{db_user}:{db_password}@localhost:5432/{db_name}"
 
     if connectable_url is None:
         raise ValueError("DATABASE_URL could not be determined from environment variables.")

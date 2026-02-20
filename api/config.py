@@ -89,27 +89,31 @@ class Settings(BaseSettings):
 
     # Method to generate DATABASE_URL after validation
     def model_post_init(self, __context: Any) -> None:
-        # Construct DATABASE_URL using Cloud SQL connector format if CLOUD_SQL_CONNECTION_NAME is set
-        if self.CLOUD_SQL_CONNECTION_NAME:
+        # NEW LOGIC: Use TCP/IP if DB_HOST is an IP address (Direct VPC Egress)
+        if self.DB_HOST and not self.DB_HOST.startswith('/'):
+            self.DATABASE_URL = (
+                f"postgresql+pg8000://{str(self.DB_USER)}:{str(self.DB_PASSWORD)}"
+                f"@{str(self.DB_HOST)}:{str(self.DB_PORT)}/{str(self.DB_NAME)}"
+            )
+        # OLD LOGIC: Fallback to Unix socket if only the Connection Name is provided
+        elif self.CLOUD_SQL_CONNECTION_NAME:
             self.DATABASE_URL = (
                 f"postgresql+pg8000://{str(self.DB_USER)}:{str(self.DB_PASSWORD)}"
                 f"@/{str(self.DB_NAME)}?unix_sock=/cloudsql/{str(self.CLOUD_SQL_CONNECTION_NAME)}/.s.PGSQL.5432"
             )
         else:
-            # Fallback for local development or direct connection
+            # Fallback for local development
             self.DATABASE_URL = (
-                f"postgresql://{str(self.DB_USER)}:{str(self.DB_PASSWORD)}"
-                f"@{str(self.DB_HOST)}:{str(self.DB_PORT)}/{str(self.DB_NAME)}"
+                f"postgresql+pg8000://{str(self.DB_USER)}:{str(self.DB_PASSWORD)}"
+                f"@{str(self.DB_HOST or 'localhost')}:{str(self.DB_PORT or '5432')}/{str(self.DB_NAME)}"
             )
         
-        # Set default Cloud Run URLs if environment variables are not provided
+        # --- Keep your existing URL and CORS logic below ---
         if self.PUBLIC_BACKEND_URL is None:
-            # Default to localhost for development
             self.PUBLIC_BACKEND_URL = "http://localhost:8000"
         if self.FRONTEND_URL is None:
-            # Fallback to local for dev, or Cloud Run's environment will need to set it.
             self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-        # If CORS regex is unset/empty (e.g. after GCP redo with missing trigger substitution), use default so CORS doesn't block frontend
+        
         _default_cors = r"^(http://localhost:3000|https://.*\.run\.app|https://ordaxium\.com|https://www\.ordaxium\.com|https://www\.modelmyretirement\.com)$"
         if not (self.CORS_ORIGINS_REGEX and self.CORS_ORIGINS_REGEX.strip()):
             self.CORS_ORIGINS_REGEX = _default_cors

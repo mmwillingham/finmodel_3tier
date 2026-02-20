@@ -20,40 +20,33 @@ def sanitize_database_url(url: str) -> str:
     return re.sub(pattern, r'\1***\3', url)
 
 def get_database_url() -> str:
-    global _unix_socket_path # Declare intent to modify global variable
+    global _unix_socket_path
     database_url = os.getenv("DATABASE_URL")
 
     if database_url is None:
         db_user = os.getenv("DB_USER")
         db_password = os.getenv("DB_PASSWORD") or os.getenv("_DB_PASSWORD")
         db_name = os.getenv("DB_NAME")
+        db_host = os.getenv("DB_HOST")
         cloud_sql_connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
-        use_cloud_sql_proxy_tcp = os.getenv("USE_CLOUD_SQL_PROXY_TCP", "False").lower() == "true" # NEW: Check for TCP proxy
+        
+        # Logic: If host is an IP, use TCP regardless of connection name
+        is_tcp = db_host and not db_host.startswith('/')
 
-        if not all([db_user, db_password, db_name]):
-            raise ValueError("Missing one or more database environment variables (DB_USER, DB_PASSWORD, DB_NAME)")
-
-        if cloud_sql_connection_name and not use_cloud_sql_proxy_tcp: # Use Unix socket by default for Cloud SQL
+        if is_tcp:
+            _unix_socket_path = None
+            local_db_port = os.getenv("DB_PORT", "5432")
+            database_url = (
+                f"postgresql+pg8000://{db_user}:{db_password}@{db_host}:{local_db_port}/{db_name}"
+            )
+        elif cloud_sql_connection_name:
             _unix_socket_path = f"/cloudsql/{cloud_sql_connection_name}/.s.PGSQL.5432"
             database_url = (
                 f"postgresql+pg8000://{db_user}:{db_password}@/{db_name}?unix_sock={_unix_socket_path}"
             )
-        elif cloud_sql_connection_name and use_cloud_sql_proxy_tcp: # NEW: Use TCP for local Cloud SQL Proxy
-            _unix_socket_path = None # Explicitly set to None for TCP connections
-            local_db_host = os.getenv("DB_HOST", "127.0.0.1") # Default to 127.0.0.1 for proxy
-            local_db_port = os.getenv("DB_PORT", "5432")     # Default to 5432 for proxy
-            database_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
-            )
-        else: # Regular local database connection
-            local_db_host = os.getenv("DB_HOST", "localhost")
-            local_db_port = os.getenv("DB_PORT", "5432")
-            database_url = (
-                f"postgresql+pg8000://{db_user}:{db_password}@{local_db_host}:{local_db_port}/{db_name}"
-            )
-
-    if database_url is None:
-        raise ValueError("DATABASE_URL could not be determined from environment variables.")
+        else:
+            # Fallback
+            database_url = f"postgresql+pg8000://{db_user}:{db_password}@localhost:5432/{db_name}"
 
     return database_url
 
