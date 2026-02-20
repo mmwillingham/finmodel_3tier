@@ -1,17 +1,16 @@
 steps:
   - name: 'bash'
-    id: 'Generate Timestamp'
+    id: 'Generate Variables'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         export _FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
-        export DB_HOST=/cloudsql/${_SQL_INSTANCE}
         echo "export _FIXED_TIMESTAMP=${_FIXED_TIMESTAMP}" > /workspace/env_vars.sh
-        echo "export DB_HOST=/cloudsql/${_SQL_INSTANCE}" >> /workspace/env_vars.sh
         echo "export ENVIRONMENT=${_ENVIRONMENT}" >> /workspace/env_vars.sh
+        echo "export DB_HOST=${_DB_HOST}" >> /workspace/env_vars.sh
 
-  # 1. Build & Push
+  # 1. Build & Push Backend
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Backend Image'
     entrypoint: 'bash'
@@ -23,41 +22,25 @@ steps:
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        source /workspace/env_vars.sh
-        docker push ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
+    args: ['push', '${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}']
+    waitFor: ['Build Backend Image']
 
-  # 2. Database Migrations (Pre-deployment)
-  - name: 'python:3.11'
-    id: 'Run Alembic Migrations'
-    dir: 'api'
+  # 2. Database Migrations (Triggering the Cloud Run Job)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Run Alembic Migrations via Job'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        python3 -m pip install -r requirements.txt
-        curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.20.0/cloud-sql-proxy.linux.amd64
-        chmod +x cloud-sql-proxy
-        mkdir -p /cloudsql
-        ./cloud-sql-proxy ${_SQL_INSTANCE} --unix-socket /cloudsql &
-        echo "Waiting for Cloud SQL Proxy..." && sleep 5
-        set -ex
-        # Ensure DB and migration graph are aligned in case of prior merge/stamp issues
-        PYTHONPATH=/workspace alembic -c ./alembic.ini stamp 20260203_merge_heads_rmd || true
-        PYTHONPATH=/workspace alembic -c ./alembic.ini upgrade head
-    env:
-      - 'DB_USER=${_DB_USER}'
-      - 'DB_NAME=${_DB_NAME}'
-      - 'CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE}'
-    secretEnv:
-      - 'DB_PASSWORD'
+        gcloud run jobs update mmr-${_ENVIRONMENT}-migrate \
+          --image ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          --region ${_REGION} \
+          --execute-now \
+          --wait
     waitFor: ['Push Backend Image']
 
-  # 3. Deploy Backend
+  # 3. Deploy Backend (Standardized for Direct VPC)
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Backend Service'
     entrypoint: 'bash'
@@ -72,8 +55,7 @@ steps:
           --allow-unauthenticated \
           --project ${PROJECT_ID} \
           --service-account ${_SERVICE_ACCOUNT} \
-          --set-cloudsql-instances=${_SQL_INSTANCE} \
-          --set-env-vars="CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE},GCS_BUCKET_NAME=${_GCS_BUCKET},GCS_PROJECT_ID=${PROJECT_ID},PUBLIC_BACKEND_URL=${_BACKEND_URL},FRONTEND_URL=${_FRONTEND_URL},CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX},PLAID_ENV=sandbox,DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},MAIL_USERNAME=martin.willingham@gmail.com,MAIL_FROM=no_reply@gmail.com,MAIL_PORT=587,MAIL_SERVER=smtp.gmail.com,MAIL_TLS=True,MAIL_SSL=False,USE_CREDENTIALS=True,VALIDATE_CERTS=True" \
+          --set-env-vars="DB_HOST=${_DB_HOST},CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE},GCS_BUCKET_NAME=${_GCS_BUCKET},GCS_PROJECT_ID=${PROJECT_ID},PUBLIC_BACKEND_URL=${_BACKEND_URL},FRONTEND_URL=${_FRONTEND_URL},CORS_ORIGINS_REGEX=${_CORS_ORIGINS_REGEX},PLAID_ENV=sandbox,DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},MAIL_USERNAME=martin.willingham@gmail.com,MAIL_FROM=no_reply@gmail.com,MAIL_PORT=587,MAIL_SERVER=smtp.gmail.com,MAIL_TLS=True,MAIL_SSL=False,USE_CREDENTIALS=True,VALIDATE_CERTS=True" \
           --set-secrets="DB_PASSWORD=_DB_PASSWORD:${_DB_SECRET_VER},SECRET_KEY=_SECRET_KEY:1,GOOGLE_CLIENT_SECRET=_GOOGLE_CLIENT_SECRET:2,GOOGLE_CLIENT_ID=_GOOGLE_CLIENT_ID:2,MAIL_PASSWORD=_MAIL_PASSWORD:1,PLAID_SECRET=_PLAID_SECRET:1,PLAID_ENCRYPTION_KEY=_PLAID_ENCRYPTION_KEY:1,PLAID_CLIENT_ID=_PLAID_CLIENT_ID:1,OPENAI_API_KEY=_OPENAI_API_KEY:1,OPENAI_API_KEY_PRO=_OPENAI_API_KEY_PRO:1" \
           --cpu=1 \
           --memory=512Mi \
@@ -81,8 +63,11 @@ steps:
           --cpu-boost \
           --concurrency=80 \
           --timeout=30m \
-          --no-traffic
-    waitFor: ['Run Alembic Migrations']
+          --no-traffic \
+          --network=default \
+          --subnet=default \
+          --vpc-egress=all-traffic
+    waitFor: ['Run Alembic Migrations via Job']
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Update Backend Traffic'
@@ -103,38 +88,13 @@ steps:
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Frontend Image'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        source /workspace/env_vars.sh
-        docker push ${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
+    args: ['push', '${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}']
     waitFor: ['Build Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Frontend Service'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        source /workspace/env_vars.sh
-        gcloud run deploy ${_FRONTEND_SERVICE_NAME} \
-          --image ${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
-          --region ${_REGION} \
-          --project ${PROJECT_ID} \
-          --platform managed \
-          --allow-unauthenticated
+    args: ['run', 'deploy', '${_FRONTEND_SERVICE_NAME}', '--image', '${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}', '--region', '${_REGION}', '--platform', 'managed', '--allow-unauthenticated']
     waitFor: ['Push Frontend Image']
-
-availableSecrets:
-  secretManager:
-    - versionName: 'projects/${PROJECT_ID}/secrets/_DB_PASSWORD/versions/${_DB_SECRET_VER}'
-      env: 'DB_PASSWORD'
-
-# Add to secrets manager instead
-# substitutions:
-#   _DB_NAME: 'finmodel1'
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
-
