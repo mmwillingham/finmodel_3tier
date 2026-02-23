@@ -695,7 +695,17 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
           <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPng(individualAssetChartRef, "Individual_Asset_Projections")}>Download PNG</Button>
           <Button size="small" variant="contained" sx={projectionActionButtonSx} onClick={() => handleDownloadChartPdf(individualAssetChartRef, "Individual_Asset_Projections")}>Download PDF</Button>
         </Stack>
-        <Box sx={darkChartPanelSx}>
+        <Box 
+          sx={{
+            ...darkChartPanelSx,
+            mt: 1,
+            minHeight: 360,
+            "& canvas": {
+              height: "100% !important",
+            },
+          }}
+          
+          >
           <Line
             ref={individualAssetChartRef}
             data={{
