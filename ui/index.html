@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" sizes="32x32" href="/logo_final.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0F2847" />
@@ -14,10 +15,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     
-    <link rel="apple-touch-icon" sizes="180x180" href="/logo_final.png" />
+    <link rel="apple-touch-icon" href="/logo_final.png" />
     
     <link rel="manifest" href="/manifest.json" />
     <title>Model My Retirement</title>
+    <script>
+      (function() {
+        var sitemapFile = window.location.hostname.includes('ordaxium') 
+          ? '/sitemap-ordaxium.xml' 
+          : '/sitemap-modelmyretirement.xml';
+        
+        var link = document.createElement('link');
+        link.rel = 'alternate'; // Best for discovery
+        link.type = 'application/xml';
+        link.title = 'Sitemap';
+        link.href = sitemapFile;
+        document.getElementsByTagName('head')[0].appendChild(link);
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
