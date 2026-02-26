@@ -6,9 +6,9 @@ steps:
       - '-c'
       - |
         export _FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
-        echo "export _FIXED_TIMESTAMP=${_FIXED_TIMESTAMP}" > /workspace/env_vars.sh
-        echo "export ENVIRONMENT=${_ENVIRONMENT}" >> /workspace/env_vars.sh
-        echo "export DB_HOST=${_DB_HOST}" >> /workspace/env_vars.sh
+        echo "export _FIXED_TIMESTAMP=$${_FIXED_TIMESTAMP}" > /workspace/env_vars.sh
+        echo "export ENVIRONMENT=$${_ENVIRONMENT}" >> /workspace/env_vars.sh
+        echo "export DB_HOST=$${_DB_HOST}" >> /workspace/env_vars.sh
 
   # 1. Build & Push Backend
   - name: 'gcr.io/cloud-builders/docker'
