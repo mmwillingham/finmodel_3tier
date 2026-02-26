@@ -11,6 +11,7 @@ from schemas_documents import (
     DocumentCreate, DocumentUpdate, DocumentOut
 )
 from utils import gcs_storage
+from utils.document_structure import create_default_document_folders
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.subscription import get_user_limits
 from utils.permissions import check_permission
@@ -254,6 +255,31 @@ def delete_folder(
     
     logger.info(f"Deleted folder {folder_id} for user {current_user.id}")
     return None
+
+
+@router.post("/default-folders", status_code=status.HTTP_200_OK)
+def add_default_folders(
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    """
+    Ensure the default Document Vault folder hierarchy exists for the current user.
+    Creates any missing folders without removing or overwriting existing ones.
+    """
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=current_user.id,
+        permission_type="documents",
+        required_permission="edit"
+    )
+
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to modify this user's documents")
+
+    created = create_default_document_folders(db, current_user.id)
+    message = "Default folders created." if created else "All default folders already exist."
+    return {"message": message, "created": created}
 
 
 # --- DOCUMENT ENDPOINTS ---

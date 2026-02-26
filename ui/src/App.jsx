@@ -25,6 +25,7 @@ import AccountsSettingsPage from './pages/AccountsSettingsPage.jsx';
 import AutoDisbursementSettingsPage from './pages/AutoDisbursementSettingsPage.jsx';
 import UserManagementPage from './pages/UserManagementPage.jsx';
 import DefaultCategoriesPage from './pages/DefaultCategoriesPage.jsx';
+import DefaultFoldersPage from './pages/DefaultFoldersPage.jsx';
 import HelpPage from './pages/HelpPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import ExportImportPage from './pages/ExportImportPage.jsx';
@@ -88,6 +89,7 @@ function App() {
                                         <Route path="/settings/auto-disbursements" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                                         <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
                                         <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
+                                        <Route path="/settings/admin/default-folders" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
                                         <Route path="/settings/export-import" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                                         <Route path="/settings/refer-a-friend" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                                         <Route path="/settings/authorized-users" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />

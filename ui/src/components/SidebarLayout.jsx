@@ -44,6 +44,7 @@ import ApplicationSettingsPage from "../pages/ApplicationSettingsPage";
 import TaxHandlingPage from "../pages/TaxHandlingPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import DefaultCategoriesPage from "../pages/DefaultCategoriesPage";
+import DefaultFoldersPage from "../pages/DefaultFoldersPage";
 import HelpPage from "../pages/HelpPage";
 import AboutPage from "../pages/AboutPage";
 import ExportImportPage from "../pages/ExportImportPage";
@@ -511,6 +512,8 @@ export default function SidebarLayout() {
       setView('settings-admin-users');
     } else if (path === '/settings/admin/global-categories') {
       setView('settings-admin-global-categories');
+    } else if (path === '/settings/admin/default-folders') {
+      setView('settings-admin-default-folders');
     }
   }, [location.pathname]);
 
@@ -521,6 +524,9 @@ export default function SidebarLayout() {
     applyDashboardState(location.state);
     const { dashboardView, cashFlowView, customChartView, selectedChartId, chartToViewId, ...restState } = location.state;
     navigate(location.pathname, { replace: true, state: restState });
+    if (dashboardView === "walkthrough") {
+      setIsWalkthroughModalOpen(true);
+    }
   }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
@@ -642,6 +648,13 @@ export default function SidebarLayout() {
   const touchStartXRef = useRef(null);
   const touchCurrentXRef = useRef(null);
 
+  const walkthroughOverlayStyle = useMemo(() => {
+    if (isMobile || !isSidebarOpen) {
+      return undefined;
+    }
+    return { left: `${sidebarWidth}px` };
+  }, [isMobile, isSidebarOpen, sidebarWidth]);
+
   const handleMouseDown = (e) => {
     if (!sidebarRef.current) return;
     setIsResizing(true);
@@ -709,9 +722,12 @@ export default function SidebarLayout() {
     }
   }, [isResizing]);
 
-  const handleNavSelection = () => {
+  const handleNavSelection = ({ closeWalkthroughModal = true } = {}) => {
     if (isMobile) {
       setIsSidebarOpen(false);
+    }
+    if (closeWalkthroughModal) {
+      setIsWalkthroughModalOpen(false);
     }
   };
 
@@ -734,13 +750,14 @@ export default function SidebarLayout() {
     }
   };
 
-  const openDashboardView = (dashboardView, extraState = {}) => {
+  const openDashboardView = (dashboardView, extraState = {}, options = {}) => {
+    const closeWalkthroughModal = options.closeWalkthroughModal ?? true;
     const nextState = { ...(location.state || {}), dashboardView, ...extraState };
     navigate("/app", { state: nextState });
     if (location.pathname === "/app") {
       applyDashboardState(nextState);
     }
-    handleNavSelection();
+    handleNavSelection({ closeWalkthroughModal });
   };
 
   const wizardCards = [
@@ -803,7 +820,8 @@ export default function SidebarLayout() {
               onClick={() => {
                 setView('walkthrough');
                 setIsWalkthroughModalOpen(true);
-                handleNavSelection();
+                openDashboardView('walkthrough');
+                handleNavSelection({ closeWalkthroughModal: false });
               }}
             >
               Walkthrough
@@ -953,7 +971,7 @@ export default function SidebarLayout() {
         )}
 
         {/* Settings Pages */}
-        {!loading && (location.pathname.startsWith("/settings/categories") || location.pathname === "/categories") && (
+        {!loading && view === "settings-categories" && (
           renderMuiPageShell(<CategorySettingsPage />)
         )}
 
@@ -999,6 +1017,10 @@ export default function SidebarLayout() {
 
         {!loading && view === "settings-admin-global-categories" && (
           renderMuiPageShell(<DefaultCategoriesPage />)
+        )}
+
+        {!loading && view === "settings-admin-default-folders" && (
+          renderMuiPageShell(<DefaultFoldersPage />)
         )}
 
         {!loading && (view === "new-home" || view === null || view === undefined) && (location.pathname === "/app" || location.pathname === "/") && (
@@ -1551,7 +1573,11 @@ export default function SidebarLayout() {
         )}
       </main>
       {isWalkthroughModalOpen && (
-        <div className="walkthrough-modal-overlay" onClick={() => setIsWalkthroughModalOpen(false)}>
+        <div
+          className="walkthrough-modal-overlay"
+          style={walkthroughOverlayStyle}
+          onClick={() => setIsWalkthroughModalOpen(false)}
+        >
           <div className="walkthrough-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="walkthrough-modal-header">
               <h3>Walkthrough Wizards</h3>

@@ -31,6 +31,8 @@ const DocumentsPage = ({ hideSidebar = false }) => {
   const [editItem, setEditItem] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [defaultFoldersLoading, setDefaultFoldersLoading] = useState(false);
+  const [defaultFoldersMessage, setDefaultFoldersMessage] = useState('');
   
   // Confirm dialog
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
@@ -105,6 +107,22 @@ const DocumentsPage = ({ hideSidebar = false }) => {
       loadFolderContents(currentFolderId);
     } catch (err) {
       alert('Failed to create folder: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleAddDefaultFolders = async () => {
+    setDefaultFoldersMessage('');
+    setDefaultFoldersLoading(true);
+    try {
+      const response = await DocumentsService.addDefaultFolders();
+      setDefaultFoldersMessage(response.message || 'Default folders processed.');
+      setCurrentFolderId(null);
+      setFolderPath([{ id: null, name: 'Root' }]);
+      loadFolderContents(null);
+    } catch (err) {
+      setDefaultFoldersMessage(err.response?.data?.detail || err.message || 'Failed to add default folders.');
+    } finally {
+      setDefaultFoldersLoading(false);
     }
   };
 
@@ -232,6 +250,22 @@ const DocumentsPage = ({ hideSidebar = false }) => {
               <button onClick={() => setShowUploadModal(true)} className="btn-primary">
                 📤 Upload Document
               </button>
+              <button
+                onClick={handleAddDefaultFolders}
+                className="btn-secondary"
+                disabled={defaultFoldersLoading}
+                title="Add the recommended default Document Vault folders"
+              >
+                {defaultFoldersLoading ? 'Adding default folders...' : 'Add Default Folders'}
+              </button>
+            </div>
+            {defaultFoldersMessage && (
+              <div className="default-folders-message">
+                {defaultFoldersMessage}
+              </div>
+            )}
+            <div className="default-folders-note">
+              Adds missing folders only; it won&apos;t remove or overwrite anything you already created.
             </div>
           </div>
 

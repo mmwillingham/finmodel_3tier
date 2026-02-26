@@ -1,8 +1,10 @@
+from copy import deepcopy
 from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON, UniqueConstraint, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 from datetime import datetime
+from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
 
 class User(Base):
     """
@@ -307,6 +309,7 @@ class GlobalSettings(Base):
     liability_categories = Column(JSON, default=["Other", "Mortgage", "Student Loan", "Car Loan"])
     income_categories = Column(JSON, default=["Salary", "Rental Income", "Investments"])
     expense_categories = Column(JSON, default=["Housing", "Food", "Transportation", "Utilities", "Insurance", "Healthcare", "Entertainment"])
+    default_document_folders = Column(JSON, default=lambda: deepcopy(DEFAULT_DOCUMENT_FOLDER_STRUCTURE), nullable=True)
     free_max_projection_years = Column(Integer, default=5)
     free_max_documents = Column(Integer, default=5)
     free_max_whatif_monthly = Column(Integer, default=5)

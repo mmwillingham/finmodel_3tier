@@ -41,6 +41,18 @@
   flex-wrap: wrap;
 }
 
+.default-folders-note {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 6px;
+}
+
+.default-folders-message {
+  font-size: 0.95rem;
+  color: #0f172a;
+  margin-top: 6px;
+}
+
 .breadcrumb {
   background: #f5f5f5;
   padding: 10px 15px;

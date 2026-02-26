@@ -15,6 +15,7 @@ import secrets
 import json
 import traceback
 import os
+from copy import deepcopy
 from fastapi.responses import JSONResponse
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -43,6 +44,8 @@ from routers.authorized_users import router as authorized_users_router
 from routers.plaid import router as plaid_router
 from routers.what_if import router as what_if_router
 from routers.tax import router as tax_router
+from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
+from utils.document_structure import create_default_document_folders
 from utils.email import send_email
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
@@ -944,6 +947,8 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     db.commit()
     db.refresh(user_settings)
 
+    create_default_document_folders(db, db_user.id)
+
     # Only send confirmation email if user has an email address
     if db_user.email:
         confirmation_token = auth.create_email_confirmation_token(db, db_user.id)
@@ -1091,6 +1096,8 @@ def admin_create_user(
     db.add(user_settings)
     db.commit()
     db.refresh(user_settings)
+
+    create_default_document_folders(db, db_user.id)
     
     return db_user
 
@@ -1133,7 +1140,10 @@ def get_global_settings(
     global_settings = db.query(models.GlobalSettings).first()
     if not global_settings:
         # Create default global settings if they don't exist
-        global_settings = models.GlobalSettings(help_content="<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>") # Initialize with default content
+        global_settings = models.GlobalSettings(
+            help_content="<h1>Welcome to the Help Page!</h1><p>This is a placeholder for help content. Administrators can edit this content.</p>",
+            default_document_folders=deepcopy(DEFAULT_DOCUMENT_FOLDER_STRUCTURE),
+        ) # Initialize with default content
         db.add(global_settings)
         db.commit()
         db.refresh(global_settings)
@@ -1150,7 +1160,7 @@ def update_global_settings(
     """
     global_settings = db.query(models.GlobalSettings).first()
     if not global_settings:
-        global_settings = models.GlobalSettings()
+        global_settings = models.GlobalSettings(default_document_folders=deepcopy(DEFAULT_DOCUMENT_FOLDER_STRUCTURE))
         db.add(global_settings)
         db.commit()
         db.refresh(global_settings)
