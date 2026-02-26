@@ -302,10 +302,29 @@ const AccountsSettingsPage = () => {
       >
         <div className="accounts-plaid-layout">
           <div className="accounts-plaid-main">
-            <h3 style={{ margin: 0, marginBottom: '12px', fontWeight: 'bold', fontSize: '1.2em' }}>Connect Bank Accounts (Plaid)</h3>
-            <p style={{ fontSize: '0.9em', color: '#cbd5e1', marginBottom: '12px' }}>
+          <h3 style={{ margin: 0, marginBottom: '12px', fontWeight: 'bold', fontSize: '1.2em' }}>
+              Connect Bank Accounts (Plaid)
+            </h3>
+            <p style={{ fontSize: '0.9em', color: '#cbd5e1', marginBottom: '8px' }}>
               Securely connect your bank accounts to automatically sync account balances as assets.
             </p>
+            <p style={{ fontSize: '0.9em', color: '#cbd5e1', marginBottom: '8px' }}>
+              <strong>NOTE:</strong> this feature is in testing. Currently, it only allows access to fake account access. To test, use the following information:
+            </p>
+            <ul style={{
+              fontSize: '0.9em', 
+              color: '#cbd5e1', 
+              listStyleType: 'none', 
+              paddingLeft: '1.5em', 
+              margin: 0,
+              lineHeight: '1.6' 
+            }}>
+              <li>Bank: First Platypus Bank</li>
+              <li>Phone: 478-555-0000 (This can be any valid phone number)</li>
+              <li>Username: user_good</li>
+              <li>Password: pass_good</li>
+              <li>OTP: 123456</li>
+            </ul>
             <PlaidLinkButton
               onSuccess={(syncData) => {
                 setMessage(`Successfully connected ${syncData.accounts_synced} account(s). ${syncData.assets_created_or_updated} asset(s) created or updated.`);
