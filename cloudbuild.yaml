@@ -61,7 +61,7 @@ steps:
           --region ${_REGION} \
           --execute-now \
           --wait
-    waitFor: ['Push Backend Image']
+    waitFor: ['Record Backend Digest']
 
   # 3. Deploy Backend (Standardized for Direct VPC)
   - name: 'gcr.io/cloud-builders/gcloud'
