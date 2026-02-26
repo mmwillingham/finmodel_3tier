@@ -43,9 +43,13 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        TAG=${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}
-        DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$${TAG}")
-        echo "export _BACKEND_IMAGE_DIGEST=$${DIGEST}" >> /workspace/env_vars.sh
+        TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}"
+        DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${TAG}")
+        if [[ -z "${DIGEST}" ]]; then
+          echo "Failed to resolve backend digest for ${TAG}" >&2
+          exit 1
+        fi
+        printf 'export _BACKEND_IMAGE_DIGEST=%s\n' "${DIGEST}" >> /workspace/env_vars.sh
     waitFor: ['Push Backend Image']
 
   # 2. Database Migrations (Triggering the Cloud Run Job)
