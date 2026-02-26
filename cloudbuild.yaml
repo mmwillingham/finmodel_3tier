@@ -18,7 +18,8 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker build --no-cache --pull -f api/Dockerfile -t ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
+        BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker build --no-cache --pull -f api/Dockerfile -t "$${BACKEND_TAG}" api --build-arg CACHEBUSTER=$${_FIXED_TIMESTAMP}
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Inspect Backend Image'
@@ -27,13 +28,20 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker run --rm ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+        BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker run --rm "$${BACKEND_TAG}" \
           /bin/sh -c "sha256sum /app/api/alembic/versions/20260226_add_default_document_folders.py && head -n 40 /app/api/alembic/versions/20260226_add_default_document_folders.py"
     waitFor: ['Build Backend Image']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
-    args: ['push', '${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker push "$${BACKEND_TAG}"
     waitFor: ['Build Backend Image']
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -43,7 +51,7 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}"
+        TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
         DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$${TAG}" | tr -d '\n')
         if [[ -z "$${DIGEST}" ]]; then
           echo "Failed to resolve backend digest for $${TAG}" >&2
@@ -68,7 +76,7 @@ steps:
         fi
         echo "Using backend digest: ${_BACKEND_IMAGE_DIGEST}"
         gcloud run jobs update mmr-${_ENVIRONMENT}-migrate \
-          --image ${_BACKEND_IMAGE_DIGEST} \
+          --image $${_BACKEND_IMAGE_DIGEST} \
           --region ${_REGION} \
           --execute-now \
           --wait
@@ -83,7 +91,7 @@ steps:
       - |
         source /workspace/env_vars.sh
         gcloud run deploy ${_BACKEND_SERVICE_NAME} \
-          --image ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          --image ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP} \
           --region ${_REGION} \
           --platform managed \
           --allow-unauthenticated \
