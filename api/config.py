@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 from pydantic_settings import BaseSettings
 
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     PUBLIC_BACKEND_URL: str | None = os.getenv("PUBLIC_BACKEND_URL", None)
 
     # Public URL of the frontend service (used for CORS configuration)
-    FRONTEND_URL: str | None = os.getenv("FRONTEND_URL", None)
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
     # Google OAuth Settings
     GOOGLE_CLIENT_ID: str | None = os.getenv("GOOGLE_CLIENT_ID", "") # Default to empty string
@@ -50,12 +51,8 @@ class Settings(BaseSettings):
     MAIL_FROM: str | None = os.getenv("MAIL_FROM", "")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
     MAIL_SERVER: str | None = os.getenv("MAIL_SERVER", "")
-    # Set via Cloud Build env: CORS_ORIGINS_REGEX (from _CORS_ORIGINS_REGEX). Include both
-    # https://ordaxium.com and https://www.ordaxium.com if users can reach the app either way.
-    CORS_ORIGINS_REGEX: str = os.getenv(
-        "CORS_ORIGINS_REGEX",
-        r"^(http://localhost:3000|https://.*\.run\.app|https://ordaxium\.com|https://www\.ordaxium\.com|https://www\.modelmyretirement\.com)$",
-    )
+    # Set via Cloud Build env: CORS_ORIGINS_REGEX (from _CORS_ORIGINS_REGEX)
+    CORS_ORIGINS_REGEX: str | None = os.getenv("CORS_ORIGINS_REGEX", "")
     
     # Application name for emails
     APP_NAME: str = os.getenv("APP_NAME", "Financial Projector")
@@ -111,12 +108,12 @@ class Settings(BaseSettings):
         # --- Keep your existing URL and CORS logic below ---
         if self.PUBLIC_BACKEND_URL is None:
             self.PUBLIC_BACKEND_URL = "http://localhost:8000"
-        if self.FRONTEND_URL is None:
-            self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-        
-        _default_cors = r"^(http://localhost:3000|https://.*\.run\.app|https://ordaxium\.com|https://www\.ordaxium\.com|https://www\.modelmyretirement\.com)$"
         if not (self.CORS_ORIGINS_REGEX and self.CORS_ORIGINS_REGEX.strip()):
-            self.CORS_ORIGINS_REGEX = _default_cors
+            frontend_match = self.FRONTEND_URL.rstrip("/")
+            if not frontend_match:
+                frontend_match = self.FRONTEND_URL
+            escaped_frontend = re.escape(frontend_match)
+            self.CORS_ORIGINS_REGEX = rf"^{escaped_frontend}$"
 
 # Instantiate the settings object once to be imported everywhere
 settings = Settings()
