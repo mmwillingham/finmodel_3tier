@@ -68,13 +68,13 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        if [[ -z "${_BACKEND_IMAGE_DIGEST}" ]]; then
+        if [[ -z "$${_BACKEND_IMAGE_DIGEST}" ]]; then
           echo "Backend image digest is empty" >&2
           ls -l /workspace/env_vars.sh
           cat /workspace/env_vars.sh
           exit 1
         fi
-        echo "Using backend digest: ${_BACKEND_IMAGE_DIGEST}"
+        echo "Using backend digest: $${_BACKEND_IMAGE_DIGEST}"
         gcloud run jobs update mmr-${_ENVIRONMENT}-migrate \
           --image $${_BACKEND_IMAGE_DIGEST} \
           --region ${_REGION} \
