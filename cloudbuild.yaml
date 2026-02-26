@@ -21,6 +21,17 @@ steps:
         docker build --no-cache --pull -f api/Dockerfile -t ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
 
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'Inspect Backend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        docker run --rm ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          /bin/sh -c "sha256sum /app/api/alembic/versions/20260226_add_default_document_folders.py && head -n 40 /app/api/alembic/versions/20260226_add_default_document_folders.py"
+    waitFor: ['Build Backend Image']
+
+  - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
     args: ['push', '${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}']
     waitFor: ['Build Backend Image']
