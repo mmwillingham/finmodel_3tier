@@ -44,7 +44,7 @@ steps:
       - |
         source /workspace/env_vars.sh
         TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}"
-        DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$${TAG}")
+        DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$${TAG}" | tr -d '\n')
         if [[ -z "$${DIGEST}" ]]; then
           echo "Failed to resolve backend digest for $${TAG}" >&2
           exit 1
