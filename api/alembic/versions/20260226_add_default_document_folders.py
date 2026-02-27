@@ -27,7 +27,7 @@ def upgrade() -> None:
         default_json = json.dumps(DEFAULT_DOCUMENT_FOLDER_STRUCTURE)
         stmt = sa.text(
             "UPDATE global_settings "
-            "SET default_document_folders = :value "
+            "SET default_document_folders = (:value)::json "
             "WHERE default_document_folders IS NULL"
         ).bindparams(sa.bindparam("value", default_json))
         op.execute(stmt)
