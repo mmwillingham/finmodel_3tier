@@ -123,12 +123,28 @@ steps:
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Frontend Image'
-    args: ['push', '${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        FRONTEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker push "$${FRONTEND_TAG}"
     waitFor: ['Build Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Frontend Service'
-    args: ['run', 'deploy', '${_FRONTEND_SERVICE_NAME}', '--image', '${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}', '--region', '${_REGION}', '--platform', 'managed', '--allow-unauthenticated']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        FRONTEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        gcloud run deploy ${_FRONTEND_SERVICE_NAME} \
+          --image "$${FRONTEND_TAG}" \
+          --region ${_REGION} \
+          --platform managed \
+          --allow-unauthenticated
     waitFor: ['Push Frontend Image']
 
 options:
