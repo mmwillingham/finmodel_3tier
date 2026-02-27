@@ -43,24 +43,15 @@ steps:
       - |
         source /workspace/env_vars.sh
         BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
-        docker push "$${BACKEND_TAG}"
-    waitFor: ['Build Backend Image']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Record Backend Digest'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        source /workspace/env_vars.sh
-        TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
-        DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$${TAG}" | tr -d '\n')
+        PUSH_LOG=/workspace/backend-push.log
+        DIGEST=$(docker push "$${BACKEND_TAG}" | tee "$${PUSH_LOG}" | awk '/digest:/ {print $2}')
         if [[ -z "$${DIGEST}" ]]; then
-          echo "Failed to resolve backend digest for $${TAG}" >&2
+          cat "$${PUSH_LOG}"
+          echo "Failed to capture digest for $${BACKEND_TAG}" >&2
           exit 1
         fi
         printf 'export _BACKEND_IMAGE_DIGEST=%s\n' "$${DIGEST}" >> /workspace/env_vars.sh
-    waitFor: ['Push Backend Image']
+    waitFor: ['Build Backend Image']
 
   # 2. Database Migrations (Triggering the Cloud Run Job)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -82,7 +73,7 @@ steps:
           --region ${_REGION} \
           --execute-now \
           --wait
-    waitFor: ['Record Backend Digest']
+    waitFor: ['Push Backend Image']
 
   # 3. Deploy Backend (Standardized for Direct VPC)
   - name: 'gcr.io/cloud-builders/gcloud'
