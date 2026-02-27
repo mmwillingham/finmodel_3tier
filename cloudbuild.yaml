@@ -43,11 +43,10 @@ steps:
       - |
         source /workspace/env_vars.sh
         BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
-        PUSH_LOG=/workspace/backend-push.log
-        DIGEST=$(docker push "$${BACKEND_TAG}" | tee "$${PUSH_LOG}" | awk '/digest:/ {print $2}')
+        docker push "$${BACKEND_TAG}"
+        DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$${BACKEND_TAG}")
         if [[ -z "$${DIGEST}" ]]; then
-          cat "$${PUSH_LOG}"
-          echo "Failed to capture digest for $${BACKEND_TAG}" >&2
+          echo "Failed to resolve digest for $${BACKEND_TAG}" >&2
           exit 1
         fi
         printf 'export _BACKEND_IMAGE_DIGEST=%s\n' "$${DIGEST}" >> /workspace/env_vars.sh
