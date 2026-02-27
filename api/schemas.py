@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from copy import deepcopy
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 import re
 from typing import List, Optional, Any
 from datetime import datetime, date
+from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
 
 # --- USER SCHEMAS ---
 
@@ -356,6 +360,15 @@ class UserSettingsOut(UserSettingsBase):
 
 # --- GLOBAL SETTINGS SCHEMAS ---
 
+class DocumentFolderStructureItem(BaseModel):
+    name: str
+    children: Optional[List["DocumentFolderStructureItem"]] = None
+
+    model_config = ConfigDict(extra="forbid")
+
+DocumentFolderStructureItem.model_rebuild()
+
+
 class GlobalSettingsBase(BaseModel):
     asset_categories: List[str] = ["Other", "Checking", "Savings", "Investment"]
     liability_categories: List[str] = ["Other", "Mortgage", "Student Loan", "Car Loan"]
@@ -364,6 +377,7 @@ class GlobalSettingsBase(BaseModel):
     free_max_projection_years: int = 5
     free_max_documents: int = 5
     free_max_whatif_monthly: int = 5
+    default_document_folders: List[DocumentFolderStructureItem] = Field(default_factory=lambda: deepcopy(DEFAULT_DOCUMENT_FOLDER_STRUCTURE))
 
 class GlobalSettingsCreate(GlobalSettingsBase):
     pass
@@ -378,6 +392,7 @@ class GlobalSettingsUpdate(BaseModel):
     free_max_whatif_monthly: Optional[int] = None
     help_content: Optional[str] = None
     about_content: Optional[str] = None
+    default_document_folders: Optional[List[DocumentFolderStructureItem]] = None
 
 class GlobalSettingsOut(GlobalSettingsBase):
     id: int

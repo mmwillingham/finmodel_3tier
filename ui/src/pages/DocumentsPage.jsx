@@ -31,12 +31,17 @@ const DocumentsPage = ({ hideSidebar = false }) => {
   const [editItem, setEditItem] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [defaultFoldersLoading, setDefaultFoldersLoading] = useState(false);
+  const [defaultFoldersMessage, setDefaultFoldersMessage] = useState('');
+  const [showDefaultFoldersTooltip, setShowDefaultFoldersTooltip] = useState(false);
   
   // Confirm dialog
-  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, showCancel: false });
   
   // Walkthrough
   const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [folderWarningMessage, setFolderWarningMessage] = useState('');
+  const [showFolderWarningModal, setShowFolderWarningModal] = useState(false);
 
   useEffect(() => {
     loadFolderContents(currentFolderId);
@@ -108,6 +113,28 @@ const DocumentsPage = ({ hideSidebar = false }) => {
     }
   };
 
+  const handleAddDefaultFolders = async () => {
+    setShowDefaultFoldersTooltip(false);
+    setDefaultFoldersMessage('');
+    setDefaultFoldersLoading(true);
+    try {
+      const response = await DocumentsService.addDefaultFolders();
+      setDefaultFoldersMessage(response.message || 'Default folders processed.');
+      setCurrentFolderId(null);
+      setFolderPath([{ id: null, name: 'Root' }]);
+      loadFolderContents(null);
+    } catch (err) {
+      setDefaultFoldersMessage(err.response?.data?.detail || err.message || 'Failed to add default folders.');
+    } finally {
+      setDefaultFoldersLoading(false);
+    }
+  };
+
+  const closeFolderWarningModal = () => {
+    setShowFolderWarningModal(false);
+    setFolderWarningMessage('');
+  };
+
   const handleUploadDocument = async () => {
     if (!uploadFile) {
       alert('Please select a file');
@@ -171,9 +198,11 @@ const DocumentsPage = ({ hideSidebar = false }) => {
           await DocumentsService.deleteFolder(folder.id);
           loadFolderContents(currentFolderId);
         } catch (err) {
-          alert('Failed to delete folder: ' + (err.response?.data?.detail || err.message));
+          setFolderWarningMessage('Failed to delete folder: ' + (err.response?.data?.detail || err.message));
+          setShowFolderWarningModal(true);
         }
-      }
+      },
+      showCancel: true
     });
   };
 
@@ -189,7 +218,8 @@ const DocumentsPage = ({ hideSidebar = false }) => {
         } catch (err) {
           alert('Failed to delete document: ' + (err.response?.data?.detail || err.message));
         }
-      }
+      },
+      showCancel: true
     });
   };
 
@@ -222,7 +252,7 @@ const DocumentsPage = ({ hideSidebar = false }) => {
               <h1 className="documents-title">📁 Documents</h1>
               <AccountSwitcher compact={true} />
             </div>
-            <div className="documents-actions">
+          <div className="documents-actions">
               <button onClick={() => setShowWalkthrough(true)} className="btn-primary" title="Show Tutorial">
                 ❓ Tutorial
               </button>
@@ -232,7 +262,39 @@ const DocumentsPage = ({ hideSidebar = false }) => {
               <button onClick={() => setShowUploadModal(true)} className="btn-primary">
                 📤 Upload Document
               </button>
+            <div className="default-folders-tooltip-container">
+              <button
+                onClick={handleAddDefaultFolders}
+                className="btn-primary"
+                disabled={defaultFoldersLoading}
+                title="Add the recommended default Document Vault folders"
+              >
+                {defaultFoldersLoading ? 'Adding default folders...' : 'Add Default Folders'}
+              </button>
+              <button
+                type="button"
+                className="default-folders-tooltip-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDefaultFoldersTooltip((prev) => !prev);
+                }}
+                aria-expanded={showDefaultFoldersTooltip}
+                aria-label="Show note about default folders"
+              >
+                i
+              </button>
+              {showDefaultFoldersTooltip && (
+                <div className="default-folders-tooltip" role="tooltip">
+                  Adds missing folders only; it won&apos;t remove or overwrite anything you already created.
+                </div>
+              )}
             </div>
+            </div>
+            {defaultFoldersMessage && (
+              <div className="default-folders-message">
+                {defaultFoldersMessage}
+              </div>
+            )}
           </div>
 
       {/* Breadcrumb navigation */}
@@ -483,11 +545,32 @@ const DocumentsPage = ({ hideSidebar = false }) => {
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, showCancel: false })}
         onConfirm={confirmDialog.onConfirm}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        showCancel={confirmDialog.showCancel}
       />
+      {showFolderWarningModal && (
+        <div className="modal-overlay" onClick={closeFolderWarningModal}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <h2>Unable to Delete Folder</h2>
+            <p style={{ textAlign: 'center', color: '#e2e8f0', marginBottom: '20px' }}>
+              {folderWarningMessage}
+            </p>
+            <div className="modal-actions">
+              <button onClick={closeFolderWarningModal} className="btn-primary">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Walkthrough Modal */}
       {showWalkthrough && (

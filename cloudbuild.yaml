@@ -5,10 +5,13 @@ steps:
     args:
       - '-c'
       - |
-        export _FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
-        echo "export _FIXED_TIMESTAMP=${_FIXED_TIMESTAMP}" > /workspace/env_vars.sh
-        echo "export ENVIRONMENT=${_ENVIRONMENT}" >> /workspace/env_vars.sh
-        echo "export DB_HOST=${_DB_HOST}" >> /workspace/env_vars.sh
+        FIXED_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        printf 'export _FIXED_TIMESTAMP=%s\n' "$${FIXED_TIMESTAMP}" > /workspace/env_vars.sh
+        printf 'export ENVIRONMENT=%s\n' "${_ENVIRONMENT}" >> /workspace/env_vars.sh
+        printf 'export DB_HOST=%s\n' "${_DB_HOST}" >> /workspace/env_vars.sh
+        echo "--- env_vars.sh ---"
+        cat /workspace/env_vars.sh
+        echo "-------------------"
 
   # 1. Build & Push Backend
   - name: 'gcr.io/cloud-builders/docker'
@@ -18,11 +21,36 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker build --no-cache --pull -f api/Dockerfile -t ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} api --build-arg CACHEBUSTER=${_FIXED_TIMESTAMP}
+        BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker build --no-cache --pull -f api/Dockerfile -t "$${BACKEND_TAG}" api --build-arg CACHEBUSTER=$${_FIXED_TIMESTAMP}
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Inspect Backend Image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker run --rm "$${BACKEND_TAG}" \
+          /bin/sh -c "sha256sum /app/api/alembic/versions/20260226_add_default_document_folders.py && head -n 40 /app/api/alembic/versions/20260226_add_default_document_folders.py"
+    waitFor: ['Build Backend Image']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Backend Image'
-    args: ['push', '${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        BACKEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker push "$${BACKEND_TAG}"
+        DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$${BACKEND_TAG}")
+        if [[ -z "$${DIGEST}" ]]; then
+          echo "Failed to resolve digest for $${BACKEND_TAG}" >&2
+          exit 1
+        fi
+        printf 'export _BACKEND_IMAGE_DIGEST=%s\n' "$${DIGEST}" >> /workspace/env_vars.sh
     waitFor: ['Build Backend Image']
 
   # 2. Database Migrations (Triggering the Cloud Run Job)
@@ -33,8 +61,15 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
+        if [[ -z "$${_BACKEND_IMAGE_DIGEST}" ]]; then
+          echo "Backend image digest is empty" >&2
+          ls -l /workspace/env_vars.sh
+          cat /workspace/env_vars.sh
+          exit 1
+        fi
+        echo "Using backend digest: $${_BACKEND_IMAGE_DIGEST}"
         gcloud run jobs update mmr-${_ENVIRONMENT}-migrate \
-          --image ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          --image $${_BACKEND_IMAGE_DIGEST} \
           --region ${_REGION} \
           --execute-now \
           --wait
@@ -49,7 +84,7 @@ steps:
       - |
         source /workspace/env_vars.sh
         gcloud run deploy ${_BACKEND_SERVICE_NAME} \
-          --image ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} \
+          --image ${_IMAGE_REPO}/${_ENVIRONMENT}-backend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP} \
           --region ${_REGION} \
           --platform managed \
           --allow-unauthenticated \
@@ -82,18 +117,34 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker build --no-cache -t ${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=${_BACKEND_URL} .
+        docker build --no-cache -t ${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=${_BACKEND_URL} .
     dir: 'ui'
     waitFor: ['Update Backend Traffic']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Frontend Image'
-    args: ['push', '${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        FRONTEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        docker push "$${FRONTEND_TAG}"
     waitFor: ['Build Frontend Image']
 
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Frontend Service'
-    args: ['run', 'deploy', '${_FRONTEND_SERVICE_NAME}', '--image', '${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-${_FIXED_TIMESTAMP}', '--region', '${_REGION}', '--platform', 'managed', '--allow-unauthenticated']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/env_vars.sh
+        FRONTEND_TAG="${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP}"
+        gcloud run deploy ${_FRONTEND_SERVICE_NAME} \
+          --image "$${FRONTEND_TAG}" \
+          --region ${_REGION} \
+          --platform managed \
+          --allow-unauthenticated
     waitFor: ['Push Frontend Image']
 
 options:

@@ -38,6 +38,18 @@ const DocumentsService = {
   },
 
   /**
+   * Create the default folder structure for the Document Vault.
+   */
+  async addDefaultFolders() {
+    try {
+      const response = await api.post('/documents/default-folders');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Get a specific folder
    */
   async getFolder(folderId) {

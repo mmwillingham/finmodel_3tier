@@ -9,6 +9,7 @@ from schemas_authorized_users import (
     AuthorizedUserCreate, AuthorizedUserUpdate, AuthorizedUserOut
 )
 from utils.permissions import get_authorized_users_for_primary
+from utils.document_structure import create_default_document_folders
 from utils.email import send_email
 from config import settings
 import logging
@@ -70,6 +71,7 @@ def create_authorized_user(
         user_settings = models.UserSettings(owner_id=target_user.id)
         db.add(user_settings)
         db.commit()
+        create_default_document_folders(db, target_user.id)
         
         logger.info(f"Created user account for {authorized_user.authorized_user_email} (user_id: {target_user.id})")
     

@@ -12,6 +12,30 @@
     color: var(--fg);
 }
 
+.global-default-folders .default-folder-tree-wrapper {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin-top: 8px;
+}
+
+.default-folder-tree {
+    margin: 0;
+    padding-left: 16px;
+    color: #111827;
+}
+
+.default-folder-tree li {
+    margin: 4px 0;
+}
+
+.section-note {
+    font-size: 0.85rem;
+    color: #475569;
+    margin-top: 6px;
+}
+
 
 /* MFA toggle switch */
 .switch {

@@ -40,6 +40,7 @@ const SettingsDropdownMenu = ({ onSelect, onClose, onLogout }) => {
                         <>
                             <button onClick={(e) => handleItemClick(e, '/settings/admin/users')}>User Management (Admin)</button>
                             <button onClick={(e) => handleItemClick(e, '/settings/admin/global-categories')}>Default Categories (Admin)</button>
+                    <button onClick={(e) => handleItemClick(e, '/settings/admin/default-folders')}>Default Folders (Admin)</button>
                         </>
                     )}
                 </>
