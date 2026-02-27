@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+import sqlalchemy as sa
 from typing import List, Optional
 import models
 import schemas
@@ -238,6 +239,41 @@ def delete_folder(
             detail="You do not have permission to delete this folder"
         )
     
+    # Prevent deletion if there are any subfolders (including nested) or documents
+    subfolders_stmt = sa.text("""
+        WITH RECURSIVE descendants AS (
+            SELECT id FROM document_folders WHERE parent_folder_id = :folder_id
+            UNION ALL
+            SELECT df.id FROM document_folders df
+            JOIN descendants d ON df.parent_folder_id = d.id
+        )
+        SELECT EXISTS(SELECT 1 FROM descendants)
+    """)
+
+    has_subfolders_result = db.execute(subfolders_stmt, {"folder_id": folder_id}).scalar()
+    has_subfolders = bool(has_subfolders_result)
+
+    documents_stmt = sa.text("""
+        WITH RECURSIVE folder_tree AS (
+            SELECT id FROM document_folders WHERE id = :folder_id
+            UNION ALL
+            SELECT df.id FROM document_folders df
+            JOIN folder_tree ft ON df.parent_folder_id = ft.id
+        )
+        SELECT EXISTS(
+            SELECT 1 FROM documents WHERE folder_id IN (SELECT id FROM folder_tree)
+        )
+    """)
+
+    has_documents_result = db.execute(documents_stmt, {"folder_id": folder_id}).scalar()
+    has_documents = bool(has_documents_result)
+
+    if has_subfolders or has_documents:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Folder must be empty before it can be deleted."
+        )
+
     # Delete all documents in this folder from GCS
     documents = db.query(models.Document).filter(
         models.Document.folder_id == folder_id
