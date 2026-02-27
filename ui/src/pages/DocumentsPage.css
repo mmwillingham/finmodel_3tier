@@ -41,16 +41,56 @@
   flex-wrap: wrap;
 }
 
-.default-folders-note {
-  font-size: 0.9rem;
-  color: #555;
-  margin-top: 6px;
-}
-
 .default-folders-message {
   font-size: 0.95rem;
   color: #0f172a;
   margin-top: 6px;
+}
+
+.default-folders-tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.default-folders-tooltip-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #00a3e0;
+  background: transparent;
+  color: #00a3e0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.default-folders-tooltip-toggle:hover,
+.default-folders-tooltip-toggle:focus-visible {
+  background-color: rgba(0, 163, 224, 0.15);
+  color: #fff;
+}
+
+.default-folders-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  background: #0f172a;
+  color: #f1f5f9;
+  font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.4);
+  z-index: 5;
+  line-height: 1.4;
 }
 
 .breadcrumb {
@@ -262,7 +302,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(2, 6, 23, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -270,24 +310,23 @@
 }
 
 .modal-content {
-  background:
-    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.10) 0%, rgba(56, 189, 248, 0) 68%),
-    linear-gradient(180deg, #0f172a 0%, #111827 100%);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  color: #e2e8f0;
-  border-radius: 8px;
-  padding: 30px;
-  max-width: 500px;
+  background: radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.10) 0%, rgba(15, 23, 42, 0) 68%),
+    linear-gradient(180deg, #0f172a 5%, #111827 80%);
+  border: 1px solid rgba(94, 234, 212, 0.25);
+  color: #f8fafc;
+  border-radius: 16px;
+  padding: 26px;
+  max-width: 520px;
   width: 90%;
-  max-height: 90vh;
+  max-height: 92vh;
   overflow-y: auto;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.45);
 }
 
 .modal-content h2 {
   margin-top: 0;
   margin-bottom: 20px;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
 }
 
 .form-input {
