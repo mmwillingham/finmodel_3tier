@@ -1,6 +1,6 @@
-"""add_default_document_folders
+"""add_doc_folders
 
-Revision ID: 20260226_add_default_document_folders
+Revision ID: 20260226_add_doc_folders
 Revises: 20260209_remove_sms_mfa_fields
 Create Date: 2026-02-26
 
@@ -12,7 +12,7 @@ import json
 from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
 
 # revision identifiers, used by Alembic.
-revision = "20260226_add_default_document_folders"
+revision = "20260226_add_doc_folders"
 down_revision = "20260209_remove_sms_mfa_fields"
 branch_labels = None
 depends_on = None
