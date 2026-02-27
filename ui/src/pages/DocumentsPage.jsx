@@ -40,6 +40,8 @@ const DocumentsPage = ({ hideSidebar = false }) => {
   
   // Walkthrough
   const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [folderWarningMessage, setFolderWarningMessage] = useState('');
+  const [showFolderWarningModal, setShowFolderWarningModal] = useState(false);
 
   useEffect(() => {
     loadFolderContents(currentFolderId);
@@ -128,6 +130,11 @@ const DocumentsPage = ({ hideSidebar = false }) => {
     }
   };
 
+  const closeFolderWarningModal = () => {
+    setShowFolderWarningModal(false);
+    setFolderWarningMessage('');
+  };
+
   const handleUploadDocument = async () => {
     if (!uploadFile) {
       alert('Please select a file');
@@ -191,7 +198,8 @@ const DocumentsPage = ({ hideSidebar = false }) => {
           await DocumentsService.deleteFolder(folder.id);
           loadFolderContents(currentFolderId);
         } catch (err) {
-          alert('Failed to delete folder: ' + (err.response?.data?.detail || err.message));
+          setFolderWarningMessage('Failed to delete folder: ' + (err.response?.data?.detail || err.message));
+          setShowFolderWarningModal(true);
         }
       },
       showCancel: true
@@ -543,6 +551,26 @@ const DocumentsPage = ({ hideSidebar = false }) => {
         message={confirmDialog.message}
         showCancel={confirmDialog.showCancel}
       />
+      {showFolderWarningModal && (
+        <div className="modal-overlay" onClick={closeFolderWarningModal}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <h2>Unable to Delete Folder</h2>
+            <p style={{ textAlign: 'center', color: '#e2e8f0', marginBottom: '20px' }}>
+              {folderWarningMessage}
+            </p>
+            <div className="modal-actions">
+              <button onClick={closeFolderWarningModal} className="btn-primary">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Walkthrough Modal */}
       {showWalkthrough && (
