@@ -69,8 +69,30 @@ from webauthn.helpers.structs import (
 
 logger = logging.getLogger(__name__)
 
+async def verify_shield_key(x_mmr_shield_key: str = Header(None)):
+    """
+    Validates the secret key injected by Cloudflare. 
+    Checks against the MMR_SHIELD_KEY environment variable.
+    """
+    expected_key = os.environ.get("MMR_SHIELD_KEY")
+    
+    # If the header is missing or incorrect, block immediately
+    if x_mmr_shield_key != expected_key:
+        logger.warning(f"Unauthorized direct access attempt blocked.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Forbidden: Direct access not allowed"
+        )
+    return x_mmr_shield_key
+
+
 # --- INITIALIZATION ---
-app = FastAPI(title="Financial Projector API", version="1.0", _proxy_headers=True, redirect_slashes=False)
+app = FastAPI(title="Financial Projector API", 
+    version="1.0", 
+    _proxy_headers=True, 
+    redirect_slashes=False, 
+    dependencies=[Depends(verify_shield_key)]
+)
 
 # Track container start time
 start_time = datetime.now(timezone.utc)
@@ -2064,3 +2086,5 @@ async def general_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal Server Error. Please check logs for details."},
     )
+
+
