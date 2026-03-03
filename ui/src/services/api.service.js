@@ -11,7 +11,7 @@ const ApiService = axios.create({
     headers: {
         "Content-type": "application/json",
         // Add the shield key here
-        "X-MMR-Shield-Key": import.meta.env.VITE_MMR_SHIELD_KEY,
+        // Injecting in Cloudflare instead "X-MMR-Shield-Key": import.meta.env.VITE_MMR_SHIELD_KEY,
     },
 });
 
