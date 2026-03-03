@@ -69,7 +69,10 @@ from webauthn.helpers.structs import (
 
 logger = logging.getLogger(__name__)
 
-async def verify_shield_key(x_mmr_shield_key: str = Header(None)):
+async def verify_shield_key(
+    x_mmr_shield_key: str = Header(None),
+    user_agent: str = Header(None)
+    ):
     """
     Smart Bouncer: 
     - In Dev: Skips check so you can test without Cloudflare.
@@ -79,11 +82,15 @@ async def verify_shield_key(x_mmr_shield_key: str = Header(None)):
     service_name = os.environ.get("K_SERVICE", "")
     expected_key = os.environ.get("MMR_SHIELD_KEY")
 
-    # 1. Skip check if running locally or in the Dev service
+    # 1. ALLOW Google Health Checks (GoogleHC/1.0)
+    if user_agent and "GoogleHC" in user_agent:
+        return None
+
+    # 2. Skip check if running locally or in the Dev service
     if not service_name or "dev" in service_name.lower():
         return None
 
-    # 2. In Prod, enforce the Cloudflare secret
+    # 3. In Prod, enforce the Cloudflare secret
     if x_mmr_shield_key != expected_key:
         logger.warning(f"Unauthorized direct access attempt to {service_name} blocked.")
         raise HTTPException(
