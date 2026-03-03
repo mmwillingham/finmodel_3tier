@@ -1,6 +1,8 @@
 FROM node:20-alpine as build-stage
 
 ARG REACT_APP_API_URL
+# ADD THIS: Accept the shield key argument
+ARG VITE_MMR_SHIELD_KEY
 
 WORKDIR /app/ui
 
@@ -13,6 +15,7 @@ COPY . .
 
 # Build with Vite, setting REACT_APP_API_URL environment variable
 # Vite will handle the build and output to 'build' directory
+ENV VITE_MMR_SHIELD_KEY=$VITE_MMR_SHIELD_KEY
 RUN REACT_APP_API_URL=$REACT_APP_API_URL npm run build
 
 # Stage 2: Serve the React application with Nginx

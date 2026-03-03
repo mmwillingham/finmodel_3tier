@@ -117,8 +117,12 @@ steps:
       - '-c'
       - |
         source /workspace/env_vars.sh
-        docker build --no-cache -t ${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP} --build-arg=REACT_APP_API_URL=${_BACKEND_URL} .
+        docker build --no-cache \
+        -t ${_IMAGE_REPO}/${_ENVIRONMENT}-frontend:${COMMIT_SHA}-$${_FIXED_TIMESTAMP} \
+        --build-arg=REACT_APP_API_URL=${_BACKEND_URL} \
+        --build-arg=VITE_MMR_SHIELD_KEY=$$MMR_SHIELD_KEY .
     dir: 'ui'
+    secretEnv: ['MMR_SHIELD_KEY']
     waitFor: ['Update Backend Traffic']
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -149,3 +153,8 @@ steps:
 
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/${PROJECT_ID}/secrets/_MMR_SHIELD_KEY/versions/latest
+    env: 'MMR_SHIELD_KEY'  
