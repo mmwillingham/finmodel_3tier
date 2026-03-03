@@ -74,29 +74,22 @@ async def verify_shield_key(
     user_agent: str = Header(None)
     ):
     """
-    Smart Bouncer: 
-    - In Dev: Skips check so you can test without Cloudflare.
-    - In Prod: Enforces X-MMR-Shield-Key.
-    - Local: Skips check.
+    Enforces X-MMR-Shield-Key for all requests except Google Health Checks.
     """
-    service_name = os.environ.get("K_SERVICE", "")
     expected_key = os.environ.get("MMR_SHIELD_KEY")
 
     # 1. ALLOW Google Health Checks (GoogleHC/1.0)
     if user_agent and "GoogleHC" in user_agent:
         return None
 
-    # 2. Skip check if running locally or in the Dev service
-    if not service_name or "dev" in service_name.lower():
-        return None
-
-    # 3. In Prod, enforce the Cloudflare secret
+    # 2. Enforce the Cloudflare secret
     if x_mmr_shield_key != expected_key:
-        logger.warning(f"Unauthorized direct access attempt to {service_name} blocked.")
+        logger.warning(f"Unauthorized access attempt blocked. Key: {x_mmr_shield_key}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Forbidden: Direct access not allowed"
         )
+    
     return x_mmr_shield_key
 
 # --- INITIALIZATION ---
