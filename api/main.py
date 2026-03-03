@@ -206,16 +206,21 @@ async def root():
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
 
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
+# 1. Add Cache (Runs second)
+app.add_middleware(
+    CacheControlMiddleware,
+    public_cache_paths=PUBLIC_CACHE_PATHS,
+)
+
+# 2. Add CORS (Runs FIRST)
+# By adding this last, it becomes the outer-most layer.
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=settings.CORS_ORIGINS_REGEX,              
     allow_credentials=True,             
     allow_methods=["*"],
-    allow_headers=["Content-Type", "X-MMR-Shield-Key", "Authorization"],                
-)
-app.add_middleware(
-    CacheControlMiddleware,
-    public_cache_paths=PUBLIC_CACHE_PATHS,
+    # Adding "Accept" and "Origin" helps with strict browser checks
+    allow_headers=["Content-Type", "X-MMR-Shield-Key", "Authorization", "Accept", "Origin"],                
 )
 # --- END CORS CONFIGURATION ---
 
