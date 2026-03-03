@@ -211,7 +211,8 @@ app.add_middleware(
     allow_origin_regex=settings.CORS_ORIGINS_REGEX,              
     allow_credentials=True,             
     allow_methods=["*"],                
-    allow_headers=["*"],                
+#    allow_headers=["*"]
+    allow_headers=["Content-Type", "X-MMR-Shield-Key", "Authorization"],                
 )
 app.add_middleware(
     CacheControlMiddleware,
