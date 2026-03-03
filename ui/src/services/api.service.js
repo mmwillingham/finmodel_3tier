@@ -10,6 +10,8 @@ const ApiService = axios.create({
     baseURL: API_URL,
     headers: {
         "Content-type": "application/json",
+        // Add the shield key here
+        "X-MMR-Shield-Key": import.meta.env.VITE_MMR_SHIELD_KEY,
     },
 });
 
