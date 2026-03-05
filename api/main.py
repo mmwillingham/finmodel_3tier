@@ -168,6 +168,31 @@ PUBLIC_CACHE_CONTROL = "public, max-age=300, s-maxage=3600, stale-while-revalida
 PRIVATE_NO_STORE = "private, no-store"
 NO_STORE = "no-store"
 
+class DynamicSecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # 1. Get the response from the rest of the stack
+        response = await call_next(request)
+        
+        # 2. Get the host dynamically (e.g., api.ordaxium.com)
+        host = request.headers.get("host", "ordaxium.com")
+        
+        # 3. Build a dynamic CSP
+        # 'frame-ancestors' replaces X-Frame-Options in modern browsers.
+        # We allow the current host to frame itself if needed.
+        csp_policy = (
+            f"default-src 'self'; "
+            f"script-src 'self' https://{host}; "
+            "style-src 'self' 'unsafe-inline'; "
+            "frame-ancestors 'none';" 
+        )
+        
+        # 4. Inject headers into the response
+        response.headers["Content-Security-Policy"] = csp_policy
+        response.headers["X-Frame-Options"] = "DENY" # Legacy fallback
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        
+        return response
+
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp, public_cache_paths: Set[str]):
@@ -239,6 +264,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 # Add ShieldKeyMiddleware
 app.add_middleware(ShieldKeyMiddleware)
+
+# Add DynamicSecurityHeadersMiddleware
+app.add_middleware(DynamicSecurityHeadersMiddleware)
 
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
 app.add_middleware(
