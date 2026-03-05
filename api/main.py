@@ -87,48 +87,34 @@ from webauthn.helpers.structs import (
 
 logger = logging.getLogger(__name__)
 
-async def verify_shield_key(
-    request: Request,
-    x_mmr_shield_key: str = Header(None),
-    user_agent: str = Header(None)
-):
-    """
-    Enforces X-MMR-Shield-Key for all requests except OPTIONS and Google Health Checks.
-    """
-    
-    # 1. Always allow OPTIONS requests to pass through
-    # Browsers don't send custom headers with OPTIONS pre-flight calls
-    if request.method == "OPTIONS":
-        return
+class ShieldKeyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # 1. Bypass check for OPTIONS (CORS Preflight)
+        if request.method == "OPTIONS":
+            return await call_next(request)
 
-    expected_key = os.environ.get("MMR_SHIELD_KEY")
+        # 2. Bypass check for Google Health Checks
+        user_agent = request.headers.get("user-agent", "")
+        if "GoogleHC" in user_agent:
+            return await call_next(request)
 
-    # 2. ALLOW Google Health Checks (GoogleHC/1.0)
-    if user_agent and "GoogleHC" in user_agent:
-        return None
+        # 3. Verify the Key
+        x_mmr_shield_key = request.headers.get("x-mmr-shield-key")
+        expected_key = os.environ.get("MMR_SHIELD_KEY")
 
-    # 3. Enforce the Cloudflare secret
-    if x_mmr_shield_key != expected_key:
-        logger.warning(f"Unauthorized access attempt blocked. Key: {x_mmr_shield_key}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Forbidden: Direct access not allowed"
-        )
-    
-    return x_mmr_shield_key
+        if x_mmr_shield_key != expected_key:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Forbidden: Direct access not allowed"}
+            )
 
-origins = [
-    "https://ordaxium.com",
-    "https://modelmyretirement.com",
-    "http://localhost:3000",
-]
+        return await call_next(request)
 
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", 
     version="1.0", 
     _proxy_headers=True, 
-    redirect_slashes=False, 
-    dependencies=[Depends(verify_shield_key)]
+    redirect_slashes=False
 )
 
 # Track container start time
@@ -229,15 +215,15 @@ async def root():
 # --- CONFIGURATION ---
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
 
+# Add ShieldKeyMiddleware
+app.add_middleware(ShieldKeyMiddleware)
+
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
-# 1. Add Cache (Runs second)
 app.add_middleware(
     CacheControlMiddleware,
     public_cache_paths=PUBLIC_CACHE_PATHS,
 )
 
-# 2. Add CORS (Runs FIRST)
-# By adding this last, it becomes the outer-most layer.
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=settings.CORS_ORIGINS_REGEX,              

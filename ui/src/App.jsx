@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { BackendProvider } from './context/BackendContext.jsx'; // Added this
@@ -16,6 +16,8 @@ import SidebarLayout from './components/SidebarLayout';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import EmailConfirmationPage from './components/EmailConfirmationPage';
 import GoogleAuthCallback from './components/GoogleAuthCallback';
+import SandboxGate from './components/SandboxGate';
+import SandboxWatermark from './components/SandboxWatermark';
 
 // Import new settings pages
 import ApplicationSettingsPage from './pages/ApplicationSettingsPage.jsx';
@@ -41,30 +43,26 @@ import HealthPage from './pages/HealthPage.jsx';
 
 // The Main Application Structure
 function App() {
-    const isSandbox = window.location.hostname.includes('ordaxium.com');
+    const [showSandboxGate, setShowSandboxGate] = useState(false);
+    useEffect(() => {
+        const isSandboxDomain = window.location.hostname.includes('ordaxium.com') || 
+                               window.location.hostname.includes('localhost');
+        const hasAcknowledged = localStorage.getItem('sandbox_acknowledged');
+        
+        if (isSandboxDomain && !hasAcknowledged) {
+            setShowSandboxGate(true);
+        }
+    }, []);
+    const handleProceed = (dontShowAgain) => {
+        if (dontShowAgain) {
+            localStorage.setItem('sandbox_acknowledged', 'true');
+        }
+        setShowSandboxGate(false);
+    };
     return (
         <BackendProvider> {/* Added Provider */}
             <Router>
-                {isSandbox && (
-                    <div style={{
-                        backgroundColor: '#1a365d',
-                        color: '#ffffff',
-                        padding: '10px 20px',
-                        textAlign: 'center',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        zIndex: 10000,
-                        position: 'fixed', // Keep it fixed at the top
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: '40px' // Give it a fixed height
-                    }}>
-                        🚀 <strong>Sandbox Mode:</strong> This website is for testing.
-                        For actual data, please visit our main website at <a href="https://modelmyretirement.com" style={{ color: '#63b3ed', textDecoration: 'underline', fontWeight: 'bold' }}>modelmyretirement.com</a>.
-                        <style>{`:root { --banner-height: 40px; }`}</style>
-                    </div>
-                )}
+            {showSandboxGate && <SandboxGate onProceed={handleProceed} />}
                 <AuthProvider>
                     <SettingsProvider>
                         <NavigationGuard>
@@ -126,7 +124,8 @@ function App() {
                         </NavigationGuard>
                     </SettingsProvider>
                 </AuthProvider>
-                <GlobalWakeUpOverlay /> {/* Added Component */}
+                <GlobalWakeUpOverlay />
+                <SandboxWatermark />
             </Router>
         </BackendProvider>
     );
