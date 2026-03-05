@@ -88,19 +88,26 @@ from webauthn.helpers.structs import (
 logger = logging.getLogger(__name__)
 
 async def verify_shield_key(
+    request: Request,
     x_mmr_shield_key: str = Header(None),
     user_agent: str = Header(None)
-    ):
+):
     """
-    Enforces X-MMR-Shield-Key for all requests except Google Health Checks.
+    Enforces X-MMR-Shield-Key for all requests except OPTIONS and Google Health Checks.
     """
+    
+    # 1. Always allow OPTIONS requests to pass through
+    # Browsers don't send custom headers with OPTIONS pre-flight calls
+    if request.method == "OPTIONS":
+        return
+
     expected_key = os.environ.get("MMR_SHIELD_KEY")
 
-    # 1. ALLOW Google Health Checks (GoogleHC/1.0)
+    # 2. ALLOW Google Health Checks (GoogleHC/1.0)
     if user_agent and "GoogleHC" in user_agent:
         return None
 
-    # 2. Enforce the Cloudflare secret
+    # 3. Enforce the Cloudflare secret
     if x_mmr_shield_key != expected_key:
         logger.warning(f"Unauthorized access attempt blocked. Key: {x_mmr_shield_key}")
         raise HTTPException(
