@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import manifestSRI from 'vite-plugin-manifest-sri'
+
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const apiUrl = env.REACT_APP_API_URL || env.VITE_API_URL || 'http://localhost:8000'
   
   return {
-    plugins: [react(), manifestSRI()],
+    plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     },

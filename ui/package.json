@@ -28,7 +28,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node update-sri.js",
     "preview": "vite preview",
     "test": "vitest",
     "start": "vite"
@@ -55,8 +55,9 @@
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
+    "ssri": "^13.0.1",
     "tailwindcss": "^3.4.19",
     "vite": "^5.4.21",
-    "vite-plugin-manifest-sri": "^0.2.0"
+    "vite-plugin-sri": "^0.0.2"
   }
 }
