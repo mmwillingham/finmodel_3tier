@@ -5,14 +5,21 @@ import AuthService from "./auth.service";
 const API_URL = process.env.REACT_APP_API_URL;
 
 
+const shieldKey =
+    import.meta.env.VITE_MMR_SHIELD_KEY || process.env.REACT_APP_MMR_SHIELD_KEY || "";
+
+const defaultHeaders = {
+    "Content-type": "application/json",
+};
+
+if (shieldKey) {
+    defaultHeaders["X-MMR-Shield-Key"] = shieldKey;
+}
+
 // Create a custom Axios instance
 const ApiService = axios.create({
     baseURL: API_URL,
-    headers: {
-        "Content-type": "application/json",
-        // Add the shield key here
-        // Injecting in Cloudflare instead "X-MMR-Shield-Key": import.meta.env.VITE_MMR_SHIELD_KEY,
-    },
+    headers: defaultHeaders,
 });
 
 // Request Interceptor: Attach the JWT token before sending

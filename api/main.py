@@ -131,7 +131,7 @@ class ShieldKeyMiddleware:
             return
 
         await self.app(scope, receive, send)
-        
+
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", 
     version="1.0", 
@@ -252,7 +252,7 @@ app.add_middleware(
     allow_credentials=True,             
     allow_methods=["*"],
     # Adding "Accept" and "Origin" helps with strict browser checks
-    allow_headers=["Content-Type", "X-MMR-Shield-Key", "Authorization", "Accept", "Origin"],                
+    allow_headers=["Content-Type", "X-MMR-Shield-Key", "Authorization", "Accept", "Origin", "X-MFA-DEVICE"],                
 )
 # --- END CORS CONFIGURATION ---
 
