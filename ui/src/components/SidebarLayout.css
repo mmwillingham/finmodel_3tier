@@ -18,6 +18,10 @@
 }
 
 .sidebar {
+  /* Shifts the sidebar down to sit perfectly under the banner */
+  top: var(--banner-height, 0px);
+  /* Prevents the sidebar from bleeding off the bottom of the screen */
+  height: calc(100vh - var(--banner-height, 0px));
   width: 250px;
   min-width: 150px;
   max-width: 600px;

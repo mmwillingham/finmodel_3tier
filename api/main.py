@@ -1,3 +1,5 @@
+import os
+import sentry_sdk
 from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter, Header
 from starlette.requests import Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
@@ -14,13 +16,29 @@ import hashlib
 import secrets
 import json
 import traceback
-import os
 from copy import deepcopy
 from fastapi.responses import JSONResponse
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Scope, Receive, Send
+
+
+# sentry_sdk.init(
+#     dsn="https://e372dab210eed71bdcde76595918da24@o4510992107569152.ingest.us.sentry.io/4510992121528320",
+#     traces_sample_rate=1.0,
+#     profiles_sample_rate=1.0,
+#     environment=os.environ.get("ENV", "production"),
+#     send_default_pii=True, 
+# )
+
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN"),
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+    environment=os.environ.get("ENV", "prod"),
+    send_default_pii=True, 
+)
 
 # Internal Modules
 import models
@@ -69,35 +87,56 @@ from webauthn.helpers.structs import (
 
 logger = logging.getLogger(__name__)
 
-async def verify_shield_key(
-    x_mmr_shield_key: str = Header(None),
-    user_agent: str = Header(None)
-    ):
-    """
-    Enforces X-MMR-Shield-Key for all requests except Google Health Checks.
-    """
-    expected_key = os.environ.get("MMR_SHIELD_KEY")
+from starlette.types import ASGIApp, Scope, Receive, Send
+from fastapi.responses import JSONResponse
+import os
 
-    # 1. ALLOW Google Health Checks (GoogleHC/1.0)
-    if user_agent and "GoogleHC" in user_agent:
-        return None
+class ShieldKeyMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
 
-    # 2. Enforce the Cloudflare secret
-    if x_mmr_shield_key != expected_key:
-        logger.warning(f"Unauthorized access attempt blocked. Key: {x_mmr_shield_key}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Forbidden: Direct access not allowed"
-        )
-    
-    return x_mmr_shield_key
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        # Only process HTTP
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        method = scope.get("method")
+        path = scope.get("path", "")
+        
+        # 1. IMMEDIATE BYPASS for OPTIONS
+        # This prevents the 400 error because we don't look at headers or body
+        if method == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
+
+        # 2. Extract headers for other methods
+        headers = dict(scope.get("headers", []))
+        user_agent = headers.get(b"user-agent", b"").decode()
+        shield_key = headers.get(b"x-mmr-shield-key", b"").decode()
+        expected_key = os.environ.get("MMR_SHIELD_KEY", "")
+
+        # 3. Bypass for Health Checks and Login
+        if "GoogleHC" in user_agent or path == "/token" or path == "/login":
+            await self.app(scope, receive, send)
+            return
+
+        # 4. Enforce Shield Key
+        if shield_key != expected_key:
+            response = JSONResponse(
+                status_code=403,
+                content={"detail": "Forbidden: Direct access not allowed"}
+            )
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
 
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", 
     version="1.0", 
     _proxy_headers=True, 
-    redirect_slashes=False, 
-    dependencies=[Depends(verify_shield_key)]
+    redirect_slashes=False
 )
 
 # Track container start time
@@ -198,22 +237,22 @@ async def root():
 # --- CONFIGURATION ---
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
 
+# Add ShieldKeyMiddleware
+app.add_middleware(ShieldKeyMiddleware)
+
 # --- CORS CONFIGURATION (CRITICAL for frontend connection) ---
-# 1. Add Cache (Runs second)
 app.add_middleware(
     CacheControlMiddleware,
     public_cache_paths=PUBLIC_CACHE_PATHS,
 )
 
-# 2. Add CORS (Runs FIRST)
-# By adding this last, it becomes the outer-most layer.
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=settings.CORS_ORIGINS_REGEX,              
     allow_credentials=True,             
     allow_methods=["*"],
     # Adding "Accept" and "Origin" helps with strict browser checks
-    allow_headers=["Content-Type", "X-MMR-Shield-Key", "Authorization", "Accept", "Origin"],                
+    allow_headers=["Content-Type", "X-MMR-Shield-Key", "Authorization", "Accept", "Origin", "X-MFA-DEVICE"],                
 )
 # --- END CORS CONFIGURATION ---
 
@@ -2098,4 +2137,10 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal Server Error. Please check logs for details."},
     )
 
-
+@app.get("/sentry-debug")
+async def trigger_error():
+    """
+    Intentionally causes a 'ZeroDivisionError' to test Sentry integration.
+    """
+    division_by_zero = 1 / 0
+    return {"message": "If you see this, Sentry didn't catch the error!"}

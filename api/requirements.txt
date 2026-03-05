@@ -58,3 +58,4 @@ wrapt
 locust
 plaid-python>=11.0.0
 openai>=1.0.0
+sentry-sdk[fastapi]

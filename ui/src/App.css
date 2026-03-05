@@ -64,18 +64,24 @@ html, body {
     /* Specific to tags/categories */
     --color-tag-background: var(--color-primary-light);
     --color-tag-text: var(--color-primary-dark);
+
+    /* Banner is used only by ordaxium.com */
+    --banner-height: 0px; /* Default when no banner is present */
 }
 
-/* Main container to account for fixed header */
+
+/* Adjust based on header height */
 .container {
-    margin-top: 70px; /* Adjust based on header height */
-    padding-left: 20px; /* Adjust for potential sidebar if it's still there */
+    margin-top: 70px;
+    padding-left: 20px;
     padding-right: 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
+
 /* Override container centering when it contains SidebarLayout */
+
 .container.container-with-sidebar {
     margin: 0 !important;
     max-width: none !important;
@@ -85,6 +91,7 @@ html, body {
     min-height: calc(100vh - 60px);
     display: block;
 }
+
 
 /* Also override for any container that has sidebar-layout (fallback if :has not supported) */
 .container:has(.sidebar-layout) {

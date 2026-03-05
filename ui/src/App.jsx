@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { BackendProvider } from './context/BackendContext.jsx'; // Added this
@@ -16,6 +16,8 @@ import SidebarLayout from './components/SidebarLayout';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import EmailConfirmationPage from './components/EmailConfirmationPage';
 import GoogleAuthCallback from './components/GoogleAuthCallback';
+import SandboxGate from './components/SandboxGate';
+import SandboxWatermark from './components/SandboxWatermark';
 
 // Import new settings pages
 import ApplicationSettingsPage from './pages/ApplicationSettingsPage.jsx';
@@ -41,9 +43,26 @@ import HealthPage from './pages/HealthPage.jsx';
 
 // The Main Application Structure
 function App() {
+    const [showSandboxGate, setShowSandboxGate] = useState(false);
+    useEffect(() => {
+        const isSandboxDomain = window.location.hostname.includes('ordaxium.com') || 
+                               window.location.hostname.includes('localhost');
+        const hasAcknowledged = localStorage.getItem('sandbox_acknowledged');
+        
+        if (isSandboxDomain && !hasAcknowledged) {
+            setShowSandboxGate(true);
+        }
+    }, []);
+    const handleProceed = (dontShowAgain) => {
+        if (dontShowAgain) {
+            localStorage.setItem('sandbox_acknowledged', 'true');
+        }
+        setShowSandboxGate(false);
+    };
     return (
         <BackendProvider> {/* Added Provider */}
             <Router>
+            {showSandboxGate && <SandboxGate onProceed={handleProceed} />}
                 <AuthProvider>
                     <SettingsProvider>
                         <NavigationGuard>
@@ -105,7 +124,8 @@ function App() {
                         </NavigationGuard>
                     </SettingsProvider>
                 </AuthProvider>
-                <GlobalWakeUpOverlay /> {/* Added Component */}
+                <GlobalWakeUpOverlay />
+                <SandboxWatermark />
             </Router>
         </BackendProvider>
     );
