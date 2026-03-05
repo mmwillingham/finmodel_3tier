@@ -64,18 +64,35 @@ html, body {
     /* Specific to tags/categories */
     --color-tag-background: var(--color-primary-light);
     --color-tag-text: var(--color-primary-dark);
+
+    /* Banner is used only by ordaxium.com */
+    --banner-height: 0px; /* Default when no banner is present */
 }
 
-/* Main container to account for fixed header */
+
+/* Adjust based on header height */
+/* Replacing with dynamic to allow for banner */
+/*
 .container {
-    margin-top: 70px; /* Adjust based on header height */
-    padding-left: 20px; /* Adjust for potential sidebar if it's still there */
+    margin-top: 70px;
+    padding-left: 20px;
+    padding-right: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+*/
+.container {
+    /* This adds your 70px header space plus whatever the banner height is */
+    margin-top: calc(70px + var(--banner-height)); 
+    padding-left: 20px;
     padding-right: 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
 /* Override container centering when it contains SidebarLayout */
+/* Replacing with dynamic to allow for banner */
+/*
 .container.container-with-sidebar {
     margin: 0 !important;
     max-width: none !important;
@@ -84,6 +101,22 @@ html, body {
     margin-top: 0 !important;
     min-height: calc(100vh - 60px);
     display: block;
+}
+
+/* Override container centering when it contains SidebarLayout */
+.container.container-with-sidebar {
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100vw !important;
+    padding: 0 !important;
+    display: block;
+
+    /* DYNAMIC ADJUSTMENTS FOR SANDBOX BANNER */
+    /* This pushes the app down ONLY when the banner is present */
+    margin-top: var(--banner-height, 0px) !important;
+
+    /* This ensures your app fills the screen perfectly without extra scrolling */
+    min-height: calc(100vh - 60px - var(--banner-height, 0px));
 }
 
 /* Also override for any container that has sidebar-layout (fallback if :has not supported) */

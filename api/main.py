@@ -1,3 +1,5 @@
+import os
+import sentry_sdk
 from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter, Header
 from starlette.requests import Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
@@ -14,13 +16,29 @@ import hashlib
 import secrets
 import json
 import traceback
-import os
 from copy import deepcopy
 from fastapi.responses import JSONResponse
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.types import ASGIApp
+
+
+# sentry_sdk.init(
+#     dsn="https://e372dab210eed71bdcde76595918da24@o4510992107569152.ingest.us.sentry.io/4510992121528320",
+#     traces_sample_rate=1.0,
+#     profiles_sample_rate=1.0,
+#     environment=os.environ.get("ENV", "production"),
+#     send_default_pii=True, 
+# )
+
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN"),
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+    environment=os.environ.get("ENV", "prod"),
+    send_default_pii=True, 
+)
 
 # Internal Modules
 import models
@@ -91,6 +109,12 @@ async def verify_shield_key(
         )
     
     return x_mmr_shield_key
+
+origins = [
+    "https://ordaxium.com",
+    "https://modelmyretirement.com",
+    "http://localhost:3000",
+]
 
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", 
@@ -2098,4 +2122,10 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal Server Error. Please check logs for details."},
     )
 
-
+@app.get("/sentry-debug")
+async def trigger_error():
+    """
+    Intentionally causes a 'ZeroDivisionError' to test Sentry integration.
+    """
+    division_by_zero = 1 / 0
+    return {"message": "If you see this, Sentry didn't catch the error!"}

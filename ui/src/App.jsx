@@ -41,9 +41,30 @@ import HealthPage from './pages/HealthPage.jsx';
 
 // The Main Application Structure
 function App() {
+    const isSandbox = window.location.hostname.includes('ordaxium.com');
     return (
         <BackendProvider> {/* Added Provider */}
             <Router>
+                {isSandbox && (
+                    <div style={{
+                        backgroundColor: '#1a365d',
+                        color: '#ffffff',
+                        padding: '10px 20px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        zIndex: 10000,
+                        position: 'fixed', // Keep it fixed at the top
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '40px' // Give it a fixed height
+                    }}>
+                        🚀 <strong>Sandbox Mode:</strong> This website is for testing.
+                        For actual data, please visit our main website at <a href="https://modelmyretirement.com" style={{ color: '#63b3ed', textDecoration: 'underline', fontWeight: 'bold' }}>modelmyretirement.com</a>.
+                        <style>{`:root { --banner-height: 40px; }`}</style>
+                    </div>
+                )}
                 <AuthProvider>
                     <SettingsProvider>
                         <NavigationGuard>
