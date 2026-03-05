@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Scope, Receive, Send
 
 
 # sentry_sdk.init(
@@ -87,28 +87,41 @@ from webauthn.helpers.structs import (
 
 logger = logging.getLogger(__name__)
 
-class ShieldKeyMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # 1. Bypass check for OPTIONS (CORS Preflight)
-        if request.method == "OPTIONS":
-            return await call_next(request)
+class ShieldKeyMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
 
-        # 2. Bypass check for Google Health Checks
-        user_agent = request.headers.get("user-agent", "")
-        if "GoogleHC" in user_agent:
-            return await call_next(request)
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        # 1. Only process HTTP requests (ignore WebSockets/Lifespan)
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-        # 3. Verify the Key
-        x_mmr_shield_key = request.headers.get("x-mmr-shield-key")
-        expected_key = os.environ.get("MMR_SHIELD_KEY")
+        # 2. Extract method and headers from the low-level scope
+        method = scope.get("method")
+        headers = dict(scope.get("headers", []))
+        
+        # Binary headers check (ASGI headers are byte-strings)
+        user_agent = headers.get(b"user-agent", b"").decode()
+        shield_key = headers.get(b"x-mmr-shield-key", b"").decode()
+        expected_key = os.environ.get("MMR_SHIELD_KEY", "")
 
-        if x_mmr_shield_key != expected_key:
-            return JSONResponse(
+        # 3. Apply the same logic as before
+        if method == "OPTIONS" or "GoogleHC" in user_agent:
+            await self.app(scope, receive, send)
+            return
+
+        if shield_key != expected_key:
+            # Send a 403 response directly via the ASGI 'send' callable
+            response = JSONResponse(
                 status_code=403,
                 content={"detail": "Forbidden: Direct access not allowed"}
             )
+            await response(scope, receive, send)
+            return
 
-        return await call_next(request)
+        # 4. If all is well, pass it to the next layer
+        await self.app(scope, receive, send)
 
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", 
