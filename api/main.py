@@ -87,32 +87,42 @@ from webauthn.helpers.structs import (
 
 logger = logging.getLogger(__name__)
 
+from starlette.types import ASGIApp, Scope, Receive, Send
+from fastapi.responses import JSONResponse
+import os
+
 class ShieldKeyMiddleware:
     def __init__(self, app: ASGIApp):
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        # 1. Only process HTTP requests (ignore WebSockets/Lifespan)
+        # Only process HTTP
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
-        # 2. Extract method and headers from the low-level scope
         method = scope.get("method")
-        headers = dict(scope.get("headers", []))
+        path = scope.get("path", "")
         
-        # Binary headers check (ASGI headers are byte-strings)
+        # 1. IMMEDIATE BYPASS for OPTIONS
+        # This prevents the 400 error because we don't look at headers or body
+        if method == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
+
+        # 2. Extract headers for other methods
+        headers = dict(scope.get("headers", []))
         user_agent = headers.get(b"user-agent", b"").decode()
         shield_key = headers.get(b"x-mmr-shield-key", b"").decode()
         expected_key = os.environ.get("MMR_SHIELD_KEY", "")
 
-        # 3. Apply the same logic as before
-        if method == "OPTIONS" or "GoogleHC" in user_agent:
+        # 3. Bypass for Health Checks and Login
+        if "GoogleHC" in user_agent or path == "/token" or path == "/login":
             await self.app(scope, receive, send)
             return
 
+        # 4. Enforce Shield Key
         if shield_key != expected_key:
-            # Send a 403 response directly via the ASGI 'send' callable
             response = JSONResponse(
                 status_code=403,
                 content={"detail": "Forbidden: Direct access not allowed"}
@@ -120,9 +130,8 @@ class ShieldKeyMiddleware:
             await response(scope, receive, send)
             return
 
-        # 4. If all is well, pass it to the next layer
         await self.app(scope, receive, send)
-
+        
 # --- INITIALIZATION ---
 app = FastAPI(title="Financial Projector API", 
     version="1.0", 
