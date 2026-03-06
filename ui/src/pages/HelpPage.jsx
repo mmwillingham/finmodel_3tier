@@ -62,7 +62,7 @@ const HelpPage = () => {
   }
 
   return (
-    <div className="settings-page-container">
+    <div className="settings-page-container help-page-container">
       <h2>Help</h2>
       {message && <div className="message">{message}</div>}
       

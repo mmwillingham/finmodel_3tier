@@ -4,13 +4,14 @@
   width: 100%;
   min-width: 100%;
   max-width: none;
-  height: 100%;
-  min-height: calc(100vh - 60px);
+  height: auto;
+  min-height: auto;
   margin-top: 0;
   width: 100%;
   background:
     radial-gradient(120% 120% at 50% 0%, rgba(56, 189, 248, 0.10) 0%, rgba(56, 189, 248, 0) 58%),
     linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  background-attachment: fixed;
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   overflow-x: hidden;
   position: relative;
@@ -73,7 +74,8 @@
   padding: 18px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 16px;
   overflow: auto;
   position: relative; /* Ensure proper positioning */
@@ -331,9 +333,12 @@
 
 .dashboard-insight-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 12px;
+  margin: 0 auto 18px;
+  width: 100%;
+  padding: 0;
+  align-items: stretch;
 }
 
 .metric-card {
@@ -429,13 +434,22 @@
 }
 
 .metric-chart {
-  min-height: 220px;
+  min-height: 0;
   position: relative;
+}
+
+.metric-chart.metric-chart--donut {
+  aspect-ratio: 1 / 1;
+  width: min(140px, 100%);
+  height: min(140px, 100%);
+  max-height: 160px;
+  margin: 0 auto;
 }
 
 .metric-chart canvas {
   width: 100% !important;
   height: 100% !important;
+  display: block;
 }
 
 .metric-summary {
@@ -447,18 +461,20 @@
 .dashboard-welcome {
   text-align: center;
   padding: 10px 20px 0;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .dashboard-welcome h2 {
-  font-size: 2.3rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.1em;
+  font-weight: 600;
   color: #f8fafc;
-  text-shadow: 0 8px 24px rgba(2, 6, 23, 0.45);
+  text-shadow: none;
 }
 
 .dashboard-welcome p {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   margin: 0 auto;
   color: #cbd5e1;
 }
@@ -521,6 +537,43 @@
   gap: 10px;
 }
 
+.metric-card--asset-pair {
+  padding: 10px;
+  gap: 6px;
+  min-height: 0;
+}
+
+.asset-pair-charts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 12px;
+  justify-items: stretch;
+}
+
+.asset-pair-chart {
+  flex: 1;
+  min-width: 140px;
+  max-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-self: stretch;
+}
+
+.metric-card--asset-pair .metric-title {
+  text-align: center;
+}
+
+.asset-pair-chart .metric-chart.metric-chart--donut {
+  width: 150px;
+  height: 150px;
+  min-width: 150px;
+  min-height: 150px;
+  max-width: 150px;
+  max-height: 150px;
+}
+
 .scenario-slider-group {
   display: flex;
   flex-direction: column;
@@ -528,6 +581,66 @@
   margin-bottom: 8px;
 }
 
+.scenario-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.scenario-through {
+  flex: 1;
+  min-width: 240px;
+}
+
+.scenario-through label {
+  color: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.scenario-through-controls {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scenario-through-controls input {
+  width: 100px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+}
+
+.scenario-through-controls span {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.scenario-market {
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+}
+
+.scenario-market input {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+}
+
+.market-label {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
 .scenario-slider-group label {
   color: #cbd5e1;
   font-size: 0.82rem;
@@ -544,6 +657,12 @@
   grid-template-columns: minmax(0, 1fr) 108px 108px;
   gap: 8px;
   align-items: center;
+}
+
+.scenario-input-value {
+  font-size: 0.9rem;
+  color: #f8fafc;
+  justify-self: end;
 }
 
 .scenario-number-input {
@@ -566,6 +685,91 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 4px;
+}
+
+.tooltip-icon {
+  font-size: 0.8rem;
+  margin-left: 6px;
+  cursor: help;
+  color: #94a3b8;
+}
+.tooltip-icon::before {
+  content: "i";
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+.tooltip-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.6);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 600;
+}
+.tooltip-icon--small {
+  width: 16px;
+  height: 16px;
+  font-size: 0.7rem;
+}
+.tooltip-trigger {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.tooltip-trigger--inline {
+  margin-right: 6px;
+}
+.tooltip-popup {
+  position: fixed;
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  min-width: 200px;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.6);
+  z-index: 1200;
+}
+.tooltip-popup::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -6px;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: rgba(15, 23, 42, 0.95);
+}
+.tooltip-label {
+  display: inline-flex;
+  align-items: center;
+}
+.tooltip-icon--small {
+  width: 16px;
+  height: 16px;
+  font-size: 0.7rem;
+}
+
+.scenario-confidence-label {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.tooltip-label--confidence {
+  gap: 8px;
+}
+
+.metric-value--inline {
+  font-size: 1.4rem;
+  margin-left: auto;
+  font-weight: 600;
 }
 
 .walkthrough-page-shell h2 {
@@ -737,4 +941,13 @@
   .dashboard-welcome h2 {
     font-size: 1.8rem;
   }
+}
+/* This is a "set it and forget it" fix for the sidebar frame */
+.sidebar::-webkit-scrollbar {
+  display: none; /* Hides the scrollbar track in Chrome/Safari/Edge */
+}
+
+.sidebar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
 }

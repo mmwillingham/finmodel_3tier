@@ -80,6 +80,8 @@ export default function SidebarLayout() {
   const [subscriptionLimits, setSubscriptionLimits] = useState(null);
   const [showChartTotals, setShowChartTotals] = useState(true);
   const [customChartView, setCustomChartView] = useState(null);
+  const [activeTooltip, setActiveTooltip] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [selectedChartId, setSelectedChartId] = useState(null);
   const [chartToViewId, setChartToViewId] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(null); // 'profile', 'categories', 'accounts', or null
@@ -89,6 +91,26 @@ export default function SidebarLayout() {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [dashboardSimulation, setDashboardSimulation] = useState({ successRate: null, confidenceAboveTarget: null, loading: false });
+  const toggleTooltip = (id, event) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const newPosition = {
+      top: rect.top + window.scrollY + rect.height / 2,
+      left: rect.left + window.scrollX - 8,
+    };
+    setTooltipPosition(newPosition);
+    setActiveTooltip((prev) => (prev === id ? null : id));
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActiveTooltip(null);
+    };
+    window.addEventListener("pointerdown", handleClickOutside);
+    return () => {
+      window.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, []);
   const currentYear = new Date().getFullYear();
   const [homeProjectionYears, setHomeProjectionYears] = useState(Math.max(1, Number(projectionYears) || 20));
   const [desiredNetWorthTarget, setDesiredNetWorthTarget] = useState(250000);
@@ -192,6 +214,98 @@ export default function SidebarLayout() {
       ],
     };
   }, [assets]);
+
+  const incomeAllocationData = useMemo(() => {
+    if (!incomeItems.length) {
+      return null;
+    }
+    const grouped = incomeItems.reduce((acc, item) => {
+      const category = item.category || "Other";
+      acc[category] = (acc[category] || 0) + (Number(item.yearly_value) || 0);
+      return acc;
+    }, {});
+    const labels = Object.keys(grouped);
+    const values = Object.values(grouped).map((val) => Math.abs(val));
+    if (!labels.length) {
+      return null;
+    }
+    const palette = ["#38bdf8", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#94a3b8"];
+    return {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: labels.map((_, i) => palette[i % palette.length]),
+          borderColor: "rgba(2, 6, 23, 0.92)",
+          borderWidth: 2,
+        },
+      ],
+    };
+  }, [incomeItems]);
+
+  const expenseAllocationData = useMemo(() => {
+    if (!expenseItems.length) {
+      return null;
+    }
+    const grouped = expenseItems.reduce((acc, item) => {
+      const category = item.category || "Other";
+      acc[category] = (acc[category] || 0) + (Number(item.yearly_value) || 0);
+      return acc;
+    }, {});
+    const labels = Object.keys(grouped);
+    const values = Object.values(grouped).map((val) => Math.abs(val));
+    if (!labels.length) {
+      return null;
+    }
+    const palette = ["#38bdf8", "#34d399", "#fbbf24", "#a78bfa", "#fb7185", "#22d3ee", "#94a3b8"];
+    return {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: labels.map((_, i) => palette[(i + 3) % palette.length]),
+          borderColor: "rgba(2, 6, 23, 0.92)",
+          borderWidth: 2,
+        },
+      ],
+    };
+  }, [expenseItems]);
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 1,
+    plugins: {
+      legend: { display: false },
+    },
+  };
+
+  const assetCharts = [
+    {
+      key: "asset-category",
+      label: "Category Allocation",
+      data: assetAllocationData,
+      emptyText: "No asset data available.",
+    },
+    {
+      key: "asset-individual",
+      label: "Individual Assets",
+      data: individualAssetAllocationData,
+      emptyText: "No asset data available.",
+    },
+    {
+      key: "income",
+      label: "Income Allocation",
+      data: incomeAllocationData,
+      emptyText: "No income data available.",
+    },
+    {
+      key: "expenses",
+      label: "Expense Allocation",
+      data: expenseAllocationData,
+      emptyText: "No expense data available.",
+    },
+  ];
 
   const loadViewingUserSettings = useCallback(async () => {
     if (!viewingUserId) {
@@ -414,6 +528,16 @@ export default function SidebarLayout() {
     };
   }, [assets.length, liabilities.length, incomeItems.length, expenseItems.length, homeProjectionYears, netWorth, cashFlowNet, desiredNetWorthTarget, marketVariability, maxProjectionYears]);
 
+  const projectThroughYear = currentYear + homeProjectionYears;
+  const handleProjectThroughYearChange = (value) => {
+    if (!Number.isFinite(value)) {
+      return;
+    }
+    const maxYears = subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : 50;
+    const boundedYear = Math.min(Math.max(value, currentYear + 1), currentYear + maxYears);
+    setHomeProjectionYears(Math.max(1, boundedYear - currentYear));
+  };
+
   const handleProjectionYearsChange = (value) => {
     const maxYears = subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : null;
     const nextValue = maxYears != null ? Math.min(value, maxYears) : value;
@@ -567,6 +691,10 @@ export default function SidebarLayout() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(v ?? 0);
+
+  const tooltipTexts = {
+    projection: `Deterministic likelihood of reaching desired net worth at end of projection year.`,
+  };
 
   const parseNumericInput = (value) => {
     if (value == null) return NaN;
@@ -1025,7 +1153,10 @@ export default function SidebarLayout() {
 
         {!loading && (view === "new-home" || view === null || view === undefined) && (location.pathname === "/app" || location.pathname === "/") && (
           <div className="dashboard-home-screen">
-            <motion.div 
+
+{/* removing Dashboard Welcome Screen until we have a better way to present it */}
+
+{/*}            <motion.div 
               className="dashboard-welcome"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1044,6 +1175,7 @@ export default function SidebarLayout() {
                 Open Walkthrough
               </button>
             </motion.div>
+            */}
             <div className="dashboard-kpi-grid">
               <div className="metric-card metric-card--kpi">
                 <div className="metric-title">Net Worth</div>
@@ -1064,187 +1196,99 @@ export default function SidebarLayout() {
                 </div>
               </div>
             </div>
-            <div className="dashboard-insight-grid">
-              <div className="metric-card metric-card--chart">
-                <div className="metric-title">Asset Category Allocation</div>
-                <div className="metric-chart metric-chart--small">
-                  {assetAllocationData ? (
-                    <Doughnut
-                      data={assetAllocationData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: "right",
-                            labels: {
-                              color: "#cbd5e1",
-                              boxWidth: 10,
-                              usePointStyle: true,
-                              pointStyle: "circle",
-                            },
-                          },
-                        },
-                      }}
-                    />
-                  ) : (
-                    <div className="metric-empty-text">No asset data available.</div>
-                  )}
-                </div>
-              </div>
-              <div className="metric-card metric-card--chart">
-                <div className="metric-title">Asset Allocation (Individual Assets)</div>
-                <div className="metric-chart metric-chart--small">
-                  {individualAssetAllocationData ? (
-                    <Doughnut
-                      data={individualAssetAllocationData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: "right",
-                            labels: {
-                              color: "#cbd5e1",
-                              boxWidth: 10,
-                              usePointStyle: true,
-                              pointStyle: "circle",
-                            },
-                          },
-                        },
-                      }}
-                    />
-                  ) : (
-                    <div className="metric-empty-text">No asset data available.</div>
-                  )}
+              <div className="dashboard-insight-grid">
+              <div className="metric-card metric-card--chart metric-card--asset-pair">
+                <div className="metric-title">Asset Allocation</div>
+                <div className="asset-pair-charts">
+                  {assetCharts.map((chart) => (
+                    <div className="asset-pair-chart" key={chart.key}>
+                      <div className="metric-subtext">{chart.label}</div>
+                      <div className="metric-chart metric-chart--small metric-chart--donut">
+                        {chart.data ? (
+                          <Doughnut data={chart.data} options={doughnutOptions} />
+                        ) : (
+                          <div className="metric-empty-text">{chart.emptyText}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="metric-card metric-card--kpi metric-card--scenario">
                 <div className="metric-title">Retirement Confidence Scenario</div>
-                <div className="scenario-slider-group">
-                  <label htmlFor="home-years-slider">
-                    Projection Years / End Year: <strong>{homeProjectionYears} / {currentYear + homeProjectionYears}</strong>
-                  </label>
-                  <div className="scenario-input-row">
-                    <input
-                      id="home-years-slider"
-                      type="range"
-                      min={1}
-                      max={maxProjectionYears ?? 50}
-                      step={1}
-                      value={homeProjectionYears}
-                      onChange={(e) => setHomeProjectionYears(Number(e.target.value))}
-                    />
-                    <input
-                      type="number"
-                      min={1}
-                      max={maxProjectionYears ?? 50}
-                      step={1}
-                      value={homeProjectionYears}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const next = Number(e.target.value);
-                        if (!Number.isFinite(next)) return;
-                        const bounded = Math.min(maxProjectionYears ?? 50, Math.max(1, next));
-                        setHomeProjectionYears(bounded);
-                      }}
-                      aria-label="Projection years"
-                      className="scenario-number-input"
-                    />
-                    <input
-                      type="number"
-                      value={currentYear + homeProjectionYears}
-                      readOnly
-                      aria-label="End year"
-                      className="scenario-number-input scenario-number-input--readonly"
-                    />
+                <div className="scenario-header-row">
+                  <div className="scenario-through">
+                    <label htmlFor="project-through-input">Run Projection through</label>
+                    <div className="scenario-through-controls">
+                      <input
+                        id="project-through-input"
+                        type="number"
+                        min={currentYear + 1}
+                        max={currentYear + (subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : 50)}
+                        value={projectThroughYear}
+                        onChange={(e) => handleProjectThroughYearChange(Number(e.target.value))}
+                      />
+                      <span>{homeProjectionYears} years</span>
+                    </div>
                   </div>
-                </div>
-                <div className="scenario-slider-group">
-                  <label htmlFor="desired-networth-slider">
-                    Desired Net Worth at end of period: <strong>{formatCurrency(desiredNetWorthTarget)}</strong>
-                  </label>
-                  <div className="scenario-input-row">
+                  <div className="scenario-market">
+                    <label htmlFor="market-variability-input" className="market-label">Market Variability</label>
                     <input
-                      id="desired-networth-slider"
-                      type="range"
-                      min={1}
-                      max={100000000}
-                      value={desiredNetWorthTarget}
-                      onChange={(e) => setDesiredNetWorthTarget(Number(e.target.value))}
-                    />
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={Math.round(desiredNetWorthTarget).toLocaleString("en-US")}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const next = parseNumericInput(e.target.value);
-                        if (!Number.isFinite(next)) return;
-                        const bounded = Math.min(100000000, Math.max(1, next));
-                        setDesiredNetWorthTarget(bounded);
-                      }}
-                      onBlur={(e) => {
-                        const next = parseNumericInput(e.target.value);
-                        if (!Number.isFinite(next)) {
-                          setDesiredNetWorthTarget(250000);
-                          return;
-                        }
-                        const bounded = Math.min(100000000, Math.max(1, next));
-                        setDesiredNetWorthTarget(bounded);
-                      }}
-                      aria-label="Desired net worth"
-                      className="scenario-number-input"
-                    />
-                  </div>
-                </div>
-                <div className="scenario-slider-group">
-                  <label htmlFor="market-variability-slider">
-                    Market Variability: <strong>{marketVariability}%</strong>
-                  </label>
-                  <div className="scenario-input-row">
-                    <input
-                      id="market-variability-slider"
-                      type="range"
+                      id="market-variability-input"
+                      type="number"
                       min={1}
                       max={80}
                       step={1}
                       value={marketVariability}
                       onChange={(e) => setMarketVariability(Number(e.target.value))}
                     />
+                  </div>
+                </div>
+                <div className="scenario-slider-group">
+                  <label htmlFor="desired-networth-slider">
+                    Desired Net Worth at end of period
+                  </label>
+                  <div className="scenario-input-row">
                     <input
-                      type="number"
+                      id="desired-networth-slider"
+                      type="range"
                       min={1}
-                      max={80}
-                      step={1}
-                      value={marketVariability}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const next = Number(e.target.value);
-                        if (!Number.isFinite(next)) return;
-                        const bounded = Math.min(80, Math.max(1, next));
-                        setMarketVariability(bounded);
-                      }}
-                      aria-label="Market variability percent"
-                      className="scenario-number-input"
+                      max={50000000}
+                      value={desiredNetWorthTarget}
+                      onChange={(e) => setDesiredNetWorthTarget(Number(e.target.value))}
                     />
+                    <span className="scenario-input-value">
+                      <strong>{formatCurrency(desiredNetWorthTarget)}</strong>
+                    </span>
                   </div>
                 </div>
                 <div className="scenario-results-grid">
                   <div>
-                    <div className="metric-subtext">Retirement Readiness</div>
-                    <div className="metric-value">
-                      {dashboardSimulation.successRate == null ? "Calculating..." : `${dashboardSimulation.successRate.toFixed(1)}%`}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="metric-subtext">Confidence Net Worth {`>`} {formatCurrency(desiredNetWorthTarget)}</div>
-                    <div className="metric-value">
-                      {dashboardSimulation.confidenceAboveTarget == null ? "Calculating..." : `${dashboardSimulation.confidenceAboveTarget.toFixed(1)}%`}
+                    <div className="metric-subtext tooltip-label tooltip-label--confidence">
+                      <button
+                        type="button"
+                        className="tooltip-trigger tooltip-trigger--inline"
+                        onClick={(event) => toggleTooltip("projection", event)}
+                      >
+                        <span className="tooltip-icon" />
+                      </button>
+{/*}                      <span>Confidence Net Worth {`>`} {formatCurrency(desiredNetWorthTarget)}</span> */}
+                      <span className="scenario-confidence-label">Confidence Level</span>
+                      <span className="metric-value metric-value--inline">
+                        {dashboardSimulation.confidenceAboveTarget == null ? "Calculating..." : `${dashboardSimulation.confidenceAboveTarget.toFixed(1)}%`}
+                      </span>
+                      {activeTooltip === "projection" && (
+                        <div
+                          className="tooltip-popup"
+                          style={{ top: tooltipPosition.top, left: tooltipPosition.left }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {tooltipTexts.projection}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="metric-subtext">Deterministic projection at {homeProjectionYears} years: {formatCurrency(projectedNetWorth)}</div>
               </div>
             </div>
           <div className="dashboard-metrics">
