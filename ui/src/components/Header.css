@@ -158,27 +158,34 @@
 }
 
 .header-public-links a {
-    color: #ffffff !important;
+    color: rgba(255, 255, 255, 0.9) !important;
     text-decoration: none;
     font-size: 0.95em;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: transparent !important;
+    transition: color 0.2s ease;
 }
 
-.header-public-links a:hover {
+.header-public-links a:hover,
+.header-public-links a:focus-visible {
+    color: #ffffff !important;
     text-decoration: underline;
 }
 
 .header-tour-button {
-    background: none;
+    background: transparent;
     border: none;
-    color: #ffffff !important;
-    font-size: 0.95em;
-    cursor: pointer;
-    padding: 0;
+    padding: 5px 10px;
+    transition: color 0.2s ease;
 }
 
-.header-tour-button:hover {
+.header-tour-button:hover,
+.header-tour-button:focus-visible {
+    color: #ffffff !important;
     text-decoration: underline;
 }
+
 
 .header-right-menu .user-info,
 .app-header .user-info {

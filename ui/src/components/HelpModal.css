@@ -12,30 +12,33 @@
 }
 
 .help-modal-content {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  background:
+    radial-gradient(120% 110% at 50% 100%, rgba(56, 189, 248, 0.11) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 24px 40px rgba(2, 6, 23, 0.45);
   width: 90%;
-  max-width: 800px;
+  max-width: 840px;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
   z-index: 1001;
-  color: #333;
+  color: #e2e8f0;
 }
 
 .help-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
-  border-bottom: 1px solid #eee;
+  padding: 18px 28px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.4);
 }
 
 .help-modal-header h2 {
   margin: 0;
   font-size: 1.8em;
-  color: #282c34;
+  color: #e2e8f0;
 }
 
 .help-modal-close {
@@ -58,27 +61,27 @@
 }
 
 .help-modal-body {
-  padding: 30px;
+  padding: 24px 32px 32px;
+  background: rgba(2, 6, 23, 0.4);
 }
 
 .help-message {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #4ade80;
   padding: 10px;
   border-radius: 5px;
   margin-bottom: 15px;
   text-align: center;
-  border: 1px solid #c3e6cb;
+  border: 1px solid rgba(16, 185, 129, 0.4);
 }
-
 .help-error {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: rgba(248, 113, 113, 0.18);
+  color: #f87171;
   padding: 10px;
   border-radius: 5px;
   margin-bottom: 15px;
   text-align: center;
-  border: 1px solid #f5c6cb;
+  border: 1px solid rgba(248, 113, 113, 0.35);
 }
 
 .help-admin-controls {
@@ -89,13 +92,13 @@
 
 .help-admin-controls button {
   padding: 8px 16px;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.9em;
-  border: 1px solid #ccc;
-  background-color: #f8f9fa;
-  color: #333;
-  transition: background-color 0.2s ease;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .help-admin-controls .save-button {
@@ -110,26 +113,220 @@
 }
 
 .help-admin-controls button:hover {
-  background-color: #e2e6ea;
+  background-color: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.6);
 }
 
 .help-content-display {
-  margin-top: 20px;
+  margin-top: 16px;
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.help-content-display,
+.help-content-display p,
+.help-content-display li,
+.help-content-display strong,
+.help-content-display em,
+.help-content-display span,
+.help-content-display a {
+  color: #e2e8f0;
+}
+
+.help-content-display a {
+  text-decoration: underline;
+  color: #38bdf8;
+}
+
+.help-content-display blockquote,
+.help-content-display .note,
+.help-content-display .alert,
+.help-content-display .callout {
+  background: rgba(14, 165, 233, 0.12);
+  border-left: 4px solid #22d3ee;
+  padding: 12px 16px;
+  border-radius: 6px;
+  color: #cbd5e1;
+  margin: 12px 0;
+}
+
+.help-content-display blockquote strong,
+.help-content-display .note strong {
+  color: #e2e8f0;
+}
+
+.help-content-display .note,
+.help-content-display .alert,
+.help-content-display .callout {
+  background: rgba(2, 6, 23, 0.65);
+  border-left-color: rgba(56, 189, 248, 0.8);
+  border-right: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.7);
+  color: #e2e8f0;
+}
+
+.help-content-display .note em,
+.help-content-display .alert em {
+  color: #38bdf8;
+}
+
+.help-content-display .table-of-contents {
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.15);
+}
+
+.help-content-display .table-of-contents h4,
+.help-content-display .toc-heading {
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.help-content-display .table-of-contents a {
+  display: block;
+  color: #7dd3fc;
+  padding: 4px 0;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.help-content-display .table-of-contents a:hover,
+.help-content-display .table-of-contents a:focus-visible {
+  color: #dbeafe;
+  text-decoration: underline;
+}
+
+.help-content-display .toc-subheading {
+  color: #cbd5e1;
+  margin-left: 1rem;
+}
+
+.help-content-wrapper .table-of-contents,
+.help-content-wrapper .toc,
+.help-content-wrapper .toc-list,
+.help-content-wrapper .toc-panel {
+  background: rgba(2, 6, 23, 0.75) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  border-radius: 12px !important;
+  padding: 18px !important;
+  box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.9) !important;
+}
+
+.help-content-wrapper .table-of-contents *,
+.help-content-wrapper .toc *,
+.help-content-wrapper .toc-list *,
+.help-content-wrapper .toc-panel * {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.help-content-wrapper .toc,
+.help-content-wrapper .toc-list,
+.help-content-wrapper .toc-panel {
+  background-color: rgba(2, 6, 23, 0.85) !important;
+  border: 1px solid rgba(59, 130, 246, 0.6) !important;
+  border-radius: 12px !important;
+  padding: 18px !important;
+  box-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.4) !important;
+}
+
+.help-content-wrapper .table-of-contents,
+.help-content-wrapper .toc {
+  background-image: none !important;
+}
+
+.help-content-display .warning,
+.help-content-display [class*="warning"],
+.help-content-display .alert-warning,
+.help-content-display .callout-warning {
+  background: rgba(220, 38, 74, 0.12);
+  border-left-color: rgba(248, 113, 113, 0.9);
+  border-right: 1px solid rgba(248, 113, 113, 0.4);
+  color: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(11, 15, 23, 0.6);
+  margin: 12px 0;
+}
+
+.help-content-display .warning strong,
+.help-content-display [class*="warning"] strong {
+  color: #fbbf24;
+}
+
+.help-content-display .table-of-contents,
+.help-content-display .toc-wrapper,
+.help-content-display .table-of-contents .toc-panel,
+.help-content-display .toc-wrapper .toc-panel,
+.help-content-display .table-of-contents .toc,
+.help-content-display .toc-wrapper .toc,
+.help-content-display .table-of-contents .toc-link-wrapper,
+.help-content-display .toc-wrapper .toc-link-wrapper,
+.help-content-display .table-of-contents .toc-grid,
+.help-content-display .toc-wrapper .toc-grid {
+  background: rgba(2, 6, 23, 0.8) !important;
+  border: 1px solid rgba(30, 64, 175, 0.6) !important;
+  border-radius: 10px !important;
+  padding: 18px !important;
+  margin-bottom: 16px !important;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25) !important;
+  color: #e2e8f0 !important;
+}
+
+.help-content-display .table-of-contents *,
+.help-content-display .toc-wrapper *,
+.help-content-display .table-of-contents .toc-panel *,
+.help-content-display .toc-wrapper .toc-panel *,
+.help-content-display .table-of-contents .toc *,
+.help-content-display .toc-wrapper .toc *,
+.help-content-display .table-of-contents .toc-link-wrapper *,
+.help-content-display .toc-wrapper .toc-link-wrapper *,
+.help-content-display .table-of-contents .toc-grid *,
+.help-content-display .toc-wrapper .toc-grid * {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.toc, .toc-list, .toc-panel, .toc-wrapper {
+  background-color: rgba(2, 6, 23, 0.95) !important;
+  border: 1px solid rgba(30, 64, 175, 0.7) !important;
+  border-radius: 14px !important;
+  padding: 18px !important;
+  box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.9) !important;
+  color: #e2e8f0 !important;
+}
+
+.toc *,
+.toc-list *,
+.toc-panel *,
+.toc-wrapper * {
+  background: transparent !important;
+  color: inherit !important;
 }
 
 .help-loading {
   text-align: center;
   padding: 20px;
-  color: #6c757d;
+  color: #94a3b8;
   font-style: italic;
 }
 
 .help-content-display textarea {
   font-family: inherit;
   font-size: 1em;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 6px;
   resize: vertical;
+  background: rgba(2, 6, 23, 0.7);
+  color: #f8fafc;
+  padding: 12px;
 }
 
 .help-content-display div {

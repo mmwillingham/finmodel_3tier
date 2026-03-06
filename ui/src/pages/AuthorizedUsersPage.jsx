@@ -145,15 +145,16 @@ const AuthorizedUsersPage = () => {
 
   return (
     <div className="authorized-users-page">
-      <div className="page-header">
-        <h1>🔐 Authorized Users</h1>
-      </div>
+      <div className="authorized-users-shell page-shell-card">
+        <div className="page-header">
+          <h1>🔐 Authorized Users</h1>
+        </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <button onClick={() => setShowAddModal(true)} className="btn-primary">
-          + Add Authorized User
-        </button>
-      </div>
+        <div style={{ marginBottom: '20px' }}>
+          <button onClick={() => setShowAddModal(true)} className="btn-primary">
+            + Add Authorized User
+          </button>
+        </div>
 
       <div className="tabs">
         <button
@@ -263,100 +264,101 @@ const AuthorizedUsersPage = () => {
         </div>
       )}
 
-      {/* Add User Modal */}
-      {showAddModal && (
-        <div className="modal-overlay" onMouseDown={(e) => {
-          if (e.target === e.currentTarget) {
-            setShowAddModal(false);
-          }
-        }}>
-          <div className="modal-content" onMouseDown={(e) => e.stopPropagation()}>
-            <h2>Add Authorized User</h2>
-            <p className="modal-hint">
-              If the user is not registered, you can optionally create their account by providing a temporary password.
-              If the user is already registered, leave the password field empty.
-            </p>
-            <input
-              type="email"
-              placeholder="User email address"
-              value={newUserEmail}
-              onChange={(e) => setNewUserEmail(e.target.value)}
-              className="form-input"
-            />
-            <input
-              type="password"
-              placeholder="Temporary password (optional - creates account if user doesn't exist)"
-              value={newTemporaryPassword}
-              onChange={(e) => setNewTemporaryPassword(e.target.value)}
-              className="form-input"
-              style={{ marginTop: '10px' }}
-            />
-            
-            <div className="permissions-section" style={{ marginTop: '20px' }}>
-              <h3>Permissions</h3>
-              <PermissionSelector
-                permissionType="financial_data_permission"
-                value={newPermissions.financial_data_permission}
-                onChange={handlePermissionChange}
-                label="Financial Data (Accounts, Items, Projections, Charts)"
+        {/* Add User Modal */}
+        {showAddModal && (
+          <div className="modal-overlay" onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddModal(false);
+            }
+          }}>
+            <div className="modal-content" onMouseDown={(e) => e.stopPropagation()}>
+              <h2>Add Authorized User</h2>
+              <p className="modal-hint">
+                If the user is not registered, you can optionally create their account by providing a temporary password.
+                If the user is already registered, leave the password field empty.
+              </p>
+              <input
+                type="email"
+                placeholder="User email address"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                className="form-input"
               />
-              <PermissionSelector
-                permissionType="document_vault_permission"
-                value={newPermissions.document_vault_permission}
-                onChange={handlePermissionChange}
-                label="Document Vault"
+              <input
+                type="password"
+                placeholder="Temporary password (optional - creates account if user doesn't exist)"
+                value={newTemporaryPassword}
+                onChange={(e) => setNewTemporaryPassword(e.target.value)}
+                className="form-input"
+                style={{ marginTop: '10px' }}
               />
-            </div>
-            
-            <div className="modal-actions">
-              <button onClick={() => setShowAddModal(false)} className="btn-secondary">
-                Cancel
-              </button>
-              <button onClick={handleAddUser} className="btn-primary">
-                Add User
-              </button>
+              
+              <div className="permissions-section" style={{ marginTop: '20px' }}>
+                <h3>Permissions</h3>
+                <PermissionSelector
+                  permissionType="financial_data_permission"
+                  value={newPermissions.financial_data_permission}
+                  onChange={handlePermissionChange}
+                  label="Financial Data (Accounts, Items, Projections, Charts)"
+                />
+                <PermissionSelector
+                  permissionType="document_vault_permission"
+                  value={newPermissions.document_vault_permission}
+                  onChange={handlePermissionChange}
+                  label="Document Vault"
+                />
+              </div>
+              
+              <div className="modal-actions">
+                <button onClick={() => setShowAddModal(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button onClick={handleAddUser} className="btn-primary">
+                  Add User
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Edit User Modal */}
-      {showEditModal && editUser && (
-        <div className="modal-overlay" onMouseDown={(e) => {
-          if (e.target === e.currentTarget) {
-            setShowEditModal(false);
-          }
-        }}>
-          <div className="modal-content" onMouseDown={(e) => e.stopPropagation()}>
-            <h2>Edit Permissions for {editUser.authorized_user_email}</h2>
-            
-            <div className="permissions-section">
-              <h3>Permissions</h3>
-              <PermissionSelector
-                permissionType="financial_data_permission"
-                value={editPermissions.financial_data_permission}
-                onChange={(type, val) => handlePermissionChange(type, val, true)}
-                label="Financial Data (Accounts, Items, Projections, Charts)"
-              />
-              <PermissionSelector
-                permissionType="document_vault_permission"
-                value={editPermissions.document_vault_permission}
-                onChange={(type, val) => handlePermissionChange(type, val, true)}
-                label="Document Vault"
-              />
-            </div>
-            
-            <div className="modal-actions">
-              <button onClick={() => setShowEditModal(false)} className="btn-secondary">
-                Cancel
-              </button>
-              <button onClick={handleSaveEdit} className="btn-primary">
-                Save Changes
-              </button>
+        {/* Edit User Modal */}
+        {showEditModal && editUser && (
+          <div className="modal-overlay" onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowEditModal(false);
+            }
+          }}>
+            <div className="modal-content" onMouseDown={(e) => e.stopPropagation()}>
+              <h2>Edit Permissions for {editUser.authorized_user_email}</h2>
+              
+              <div className="permissions-section">
+                <h3>Permissions</h3>
+                <PermissionSelector
+                  permissionType="financial_data_permission"
+                  value={editPermissions.financial_data_permission}
+                  onChange={(type, val) => handlePermissionChange(type, val, true)}
+                  label="Financial Data (Accounts, Items, Projections, Charts)"
+                />
+                <PermissionSelector
+                  permissionType="document_vault_permission"
+                  value={editPermissions.document_vault_permission}
+                  onChange={(type, val) => handlePermissionChange(type, val, true)}
+                  label="Document Vault"
+                />
+              </div>
+              
+              <div className="modal-actions">
+                <button onClick={() => setShowEditModal(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button onClick={handleSaveEdit} className="btn-primary">
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

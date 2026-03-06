@@ -1,25 +1,38 @@
 .authorized-users-page {
-  padding: 20px;
-  padding-top: 80px; /* Account for fixed header */
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  padding: 32px 20px 64px;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+}
+
+.authorized-users-shell {
+  width: min(1200px, 100%);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.4);
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+  padding: 16px;
+  background: transparent;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .page-header h1 {
   margin: 0;
   font-size: 2rem;
-  color: #333;
+  color: #e2e8f0;
+  letter-spacing: 0.01em;
 }
 
 .page-header .btn-primary {
@@ -30,30 +43,31 @@
 .tabs {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #ddd;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+  padding-bottom: 8px;
 }
 
 .tab {
-  background: none;
-  border: none;
-  padding: 10px 20px;
+  background: rgba(2, 6, 23, 0.45);
+  border: 1px solid transparent;
+  padding: 8px 18px;
   cursor: pointer;
-  font-size: 1rem;
-  color: #666;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: all 0.2s;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  border-radius: 999px;
+  transition: all 0.2s ease;
 }
 
 .tab:hover {
-  color: #333;
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #e2e8f0;
 }
 
 .tab.active {
-  color: #0066cc;
-  border-bottom-color: #0066cc;
-  font-weight: 600;
+  color: #f8fafc;
+  background: linear-gradient(135deg, #0F2847 0%, #00a3e0 100%);
+  border-color: transparent;
 }
 
 .loading,
@@ -68,10 +82,11 @@
 }
 
 .users-table-container {
-  background: #fff;
-  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.6);
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .users-table {
@@ -83,17 +98,18 @@
 .users-table td {
   padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+  color: #e2e8f0;
 }
 
 .users-table th {
-  background: #f8f9fa;
+  background: rgba(15, 23, 42, 0.8);
   font-weight: 600;
-  color: #333;
+  color: #94a3b8;
 }
 
 .users-table tbody tr:hover {
-  background: #f8f9fa;
+  background: rgba(56, 189, 248, 0.1);
 }
 
 .users-table tbody tr:last-child td {
@@ -174,13 +190,13 @@
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
-  color: #666;
+  padding: 50px 20px;
+  color: #cbd5e1;
 }
 
 .empty-state p {
   margin: 10px 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
 .empty-state-button {
@@ -228,6 +244,10 @@
   color: #94a3b8;
   font-size: 0.9rem;
   margin-bottom: 20px;
+}
+
+.permission-selector label {
+  color: #e2e8f0;
 }
 
 .form-input {

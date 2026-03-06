@@ -2,6 +2,7 @@
   "name": "financial-projector-ui",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -27,7 +28,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node update-sri.js",
     "preview": "vite preview",
     "test": "vitest",
     "start": "vite"
@@ -54,7 +55,9 @@
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
+    "ssri": "^13.0.1",
     "tailwindcss": "^3.4.19",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vite-plugin-sri": "^0.0.2"
   }
 }
