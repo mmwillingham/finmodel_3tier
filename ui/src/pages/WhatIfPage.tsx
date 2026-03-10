@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './WhatIfPage.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import whatIfService from '../services/what_if.service';
 import SettingsService from '../services/settings.service';
 
@@ -151,9 +153,16 @@ const WhatIfPage = () => {
             <h3>Answer:</h3>
             <div className="answer-content">
               {answer ? (
-                answer.split('\n').map((line: any, index: any) => (
-                  <p key={index}>{line || '\u00A0'}</p>
-                ))
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ node: _node, ...props }) => (
+                      <a {...props} target="_blank" rel="noreferrer" />
+                    ),
+                  }}
+                >
+                  {answer}
+                </ReactMarkdown>
               ) : (
                 <p>Thinking...</p>
               )}

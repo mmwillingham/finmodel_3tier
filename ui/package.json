@@ -22,8 +22,10 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
     "react-loading-skeleton": "^3.5.0",
+    "react-markdown": "^10.1.0",
     "react-plaid-link": "^3.4.0",
     "react-router-dom": "^6.30.3",
+    "remark-gfm": "^4.0.1",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
