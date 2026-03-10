@@ -63,7 +63,7 @@ from routers.plaid import router as plaid_router
 from routers.what_if import router as what_if_router
 from routers.tax import router as tax_router
 from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
-from utils.document_structure import create_default_document_folders
+from utils.document_vault import ensure_system_default_document_types, seed_default_document_types
 from utils.email import send_email
 from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
@@ -1047,7 +1047,8 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     db.commit()
     db.refresh(user_settings)
 
-    create_default_document_folders(db, db_user.id)
+    ensure_system_default_document_types(db)
+    seed_default_document_types(db, db_user.id)
 
     # Only send confirmation email if user has an email address
     if db_user.email:
@@ -1197,7 +1198,8 @@ def admin_create_user(
     db.commit()
     db.refresh(user_settings)
 
-    create_default_document_folders(db, db_user.id)
+    ensure_system_default_document_types(db)
+    seed_default_document_types(db, db_user.id)
     
     return db_user
 

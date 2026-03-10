@@ -32,7 +32,6 @@ import HelpPage from './pages/HelpPage';
 import AboutPage from './pages/AboutPage';
 import ExportImportPage from './pages/ExportImportPage';
 import ReferAFriendPage from './pages/ReferAFriendPage';
-import DocumentsPage from './pages/DocumentsPage';
 import AuthorizedUsersPage from './pages/AuthorizedUsersPage';
 import AccountSwitcherPage from './pages/AccountSwitcherPage';
 import FeaturesPage from './pages/FeaturesPage';

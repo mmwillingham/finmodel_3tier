@@ -35,7 +35,7 @@ import ExpensesSetupWizard from "./wizards/ExpensesSetupWizard";
 import AutoDisbursementService from "../services/auto_disbursement.service";
 import AccountsSettingsPage from "../pages/AccountsSettingsPage";
 import AutoDisbursementSettingsPage from "../pages/AutoDisbursementSettingsPage";
-import DocumentsPage from "../pages/DocumentsPage";
+import DocumentVaultPage from "../pages/DocumentVaultPage";
 import CashHandlingPage from "../pages/CashHandlingPage";
 import ChangePasswordModal from "./ChangePasswordModal";
 import CategorySettingsPage from "../pages/CategorySettingsPage";
@@ -1085,7 +1085,7 @@ export default function SidebarLayout() {
         )}
         
         {!loading && view === "documents" && (
-          renderMuiPageShell(<DocumentsPage hideSidebar={true} />)
+          renderMuiPageShell(<DocumentVaultPage hideSidebar={true} />)
         )}
 
         {!loading && view === "accounts" && (

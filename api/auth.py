@@ -14,7 +14,7 @@ import models
 import schemas
 import database
 from config import settings # 🌟 NEW: Import settings from the central config file
-from utils.document_structure import create_default_document_folders
+from utils.document_vault import ensure_system_default_document_types, seed_default_document_types
 
 from passlib.context import CryptContext
 # Define the context
@@ -135,7 +135,8 @@ def authenticate_or_create_google_user(db: Session, google_id: str, email: str):
     db.commit()
     db.refresh(new_user)
 
-    create_default_document_folders(db, new_user.id)
+    ensure_system_default_document_types(db)
+    seed_default_document_types(db, new_user.id)
     return new_user
 
 def get_current_active_user(current_user: schemas.UserOut = Depends(get_current_user)):
