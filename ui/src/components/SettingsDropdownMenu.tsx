@@ -43,6 +43,7 @@ const SettingsDropdownMenu: React.FC<SettingsDropdownMenuProps> = ({ onSelect, o
               <button onClick={(event: any) => handleItemClick(event, '/settings/admin/users')}>User Management (Admin)</button>
               <button onClick={(event: any) => handleItemClick(event, '/settings/admin/global-categories')}>Default Categories (Admin)</button>
               <button onClick={(event: any) => handleItemClick(event, '/settings/admin/default-folders')}>Default Folders (Admin)</button>
+              <button onClick={(event: any) => handleItemClick(event, '/settings/admin/document-vault-defaults')}>Document Vault Defaults (Admin)</button>
             </>
           )}
         </>

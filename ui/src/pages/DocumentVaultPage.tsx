@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AccountSwitcher from '../components/AccountSwitcher';
+import SettingsService from '../services/settings.service';
 import DocumentsService, {
   type DocumentEntry,
   type DocumentFieldConfig,
@@ -9,6 +10,7 @@ import DocumentsService, {
 } from '../services/documents.service';
 import './DocumentsPage.css';
 import '../components/SidebarLayout.css';
+import { DEFAULT_DOCUMENT_FOLDER_STRUCTURE } from '../utils/documentFolderStructure';
 
 type VaultTab = 'entries' | 'types' | 'defaults';
 
@@ -32,6 +34,11 @@ type DefinitionDraft = {
   description: string;
   is_active: boolean;
   fields_config: DocumentFieldConfig[];
+};
+
+type FolderStructureItem = {
+  name: string;
+  children?: FolderStructureItem[];
 };
 
 const EMPTY_FIELD: DocumentFieldConfig = {
@@ -78,12 +85,20 @@ const FIELD_TYPES: Array<DocumentFieldConfig['field_type']> = [
   'textarea',
 ];
 
-const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) => {
+const DocumentVaultPage = ({
+  hideSidebar = false,
+  initialTab = 'entries',
+  adminPortal = false,
+}: {
+  hideSidebar?: boolean;
+  initialTab?: VaultTab;
+  adminPortal?: boolean;
+}) => {
   const { currentUser, viewingUserId } = useAuth();
   const [entries, setEntries] = useState<DocumentEntry[]>([]);
   const [definitions, setDefinitions] = useState<DocumentTypeDefinition[]>([]);
   const [defaultDefinitions, setDefaultDefinitions] = useState<DocumentTypeDefinition[]>([]);
-  const [activeTab, setActiveTab] = useState<VaultTab>('entries');
+  const [activeTab, setActiveTab] = useState<VaultTab>(initialTab);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [docTypeFilter, setDocTypeFilter] = useState('');
@@ -93,16 +108,46 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [showDefinitionModal, setShowDefinitionModal] = useState(false);
   const [showDefaultDefinitionModal, setShowDefaultDefinitionModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showDefaultsTooltip, setShowDefaultsTooltip] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [entryDraft, setEntryDraft] = useState<EntryDraft>(EMPTY_ENTRY);
   const [definitionDraft, setDefinitionDraft] = useState<DefinitionDraft>(EMPTY_DEFINITION);
   const [defaultDefinitionDraft, setDefaultDefinitionDraft] = useState<DefinitionDraft>(EMPTY_DEFINITION);
+  const [folderOptions, setFolderOptions] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setCustomCategories([]);
+      return;
+    }
+    try {
+      const saved = localStorage.getItem(`vault_custom_categories_${currentUser.id}`);
+      setCustomCategories(saved ? JSON.parse(saved) : []);
+    } catch {
+      setCustomCategories([]);
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+    localStorage.setItem(`vault_custom_categories_${currentUser.id}`, JSON.stringify(customCategories));
+  }, [customCategories, currentUser?.id]);
 
   const categoryOptions = useMemo(() => {
     const values = new Set<string>();
+    customCategories.forEach((category) => values.add(category));
     definitions.forEach((definition) => values.add(definition.category));
     entries.forEach((entry) => values.add(entry.category));
     return Array.from(values).sort();
-  }, [definitions, entries]);
+  }, [customCategories, definitions, entries]);
 
   const docTypeOptions = useMemo(() => {
     const values = new Set<string>();
@@ -124,6 +169,22 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
     () => definitions.find((definition) => definition.id === entryDraft.definitionId) || null,
     [definitions, entryDraft.definitionId],
   );
+
+  const locationOptions = useMemo(() => {
+    const options = new Set(folderOptions);
+    if (entryDraft.folderLabel.trim()) {
+      options.add(entryDraft.folderLabel.trim());
+    }
+    return Array.from(options).sort();
+  }, [entryDraft.folderLabel, folderOptions]);
+
+  const flattenFolderPaths = (items: FolderStructureItem[], prefix = ''): string[] => {
+    return items.flatMap((item) => {
+      const path = prefix ? `${prefix} / ${item.name}` : item.name;
+      const nested = item.children?.length ? flattenFolderPaths(item.children, path) : [];
+      return [path, ...nested];
+    });
+  };
 
   const loadEntries = async () => {
     const data = await DocumentsService.listEntries({
@@ -149,6 +210,16 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
     setDefaultDefinitions(data);
   };
 
+  const loadFolderOptions = async () => {
+    try {
+      const response = await SettingsService.getDefaultCategories();
+      const folders = response.data?.default_document_folders || DEFAULT_DOCUMENT_FOLDER_STRUCTURE;
+      setFolderOptions(flattenFolderPaths(folders));
+    } catch {
+      setFolderOptions(flattenFolderPaths(DEFAULT_DOCUMENT_FOLDER_STRUCTURE));
+    }
+  };
+
   const loadPageData = async () => {
     setLoading(true);
     setError('');
@@ -156,6 +227,7 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
       await Promise.all([
         loadDefinitions(),
         loadEntries(),
+        loadFolderOptions(),
         currentUser?.is_admin ? loadDefaultDefinitions() : Promise.resolve(),
       ]);
     } catch (err: any) {
@@ -182,6 +254,10 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
     if (!selectedDefinition) {
       return;
     }
+    const suggestedPath =
+      selectedDefinition.doc_type === selectedDefinition.category
+        ? selectedDefinition.category
+        : `${selectedDefinition.category} / ${selectedDefinition.doc_type}`;
     setEntryDraft((current) => {
       const nextMetadata = { ...current.metadata };
       selectedDefinition.fields_config.forEach((field) => {
@@ -193,10 +269,11 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
         ...current,
         category: selectedDefinition.category,
         docType: selectedDefinition.doc_type,
+        folderLabel: current.folderLabel || (locationOptions.includes(suggestedPath) ? suggestedPath : current.folderLabel),
         metadata: nextMetadata,
       };
     });
-  }, [selectedDefinition]);
+  }, [locationOptions, selectedDefinition]);
 
   const resetEntryModal = () => {
     setEntryDraft(EMPTY_ENTRY);
@@ -241,6 +318,14 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
     setShowDefinitionModal(true);
   };
 
+  const openCreateDefinitionForCategory = (category: string) => {
+    setDefinitionDraft({
+      ...EMPTY_DEFINITION,
+      category,
+    });
+    setShowDefinitionModal(true);
+  };
+
   const openEditDefinition = (definition: DocumentTypeDefinition) => {
     setDefinitionDraft({
       id: definition.id,
@@ -259,6 +344,19 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
   const openCreateDefaultDefinition = () => {
     setDefaultDefinitionDraft(EMPTY_DEFINITION);
     setShowDefaultDefinitionModal(true);
+  };
+
+  const handleSaveCategory = () => {
+    const category = newCategoryName.trim();
+    if (!category) {
+      setError('Category name is required.');
+      return;
+    }
+    setCustomCategories((current) => (current.includes(category) ? current : [...current, category].sort()));
+    setShowCategoryModal(false);
+    setNewCategoryName('');
+    setMessage(`Category "${category}" added. Create a document type to use it.`);
+    openCreateDefinitionForCategory(category);
   };
 
   const openEditDefaultDefinition = (definition: DocumentTypeDefinition) => {
@@ -282,6 +380,7 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
       const response = await DocumentsService.loadRecommendedDefaults(viewingUserId);
       setMessage(`${response.message} It will not overwrite existing document types.`);
       await loadDefinitions();
+      setActiveTab('types');
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to load recommended defaults.');
     }
@@ -483,6 +582,11 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
       return (
         <textarea
           className="form-input"
+          name={`vault-${field.id}-${entryDraft.id ?? 'new'}`}
+          autoComplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          spellCheck={false}
           rows={3}
           value={value ?? ''}
           onChange={(event) => updateMetadataValue(field.id, event.target.value)}
@@ -495,6 +599,10 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
       return (
         <select
           className="form-input"
+          name={`vault-${field.id}-${entryDraft.id ?? 'new'}`}
+          autoComplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
           value={value ?? ''}
           onChange={(event) => updateMetadataValue(field.id, event.target.value)}
         >
@@ -512,6 +620,10 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
       return (
         <select
           className="form-input"
+          name={`vault-${field.id}-${entryDraft.id ?? 'new'}`}
+          autoComplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
           multiple
           value={Array.isArray(value) ? value : []}
           onChange={(event) =>
@@ -562,6 +674,11 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
       <input
         type={inputType}
         className="form-input"
+        name={`vault-${field.id}-${entryDraft.id ?? 'new'}`}
+        autoComplete={field.is_sensitive ? 'new-password' : 'off'}
+        data-lpignore="true"
+        data-1p-ignore="true"
+        spellCheck={false}
         value={value ?? ''}
         onChange={(event) => updateMetadataValue(field.id, event.target.value)}
         placeholder={field.placeholder || ''}
@@ -587,7 +704,7 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
             <td>
               <strong>{definition.doc_type}</strong>
               {definition.description && (
-                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>{definition.description}</div>
+                <div className="vault-subtle-text" style={{ marginTop: '4px' }}>{definition.description}</div>
               )}
             </td>
             <td>
@@ -620,25 +737,57 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
     setDraft: React.Dispatch<React.SetStateAction<DefinitionDraft>>,
     onClose: () => void,
     onSave: () => void,
-  ) => (
-    <div className="modal-overlay" onClick={onClose}>
+  ) => {
+    const usingExistingCategory = Boolean(draft.category) && categoryOptions.includes(draft.category);
+    const categorySelectValue = usingExistingCategory ? draft.category : '__new__';
+
+    return (
+    <div className="modal-overlay">
       <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '860px' }}>
         <h2>{title}</h2>
         <div style={{ display: 'grid', gap: '12px' }}>
+          <select
+            className="form-input"
+            value={categorySelectValue}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                category: event.target.value === '__new__' ? '' : event.target.value,
+              }))
+            }
+          >
+            <option value="__new__">New category...</option>
+            {categoryOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          {!usingExistingCategory && (
+            <input
+              className="form-input"
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              value={draft.category}
+              onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
+              placeholder="Category name"
+            />
+          )}
           <input
             className="form-input"
-            value={draft.category}
-            onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
-            placeholder="Category"
-          />
-          <input
-            className="form-input"
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
             value={draft.doc_type}
             onChange={(event) => setDraft((current) => ({ ...current, doc_type: event.target.value }))}
             placeholder="Document type"
           />
           <textarea
             className="form-input"
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
             rows={2}
             value={draft.description}
             onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
@@ -654,16 +803,22 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
           </label>
         </div>
 
+        <p className="vault-helper-text vault-helper-text-strong">
+          Field edits update the schema used for future entries. Existing entries keep their stored data.
+        </p>
         <h3 style={{ marginTop: '20px' }}>Fields</h3>
         <div style={{ display: 'grid', gap: '14px' }}>
           {draft.fields_config.map((field, index) => (
             <div
               key={`${field.id || 'new'}-${index}`}
-              style={{ border: '1px solid #dbe4ee', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}
+              className="vault-field-card"
             >
               <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                 <input
                   className="form-input"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   value={field.id}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -677,6 +832,9 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
                 />
                 <input
                   className="form-input"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   value={field.label}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -690,6 +848,7 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
                 />
                 <select
                   className="form-input"
+                  autoComplete="off"
                   value={field.field_type}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -708,6 +867,9 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
                 </select>
                 <input
                   className="form-input"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   value={field.placeholder || ''}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -723,6 +885,9 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
               {(field.field_type === 'select' || field.field_type === 'multi-select') && (
                 <input
                   className="form-input"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   style={{ marginTop: '10px' }}
                   value={(field.options || []).join(', ')}
                   onChange={(event) =>
@@ -802,35 +967,68 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const content = (
     <div className="documents-page">
       <div className="documents-header">
         <div className="documents-header-top">
-          <h1 className="documents-title">Document Vault</h1>
+          <h1 className="documents-title">{adminPortal ? 'Document Vault Defaults' : 'Document Vault'}</h1>
           <AccountSwitcher compact={true} />
         </div>
         <div className="documents-actions">
-          <button className="btn-primary" onClick={openCreateEntry}>
-            + New Vault Entry
-          </button>
-          <button className="btn-primary" onClick={openCreateDefinition}>
-            + New Document Type
-          </button>
-          <button className="btn-secondary" onClick={() => void handleLoadRecommendedDefaults()}>
-            Load Recommended Defaults
-          </button>
-          {currentUser?.is_admin && (
+          {!adminPortal && (
+            <button className="btn-primary" onClick={openCreateEntry}>
+              New Entry
+            </button>
+          )}
+          {!adminPortal && (
+            <button className="btn-primary" onClick={openCreateDefinition}>
+              New Document Type
+            </button>
+          )}
+          {!adminPortal && (
+            <button className="btn-secondary" onClick={() => setShowCategoryModal(true)}>
+              New Category
+            </button>
+          )}
+          {!adminPortal && (
+            <div className="default-folders-tooltip-container">
+              <button className="btn-secondary" onClick={() => void handleLoadRecommendedDefaults()}>
+                Load Default DocTypes
+              </button>
+              <button
+                type="button"
+                className="default-folders-tooltip-toggle"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShowDefaultsTooltip((current) => !current);
+                }}
+                aria-expanded={showDefaultsTooltip}
+                aria-label="Show note about recommended defaults"
+              >
+                i
+              </button>
+              {showDefaultsTooltip && (
+                <div className="default-folders-tooltip" role="tooltip">
+                  Adds missing defaults only. It will not overwrite existing document types or data.
+                </div>
+              )}
+            </div>
+          )}
+          {currentUser?.is_admin && !adminPortal && (
             <button className="btn-secondary" onClick={() => setActiveTab('defaults')}>
               Manage Recommended Defaults
             </button>
           )}
+          {currentUser?.is_admin && adminPortal && (
+            <button className="btn-primary" onClick={openCreateDefaultDefinition}>
+              + New Recommended Default
+            </button>
+          )}
         </div>
-        <div className="default-folders-message">
-          `Load Recommended Defaults` adds missing defaults only. It will not overwrite existing document types or data.
-        </div>
-        {message && <div className="default-folders-message">{message}</div>}
+        {!!message && <div className="vault-notice vault-notice-success">{message}</div>}
       </div>
 
       <div className="vault-summary-grid">
@@ -858,44 +1056,57 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
         )}
       </div>
 
-      <div className="vault-filter-grid">
-        <input
-          className="form-input"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search title, notes, metadata, or file text"
-        />
-        <select className="form-input" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-          <option value="">All categories</option>
-          {categoryOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-        <select className="form-input" value={docTypeFilter} onChange={(event) => setDocTypeFilter(event.target.value)}>
-          <option value="">All types</option>
-          {docTypeOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!adminPortal && (
+        <div className="vault-filter-grid">
+          <input
+            className="form-input"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search title, notes, metadata, or file text"
+          />
+          <select className="form-input" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+            <option value="">All categories</option>
+            {categoryOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <select className="form-input" value={docTypeFilter} onChange={(event) => setDocTypeFilter(event.target.value)}>
+            <option value="">All types</option>
+            {docTypeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="vault-tab-row">
-        <button className={activeTab === 'entries' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('entries')}>
-          Vault Entries
-        </button>
-        <button className={activeTab === 'types' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('types')}>
-          My Document Types
-        </button>
+        {!adminPortal && (
+          <button className={activeTab === 'entries' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('entries')}>
+            Vault Entries
+          </button>
+        )}
+        {!adminPortal && (
+          <button className={activeTab === 'types' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('types')}>
+            My Document Types
+          </button>
+        )}
         {currentUser?.is_admin && (
           <button className={activeTab === 'defaults' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('defaults')}>
             Recommended Defaults
           </button>
         )}
       </div>
+
+      {adminPortal && (
+        <div className="vault-notice vault-notice-info">
+          Admin portal: manage the recommended default document types that are preloaded for new users. Existing users can
+          still add missing defaults later without overwriting existing data.
+        </div>
+      )}
 
       {loading && <div className="loading">Loading document vault...</div>}
       {!!error && <div className="error">{error}</div>}
@@ -908,7 +1119,7 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
                 <th>Title</th>
                 <th>Category</th>
                 <th>Type</th>
-                <th>Suggested Location</th>
+                <th>Path</th>
                 <th>File</th>
                 <th>Updated</th>
                 <th>Actions</th>
@@ -1007,12 +1218,15 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
       )}
 
       {showEntryModal && (
-        <div className="modal-overlay" onClick={resetEntryModal}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '860px' }}>
             <h2>{entryDraft.id ? 'Edit Vault Entry' : 'New Vault Entry'}</h2>
             <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
               <select
                 className="form-input"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={entryDraft.definitionId ?? ''}
                 onChange={(event) =>
                   setEntryDraft((current) => ({
@@ -1032,6 +1246,9 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
               </select>
               <input
                 className="form-input"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={entryDraft.category}
                 onChange={(event) => setEntryDraft((current) => ({ ...current, category: event.target.value }))}
                 placeholder="Category"
@@ -1039,6 +1256,9 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
               />
               <input
                 className="form-input"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={entryDraft.docType}
                 onChange={(event) => setEntryDraft((current) => ({ ...current, docType: event.target.value }))}
                 placeholder="Document type"
@@ -1046,50 +1266,26 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
               />
               <input
                 className="form-input"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={entryDraft.title}
                 onChange={(event) => setEntryDraft((current) => ({ ...current, title: event.target.value }))}
                 placeholder="Title"
               />
-              <input
+              <select
                 className="form-input"
                 value={entryDraft.folderLabel}
                 onChange={(event) => setEntryDraft((current) => ({ ...current, folderLabel: event.target.value }))}
-                placeholder="Suggested location"
-              />
-              {!entryDraft.id && (
-                <input
-                  type="file"
-                  className="form-input"
-                  onChange={(event) =>
-                    setEntryDraft((current) => ({
-                      ...current,
-                      file: event.target.files && event.target.files.length > 0 ? event.target.files[0] : null,
-                    }))
-                  }
-                />
-              )}
+              >
+                <option value="">Select folder location...</option>
+                {locationOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </div>
-            {!entryDraft.id && (
-              <div className="vault-helper-text">
-                Attach a PDF, image, or text-based document. PDFs are text-extracted first, then OCR is used for scanned pages.
-              </div>
-            )}
-            <textarea
-              className="form-input"
-              rows={2}
-              value={entryDraft.description}
-              onChange={(event) => setEntryDraft((current) => ({ ...current, description: event.target.value }))}
-              placeholder="Description"
-              style={{ marginTop: '12px' }}
-            />
-            <textarea
-              className="form-input"
-              rows={3}
-              value={entryDraft.notes}
-              onChange={(event) => setEntryDraft((current) => ({ ...current, notes: event.target.value }))}
-              placeholder="Notes"
-              style={{ marginTop: '12px' }}
-            />
 
             {selectedDefinition && (
               <div style={{ marginTop: '20px' }}>
@@ -1111,6 +1307,46 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
                   ))}
                 </div>
               </div>
+            )}
+
+            <textarea
+              className="form-input"
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              rows={2}
+              value={entryDraft.description}
+              onChange={(event) => setEntryDraft((current) => ({ ...current, description: event.target.value }))}
+              placeholder="Description"
+              style={{ marginTop: '12px' }}
+            />
+            <textarea
+              className="form-input"
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              rows={3}
+              value={entryDraft.notes}
+              onChange={(event) => setEntryDraft((current) => ({ ...current, notes: event.target.value }))}
+              placeholder="Notes"
+              style={{ marginTop: '12px' }}
+            />
+            {!entryDraft.id && (
+              <>
+                <input
+                  type="file"
+                  className="form-input"
+                  onChange={(event) =>
+                    setEntryDraft((current) => ({
+                      ...current,
+                      file: event.target.files && event.target.files.length > 0 ? event.target.files[0] : null,
+                    }))
+                  }
+                />
+                <div className="vault-helper-text">
+                  Attach a PDF, image, or text-based document. PDFs are text-extracted first, then OCR is used for scanned pages.
+                </div>
+              </>
             )}
 
             <div className="modal-actions">
@@ -1142,6 +1378,37 @@ const DocumentVaultPage = ({ hideSidebar = false }: { hideSidebar?: boolean }) =
           resetDefaultDefinitionModal,
           () => void handleSaveDefinition(true),
         )}
+      {showCategoryModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <h2>New Category</h2>
+            <input
+              className="form-input"
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              placeholder="Category name"
+            />
+            <p className="vault-helper-text">Create the category first, then add document types inside it.</p>
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  setShowCategoryModal(false);
+                  setNewCategoryName('');
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button onClick={handleSaveCategory} className="btn-primary">
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

@@ -170,6 +170,12 @@ const SettingsPageLayout: React.FC<SettingsPageLayoutProps> = ({ children }) => 
                   >
                     Default Categories (Admin)
                   </button>
+                  <button
+                    className={`nav-btn ${location.pathname === '/settings/admin/document-vault-defaults' ? 'active' : ''}`}
+                    onClick={() => navigate('/settings/admin/document-vault-defaults')}
+                  >
+                    Document Vault Defaults (Admin)
+                  </button>
                 </>
               )}
                 </>

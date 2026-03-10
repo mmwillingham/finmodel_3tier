@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
+
 
 DEFAULT_DOCUMENT_TYPE_DEFINITIONS = [
     {
@@ -81,5 +83,50 @@ DEFAULT_DOCUMENT_TYPE_DEFINITIONS = [
 ]
 
 
-def build_default_document_type_definitions():
-    return deepcopy(DEFAULT_DOCUMENT_TYPE_DEFINITIONS)
+def _build_folder_based_definitions(folder_structure):
+    definitions = []
+
+    def walk(items, top_level=None, prefix=None):
+        for item in items:
+            name = item["name"]
+            current_path = f"{prefix} / {name}" if prefix else name
+            current_top_level = top_level or name
+            remainder = current_path if current_top_level == current_path else current_path[len(current_top_level) + 3 :]
+
+            definitions.append(
+                {
+                    "template_key": f"folder-{slugify_key(current_path)}",
+                    "category": current_top_level,
+                    "doc_type": remainder if remainder else current_top_level,
+                    "description": f"Recommended default for {current_path}.",
+                    "fields_config": [],
+                }
+            )
+
+            children = item.get("children") or []
+            if children:
+                walk(children, current_top_level, current_path)
+
+    walk(folder_structure or DEFAULT_DOCUMENT_FOLDER_STRUCTURE)
+    return definitions
+
+
+def slugify_key(value: str) -> str:
+    cleaned = []
+    previous_dash = False
+    for char in value.lower():
+        if char.isalnum():
+            cleaned.append(char)
+            previous_dash = False
+        elif not previous_dash:
+            cleaned.append("-")
+            previous_dash = True
+    return "".join(cleaned).strip("-")
+
+
+def build_default_document_type_definitions(folder_structure=None):
+    combined = deepcopy(DEFAULT_DOCUMENT_TYPE_DEFINITIONS) + _build_folder_based_definitions(folder_structure)
+    deduped = {}
+    for item in combined:
+        deduped[item["template_key"]] = item
+    return list(deduped.values())

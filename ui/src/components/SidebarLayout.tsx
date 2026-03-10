@@ -639,6 +639,8 @@ export default function SidebarLayout() {
       setView('settings-admin-global-categories');
     } else if (path === '/settings/admin/default-folders') {
       setView('settings-admin-default-folders');
+    } else if (path === '/settings/admin/document-vault-defaults') {
+      setView('settings-admin-document-vault-defaults');
     }
   }, [location.pathname]);
 
@@ -1086,6 +1088,10 @@ export default function SidebarLayout() {
         
         {!loading && view === "documents" && (
           renderMuiPageShell(<DocumentVaultPage hideSidebar={true} />)
+        )}
+
+        {!loading && view === "settings-admin-document-vault-defaults" && (
+          renderMuiPageShell(<DocumentVaultPage hideSidebar={true} initialTab="defaults" adminPortal={true} />)
         )}
 
         {!loading && view === "accounts" && (

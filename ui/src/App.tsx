@@ -112,6 +112,7 @@ const App: React.FC = () => {
                     <Route path="/settings/admin/users" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
                     <Route path="/settings/admin/global-categories" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
                     <Route path="/settings/admin/default-folders" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
+                    <Route path="/settings/admin/document-vault-defaults" element={<ProtectedRoute adminOnly><SidebarLayout /></ProtectedRoute>} />
                     <Route path="/settings/export-import" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                     <Route path="/settings/refer-a-friend" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />
                     <Route path="/settings/authorized-users" element={<ProtectedRoute><SidebarLayout /></ProtectedRoute>} />

@@ -19,7 +19,7 @@ const checkCategoryUsage = (categoryName: string, categoryType: string) => {
   });
 };
 
-const getDefaultCategories = () => ApiService.get<SettingsResponse[]>('/settings/default-categories');
+const getDefaultCategories = () => ApiService.get<SettingsResponse>('/settings/default-categories');
 const loadDefaultCategories = () => ApiService.post('/settings/load-default-categories');
 const getSubscriptionLimits = () => ApiService.get<SettingsResponse>('/settings/limits');
 

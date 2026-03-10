@@ -5,6 +5,7 @@ from typing import Iterable
 from sqlalchemy.orm import Session
 
 import models
+from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
 from utils.document_vault_defaults import build_default_document_type_definitions
 
 
@@ -61,6 +62,13 @@ def slugify_template_key(category: str, doc_type: str) -> str:
     return "".join(cleaned).strip("-")
 
 
+def _get_default_folder_structure(db: Session):
+    global_settings = db.query(models.GlobalSettings).first()
+    if global_settings and global_settings.default_document_folders:
+        return global_settings.default_document_folders
+    return DEFAULT_DOCUMENT_FOLDER_STRUCTURE
+
+
 def seed_default_document_types(db: Session, owner_id: int) -> int:
     defaults = db.query(models.DocumentTypeDefinition).filter(
         models.DocumentTypeDefinition.is_system_default.is_(True),
@@ -69,7 +77,7 @@ def seed_default_document_types(db: Session, owner_id: int) -> int:
 
     if not defaults:
         seeded = 0
-        for item in build_default_document_type_definitions():
+        for item in build_default_document_type_definitions(_get_default_folder_structure(db)):
             template_key = item.get("template_key") or slugify_template_key(item["category"], item["doc_type"])
             definition = models.DocumentTypeDefinition(
                 owner_id=owner_id,
@@ -127,15 +135,19 @@ def load_missing_default_document_types(db: Session, owner_id: int) -> int:
 
 
 def ensure_system_default_document_types(db: Session) -> int:
-    existing_count = db.query(models.DocumentTypeDefinition).filter(
-        models.DocumentTypeDefinition.is_system_default.is_(True)
-    ).count()
-    if existing_count:
-        return 0
+    existing_template_keys = {
+        row[0]
+        for row in db.query(models.DocumentTypeDefinition.template_key).filter(
+            models.DocumentTypeDefinition.is_system_default.is_(True),
+            models.DocumentTypeDefinition.template_key.is_not(None),
+        ).all()
+    }
 
     created = 0
-    for item in build_default_document_type_definitions():
+    for item in build_default_document_type_definitions(_get_default_folder_structure(db)):
         template_key = item.get("template_key") or slugify_template_key(item["category"], item["doc_type"])
+        if template_key in existing_template_keys:
+            continue
         definition = models.DocumentTypeDefinition(
             owner_id=None,
             category=item["category"],
