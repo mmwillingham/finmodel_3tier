@@ -7,10 +7,27 @@ import { Box, Button, FormControl, InputLabel, LinearProgress, MenuItem, Paper, 
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { calculateTaxableIncome } from '../utils/taxCalculator';
 import { calculateYearFraction } from '../utils/dateUtils';
+import ProjectionService from '../services/projection.service';
 import { projectionActionButtonSx, projectionSecondaryButtonSx, projectionSectionCardSx, projectionTableContainerSx } from "../utils/projectionUiStyles";
 import { createDarkLineChartOptions, darkChartPanelSx, DARK_CHART_SERIES_COLORS } from "../utils/darkChartTheme";
 
 type FinancialRecord = Record<string, any>;
+type ProjectionAccountPayload = {
+  name: string;
+  account_type: string;
+  initial_value: number;
+  contribution: number;
+  growth_rate: number;
+  loan_type: string | null;
+  principal_amount: number | null;
+  interest_rate: number | null;
+  loan_term_months: number | null;
+  loan_start_date: string | null;
+  monthly_payment: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  cash_flow_item_id?: string | number | null;
+};
 
 interface MonteCarloProjectionsProps {
   incomeItems: FinancialRecord[];
@@ -37,6 +54,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
   const currentYear = new Date().getFullYear();
   const chartRef = useRef<any>(null);
   const tableRef = useRef<any>(null);
+  const deterministicBaselineCacheRef = useRef<{ key: string; baseline: number[] | null } | null>(null);
   const [numSimulations, setNumSimulations] = useState(1000);
   const [volatility, setVolatility] = useState(15); // Standard deviation for growth rates as percentage
   const [results, setResults] = useState<any[] | null>(null);
@@ -50,360 +68,587 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
     setSliderProjectionYears(projectionYears ?? 30);
   }, [projectionYears]);
 
-  const runMonteCarloSimulation = () => {
+  const toNumber = (value: any) => {
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    if (typeof value === "string") {
+      const parsed = Number(value.replace(/,/g, ""));
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const parseDateSafe = (value: any): Date | null => {
+    if (!value || typeof value !== "string") return null;
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const getAmortizedLoanBalance = (
+    principal: number,
+    annualInterestRatePercent: number,
+    loanTermMonths: number,
+    loanStartDate: Date,
+    calculationDate: Date
+  ): number => {
+    const monthsPassed = (calculationDate.getUTCFullYear() - loanStartDate.getUTCFullYear()) * 12
+      + (calculationDate.getUTCMonth() - loanStartDate.getUTCMonth());
+
+    if (monthsPassed <= 0) return principal;
+    if (monthsPassed >= loanTermMonths) return 0;
+
+    if (annualInterestRatePercent === 0) {
+      const monthlyPayment = principal / loanTermMonths;
+      return Math.max(0, principal - (monthlyPayment * monthsPassed));
+    }
+
+    const monthlyInterestRate = (annualInterestRatePercent / 100) / 12;
+    const monthlyPayment = (principal * monthlyInterestRate)
+      / (1 - Math.pow(1 + monthlyInterestRate, -loanTermMonths));
+    const remainingBalance = principal * Math.pow(1 + monthlyInterestRate, monthsPassed)
+      - (monthlyPayment / monthlyInterestRate) * (Math.pow(1 + monthlyInterestRate, monthsPassed) - 1);
+    return Math.max(0, remainingBalance);
+  };
+
+  const horizonYears = Math.max(1, Number(projectionYears) || 1);
+
+  const generateSimulationSeries = (simulationCount: number, localVolatility: number) => {
+    const simulationResults: any[][] = [];
+    const assetKeys = assets.map((asset: any, index: number) =>
+      asset?.id != null ? `asset-id-${asset.id}` : `asset-index-${index}-${asset?.name ?? "asset"}`
+    );
+    const getAssetKey = (asset: any) => {
+      const index = assets.findIndex((candidate: any) => (
+        (asset?.id != null && candidate?.id === asset.id) || candidate === asset
+      ));
+      return index >= 0 ? assetKeys[index] : null;
+    };
+    for (let sim = 0; sim < simulationCount; sim++) {
+      const yearlyData: any[] = [];
+
+      const baseAssetProjections: Record<string, number[]> = {};
+      assets.forEach((asset: any, assetIndex: number) => {
+        const assetKey = assetKeys[assetIndex];
+        baseAssetProjections[assetKey] = [];
+        for (let i = 0; i < horizonYears; i++) {
+          const projectionYear = currentYear + i;
+          const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
+          if (yearFraction > 0) {
+            const growthRate = toNumber(asset.annual_increase_percent) / 100;
+            const assetValue = toNumber(asset.value) * Math.pow(1 + growthRate, i);
+            baseAssetProjections[assetKey].push(assetValue);
+          } else {
+            baseAssetProjections[assetKey].push(0);
+          }
+        }
+      });
+
+      const getLinkedAssetValueForYear = (assetIds: any[], year: number) => {
+        if (!Array.isArray(assetIds) || assetIds.length === 0) return 0;
+        return assetIds.reduce((sum: number, assetId: any) => {
+          const linkedAsset = assets.find((a: any) => a.id === assetId);
+          const linkedAssetKey = linkedAsset ? getAssetKey(linkedAsset) : null;
+          if (!linkedAssetKey || !baseAssetProjections[linkedAssetKey]) {
+            return sum;
+          }
+          const baseValue = baseAssetProjections[linkedAssetKey][year] ?? 0;
+          const variation = (Math.random() * localVolatility * 2 - localVolatility) / 100;
+          return sum + (baseValue * (1 + variation));
+        }, 0);
+      };
+
+      const assetContributionsByYear: Record<string, number[]> = {};
+      assets.forEach((_: any, assetIndex: number) => {
+        const assetKey = assetKeys[assetIndex];
+        assetContributionsByYear[assetKey] = new Array(horizonYears).fill(0);
+      });
+
+      const reinvestedDividendsByAsset: Record<string, Record<number, number>> = {};
+
+      for (let year = 0; year < horizonYears; year++) {
+        let totalIncome = 0;
+        let totalTaxableIncome = 0;
+
+        incomeItems.forEach((item: any) => {
+          const currentProjectionYear = currentYear + year;
+          const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
+          if (yearFraction === 0) {
+            return;
+          }
+
+          let itemValue = toNumber(item.yearly_value);
+
+          if (item.linked_item_type === "asset" && item.percentage !== null) {
+            const linkedAssetIds = Array.isArray(item.linked_asset_ids) && item.linked_asset_ids.length > 0
+              ? item.linked_asset_ids
+              : (item.linked_item_id ? [item.linked_item_id] : []);
+            if (linkedAssetIds.length > 0) {
+              const linkedAssetsValue = getLinkedAssetValueForYear(linkedAssetIds, year);
+              itemValue = linkedAssetsValue * (toNumber(item.percentage) / 100.0);
+            }
+          } else {
+            const variation = (Math.random() * localVolatility * 2 - localVolatility) / 100;
+            const increaseRate = toNumber(item.annual_increase_percent) / 100;
+            itemValue = toNumber(item.yearly_value) * Math.pow(1 + increaseRate, year) * (1 + variation);
+          }
+
+          itemValue = itemValue * yearFraction;
+
+          if (item.taxable) {
+            totalTaxableIncome += itemValue;
+          }
+
+          const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
+          const shouldReinvest = isDividend && item.reinvest_dividends;
+
+          if (shouldReinvest) {
+            let targetAssetId = item.reinvestment_account_id;
+            if (!targetAssetId && item.linked_item_id && item.linked_item_type === "asset") {
+              targetAssetId = item.linked_item_id;
+            }
+
+            if (targetAssetId) {
+              const targetAsset = assets.find((a: any) => a.id === targetAssetId);
+              const targetAssetKey = targetAsset ? getAssetKey(targetAsset) : null;
+              if (targetAsset && targetAssetKey && baseAssetProjections[targetAssetKey]) {
+                const assetKey = targetAssetKey;
+                if (!reinvestedDividendsByAsset[assetKey]) {
+                  reinvestedDividendsByAsset[assetKey] = {};
+                }
+                if (!reinvestedDividendsByAsset[assetKey][year]) {
+                  reinvestedDividendsByAsset[assetKey][year] = 0;
+                }
+                reinvestedDividendsByAsset[assetKey][year] += itemValue;
+
+                for (let futureYear = year; futureYear < horizonYears; futureYear++) {
+                  const growthRate = toNumber(targetAsset.annual_increase_percent);
+                  if (baseAssetProjections[assetKey][futureYear] !== undefined) {
+                    baseAssetProjections[assetKey][futureYear] += itemValue * Math.pow(1 + growthRate / 100, futureYear - year);
+                  }
+                }
+              }
+            }
+          } else {
+            totalIncome += itemValue;
+          }
+        });
+
+        let totalExpenses = 0;
+        let totalTaxDeductibleExpenses = 0;
+        const federalTaxExpenseItem = expenseItems.find((item: any) => item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION);
+        const regularExpenseItems = expenseItems.filter((item: any) => item.description !== FEDERAL_TAX_EXPENSE_DESCRIPTION);
+
+        regularExpenseItems.forEach((item: any) => {
+          const currentProjectionYear = currentYear + year;
+          const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
+          if (yearFraction === 0) {
+            return;
+          }
+
+          let itemValue = toNumber(item.yearly_value);
+
+          if (item.linked_item_type === "asset" && item.percentage !== null) {
+            const linkedAssetIds = Array.isArray(item.linked_asset_ids) && item.linked_asset_ids.length > 0
+              ? item.linked_asset_ids
+              : (item.linked_item_id ? [item.linked_item_id] : []);
+            if (linkedAssetIds.length > 0) {
+              const linkedAssetsValue = getLinkedAssetValueForYear(linkedAssetIds, year);
+              itemValue = linkedAssetsValue * (toNumber(item.percentage) / 100.0);
+            }
+          } else if (item.linked_item_id && item.linked_item_type === "income" && item.percentage !== null) {
+            const linkedIncomeItem = incomeItems.find((i: any) => i.id === item.linked_item_id);
+            if (linkedIncomeItem) {
+              let linkedIncomeValue = toNumber(linkedIncomeItem.yearly_value);
+
+              if (linkedIncomeItem.linked_item_id && linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null) {
+                const linkedAsset = assets.find((a: any) => a.id === linkedIncomeItem.linked_item_id);
+                const linkedAssetKey = linkedAsset ? getAssetKey(linkedAsset) : null;
+                if (linkedAssetKey && baseAssetProjections[linkedAssetKey]) {
+                  const baseValue = baseAssetProjections[linkedAssetKey][year];
+                  const variation = (Math.random() * localVolatility * 2 - localVolatility) / 100;
+                  const variedValue = baseValue * (1 + variation);
+                  linkedIncomeValue = variedValue * (toNumber(linkedIncomeItem.percentage) / 100.0);
+                }
+              } else {
+                const variation = (Math.random() * localVolatility * 2 - localVolatility) / 100;
+                const increaseRate = toNumber(linkedIncomeItem.annual_increase_percent) / 100;
+                linkedIncomeValue = toNumber(linkedIncomeItem.yearly_value) * Math.pow(1 + increaseRate, year) * (1 + variation);
+              }
+
+              const linkedIncomeYearFraction = calculateYearFraction(linkedIncomeItem.start_date, linkedIncomeItem.end_date, currentProjectionYear);
+              linkedIncomeValue = linkedIncomeValue * linkedIncomeYearFraction;
+              itemValue = linkedIncomeValue * (toNumber(item.percentage) / 100.0);
+            } else {
+              const variation = (Math.random() * localVolatility * 2 - localVolatility) / 100;
+              const inflationRate = toNumber(item.inflation_percent || 2.0) / 100;
+              itemValue = toNumber(item.yearly_value) * Math.pow(1 + inflationRate, year) * (1 + variation);
+            }
+          } else {
+            const variation = (Math.random() * localVolatility * 2 - localVolatility) / 100;
+            const inflationRate = toNumber(item.inflation_percent || 2.0) / 100;
+            itemValue = toNumber(item.yearly_value) * Math.pow(1 + inflationRate, year) * (1 + variation);
+          }
+
+          itemValue = itemValue * yearFraction;
+
+          if (item.tax_deductible) {
+            totalTaxDeductibleExpenses += itemValue;
+          }
+
+          totalExpenses += itemValue;
+
+          if (item.contributes_to_asset_id) {
+            const targetAsset = assets.find((a: any) => a.id === item.contributes_to_asset_id);
+            const targetAssetKey = targetAsset ? getAssetKey(targetAsset) : null;
+            if (targetAssetKey && assetContributionsByYear[targetAssetKey]) {
+              assetContributionsByYear[targetAssetKey][year] += itemValue;
+            }
+          }
+        });
+
+        let federalTax = 0;
+        if (federalTaxExpenseItem && userSettings) {
+          const currentProjectionYear = currentYear + year;
+          const taxYearFraction = calculateYearFraction(federalTaxExpenseItem.start_date, federalTaxExpenseItem.end_date, currentProjectionYear);
+
+          if (taxYearFraction > 0) {
+            try {
+              const taxResult = calculateTaxableIncome(
+                totalTaxableIncome,
+                totalTaxDeductibleExpenses,
+                typedUserSettings?.tax_filing_status || "Single",
+                typedUserSettings?.person1_birthdate,
+                typedUserSettings?.person2_birthdate,
+                currentProjectionYear
+              );
+              federalTax = taxResult.taxOwed || 0;
+              totalExpenses += federalTax;
+            } catch (error: any) {
+            }
+          }
+        }
+
+        const netCashFlow = totalIncome - totalExpenses;
+
+        assets.forEach((asset: any) => {
+          const assetKey = getAssetKey(asset);
+          if (!assetKey) return;
+          const contribution = assetContributionsByYear[assetKey][year] || 0;
+          if (contribution > 0 && baseAssetProjections[assetKey][year] !== undefined) {
+            baseAssetProjections[assetKey][year] += contribution;
+
+            const growthRate = toNumber(asset.annual_increase_percent) / 100;
+            for (let futureYear = year + 1; futureYear < horizonYears; futureYear++) {
+              if (baseAssetProjections[assetKey][futureYear] !== undefined) {
+                const yearsOfGrowth = futureYear - year;
+                baseAssetProjections[assetKey][futureYear] += contribution * Math.pow(1 + growthRate, yearsOfGrowth);
+              }
+            }
+          }
+        });
+
+        if (netCashFlow !== 0 && assets.length > 0) {
+          // Match backend behavior: only apply surplus/deficit transfer when user explicitly
+          // configured a surplus asset. Without it, net cash flow does not modify asset balances.
+          const targetAsset = userSettings?.surplus_asset_id
+            ? assets.find((a: any) => a.id === userSettings.surplus_asset_id)
+            : null;
+          const targetAssetKey = targetAsset ? getAssetKey(targetAsset) : null;
+          if (targetAsset && targetAssetKey && baseAssetProjections[targetAssetKey]) {
+            // End-of-year transfer: included in this year's EOY balance, then grown in future years.
+            baseAssetProjections[targetAssetKey][year] += netCashFlow;
+            const growthRate = toNumber(targetAsset.annual_increase_percent) / 100;
+            for (let futureYear = year + 1; futureYear < horizonYears; futureYear++) {
+              if (baseAssetProjections[targetAssetKey][futureYear] !== undefined) {
+                const yearsOfGrowth = futureYear - year;
+                baseAssetProjections[targetAssetKey][futureYear] += netCashFlow * Math.pow(1 + growthRate, yearsOfGrowth);
+              }
+            }
+          }
+        }
+
+        let totalAssets = 0;
+        assets.forEach((asset: any) => {
+          const assetKey = getAssetKey(asset);
+          if (!assetKey) return;
+          const baseValue = baseAssetProjections[assetKey][year];
+          const variation = (Math.random() * localVolatility * 2 - localVolatility) / 100;
+          totalAssets += baseValue * (1 + variation);
+        });
+
+        let totalLiabilities = 0;
+        liabilities.forEach((liability: any) => {
+          const projectionYear = currentYear + year;
+          const yearFraction = calculateYearFraction(liability.start_date, liability.end_date, projectionYear);
+          if (yearFraction > 0) {
+            let liabilityValue = 0;
+
+            const isAmortized = liability.loan_type === "amortized"
+              && toNumber(liability.loan_term_months) > 0
+              && parseDateSafe(liability.loan_start_date);
+
+            if (isAmortized) {
+              const principal = Math.abs(toNumber(liability.principal_amount) || toNumber(liability.value));
+              const interestRate = toNumber(liability.interest_rate);
+              const termMonths = Math.floor(toNumber(liability.loan_term_months));
+              const loanStartDate = parseDateSafe(liability.loan_start_date) as Date;
+              const yearEndDate = new Date(Date.UTC(projectionYear, 11, 31, 23, 59, 59, 999));
+              liabilityValue = getAmortizedLoanBalance(principal, interestRate, termMonths, loanStartDate, yearEndDate);
+            } else {
+              const growthRate = toNumber(liability.annual_increase_percent) / 100;
+              liabilityValue = toNumber(liability.value) * Math.pow(1 + growthRate, year);
+            }
+
+            totalLiabilities += liabilityValue;
+          }
+        });
+
+        const netWorth = totalAssets - totalLiabilities;
+
+        yearlyData.push({
+          year: currentYear + year,
+          income: totalIncome,
+          expenses: totalExpenses,
+          netCashFlow,
+          netWorth
+        });
+      }
+
+      simulationResults.push(yearlyData);
+    }
+
+    return simulationResults;
+  };
+
+  const buildProjectionRequest = () => {
+    const assetAccounts: ProjectionAccountPayload[] = assets.map((asset: FinancialRecord) => ({
+      name: asset.name,
+      account_type: 'asset',
+      initial_value: toNumber(asset.value),
+      contribution: 0.0,
+      growth_rate: toNumber(asset.annual_increase_percent),
+      loan_type: null,
+      principal_amount: null,
+      interest_rate: null,
+      loan_term_months: null,
+      loan_start_date: null,
+      monthly_payment: null,
+      start_date: asset.start_date || null,
+      end_date: asset.end_date || null
+    }));
+
+    const liabilityAccounts: ProjectionAccountPayload[] = liabilities.map((liability: FinancialRecord) => ({
+      name: liability.name,
+      account_type: 'liability',
+      initial_value: -(Math.abs(toNumber(liability.value))),
+      contribution: 0.0,
+      growth_rate: toNumber(liability.annual_increase_percent),
+      loan_type: liability.loan_type || null,
+      principal_amount: liability.principal_amount != null ? toNumber(liability.principal_amount) : null,
+      interest_rate: liability.interest_rate != null ? toNumber(liability.interest_rate) : null,
+      loan_term_months: liability.loan_term_months != null ? Math.floor(toNumber(liability.loan_term_months)) : null,
+      loan_start_date: liability.loan_start_date || null,
+      monthly_payment: liability.monthly_payment != null ? toNumber(liability.monthly_payment) : null,
+      start_date: liability.start_date || null,
+      end_date: liability.end_date || null
+    }));
+
+    const incomeAccounts: ProjectionAccountPayload[] = incomeItems.map((income: FinancialRecord) => {
+      let accountName = income.description;
+      let contribution = 0.0;
+      if (income.linked_item_type === "asset" && income.percentage != null) {
+        if (Array.isArray(income.linked_asset_ids) && income.linked_asset_ids.length > 0) {
+          const linkedAssets = assets.filter((a: any) => income.linked_asset_ids.includes(a.id));
+          if (linkedAssets.length > 0) {
+            accountName = `${income.description}|LINKED:${linkedAssets.map((a: any) => a.name).join(',')}|PERCENTAGE:${income.percentage}`;
+          }
+        } else if (income.linked_item_id) {
+          const linkedAsset = assets.find((a: any) => a.id === income.linked_item_id);
+          if (linkedAsset) {
+            accountName = `${income.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${income.percentage}`;
+          }
+        }
+      } else {
+        contribution = toNumber(income.yearly_value) / 12;
+      }
+
+      let incomeStartDate = income.start_date || null;
+      let incomeEndDate = income.end_date || null;
+      if (income.frequency === 'one-time') {
+        const oneTimeDate = incomeStartDate || incomeEndDate;
+        if (oneTimeDate) {
+          incomeStartDate = oneTimeDate;
+          incomeEndDate = oneTimeDate;
+        }
+      }
+
+      return {
+        name: accountName,
+        account_type: 'income',
+        initial_value: 0.0,
+        contribution,
+        growth_rate: toNumber(income.annual_increase_percent),
+        loan_type: null,
+        principal_amount: null,
+        interest_rate: null,
+        loan_term_months: null,
+        loan_start_date: null,
+        monthly_payment: null,
+        start_date: incomeStartDate,
+        end_date: incomeEndDate,
+        cash_flow_item_id: income.id
+      };
+    });
+
+    const expenseAccounts: ProjectionAccountPayload[] = expenseItems.map((expense: FinancialRecord) => {
+      let accountName = expense.description;
+      let contribution = 0.0;
+      if (expense.linked_item_id && expense.linked_item_type === "asset" && expense.percentage != null) {
+        const linkedAsset = assets.find((a: any) => a.id === expense.linked_item_id);
+        if (linkedAsset) {
+          accountName = `${expense.description}|LINKED:${linkedAsset.name}|PERCENTAGE:${expense.percentage}`;
+        }
+      } else if (expense.linked_item_id && expense.linked_item_type === "income" && expense.percentage != null) {
+        const linkedIncome = incomeItems.find((i: any) => i.id === expense.linked_item_id);
+        if (linkedIncome) {
+          accountName = `${expense.description}|LINKED_INCOME:${linkedIncome.description}|PERCENTAGE:${expense.percentage}`;
+        }
+      } else {
+        contribution = -(toNumber(expense.yearly_value) / 12);
+      }
+
+      let expenseStartDate = expense.start_date || null;
+      let expenseEndDate = expense.end_date || null;
+      if (expense.frequency === 'one-time') {
+        const oneTimeDate = expenseStartDate || expenseEndDate;
+        if (oneTimeDate) {
+          expenseStartDate = oneTimeDate;
+          expenseEndDate = oneTimeDate;
+        }
+      }
+
+      return {
+        name: accountName,
+        account_type: 'expense',
+        initial_value: 0.0,
+        contribution,
+        growth_rate: toNumber(expense.inflation_percent),
+        loan_type: null,
+        principal_amount: null,
+        interest_rate: null,
+        loan_term_months: null,
+        loan_start_date: null,
+        monthly_payment: null,
+        start_date: expenseStartDate,
+        end_date: expenseEndDate,
+        cash_flow_item_id: expense.id
+      };
+    });
+
+    return {
+      plan_name: "Balance Sheet Projection",
+      years: horizonYears,
+      accounts: [...assetAccounts, ...liabilityAccounts, ...incomeAccounts, ...expenseAccounts]
+    };
+  };
+
+  const buildDeterministicBaselineCacheKey = (projectionRequest: any) => JSON.stringify({
+    projectionRequest,
+    surplusAssetId: userSettings?.surplus_asset_id ?? null,
+    taxFilingStatus: typedUserSettings?.tax_filing_status ?? null,
+    person1Birthdate: typedUserSettings?.person1_birthdate ?? null,
+    person2Birthdate: typedUserSettings?.person2_birthdate ?? null,
+  });
+
+  const fetchDeterministicNetWorthBaseline = async (projectionRequest: any): Promise<number[] | null> => {
+    try {
+      const cacheKey = buildDeterministicBaselineCacheKey(projectionRequest);
+      if (deterministicBaselineCacheRef.current?.key === cacheKey) {
+        return deterministicBaselineCacheRef.current.baseline;
+      }
+
+      let projection: any = null;
+      try {
+        const existingProjections = await ProjectionService.getProjections();
+        const existing = existingProjections.find((p: FinancialRecord) => p.name === "Balance Sheet Projection");
+        if (existing) {
+          projection = await ProjectionService.updateProjection(existing.id, projectionRequest);
+        }
+      } catch (error: any) {
+      }
+
+      if (!projection) {
+        projection = await ProjectionService.createProjection(projectionRequest);
+      }
+
+      let parsedData: any[] = [];
+      if (projection?.data_json) {
+        parsedData = JSON.parse(projection.data_json);
+      } else if (projection?.id) {
+        const fullProjection = await ProjectionService.getProjectionDetails(projection.id);
+        if (fullProjection?.data_json) {
+          parsedData = JSON.parse(fullProjection.data_json);
+        }
+      }
+
+      if (!Array.isArray(parsedData) || parsedData.length === 0) {
+        deterministicBaselineCacheRef.current = { key: cacheKey, baseline: null };
+        return null;
+      }
+
+      const baseline = parsedData.map((row: any) => toNumber(row["Net Worth"]));
+      deterministicBaselineCacheRef.current = { key: cacheKey, baseline };
+      return baseline;
+    } catch (error: any) {
+      return null;
+    }
+  };
+
+  const runMonteCarloSimulation = async () => {
     setLoading(true);
     setResults(null);
     setSimulationSeries(null);
     setSuccessRate(null);
     setSelectedView("fan");
 
-    // Run simulations in batches to avoid blocking UI
-    setTimeout(() => {
-      const simulationResults: any[][] = [];
-      
-      for (let sim = 0; sim < numSimulations; sim++) {
-        const yearlyData: any[] = [];
-        
-        // Pre-calculate base projections for THIS simulation (each simulation needs its own copy)
-        // Note: Contributions from expenses will be added during the year-by-year loop
-        const baseAssetProjections: Record<string, number[]> = {};
-        assets.forEach((asset: any) => {
-          baseAssetProjections[asset.name] = [];
-          for (let i = 0; i <= projectionYears; i++) {
-            const projectionYear = currentYear + i;
-            // Check if asset is active for this year (respects end_date)
-            const yearFraction = calculateYearFraction(asset.start_date, asset.end_date, projectionYear);
-            if (yearFraction > 0) {
-              const growthRate = (asset.annual_increase_percent || 0) / 100;
-              // Calculate asset value with growth, but contributions will be added later
-              const assetValue = asset.value * Math.pow(1 + growthRate, i);
-              baseAssetProjections[asset.name].push(assetValue);
-            } else {
-              // Asset has ended, set value to 0
-              baseAssetProjections[asset.name].push(0);
-            }
-          }
-        });
-        
-        // Track contributions to assets by year (will be applied after growth)
-        const assetContributionsByYear: Record<string, number[]> = {};
-        assets.forEach((asset: any) => {
-          assetContributionsByYear[asset.name] = new Array(projectionYears + 1).fill(0);
-        });
-        
-        // Track reinvested dividends by asset for this simulation
-        const reinvestedDividendsByAsset: Record<string, Record<number, number>> = {};
-        
-        for (let year = 0; year <= projectionYears; year++) {
-          // Calculate income with random variation
-          let totalIncome = 0;
-          let totalTaxableIncome = 0; // Track taxable income for tax calculations
-          
-          incomeItems.forEach((item: any) => {
-            const currentProjectionYear = currentYear + year;
-            // Calculate year fraction to handle one-time items and partial years
-            const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
-            if (yearFraction === 0) {
-              // Item is not active in this year, skip it
-              return;
-            }
-            
-            let itemValue = item.yearly_value;
-            
-            if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null) {
-              const linkedAsset = assets.find((a: any) => a.id === item.linked_item_id);
-              if (linkedAsset && baseAssetProjections[linkedAsset.name]) {
-                // Add random variation to asset value, then calculate percentage
-                const baseValue = baseAssetProjections[linkedAsset.name][year];
-                const variation = (Math.random() * volatility * 2 - volatility) / 100; // -volatility to +volatility %
-                const variedValue = baseValue * (1 + variation);
-                itemValue = variedValue * (item.percentage / 100.0);
-              }
-            } else {
-              // Add random variation to fixed income
-              const variation = (Math.random() * volatility * 2 - volatility) / 100;
-              const increaseRate = (item.annual_increase_percent || 0) / 100;
-              itemValue = item.yearly_value * Math.pow(1 + increaseRate, year) * (1 + variation);
-            }
-            
-            // Apply year fraction to prorate for one-time items and partial years
-            itemValue = itemValue * yearFraction;
-            
-            // Count as taxable income if taxable
-            if (item.taxable) {
-              totalTaxableIncome += itemValue;
-            }
-            
-            // Check if this is a reinvested dividend - exclude from cash flow
-            const isDividend = (item.category?.toLowerCase().includes('dividend') || item.description?.toLowerCase().includes('dividend'));
-            const shouldReinvest = isDividend && item.reinvest_dividends;
-            
-            // If reinvested, don't add to totalIncome (cash flow) but track for asset addition
-            if (shouldReinvest) {
-              // Determine which asset to add to
-              let targetAssetId = item.reinvestment_account_id;
-              if (!targetAssetId && item.linked_item_id && item.linked_item_type === "asset") {
-                // Default to source asset if no reinvestment account specified
-                targetAssetId = item.linked_item_id;
-              }
-              
-              if (targetAssetId) {
-                const targetAsset = assets.find((a: any) => a.id === targetAssetId);
-                if (targetAsset && baseAssetProjections[targetAsset.name]) {
-                  // Add to asset projection for future years (will compound with growth)
-                  const assetKey = targetAsset.name;
-                  if (!reinvestedDividendsByAsset[assetKey]) {
-                    reinvestedDividendsByAsset[assetKey] = {};
-                  }
-                  if (!reinvestedDividendsByAsset[assetKey][year]) {
-                    reinvestedDividendsByAsset[assetKey][year] = 0;
-                  }
-                  reinvestedDividendsByAsset[assetKey][year] += itemValue;
-                  // Update base projections for future years in this simulation
-                  for (let futureYear = year; futureYear <= projectionYears; futureYear++) {
-                    const growthRate = targetAsset.annual_increase_percent || 0;
-                    if (baseAssetProjections[assetKey][futureYear] !== undefined) {
-                      baseAssetProjections[assetKey][futureYear] += itemValue * Math.pow(1 + growthRate / 100, futureYear - year);
-                    }
-                  }
-                }
-              }
-              // Don't add to totalIncome - dividends are reinvested, not received as cash
-            } else {
-              // Not reinvested - add to income (cash flow)
-              totalIncome += itemValue;
-            }
-          });
+    try {
+      const projectionRequest = buildProjectionRequest();
+      const deterministicBaseline = await fetchDeterministicNetWorthBaseline(projectionRequest);
+      const randomSeries = generateSimulationSeries(numSimulations, volatility);
+      const adjustedSeries = randomSeries.map((sim: any) => sim.map((point: any) => ({ ...point })));
 
-          // Calculate expenses with random variation
-          let totalExpenses = 0;
-          let totalTaxDeductibleExpenses = 0; // Track tax-deductible expenses for tax calculation
-          const federalTaxExpenseItem = expenseItems.find((item: any) => item.description === FEDERAL_TAX_EXPENSE_DESCRIPTION);
-          const regularExpenseItems = expenseItems.filter((item: any) => item.description !== FEDERAL_TAX_EXPENSE_DESCRIPTION);
-          
-          // Process regular expenses first (excluding federal tax expense)
-          regularExpenseItems.forEach((item: any) => {
-            const currentProjectionYear = currentYear + year;
-            // Calculate year fraction to handle one-time items and partial years
-            const yearFraction = calculateYearFraction(item.start_date, item.end_date, currentProjectionYear);
-            if (yearFraction === 0) {
-              // Item is not active in this year, skip it
-              return;
+      if (deterministicBaseline && deterministicBaseline.length > 0 && adjustedSeries.length > 0) {
+        const yearsToAlign = Math.min(horizonYears, deterministicBaseline.length);
+        for (let year = 0; year < yearsToAlign; year++) {
+          const simulatedMean = adjustedSeries.reduce((sum: number, sim: any) => sum + (sim[year]?.netWorth ?? 0), 0) / adjustedSeries.length;
+          const offset = deterministicBaseline[year] - simulatedMean;
+          adjustedSeries.forEach((sim: any) => {
+            if (sim[year]) {
+              sim[year].netWorth += offset;
             }
-
-            let itemValue = item.yearly_value;
-            
-            if (item.linked_item_id && item.linked_item_type === "asset" && item.percentage !== null) {
-              const linkedAsset = assets.find((a: any) => a.id === item.linked_item_id);
-              if (linkedAsset && baseAssetProjections[linkedAsset.name]) {
-                const baseValue = baseAssetProjections[linkedAsset.name][year];
-                const variation = (Math.random() * volatility * 2 - volatility) / 100;
-                const variedValue = baseValue * (1 + variation);
-                itemValue = variedValue * (item.percentage / 100.0);
-              }
-            } else if (item.linked_item_id && item.linked_item_type === "income" && item.percentage !== null) {
-              // Expense linked to income - calculate based on linked income value
-              const linkedIncomeItem = incomeItems.find((i: any) => i.id === item.linked_item_id);
-              if (linkedIncomeItem) {
-                // Calculate the linked income value for this year
-                let linkedIncomeValue = linkedIncomeItem.yearly_value || 0;
-                
-                // Check if linked income is also dynamic (linked to asset)
-                if (linkedIncomeItem.linked_item_id && linkedIncomeItem.linked_item_type === "asset" && linkedIncomeItem.percentage !== null) {
-                  const linkedAsset = assets.find((a: any) => a.id === linkedIncomeItem.linked_item_id);
-                  if (linkedAsset && baseAssetProjections[linkedAsset.name]) {
-                    const baseValue = baseAssetProjections[linkedAsset.name][year];
-                    const variation = (Math.random() * volatility * 2 - volatility) / 100;
-                    const variedValue = baseValue * (1 + variation);
-                    linkedIncomeValue = variedValue * (linkedIncomeItem.percentage / 100.0);
-                  }
-                } else {
-                  // Fixed income - apply growth rate with variation
-                  const variation = (Math.random() * volatility * 2 - volatility) / 100;
-                  const increaseRate = (linkedIncomeItem.annual_increase_percent || 0) / 100;
-                  linkedIncomeValue = linkedIncomeItem.yearly_value * Math.pow(1 + increaseRate, year) * (1 + variation);
-                }
-                
-                // Apply year fraction to linked income for one-time items and partial years
-                const linkedIncomeYearFraction = calculateYearFraction(linkedIncomeItem.start_date, linkedIncomeItem.end_date, currentProjectionYear);
-                linkedIncomeValue = linkedIncomeValue * linkedIncomeYearFraction;
-                
-                // Calculate expense as percentage of linked income
-                itemValue = linkedIncomeValue * (item.percentage / 100.0);
-              } else {
-                // Linked income item not found - use fixed value with inflation and variation
-                const variation = (Math.random() * volatility * 2 - volatility) / 100;
-                const inflationRate = (item.inflation_percent || 2.0) / 100;
-                itemValue = item.yearly_value * Math.pow(1 + inflationRate, year) * (1 + variation);
-              }
-            } else {
-              // Add random variation to fixed expenses
-              const variation = (Math.random() * volatility * 2 - volatility) / 100;
-              const inflationRate = (item.inflation_percent || 2.0) / 100;
-              itemValue = item.yearly_value * Math.pow(1 + inflationRate, year) * (1 + variation);
-            }
-            
-            // Apply year fraction to prorate for one-time items and partial years
-            itemValue = itemValue * yearFraction;
-            
-            // Count tax-deductible expenses for tax calculation
-            if (item.tax_deductible) {
-              totalTaxDeductibleExpenses += itemValue;
-            }
-            
-            totalExpenses += itemValue;
-            
-            // Handle expenses that contribute to assets
-            if (item.contributes_to_asset_id) {
-              const targetAsset = assets.find((a: any) => a.id === item.contributes_to_asset_id);
-              if (targetAsset && assetContributionsByYear[targetAsset.name]) {
-                // Track contribution for this year (will be added to asset after growth)
-                assetContributionsByYear[targetAsset.name][year] += itemValue;
-              }
-            }
-          });
-        
-          // Calculate federal taxes if the expense item exists
-          let federalTax = 0;
-          if (federalTaxExpenseItem && userSettings) {
-            const currentProjectionYear = currentYear + year;
-            // Use calculateYearFraction to handle one-time items properly
-            const taxYearFraction = calculateYearFraction(federalTaxExpenseItem.start_date, federalTaxExpenseItem.end_date, currentProjectionYear);
-            
-            if (taxYearFraction > 0) {
-              try {
-                const taxResult = calculateTaxableIncome(
-                  totalTaxableIncome,
-                  totalTaxDeductibleExpenses,
-                  typedUserSettings?.tax_filing_status || "Single",
-                  typedUserSettings?.person1_birthdate,
-                  typedUserSettings?.person2_birthdate,
-                  currentProjectionYear
-                );
-                federalTax = taxResult.taxOwed || 0;
-                // Add taxes to total expenses
-                totalExpenses += federalTax;
-              } catch (error: any) {
-              }
-            }
-          }
-
-          // Calculate net cash flow
-          const netCashFlow = totalIncome - totalExpenses;
-          
-          // Apply contributions to assets for this year (after growth has been applied)
-          assets.forEach((asset: any) => {
-            const contribution = assetContributionsByYear[asset.name][year] || 0;
-            if (contribution > 0 && baseAssetProjections[asset.name][year] !== undefined) {
-              // Add contribution to current year
-              baseAssetProjections[asset.name][year] += contribution;
-              
-              // Apply growth to contribution for future years
-              const growthRate = (asset.annual_increase_percent || 0) / 100;
-              for (let futureYear = year + 1; futureYear <= projectionYears; futureYear++) {
-                if (baseAssetProjections[asset.name][futureYear] !== undefined) {
-                  const yearsOfGrowth = futureYear - year;
-                  baseAssetProjections[asset.name][futureYear] += contribution * Math.pow(1 + growthRate, yearsOfGrowth);
-                }
-              }
-            }
-          });
-          
-          // Add net cash flow (surplus/deficit) to a cash asset if specified, otherwise to first cash-like asset
-          // This ensures net worth includes accumulated cash flow
-          if (netCashFlow !== 0 && assets.length > 0) {
-            let targetAsset = null;
-            
-            // Try to use surplus asset from user settings
-            if (userSettings && userSettings.surplus_asset_id) {
-              targetAsset = assets.find((a: any) => a.id === userSettings.surplus_asset_id);
-            }
-            
-            // If no surplus asset specified, try to find a cash/checking asset
-            if (!targetAsset) {
-              targetAsset = assets.find((a: any) => 
-                a.category && (a.category.toLowerCase().includes('cash') || 
-                               a.category.toLowerCase().includes('checking') ||
-                               a.category.toLowerCase().includes('savings'))
-              );
-            }
-            
-            // Fallback to first asset if no cash asset found
-            if (!targetAsset && assets.length > 0) {
-              targetAsset = assets[0];
-            }
-            
-            if (targetAsset && baseAssetProjections[targetAsset.name]) {
-              // Add net cash flow to this asset for current and future years
-              baseAssetProjections[targetAsset.name][year] += netCashFlow;
-              
-              // Apply growth to surplus for future years
-              const growthRate = (targetAsset.annual_increase_percent || 0) / 100;
-              for (let futureYear = year + 1; futureYear <= projectionYears; futureYear++) {
-                if (baseAssetProjections[targetAsset.name][futureYear] !== undefined) {
-                  const yearsOfGrowth = futureYear - year;
-                  baseAssetProjections[targetAsset.name][futureYear] += netCashFlow * Math.pow(1 + growthRate, yearsOfGrowth);
-                }
-              }
-            }
-          }
-          
-          // Calculate net worth (simplified - sum of assets minus liabilities)
-          let totalAssets = 0;
-          assets.forEach((asset: any) => {
-            const baseValue = baseAssetProjections[asset.name][year];
-            const variation = (Math.random() * volatility * 2 - volatility) / 100;
-            totalAssets += baseValue * (1 + variation);
-          });
-
-          let totalLiabilities = 0;
-          liabilities.forEach((liability: any) => {
-            const projectionYear = currentYear + year;
-            // Check if liability is active for this year (respects end_date)
-            const yearFraction = calculateYearFraction(liability.start_date, liability.end_date, projectionYear);
-            if (yearFraction > 0) {
-              const growthRate = (liability.annual_increase_percent || 0) / 100;
-              const liabilityValue = liability.value * Math.pow(1 + growthRate, year);
-              totalLiabilities += liabilityValue;
-            }
-            // If liability has ended (yearFraction === 0), don't add to total (value is 0)
-          });
-
-          const netWorth = totalAssets - totalLiabilities;
-
-          yearlyData.push({
-            year: currentYear + year,
-            income: totalIncome,
-            expenses: totalExpenses,
-            netCashFlow: netCashFlow,
-            netWorth: netWorth
           });
         }
-
-        simulationResults.push(yearlyData);
       }
 
-      // Calculate statistics across all simulations
       const statistics: any[] = [];
-      for (let year = 0; year <= projectionYears; year++) {
+      const getPercentile = (sortedArray: number[], percentile: number): number => {
+        const index = Math.floor(sortedArray.length * percentile / 100);
+        return sortedArray[index] || 0;
+      };
+
+      for (let year = 0; year < horizonYears; year++) {
         const yearData: any = {
           year: currentYear + year,
           netCashFlow: {
-            values: simulationResults.map((sim: any) => sim[year].netCashFlow).sort((a: any, b: any) => a - b),
+            values: adjustedSeries.map((sim: any) => sim[year].netCashFlow).sort((a: any, b: any) => a - b),
           },
           netWorth: {
-            values: simulationResults.map((sim: any) => sim[year].netWorth).sort((a: any, b: any) => a - b),
+            values: adjustedSeries.map((sim: any) => sim[year].netWorth).sort((a: any, b: any) => a - b),
           }
-        };
-
-        const getPercentile = (sortedArray: number[], percentile: number): number => {
-          const index = Math.floor(sortedArray.length * percentile / 100);
-          return sortedArray[index] || 0;
         };
 
         yearData.netCashFlow.p10 = getPercentile(yearData.netCashFlow.values, 10);
         yearData.netCashFlow.p25 = getPercentile(yearData.netCashFlow.values, 25);
-        yearData.netCashFlow.p50 = getPercentile(yearData.netCashFlow.values, 50); // Median
+        yearData.netCashFlow.p50 = getPercentile(yearData.netCashFlow.values, 50);
         yearData.netCashFlow.p75 = getPercentile(yearData.netCashFlow.values, 75);
         yearData.netCashFlow.p90 = getPercentile(yearData.netCashFlow.values, 90);
         yearData.netCashFlow.mean = yearData.netCashFlow.values.reduce((a: any, b: any) => a + b, 0) / yearData.netCashFlow.values.length;
@@ -419,9 +664,10 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       }
 
       setResults(statistics);
-      setSimulationSeries(simulationResults);
-      const terminalValues = simulationResults
-        .map((sim: any) => sim[projectionYears]?.netWorth ?? 0)
+      setSimulationSeries(adjustedSeries);
+
+      const terminalValues = adjustedSeries
+        .map((sim: any) => sim[horizonYears - 1]?.netWorth ?? 0)
         .filter((value: any) => typeof value === "number");
       if (terminalValues.length > 0) {
         const successCount = terminalValues.filter((value: any) => value > 0).length;
@@ -429,10 +675,12 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       } else {
         setSuccessRate(null);
       }
+
       setLoading(false);
-      // Notify auto-disbursements to refresh RMD values after simulation run.
       window.dispatchEvent(new CustomEvent('rmdRefreshRequested', { detail: { source: 'monteCarloSimulation' } }));
-    }, 100);
+    } catch (error: any) {
+      setLoading(false);
+    }
   };
 
   const exportToPDF = async () => {
@@ -563,7 +811,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
     ],
   } : null;
 
-  const finalYearIndex = projectionYears;
+  const finalYearIndex = Math.max(0, horizonYears - 1);
   const terminalNetWorthSeries = simulationSeries
     ? simulationSeries.map((sim: any) => sim[finalYearIndex]?.netWorth ?? 0)
     : [];
@@ -604,7 +852,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       labels,
       datasets: [
         {
-          label: `Terminal Net Worth (${currentYear + projectionYears})`,
+          label: `Terminal Net Worth (${currentYear + finalYearIndex})`,
           data: bins,
           backgroundColor: 'rgba(75, 192, 192, 0.6)',
         },
@@ -625,7 +873,7 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
       },
       title: {
         display: true,
-        text: `Terminal Net Worth Distribution (${currentYear + projectionYears})`,
+        text: `Terminal Net Worth Distribution (${currentYear + finalYearIndex})`,
       },
     },
     scales: {
