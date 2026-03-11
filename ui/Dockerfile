@@ -19,17 +19,18 @@ ENV VITE_MMR_SHIELD_KEY=$VITE_MMR_SHIELD_KEY
 RUN REACT_APP_API_URL=$REACT_APP_API_URL npm run build
 
 # Stage 2: Serve the React application with Nginx
-FROM nginx:alpine
+FROM node:20-alpine as runtime
 
-# Copy the built React app from the build-stage
-COPY --from=build-stage /app/ui/build /usr/share/nginx/html
+WORKDIR /app
 
-# Copy our custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+ENV NODE_ENV=production
 
-# Expose port 8080 for Nginx (Cloud Run expects 8080)
+# Copy only what we need from the build stage so the runtime image stays lean
+COPY --from=build-stage /app/ui/build ./build
+COPY --from=build-stage /app/ui/node_modules ./node_modules
+COPY --from=build-stage /app/ui/package*.json ./
+COPY --from=build-stage /app/ui/server ./server
+
 EXPOSE 8080
 
-# Command to start Nginx, using the Cloud Run injected PORT variable
-# Ensure Nginx listens on 8080 and its config is properly applied.
-CMD ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
+CMD ["node", "server/server.js"]
