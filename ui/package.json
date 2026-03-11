@@ -26,7 +26,8 @@
     "react-plaid-link": "^3.4.0",
     "react-router-dom": "^6.30.3",
     "remark-gfm": "^4.0.1",
-    "web-vitals": "^4.2.4"
+    "web-vitals": "^4.2.4",
+    "express": "^4.19.2"
   },
   "scripts": {
     "dev": "vite",
