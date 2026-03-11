@@ -85,6 +85,17 @@ const FIELD_TYPES: Array<DocumentFieldConfig['field_type']> = [
   'textarea',
 ];
 
+const FOLDER_LOCATION_HINTS: Record<string, string[]> = {
+  'Financial::Life Insurance': ['Insurance Policies / Life'],
+  'Financial::Asset Account': ['Financial Accounts'],
+  'Health::Health Insurance': ['Insurance Policies / Health/Medicare', 'Healthcare & Medical / Insurance Cards'],
+  'Digital Assets::Password Management': ['Digital Estate & Passwords / Account Logins'],
+  'Legal::Will': ['Legal & Estate / Wills / Original Will', 'Legal & Estate / Wills'],
+};
+
+const NEW_CATEGORY_OPTION = '__new_category__';
+const NEW_DOC_TYPE_OPTION = '__new_doc_type__';
+
 const DocumentVaultPage = ({
   hideSidebar = false,
   initialTab = 'entries',
@@ -109,8 +120,14 @@ const DocumentVaultPage = ({
   const [showDefinitionModal, setShowDefinitionModal] = useState(false);
   const [showDefaultDefinitionModal, setShowDefaultDefinitionModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
   const [showDefaultsTooltip, setShowDefaultsTooltip] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryRenameDrafts, setCategoryRenameDrafts] = useState<Record<string, string>>({});
+  const [selectedBrowseCategory, setSelectedBrowseCategory] = useState('');
+  const [expandedTypeKeys, setExpandedTypeKeys] = useState<string[]>([]);
+  const [saveEntryAsDefinition, setSaveEntryAsDefinition] = useState(false);
   const [entryDraft, setEntryDraft] = useState<EntryDraft>(EMPTY_ENTRY);
   const [definitionDraft, setDefinitionDraft] = useState<DefinitionDraft>(EMPTY_DEFINITION);
   const [defaultDefinitionDraft, setDefaultDefinitionDraft] = useState<DefinitionDraft>(EMPTY_DEFINITION);
@@ -160,6 +177,48 @@ const DocumentVaultPage = ({
     return Array.from(values).sort();
   }, [categoryFilter, definitions, entries]);
 
+  const categoryManagementItems = useMemo(() => {
+    if (adminPortal) {
+      const adminCategories = Array.from(new Set(defaultDefinitions.map((definition) => definition.category))).sort();
+      return adminCategories.map((category) => ({
+        category,
+        definitionCount: defaultDefinitions.filter((definition) => definition.category === category).length,
+        entryCount: 0,
+        isCustomOnly: false,
+      }));
+    }
+
+    return categoryOptions.map((category) => ({
+      category,
+      definitionCount: definitions.filter((definition) => definition.category === category).length,
+      entryCount: entries.filter((entry) => entry.category === category).length,
+      isCustomOnly: customCategories.includes(category),
+    }));
+  }, [adminPortal, categoryOptions, customCategories, defaultDefinitions, definitions, entries]);
+
+  const definitionOptionsForSelectedCategory = useMemo(() => {
+    if (!entryDraft.category) {
+      return [];
+    }
+    return definitions
+      .filter((definition) => definition.is_active && definition.category === entryDraft.category)
+      .sort((left, right) => left.doc_type.localeCompare(right.doc_type));
+  }, [definitions, entryDraft.category]);
+
+  const knownDocTypesForSelectedCategory = useMemo(() => {
+    if (!entryDraft.category) {
+      return [];
+    }
+    const values = new Set<string>();
+    definitions
+      .filter((definition) => definition.category === entryDraft.category && definition.is_active)
+      .forEach((definition) => values.add(definition.doc_type));
+    entries
+      .filter((entry) => entry.category === entryDraft.category)
+      .forEach((entry) => values.add(entry.doc_type));
+    return Array.from(values).sort();
+  }, [definitions, entries, entryDraft.category]);
+
   const entryCount = entries.length;
   const entryFileCount = entries.filter((entry) => Boolean(entry.file_name)).length;
   const activeDefinitionCount = definitions.filter((definition) => definition.is_active).length;
@@ -170,6 +229,20 @@ const DocumentVaultPage = ({
     [definitions, entryDraft.definitionId],
   );
 
+  const entryCategorySelectValue = useMemo(() => {
+    if (!entryDraft.category) {
+      return '';
+    }
+    return categoryOptions.includes(entryDraft.category) ? entryDraft.category : NEW_CATEGORY_OPTION;
+  }, [categoryOptions, entryDraft.category]);
+
+  const entryDocTypeSelectValue = useMemo(() => {
+    if (!entryDraft.docType) {
+      return '';
+    }
+    return knownDocTypesForSelectedCategory.includes(entryDraft.docType) ? entryDraft.docType : NEW_DOC_TYPE_OPTION;
+  }, [entryDraft.docType, knownDocTypesForSelectedCategory]);
+
   const locationOptions = useMemo(() => {
     const options = new Set(folderOptions);
     if (entryDraft.folderLabel.trim()) {
@@ -178,12 +251,109 @@ const DocumentVaultPage = ({
     return Array.from(options).sort();
   }, [entryDraft.folderLabel, folderOptions]);
 
+  const selectedCategoryTypeGroups = useMemo(() => {
+    if (!selectedBrowseCategory) {
+      return { withRecords: [], withoutRecords: [] } as {
+        withRecords: Array<{
+          key: string;
+          category: string;
+          docType: string;
+          definition: DocumentTypeDefinition | null;
+          entries: DocumentEntry[];
+        }>;
+        withoutRecords: Array<{
+          key: string;
+          category: string;
+          docType: string;
+          definition: DocumentTypeDefinition | null;
+          entries: DocumentEntry[];
+        }>;
+      };
+    }
+
+    const entriesForCategory = entries.filter((entry) => entry.category === selectedBrowseCategory);
+    const definitionsForCategory = definitions.filter(
+      (definition) => definition.category === selectedBrowseCategory && definition.is_active,
+    );
+
+    const allTypeNames = new Set<string>();
+    definitionsForCategory.forEach((definition) => allTypeNames.add(definition.doc_type));
+    entriesForCategory.forEach((entry) => allTypeNames.add(entry.doc_type));
+
+    const rows = Array.from(allTypeNames)
+      .map((docType) => ({
+        key: `${selectedBrowseCategory}::${docType}`,
+        category: selectedBrowseCategory,
+        docType,
+        definition: definitionsForCategory.find((definition) => definition.doc_type === docType) || null,
+        entries: entriesForCategory
+          .filter((entry) => entry.doc_type === docType)
+          .sort((left, right) => {
+            const leftDate = new Date(left.updated_at || left.created_at).getTime();
+            const rightDate = new Date(right.updated_at || right.created_at).getTime();
+            return rightDate - leftDate;
+          }),
+      }))
+      .sort((left, right) => {
+        if (right.entries.length !== left.entries.length) {
+          return right.entries.length - left.entries.length;
+        }
+        return left.docType.localeCompare(right.docType);
+      });
+
+    return {
+      withRecords: rows.filter((row) => row.entries.length > 0),
+      withoutRecords: rows.filter((row) => row.entries.length === 0),
+    };
+  }, [definitions, entries, selectedBrowseCategory]);
+
   const flattenFolderPaths = (items: FolderStructureItem[], prefix = ''): string[] => {
     return items.flatMap((item) => {
       const path = prefix ? `${prefix} / ${item.name}` : item.name;
       const nested = item.children?.length ? flattenFolderPaths(item.children, path) : [];
       return [path, ...nested];
     });
+  };
+
+  const guessFolderLocation = (
+    category: string,
+    docType: string,
+    options: string[],
+  ) => {
+    const exactPath = docType === category ? category : `${category} / ${docType}`;
+    if (options.includes(exactPath)) {
+      return exactPath;
+    }
+
+    const hintKey = `${category}::${docType}`;
+    const hinted = FOLDER_LOCATION_HINTS[hintKey]?.find((option) => options.includes(option));
+    if (hinted) {
+      return hinted;
+    }
+
+    const tokens = `${category} ${docType}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(' ')
+      .filter(Boolean);
+
+    let bestOption = '';
+    let bestScore = -1;
+    for (const option of options) {
+      const normalizedOption = option.toLowerCase();
+      let score = 0;
+      for (const token of tokens) {
+        if (normalizedOption.includes(token)) {
+          score += token.length;
+        }
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestOption = option;
+      }
+    }
+
+    return bestScore > 0 ? bestOption : '';
   };
 
   const loadEntries = async () => {
@@ -254,10 +424,7 @@ const DocumentVaultPage = ({
     if (!selectedDefinition) {
       return;
     }
-    const suggestedPath =
-      selectedDefinition.doc_type === selectedDefinition.category
-        ? selectedDefinition.category
-        : `${selectedDefinition.category} / ${selectedDefinition.doc_type}`;
+    const suggestedPath = guessFolderLocation(selectedDefinition.category, selectedDefinition.doc_type, locationOptions);
     setEntryDraft((current) => {
       const nextMetadata = { ...current.metadata };
       selectedDefinition.fields_config.forEach((field) => {
@@ -269,14 +436,32 @@ const DocumentVaultPage = ({
         ...current,
         category: selectedDefinition.category,
         docType: selectedDefinition.doc_type,
-        folderLabel: current.folderLabel || (locationOptions.includes(suggestedPath) ? suggestedPath : current.folderLabel),
+        folderLabel: suggestedPath || current.folderLabel,
         metadata: nextMetadata,
       };
     });
   }, [locationOptions, selectedDefinition]);
 
+  useEffect(() => {
+    if (categoryFilter && categoryOptions.includes(categoryFilter)) {
+      setSelectedBrowseCategory(categoryFilter);
+      return;
+    }
+    if (selectedBrowseCategory && !categoryOptions.includes(selectedBrowseCategory)) {
+      setSelectedBrowseCategory('');
+    }
+  }, [categoryFilter, categoryOptions, selectedBrowseCategory]);
+
+  useEffect(() => {
+    const validKeys = new Set(
+      [...selectedCategoryTypeGroups.withRecords, ...selectedCategoryTypeGroups.withoutRecords].map((item) => item.key),
+    );
+    setExpandedTypeKeys((current) => current.filter((key) => validKeys.has(key)));
+  }, [selectedCategoryTypeGroups]);
+
   const resetEntryModal = () => {
     setEntryDraft(EMPTY_ENTRY);
+    setSaveEntryAsDefinition(false);
     setShowEntryModal(false);
   };
 
@@ -290,26 +475,42 @@ const DocumentVaultPage = ({
     setShowDefaultDefinitionModal(false);
   };
 
-  const openCreateEntry = () => {
+  const openCreateEntry = (category = '', docType = '') => {
     setMessage('');
-    setEntryDraft(EMPTY_ENTRY);
+    const matchingDefinition =
+      category && docType
+        ? definitions.find((definition) => definition.category === category && definition.doc_type === docType) || null
+        : null;
+    setEntryDraft({
+      ...EMPTY_ENTRY,
+      category,
+      docType,
+      definitionId: matchingDefinition?.id || null,
+      folderLabel: category && docType ? guessFolderLocation(category, docType, folderOptions) : '',
+    });
+    setSaveEntryAsDefinition(false);
     setShowEntryModal(true);
   };
 
   const openEditEntry = (entry: DocumentEntry) => {
     setMessage('');
+    const matchingDefinition =
+      definitions.find((definition) => definition.id === entry.definition_id) ||
+      definitions.find((definition) => definition.category === entry.category && definition.doc_type === entry.doc_type) ||
+      null;
     setEntryDraft({
       id: entry.id,
       title: entry.title,
       description: entry.description || '',
       notes: entry.notes || '',
-      definitionId: entry.definition_id || null,
+      definitionId: matchingDefinition?.id || null,
       category: entry.category,
       docType: entry.doc_type,
       folderLabel: entry.folder_label || '',
       metadata: { ...(entry.metadata_json || {}) },
       file: null,
     });
+    setSaveEntryAsDefinition(false);
     setShowEntryModal(true);
   };
 
@@ -357,6 +558,202 @@ const DocumentVaultPage = ({
     setNewCategoryName('');
     setMessage(`Category "${category}" added. Create a document type to use it.`);
     openCreateDefinitionForCategory(category);
+  };
+
+  const closeManageCategoriesModal = () => {
+    setShowManageCategoriesModal(false);
+    setCategoryRenameDrafts({});
+  };
+
+  const handleRenameCategory = async (category: string) => {
+    const renamed = (categoryRenameDrafts[category] ?? category).trim();
+    if (!renamed) {
+      setError('Category name is required.');
+      return;
+    }
+    if (renamed === category) {
+      return;
+    }
+    const matchingDefinitions = adminPortal
+      ? defaultDefinitions.filter((definition) => definition.category === category)
+      : definitions.filter((definition) => definition.category === category);
+    const matchingEntries = adminPortal ? [] : entries.filter((entry) => entry.category === category);
+    const isCustomCategory = customCategories.includes(category);
+    const isMerge = category !== renamed && categoryManagementItems.some((item) => item.category === renamed);
+
+    if (
+      !window.confirm(
+        `Rename "${category}" to "${renamed}"? This updates ${matchingDefinitions.length} document type(s) and ${matchingEntries.length} vault entr${matchingEntries.length === 1 ? 'y' : 'ies'}${isMerge ? ' and merges them into an existing category' : ''}.`,
+      )
+    ) {
+      return;
+    }
+
+    setError('');
+    try {
+      await Promise.all([
+        ...matchingDefinitions.map((definition) =>
+          (adminPortal ? DocumentsService.updateDefaultDefinition(definition.id, {
+            category: renamed,
+          }) : DocumentsService.updateDefinition(definition.id, {
+            category: renamed,
+          })),
+        ),
+        ...matchingEntries.map((entry) =>
+          DocumentsService.updateEntry(entry.id, {
+            category: renamed,
+          }),
+        ),
+      ]);
+
+      if (!adminPortal) {
+        setCustomCategories((current) => {
+          const next = current.filter((item) => item !== category);
+          if (isCustomCategory || (!matchingDefinitions.length && !matchingEntries.length)) {
+            next.push(renamed);
+          }
+          return Array.from(new Set(next)).sort();
+        });
+      }
+      setCategoryRenameDrafts((current) => {
+        const next = { ...current };
+        delete next[category];
+        return next;
+      });
+      if (!adminPortal) {
+        setCategoryFilter((current) => (current === category ? renamed : current));
+        setSelectedBrowseCategory((current) => (current === category ? renamed : current));
+        setEntryDraft((current) => ({
+          ...current,
+          category: current.category === category ? renamed : current.category,
+        }));
+        setDefinitionDraft((current) => ({
+          ...current,
+          category: current.category === category ? renamed : current.category,
+        }));
+        await Promise.all([loadDefinitions(), loadEntries()]);
+      } else {
+        setDefaultDefinitionDraft((current) => ({
+          ...current,
+          category: current.category === category ? renamed : current.category,
+        }));
+        await loadDefaultDefinitions();
+      }
+
+      setMessage(`Category "${category}" ${isMerge ? `merged into "${renamed}"` : `renamed to "${renamed}"`}.`);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to rename category.');
+    }
+  };
+
+  const handleDeleteCategory = async (category: string) => {
+    const matchingDefinitions = adminPortal
+      ? defaultDefinitions.filter((definition) => definition.category === category)
+      : definitions.filter((definition) => definition.category === category);
+    const matchingEntries = adminPortal ? [] : entries.filter((entry) => entry.category === category);
+
+    const confirmMessage =
+      matchingDefinitions.length || matchingEntries.length
+        ? `Delete category "${category}" and everything inside it? This will permanently delete ${matchingDefinitions.length} document type(s) and ${matchingEntries.length} vault entr${matchingEntries.length === 1 ? 'y' : 'ies'}.`
+        : `Delete empty category "${category}"?`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setError('');
+    try {
+      await Promise.all([
+        ...matchingDefinitions.map((definition) =>
+          adminPortal
+            ? DocumentsService.deleteDefaultDefinition(definition.id)
+            : DocumentsService.deleteDefinition(definition.id),
+        ),
+        ...matchingEntries.map((entry) => DocumentsService.deleteEntry(entry.id)),
+      ]);
+
+      if (!adminPortal) {
+        setCustomCategories((current) => current.filter((item) => item !== category));
+        setCategoryFilter((current) => (current === category ? '' : current));
+        setSelectedBrowseCategory((current) => (current === category ? '' : current));
+        await Promise.all([loadDefinitions(), loadEntries()]);
+      } else {
+        await loadDefaultDefinitions();
+      }
+
+      setCategoryRenameDrafts((current) => {
+        const next = { ...current };
+        delete next[category];
+        return next;
+      });
+      setMessage(`Category "${category}" deleted.`);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to delete category.');
+    }
+  };
+
+  const toggleTypeExpanded = (key: string) => {
+    setExpandedTypeKeys((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
+  };
+
+  const handleEntryCategoryChange = (category: string) => {
+    if (category === NEW_CATEGORY_OPTION) {
+      setEntryDraft((current) => ({
+        ...current,
+        category: '',
+        docType: '',
+        definitionId: null,
+        folderLabel: '',
+        metadata: {},
+      }));
+      return;
+    }
+
+    setEntryDraft((current) => ({
+      ...current,
+      category,
+      docType: '',
+      definitionId: null,
+      folderLabel: category ? guessFolderLocation(category, '', locationOptions) || '' : '',
+      metadata: {},
+    }));
+  };
+
+  const handleEntryDocTypeChange = (docType: string) => {
+    if (!docType) {
+      setEntryDraft((current) => ({
+        ...current,
+        definitionId: null,
+        docType: '',
+        metadata: {},
+      }));
+      return;
+    }
+    if (docType === NEW_DOC_TYPE_OPTION) {
+      setEntryDraft((current) => ({
+        ...current,
+        definitionId: null,
+        docType: '',
+        metadata: {},
+      }));
+      return;
+    }
+
+    const definition =
+      definitions.find((item) => item.category === entryDraft.category && item.doc_type === docType && item.is_active) || null;
+
+    if (!entryDraft.category) {
+      return;
+    }
+
+    setEntryDraft((current) => ({
+      ...current,
+      definitionId: definition?.id || null,
+      category: current.category,
+      docType,
+      folderLabel: guessFolderLocation(current.category, docType, locationOptions) || current.folderLabel,
+      metadata: {},
+    }));
   };
 
   const openEditDefaultDefinition = (definition: DocumentTypeDefinition) => {
@@ -457,11 +854,15 @@ const DocumentVaultPage = ({
   };
 
   const handleSaveEntry = async () => {
-    if (!entryDraft.title.trim()) {
+    const trimmedTitle = entryDraft.title.trim();
+    const trimmedCategory = entryDraft.category.trim();
+    const trimmedDocType = entryDraft.docType.trim();
+
+    if (!trimmedTitle) {
       setError('Title is required.');
       return;
     }
-    if (!entryDraft.category.trim() || !entryDraft.docType.trim()) {
+    if (!trimmedCategory || !trimmedDocType) {
       setError('Category and type are required.');
       return;
     }
@@ -481,12 +882,37 @@ const DocumentVaultPage = ({
 
     setError('');
     try {
+      let resolvedDefinitionId = entryDraft.definitionId;
+      const existingDefinition =
+        definitions.find(
+          (definition) => definition.category === trimmedCategory && definition.doc_type === trimmedDocType && definition.is_active,
+        ) || null;
+
+      if (!resolvedDefinitionId && existingDefinition) {
+        resolvedDefinitionId = existingDefinition.id;
+      }
+
+      if (!entryDraft.id && saveEntryAsDefinition && !resolvedDefinitionId) {
+        const createdDefinition = await DocumentsService.createDefinition(
+          {
+            category: trimmedCategory,
+            doc_type: trimmedDocType,
+            description: null,
+            fields_config: [],
+            is_active: true,
+          },
+          viewingUserId,
+        );
+        resolvedDefinitionId = createdDefinition.id;
+        await loadDefinitions();
+      }
+
       if (entryDraft.id) {
         await DocumentsService.updateEntry(entryDraft.id, {
-          definition_id: entryDraft.definitionId,
-          category: entryDraft.category.trim(),
-          doc_type: entryDraft.docType.trim(),
-          title: entryDraft.title.trim(),
+          definition_id: resolvedDefinitionId,
+          category: trimmedCategory,
+          doc_type: trimmedDocType,
+          title: trimmedTitle,
           description: entryDraft.description.trim() || null,
           notes: entryDraft.notes.trim() || null,
           metadata_json: entryDraft.metadata,
@@ -494,10 +920,10 @@ const DocumentVaultPage = ({
         });
       } else {
         await DocumentsService.createEntry({
-          title: entryDraft.title.trim(),
-          category: entryDraft.category.trim(),
-          docType: entryDraft.docType.trim(),
-          definitionId: entryDraft.definitionId,
+          title: trimmedTitle,
+          category: trimmedCategory,
+          docType: trimmedDocType,
+          definitionId: resolvedDefinitionId,
           description: entryDraft.description.trim() || null,
           notes: entryDraft.notes.trim() || null,
           folderLabel: entryDraft.folderLabel.trim() || null,
@@ -978,52 +1404,8 @@ const DocumentVaultPage = ({
           <AccountSwitcher compact={true} />
         </div>
         <div className="documents-actions">
-          {!adminPortal && (
-            <button className="btn-primary" onClick={openCreateEntry}>
-              New Entry
-            </button>
-          )}
-          {!adminPortal && (
-            <button className="btn-primary" onClick={openCreateDefinition}>
-              New Document Type
-            </button>
-          )}
-          {!adminPortal && (
-            <button className="btn-secondary" onClick={() => setShowCategoryModal(true)}>
-              New Category
-            </button>
-          )}
-          {!adminPortal && (
-            <div className="default-folders-tooltip-container">
-              <button className="btn-secondary" onClick={() => void handleLoadRecommendedDefaults()}>
-                Load Default DocTypes
-              </button>
-              <button
-                type="button"
-                className="default-folders-tooltip-toggle"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setShowDefaultsTooltip((current) => !current);
-                }}
-                aria-expanded={showDefaultsTooltip}
-                aria-label="Show note about recommended defaults"
-              >
-                i
-              </button>
-              {showDefaultsTooltip && (
-                <div className="default-folders-tooltip" role="tooltip">
-                  Adds missing defaults only. It will not overwrite existing document types or data.
-                </div>
-              )}
-            </div>
-          )}
-          {currentUser?.is_admin && !adminPortal && (
-            <button className="btn-secondary" onClick={() => setActiveTab('defaults')}>
-              Manage Recommended Defaults
-            </button>
-          )}
           {currentUser?.is_admin && adminPortal && (
-            <button className="btn-primary" onClick={openCreateDefaultDefinition}>
+            <button className="btn-secondary" onClick={openCreateDefaultDefinition}>
               + New Recommended Default
             </button>
           )}
@@ -1031,75 +1413,78 @@ const DocumentVaultPage = ({
         {!!message && <div className="vault-notice vault-notice-success">{message}</div>}
       </div>
 
-      <div className="vault-summary-grid">
-        <div className="vault-summary-card">
-          <span className="vault-summary-label">Visible entries</span>
-          <strong className="vault-summary-value">{entryCount}</strong>
-          <span className="vault-summary-footnote">Filtered by your current search and sharing context</span>
-        </div>
-        <div className="vault-summary-card">
-          <span className="vault-summary-label">Entries with files</span>
-          <strong className="vault-summary-value">{entryFileCount}</strong>
-          <span className="vault-summary-footnote">OCR and PDF extraction run when files are attached</span>
-        </div>
-        <div className="vault-summary-card">
-          <span className="vault-summary-label">My active types</span>
-          <strong className="vault-summary-value">{activeDefinitionCount}</strong>
-          <span className="vault-summary-footnote">Schema-driven forms render from these definitions</span>
-        </div>
-        {currentUser?.is_admin && (
-          <div className="vault-summary-card">
-            <span className="vault-summary-label">Recommended defaults</span>
-            <strong className="vault-summary-value">{defaultDefinitionCount}</strong>
-            <span className="vault-summary-footnote">Active defaults are preloaded for new users</span>
-          </div>
-        )}
-      </div>
-
       {!adminPortal && (
-        <div className="vault-filter-grid">
-          <input
-            className="form-input"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search title, notes, metadata, or file text"
-          />
-          <select className="form-input" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-            <option value="">All categories</option>
-            {categoryOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <select className="form-input" value={docTypeFilter} onChange={(event) => setDocTypeFilter(event.target.value)}>
-            <option value="">All types</option>
-            {docTypeOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+        <>
+          <div className="vault-toolbar">
+            <div className="vault-toolbar-left">
+              <button className="btn-secondary" onClick={() => setShowSearchBar((current) => !current)}>
+                {showSearchBar ? 'Hide Search' : 'Search Records'}
+              </button>
+            </div>
+            <div className="vault-toolbar-right">
+              <div className="default-folders-tooltip-container">
+                <button className="btn-secondary" onClick={() => void handleLoadRecommendedDefaults()}>
+                  Load Defaults
+                </button>
+                <button
+                  type="button"
+                  className="default-folders-tooltip-toggle"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setShowDefaultsTooltip((current) => !current);
+                  }}
+                  aria-expanded={showDefaultsTooltip}
+                  aria-label="Show note about recommended defaults"
+                >
+                  i
+                </button>
+                {showDefaultsTooltip && (
+                  <div className="default-folders-tooltip" role="tooltip">
+                    Adds missing defaults only. It will not overwrite existing document types or data.
+                  </div>
+                )}
+              </div>
+              {currentUser?.is_admin && activeTab !== 'defaults' && (
+                <button className="btn-secondary" onClick={() => setActiveTab('defaults')}>
+                  Manage
+                </button>
+              )}
+              {currentUser?.is_admin && activeTab === 'defaults' && (
+                <button className="btn-secondary" onClick={() => setActiveTab('entries')}>
+                  Back to Vault
+                </button>
+              )}
+            </div>
+          </div>
 
-      <div className="vault-tab-row">
-        {!adminPortal && (
-          <button className={activeTab === 'entries' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('entries')}>
-            Vault Entries
-          </button>
-        )}
-        {!adminPortal && (
-          <button className={activeTab === 'types' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('types')}>
-            My Document Types
-          </button>
-        )}
-        {currentUser?.is_admin && (
-          <button className={activeTab === 'defaults' ? 'btn-primary' : 'btn-secondary'} onClick={() => setActiveTab('defaults')}>
-            Recommended Defaults
-          </button>
-        )}
-      </div>
+          {showSearchBar && (
+            <div className="vault-filter-grid">
+              <input
+                className="form-input"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search title, notes, metadata, or file text"
+              />
+              <select className="form-input" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+                <option value="">All categories</option>
+                {categoryOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              <select className="form-input" value={docTypeFilter} onChange={(event) => setDocTypeFilter(event.target.value)}>
+                <option value="">All types</option>
+                {docTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </>
+      )}
 
       {adminPortal && (
         <div className="vault-notice vault-notice-info">
@@ -1111,87 +1496,186 @@ const DocumentVaultPage = ({
       {loading && <div className="loading">Loading document vault...</div>}
       {!!error && <div className="error">{error}</div>}
 
-      {!loading && !error && activeTab === 'entries' && (
-        <div className="documents-content">
-          <table className="documents-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Path</th>
-                <th>File</th>
-                <th>Updated</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry) => (
-                <tr key={entry.id}>
-                  <td>
-                    <strong>{entry.title}</strong>
-                    {entry.description && (
-                      <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>{entry.description}</div>
-                    )}
-                    {entry.notes && (
-                      <div style={{ fontSize: '0.82rem', color: '#4b5563', marginTop: '4px' }}>{entry.notes}</div>
-                    )}
-                    {summarizeMetadata(entry.metadata_json).length > 0 && (
-                      <div className="vault-chip-row">
-                        {summarizeMetadata(entry.metadata_json).map((item) => (
-                          <span key={item} className="vault-chip">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span className="vault-badge vault-badge-muted">{entry.category}</span>
-                  </td>
-                  <td>
-                    <span className="vault-badge vault-badge-active">{entry.doc_type}</span>
-                  </td>
-                  <td>{entry.folder_label || '-'}</td>
-                  <td>{entry.file_name ? `${entry.file_name} (${formatFileSize(entry.file_size)})` : 'No file'}</td>
-                  <td>{formatDate(entry.updated_at || entry.created_at)}</td>
-                  <td className="actions-cell">
-                    {entry.file_name && (
-                      <button onClick={() => void handleDownloadEntry(entry)} className="btn-icon" title="Download">
-                        ⬇️
-                      </button>
-                    )}
-                    <button onClick={() => openEditEntry(entry)} className="btn-icon" title="Edit">
-                      ✏️
-                    </button>
-                    <button onClick={() => void handleDeleteEntry(entry)} className="btn-icon" title="Delete">
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {entries.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: '#666' }}>
-                    No vault entries match the current filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {!loading && !error && activeTab === 'types' && (
-        <div className="documents-content">
-          {definitions.length > 0 ? (
-            renderDefinitionTable(definitions, false)
-          ) : (
-            <div className="empty-state">
-              <p>No document types yet.</p>
-              <p>Create your first schema to unlock dynamic entry forms.</p>
+      {!loading && !error && !adminPortal && activeTab !== 'defaults' && (
+        <div className="vault-browser-layout">
+          <aside className="vault-category-sidebar">
+            <div className="vault-browser-header">
+              <div>
+                <h3>Categories</h3>
+              </div>
+              <div className="vault-inline-actions">
+                <button className="btn-secondary" onClick={() => setShowCategoryModal(true)}>
+                  Add
+                </button>
+                <button className="btn-secondary" onClick={() => setShowManageCategoriesModal(true)}>
+                  Manage
+                </button>
+              </div>
             </div>
-          )}
+            <div className="vault-category-list">
+              {categoryManagementItems.map((item) => (
+                <button
+                  key={item.category}
+                  className={selectedBrowseCategory === item.category ? 'vault-category-button vault-category-button-active' : 'vault-category-button'}
+                  onClick={() => setSelectedBrowseCategory(item.category)}
+                >
+                  <span>{item.category}</span>
+                  <span className="vault-category-count">{item.entryCount}</span>
+                </button>
+              ))}
+              {categoryManagementItems.length === 0 && (
+                <div className="empty-state" style={{ marginTop: 0 }}>
+                  <p>No categories yet.</p>
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <section className="vault-type-panel">
+            {selectedBrowseCategory ? (
+              <>
+                <div className="vault-browser-header">
+                  <div>
+                    <h3>{selectedBrowseCategory}</h3>
+                    <p className="vault-helper-text">
+                      {selectedCategoryTypeGroups.withRecords.length + selectedCategoryTypeGroups.withoutRecords.length} document type
+                      {selectedCategoryTypeGroups.withRecords.length + selectedCategoryTypeGroups.withoutRecords.length === 1 ? '' : 's'} in this category
+                    </p>
+                  </div>
+                  <div className="vault-inline-actions">
+                    <button className="btn-primary" onClick={() => openCreateEntry(selectedBrowseCategory)}>
+                      Add Record
+                    </button>
+                    <button className="btn-secondary" onClick={() => openCreateDefinitionForCategory(selectedBrowseCategory)}>
+                      Add Document Type
+                    </button>
+                  </div>
+                </div>
+
+                <div className="vault-type-section">
+                  <div className="vault-type-section-header">
+                    <h4>Document Types With Records</h4>
+                    <span className="vault-chip">{selectedCategoryTypeGroups.withRecords.length}</span>
+                  </div>
+                  {selectedCategoryTypeGroups.withRecords.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No records yet in this category.</p>
+                      <p>Add a record or create a document type to get started.</p>
+                    </div>
+                  ) : (
+                    <div className="vault-type-card-list">
+                      {selectedCategoryTypeGroups.withRecords.map((item) => (
+                        <div key={item.key} className="vault-type-card">
+                          <div className="vault-type-card-header">
+                            <div>
+                              <strong>{item.docType}</strong>
+                              <div className="vault-chip-row">
+                                <span className="vault-chip">{item.entries.length} record{item.entries.length === 1 ? '' : 's'}</span>
+                                {item.definition && <span className="vault-chip">saved type</span>}
+                              </div>
+                            </div>
+                            <div className="vault-inline-actions">
+                              <button className="btn-secondary" onClick={() => openCreateEntry(item.category, item.docType)}>
+                                Add Record
+                              </button>
+                              {item.definition && (
+                                <button className="btn-secondary" onClick={() => openEditDefinition(item.definition!)}>
+                                  Edit Type
+                                </button>
+                              )}
+                              <button className="btn-secondary" onClick={() => toggleTypeExpanded(item.key)}>
+                                {expandedTypeKeys.includes(item.key) ? 'Hide Records' : 'Show Records'}
+                              </button>
+                            </div>
+                          </div>
+                          {expandedTypeKeys.includes(item.key) && (
+                            <div className="vault-record-list">
+                              {item.entries.map((entry) => (
+                                <div key={entry.id} className="vault-record-card">
+                                  <div className="vault-record-card-main">
+                                    <div className="vault-record-card-header">
+                                      <strong>{entry.title}</strong>
+                                      <span className="vault-subtle-text">{formatDate(entry.updated_at || entry.created_at)}</span>
+                                    </div>
+                                    {entry.description && <div className="vault-subtle-text">{entry.description}</div>}
+                                    {entry.notes && <div className="vault-subtle-text">{entry.notes}</div>}
+                                    <div className="vault-chip-row">
+                                      {entry.folder_label && <span className="vault-chip">{entry.folder_label}</span>}
+                                      {entry.file_name && <span className="vault-chip">{entry.file_name}</span>}
+                                      {summarizeMetadata(entry.metadata_json).map((itemLabel) => (
+                                        <span key={itemLabel} className="vault-chip">
+                                          {itemLabel}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="vault-record-card-actions">
+                                    {entry.file_name && (
+                                      <button onClick={() => void handleDownloadEntry(entry)} className="btn-secondary">
+                                        Download
+                                      </button>
+                                    )}
+                                    <button onClick={() => openEditEntry(entry)} className="btn-secondary">
+                                      Edit
+                                    </button>
+                                    <button onClick={() => void handleDeleteEntry(entry)} className="btn-secondary">
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="vault-type-section">
+                  <div className="vault-type-section-header">
+                    <h4>Document Types Without Records</h4>
+                    <span className="vault-chip">{selectedCategoryTypeGroups.withoutRecords.length}</span>
+                  </div>
+                  {selectedCategoryTypeGroups.withoutRecords.length === 0 ? (
+                    <div className="empty-state">
+                      <p>Every document type in this category already has records.</p>
+                    </div>
+                  ) : (
+                    <div className="vault-type-card-list">
+                      {selectedCategoryTypeGroups.withoutRecords.map((item) => (
+                        <div key={item.key} className="vault-type-card">
+                          <div className="vault-type-card-header">
+                            <div>
+                              <strong>{item.docType}</strong>
+                              <div className="vault-chip-row">
+                                <span className="vault-chip">0 records</span>
+                                {item.definition && <span className="vault-chip">saved type</span>}
+                              </div>
+                            </div>
+                            <div className="vault-inline-actions">
+                              <button className="btn-primary" onClick={() => openCreateEntry(item.category, item.docType)}>
+                                Add First Record
+                              </button>
+                              {item.definition && (
+                                <button className="btn-secondary" onClick={() => openEditDefinition(item.definition!)}>
+                                  Edit Type
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">
+                <p>Select a category to browse document types.</p>
+              </div>
+            )}
+          </section>
         </div>
       )}
 
@@ -1201,9 +1685,12 @@ const DocumentVaultPage = ({
             Active recommended defaults are prepopulated for new users. Existing users can load missing ones with
             `Load Recommended Defaults` and it will not overwrite existing data.
           </div>
-          <div style={{ marginBottom: '14px' }}>
-            <button className="btn-primary" onClick={openCreateDefaultDefinition}>
+          <div style={{ marginBottom: '14px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button className="btn-secondary" onClick={openCreateDefaultDefinition}>
               + New Recommended Default
+            </button>
+            <button className="btn-secondary" onClick={() => setShowManageCategoriesModal(true)}>
+              Manage Categories
             </button>
           </div>
           {defaultDefinitions.length > 0 ? (
@@ -1227,43 +1714,73 @@ const DocumentVaultPage = ({
                 autoComplete="off"
                 data-lpignore="true"
                 data-1p-ignore="true"
-                value={entryDraft.definitionId ?? ''}
-                onChange={(event) =>
-                  setEntryDraft((current) => ({
-                    ...current,
-                    definitionId: event.target.value ? Number(event.target.value) : null,
-                  }))
-                }
+                value={entryCategorySelectValue}
+                onChange={(event) => handleEntryCategoryChange(event.target.value)}
               >
-                <option value="">Custom / no saved type</option>
-                {definitions
-                  .filter((definition) => definition.is_active)
-                  .map((definition) => (
-                    <option key={definition.id} value={definition.id}>
-                      {definition.category} / {definition.doc_type}
-                    </option>
-                  ))}
+                <option value="">Select category...</option>
+                <option value={NEW_CATEGORY_OPTION}>+ New category...</option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
-              <input
+              {entryCategorySelectValue === NEW_CATEGORY_OPTION && (
+                <input
+                  className="form-input"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  value={entryDraft.category}
+                  onChange={(event) =>
+                    setEntryDraft((current) => ({
+                      ...current,
+                      category: event.target.value,
+                      docType: '',
+                      definitionId: null,
+                      folderLabel: '',
+                      metadata: {},
+                    }))
+                  }
+                  placeholder="New category name"
+                />
+              )}
+              <select
                 className="form-input"
                 autoComplete="off"
                 data-lpignore="true"
                 data-1p-ignore="true"
-                value={entryDraft.category}
-                onChange={(event) => setEntryDraft((current) => ({ ...current, category: event.target.value }))}
-                placeholder="Category"
-                disabled={Boolean(selectedDefinition)}
-              />
-              <input
-                className="form-input"
-                autoComplete="off"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                value={entryDraft.docType}
-                onChange={(event) => setEntryDraft((current) => ({ ...current, docType: event.target.value }))}
-                placeholder="Document type"
-                disabled={Boolean(selectedDefinition)}
-              />
+                value={entryDocTypeSelectValue}
+                onChange={(event) => handleEntryDocTypeChange(event.target.value)}
+                disabled={!entryDraft.category}
+              >
+                <option value="">{entryDraft.category ? 'Select document type...' : 'Select category first...'}</option>
+                <option value={NEW_DOC_TYPE_OPTION}>+ New document type...</option>
+                {knownDocTypesForSelectedCategory.map((docType) => (
+                  <option key={docType} value={docType}>
+                    {docType}
+                  </option>
+                ))}
+              </select>
+              {entryDraft.category && entryDocTypeSelectValue === NEW_DOC_TYPE_OPTION && (
+                <input
+                  className="form-input"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  value={entryDraft.docType}
+                  onChange={(event) =>
+                    setEntryDraft((current) => ({
+                      ...current,
+                      docType: event.target.value,
+                      definitionId: null,
+                      folderLabel: guessFolderLocation(current.category, event.target.value, locationOptions) || current.folderLabel,
+                      metadata: {},
+                    }))
+                  }
+                  placeholder="New document type name"
+                />
+              )}
               <input
                 className="form-input"
                 autoComplete="off"
@@ -1286,6 +1803,17 @@ const DocumentVaultPage = ({
                 ))}
               </select>
             </div>
+
+            {!entryDraft.id && entryDraft.category.trim() && entryDraft.docType.trim() && !selectedDefinition && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
+                <input
+                  type="checkbox"
+                  checked={saveEntryAsDefinition}
+                  onChange={(event) => setSaveEntryAsDefinition(event.target.checked)}
+                />
+                Save this as a reusable document type for future records
+              </label>
+            )}
 
             {selectedDefinition && (
               <div style={{ marginTop: '20px' }}>
@@ -1404,6 +1932,78 @@ const DocumentVaultPage = ({
               </button>
               <button onClick={handleSaveCategory} className="btn-primary">
                 Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showManageCategoriesModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '760px' }}>
+            <h2>{adminPortal ? 'Manage Default Categories' : 'My Categories'}</h2>
+            <p className="vault-helper-text">
+              {adminPortal
+                ? 'Rename categories here to update recommended default document types. Renaming into an existing category merges the defaults together.'
+                : 'Rename categories here to update your document types and vault entries. Renaming into an existing category merges them together.'}
+            </p>
+            {categoryManagementItems.length === 0 ? (
+              <div className="empty-state" style={{ marginTop: '12px' }}>
+                <p>{adminPortal ? 'No default categories yet.' : 'No categories yet.'}</p>
+              </div>
+            ) : (
+              <div className="vault-category-manager">
+                {categoryManagementItems.map((item) => (
+                  <div key={item.category} className="vault-category-row">
+                    <div className="vault-category-row-main">
+                      <input
+                        className="form-input"
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        value={categoryRenameDrafts[item.category] ?? item.category}
+                        onChange={(event) =>
+                          setCategoryRenameDrafts((current) => ({
+                            ...current,
+                            [item.category]: event.target.value,
+                          }))
+                        }
+                        placeholder="Category name"
+                        style={{ marginBottom: 0 }}
+                      />
+                      <div className="vault-chip-row">
+                        <span className="vault-chip">{item.definitionCount} document type{item.definitionCount === 1 ? '' : 's'}</span>
+                        <span className="vault-chip">{item.entryCount} entr{item.entryCount === 1 ? 'y' : 'ies'}</span>
+                        {item.isCustomOnly && <span className="vault-chip">custom</span>}
+                      </div>
+                    </div>
+                    <div className="vault-category-row-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => void handleRenameCategory(item.category)}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => void handleDeleteCategory(item.category)}
+                        title={
+                          item.definitionCount > 0 || item.entryCount > 0
+                            ? 'Delete this category and everything inside it.'
+                            : 'Delete category'
+                        }
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button onClick={closeManageCategoriesModal} className="btn-secondary">
+                Close
               </button>
             </div>
           </div>

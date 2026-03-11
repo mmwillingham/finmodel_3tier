@@ -76,23 +76,7 @@ def seed_default_document_types(db: Session, owner_id: int) -> int:
     ).order_by(models.DocumentTypeDefinition.id.asc()).all()
 
     if not defaults:
-        seeded = 0
-        for item in build_default_document_type_definitions(_get_default_folder_structure(db)):
-            template_key = item.get("template_key") or slugify_template_key(item["category"], item["doc_type"])
-            definition = models.DocumentTypeDefinition(
-                owner_id=owner_id,
-                category=item["category"],
-                doc_type=item["doc_type"],
-                description=item.get("description"),
-                fields_config=item["fields_config"],
-                is_active=True,
-                is_system_default=False,
-                template_key=template_key,
-            )
-            db.add(definition)
-            seeded += 1
-        db.commit()
-        return seeded
+        return 0
 
     return load_missing_default_document_types(db, owner_id)
 

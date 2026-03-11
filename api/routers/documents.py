@@ -260,7 +260,6 @@ def load_recommended_defaults(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user),
 ):
-    ensure_system_default_document_types(db)
     owner_id = _resolve_owner_id(db, current_user, viewing_user_id, "edit")
     created = load_missing_default_document_types(db, owner_id)
     message = "Recommended defaults loaded." if created else "All recommended defaults already exist."
@@ -272,9 +271,9 @@ def list_default_definitions(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_admin_user),
 ):
-    ensure_system_default_document_types(db)
     definitions = db.query(models.DocumentTypeDefinition).filter(
-        models.DocumentTypeDefinition.is_system_default.is_(True)
+        models.DocumentTypeDefinition.is_system_default.is_(True),
+        models.DocumentTypeDefinition.is_active.is_(True),
     ).order_by(models.DocumentTypeDefinition.category.asc(), models.DocumentTypeDefinition.doc_type.asc()).all()
     return [_serialize_definition(definition) for definition in definitions]
 
@@ -319,7 +318,10 @@ def update_default_definition(
         definition.fields_config = [field.model_dump() for field in payload.fields_config]
     if payload.is_active is not None:
         definition.is_active = payload.is_active
-    definition.template_key = slugify_template_key(definition.category, definition.doc_type)
+    # Preserve the original template key so admin renames/merges
+    # don't cause the code-defined default to be recreated later.
+    if not definition.template_key:
+        definition.template_key = slugify_template_key(definition.category, definition.doc_type)
     db.commit()
     db.refresh(definition)
     return _serialize_definition(definition)
@@ -332,7 +334,9 @@ def delete_default_definition(
     current_user: schemas.UserOut = Depends(auth.get_current_admin_user),
 ):
     definition = _get_editable_definition(db, definition_id, current_user, allow_system_default=True)
-    db.delete(definition)
+    # Soft-delete system defaults so they stay hidden from users
+    # without being silently recreated from the built-in defaults list.
+    definition.is_active = False
     db.commit()
     return None
 
