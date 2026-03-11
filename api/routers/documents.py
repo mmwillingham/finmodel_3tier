@@ -1,24 +1,38 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+import io
+import json
+import logging
+from datetime import datetime
+from typing import List, Optional
+
+import sqlalchemy as sa
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-import sqlalchemy as sa
-from typing import List, Optional
-import models
-import schemas
+
 import auth
 import database
+import models
+import schemas
 from schemas_documents import (
-    DocumentFolderCreate, DocumentFolderUpdate, DocumentFolderOut,
-    DocumentCreate, DocumentUpdate, DocumentOut
+    DocumentEntryOut,
+    DocumentEntryUpdate,
+    DocumentTypeDefinitionCreate,
+    DocumentTypeDefinitionOut,
+    DocumentTypeDefinitionUpdate,
+    LoadDefaultsResponse,
 )
 from utils import gcs_storage
-from utils.document_structure import create_default_document_folders
-from utils.permission_dependencies import get_accessible_user_ids
-from utils.subscription import get_user_limits
+from utils.document_content import extract_searchable_text
+from utils.document_vault import (
+    build_search_text,
+    ensure_system_default_document_types,
+    load_missing_default_document_types,
+    seed_default_document_types,
+    slugify_template_key,
+    suggest_folder_label,
+)
 from utils.permissions import check_permission
-import logging
-import io
-from datetime import datetime
+from utils.subscription import get_user_limits
 
 logger = logging.getLogger(__name__)
 
@@ -28,672 +42,555 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# --- FOLDER ENDPOINTS ---
 
-@router.post("/folders", response_model=DocumentFolderOut, status_code=status.HTTP_201_CREATED)
-def create_folder(
-    folder: DocumentFolderCreate,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Create a new document folder.
-    """
-    # Validate parent folder if specified
-    if folder.parent_folder_id:
-        parent = db.query(models.DocumentFolder).filter(
-            models.DocumentFolder.id == folder.parent_folder_id,
-            models.DocumentFolder.owner_id == current_user.id
-        ).first()
-        if not parent:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Parent folder not found"
-            )
-    
-    # Create the folder
-    db_folder = models.DocumentFolder(
-        owner_id=current_user.id,
-        name=folder.name,
-        parent_folder_id=folder.parent_folder_id
+def _resolve_owner_id(
+    db: Session,
+    current_user: schemas.UserOut,
+    viewing_user_id: Optional[int],
+    required_permission: str = "view",
+) -> int:
+    if viewing_user_id in (None, current_user.id):
+        return current_user.id
+
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=viewing_user_id,
+        permission_type="document_vault",
+        required_permission=required_permission,
     )
-    db.add(db_folder)
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to this user's vault")
+    return viewing_user_id
+
+
+def _serialize_definition(definition: models.DocumentTypeDefinition) -> dict:
+    return {
+        "id": definition.id,
+        "owner_id": definition.owner_id,
+        "category": definition.category,
+        "doc_type": definition.doc_type,
+        "description": definition.description,
+        "fields_config": definition.fields_config or [],
+        "is_active": definition.is_active,
+        "is_system_default": definition.is_system_default,
+        "template_key": definition.template_key,
+        "created_at": definition.created_at,
+        "updated_at": definition.updated_at,
+    }
+
+
+def _serialize_entry(db: Session, entry: models.DocumentEntry) -> dict:
+    owner = db.query(models.User).filter(models.User.id == entry.owner_id).first()
+    return {
+        "id": entry.id,
+        "owner_id": entry.owner_id,
+        "owner_email": owner.email if owner else None,
+        "definition_id": entry.definition_id,
+        "category": entry.category,
+        "doc_type": entry.doc_type,
+        "title": entry.title,
+        "description": entry.description,
+        "notes": entry.notes,
+        "metadata_json": entry.metadata_json or {},
+        "folder_label": entry.folder_label,
+        "file_name": entry.file_name,
+        "file_type": entry.file_type,
+        "file_size": entry.file_size,
+        "storage_path": entry.storage_path,
+        "created_at": entry.created_at,
+        "updated_at": entry.updated_at,
+    }
+
+
+def _get_editable_definition(
+    db: Session,
+    definition_id: int,
+    current_user: schemas.UserOut,
+    allow_system_default: bool = False,
+) -> models.DocumentTypeDefinition:
+    definition = db.query(models.DocumentTypeDefinition).filter(
+        models.DocumentTypeDefinition.id == definition_id
+    ).first()
+    if not definition:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Definition not found")
+
+    if definition.is_system_default:
+        if not allow_system_default or not current_user.is_admin:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You cannot edit this definition")
+    else:
+        has_permission = check_permission(
+            db=db,
+            current_user_id=current_user.id,
+            primary_user_id=definition.owner_id,
+            permission_type="document_vault",
+            required_permission="edit",
+        )
+        if not has_permission:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You cannot edit this definition")
+
+    return definition
+
+
+def _validate_definition_for_owner(
+    db: Session,
+    definition_id: Optional[int],
+    owner_id: int,
+    current_user: schemas.UserOut,
+) -> Optional[models.DocumentTypeDefinition]:
+    if not definition_id:
+        return None
+
+    definition = db.query(models.DocumentTypeDefinition).filter(
+        models.DocumentTypeDefinition.id == definition_id
+    ).first()
+    if not definition:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Definition not found")
+
+    if definition.is_system_default:
+        if not current_user.is_admin:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please use a user-owned definition")
+        return definition
+
+    if definition.owner_id != owner_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Definition does not belong to this vault owner")
+
+    return definition
+
+
+def _refresh_search_vector(db: Session, entry: models.DocumentEntry) -> None:
+    search_text = build_search_text(
+        title=entry.title,
+        description=entry.description,
+        notes=entry.notes,
+        category=entry.category,
+        doc_type=entry.doc_type,
+        metadata_json=entry.metadata_json,
+        content_text=entry.content_text,
+    )
+    db.execute(
+        sa.text(
+            "UPDATE document_entries "
+            "SET search_vector = to_tsvector('simple', :search_text) "
+            "WHERE id = :entry_id"
+        ),
+        {"search_text": search_text, "entry_id": entry.id},
+    )
     db.commit()
-    db.refresh(db_folder)
-    
-    logger.info(f"Created folder {db_folder.id} for user {current_user.id}")
-    return db_folder
+    db.refresh(entry)
 
 
-@router.get("/folders", response_model=List[DocumentFolderOut])
-def list_folders(
-    parent_folder_id: Optional[int] = None,
+@router.get("/definitions", response_model=List[DocumentTypeDefinitionOut])
+def list_definitions(
     viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
 ):
-    """
-    List all folders the current user can access (own or authorized).
-    If parent_folder_id is specified, only return subfolders of that folder.
-    If viewing_user_id is specified, only return folders for that user (must have access).
-    If viewing_user_id is None, only return folders owned by the current user.
-    """
-    if viewing_user_id is None:
-        # When viewing own account, only show own folders
-        accessible_user_ids = [current_user.id]
-    else:
-        # Check if user has access to viewing_user_id
-        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
-        if viewing_user_id not in accessible_user_ids:
-            raise HTTPException(status_code=403, detail="You do not have access to view this user's documents")
-        accessible_user_ids = [viewing_user_id]
-    
-    query = db.query(models.DocumentFolder).filter(
-        models.DocumentFolder.owner_id.in_(accessible_user_ids)
-    )
-    
-    if parent_folder_id is not None:
-        query = query.filter(models.DocumentFolder.parent_folder_id == parent_folder_id)
-    else:
-        # If no parent specified, return root folders (parent_folder_id is None)
-        query = query.filter(models.DocumentFolder.parent_folder_id.is_(None))
-    
-    folders = query.order_by(models.DocumentFolder.name).all()
-    
-    # Add owner_email to each folder
-    result = []
-    for folder in folders:
-        owner = db.query(models.User).filter(models.User.id == folder.owner_id).first()
-        folder_dict = {
-            "id": folder.id,
-            "name": folder.name,
-            "parent_folder_id": folder.parent_folder_id,
-            "owner_id": folder.owner_id,
-            "owner_email": owner.email if owner else None,
-            "created_at": folder.created_at,
-            "updated_at": folder.updated_at,
-        }
-        result.append(folder_dict)
-    return result
+    owner_id = _resolve_owner_id(db, current_user, viewing_user_id, "view")
+    definitions = db.query(models.DocumentTypeDefinition).filter(
+        models.DocumentTypeDefinition.owner_id == owner_id
+    ).order_by(models.DocumentTypeDefinition.category.asc(), models.DocumentTypeDefinition.doc_type.asc()).all()
+    return [_serialize_definition(definition) for definition in definitions]
 
 
-@router.get("/folders/{folder_id}", response_model=DocumentFolderOut)
-def get_folder(
-    folder_id: int,
+@router.post("/definitions", response_model=DocumentTypeDefinitionOut, status_code=status.HTTP_201_CREATED)
+def create_definition(
+    payload: DocumentTypeDefinitionCreate,
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
 ):
-    """
-    Get a specific folder by ID (requires view permission).
-    """
-    folder = db.query(models.DocumentFolder).filter(
-        models.DocumentFolder.id == folder_id
-    ).first()
-    
-    if not folder:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Folder not found"
-        )
-    
-    # Check view permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=folder.owner_id,
-        permission_type="documents",
-        required_permission="view"
+    owner_id = _resolve_owner_id(db, current_user, viewing_user_id, "edit")
+    definition = models.DocumentTypeDefinition(
+        owner_id=owner_id,
+        category=payload.category.strip(),
+        doc_type=payload.doc_type.strip(),
+        description=payload.description,
+        fields_config=[field.model_dump() for field in payload.fields_config],
+        is_active=payload.is_active,
+        is_system_default=False,
+        template_key=None,
     )
-    
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view this folder"
-        )
-    
-    return folder
-
-
-@router.put("/folders/{folder_id}", response_model=DocumentFolderOut)
-def update_folder(
-    folder_id: int,
-    folder_update: DocumentFolderUpdate,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Update a folder's name or parent folder.
-    """
-    folder = db.query(models.DocumentFolder).filter(
-        models.DocumentFolder.id == folder_id,
-        models.DocumentFolder.owner_id == current_user.id
-    ).first()
-    
-    if not folder:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Folder not found"
-        )
-    
-    # Validate parent folder if being changed
-    if folder_update.parent_folder_id is not None:
-        if folder_update.parent_folder_id == folder_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A folder cannot be its own parent"
-            )
-        parent = db.query(models.DocumentFolder).filter(
-            models.DocumentFolder.id == folder_update.parent_folder_id,
-            models.DocumentFolder.owner_id == current_user.id
-        ).first()
-        if not parent:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Parent folder not found"
-            )
-    
-    # Update fields
-    if folder_update.name is not None:
-        folder.name = folder_update.name
-    if folder_update.parent_folder_id is not None:
-        folder.parent_folder_id = folder_update.parent_folder_id
-    
+    db.add(definition)
     db.commit()
-    db.refresh(folder)
-    
-    logger.info(f"Updated folder {folder_id} for user {current_user.id}")
-    return folder
+    db.refresh(definition)
+    return _serialize_definition(definition)
 
 
-@router.delete("/folders/{folder_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_folder(
-    folder_id: int,
+@router.put("/definitions/{definition_id}", response_model=DocumentTypeDefinitionOut)
+def update_definition(
+    definition_id: int,
+    payload: DocumentTypeDefinitionUpdate,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
 ):
-    """
-    Delete a folder and all its contents (subfolders and documents) - requires edit permission.
-    """
-    folder = db.query(models.DocumentFolder).filter(
-        models.DocumentFolder.id == folder_id
-    ).first()
-    
-    if not folder:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Folder not found"
-        )
-    
-    # Check edit permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=folder.owner_id,
-        permission_type="documents",
-        required_permission="edit"
-    )
-    
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete this folder"
-        )
-    
-    # Prevent deletion if there are any subfolders (including nested) or documents
-    subfolders_stmt = sa.text("""
-        WITH RECURSIVE descendants AS (
-            SELECT id FROM document_folders WHERE parent_folder_id = :folder_id
-            UNION ALL
-            SELECT df.id FROM document_folders df
-            JOIN descendants d ON df.parent_folder_id = d.id
-        )
-        SELECT EXISTS(SELECT 1 FROM descendants)
-    """)
+    definition = _get_editable_definition(db, definition_id, current_user, allow_system_default=False)
 
-    has_subfolders_result = db.execute(subfolders_stmt, {"folder_id": folder_id}).scalar()
-    has_subfolders = bool(has_subfolders_result)
+    if payload.category is not None:
+        definition.category = payload.category.strip()
+    if payload.doc_type is not None:
+        definition.doc_type = payload.doc_type.strip()
+    if payload.description is not None:
+        definition.description = payload.description
+    if payload.fields_config is not None:
+        definition.fields_config = [field.model_dump() for field in payload.fields_config]
+    if payload.is_active is not None:
+        definition.is_active = payload.is_active
 
-    documents_stmt = sa.text("""
-        WITH RECURSIVE folder_tree AS (
-            SELECT id FROM document_folders WHERE id = :folder_id
-            UNION ALL
-            SELECT df.id FROM document_folders df
-            JOIN folder_tree ft ON df.parent_folder_id = ft.id
-        )
-        SELECT EXISTS(
-            SELECT 1 FROM documents WHERE folder_id IN (SELECT id FROM folder_tree)
-        )
-    """)
-
-    has_documents_result = db.execute(documents_stmt, {"folder_id": folder_id}).scalar()
-    has_documents = bool(has_documents_result)
-
-    if has_subfolders or has_documents:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Folder must be empty before it can be deleted."
-        )
-
-    # Delete all documents in this folder from GCS
-    documents = db.query(models.Document).filter(
-        models.Document.folder_id == folder_id
-    ).all()
-    
-    for doc in documents:
-        try:
-            gcs_storage.delete_file(doc.gcs_path)
-        except Exception as e:
-            logger.error(f"Failed to delete document {doc.id} from GCS: {str(e)}")
-    
-    # Delete the folder (cascade will handle subfolders and documents in DB)
-    db.delete(folder)
     db.commit()
-    
-    logger.info(f"Deleted folder {folder_id} for user {current_user.id}")
+    db.refresh(definition)
+    return _serialize_definition(definition)
+
+
+@router.delete("/definitions/{definition_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_definition(
+    definition_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+):
+    definition = _get_editable_definition(db, definition_id, current_user, allow_system_default=False)
+    db.delete(definition)
+    db.commit()
     return None
 
 
-@router.post("/default-folders", status_code=status.HTTP_200_OK)
-def add_default_folders(
+@router.post("/definitions/load-recommended-defaults", response_model=LoadDefaultsResponse)
+def load_recommended_defaults(
+    viewing_user_id: Optional[int] = None,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
 ):
-    """
-    Ensure the default Document Vault folder hierarchy exists for the current user.
-    Creates any missing folders without removing or overwriting existing ones.
-    """
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=current_user.id,
-        permission_type="documents",
-        required_permission="edit"
+    owner_id = _resolve_owner_id(db, current_user, viewing_user_id, "edit")
+    created = load_missing_default_document_types(db, owner_id)
+    message = "Recommended defaults loaded." if created else "All recommended defaults already exist."
+    return {"created": created, "message": message}
+
+
+@router.get("/default-definitions", response_model=List[DocumentTypeDefinitionOut])
+def list_default_definitions(
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_admin_user),
+):
+    definitions = db.query(models.DocumentTypeDefinition).filter(
+        models.DocumentTypeDefinition.is_system_default.is_(True),
+        models.DocumentTypeDefinition.is_active.is_(True),
+    ).order_by(models.DocumentTypeDefinition.category.asc(), models.DocumentTypeDefinition.doc_type.asc()).all()
+    return [_serialize_definition(definition) for definition in definitions]
+
+
+@router.post("/default-definitions", response_model=DocumentTypeDefinitionOut, status_code=status.HTTP_201_CREATED)
+def create_default_definition(
+    payload: DocumentTypeDefinitionCreate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_admin_user),
+):
+    definition = models.DocumentTypeDefinition(
+        owner_id=None,
+        category=payload.category.strip(),
+        doc_type=payload.doc_type.strip(),
+        description=payload.description,
+        fields_config=[field.model_dump() for field in payload.fields_config],
+        is_active=payload.is_active,
+        is_system_default=True,
+        template_key=slugify_template_key(payload.category, payload.doc_type),
     )
-
-    if not has_permission:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to modify this user's documents")
-
-    created = create_default_document_folders(db, current_user.id)
-    message = "Default folders created." if created else "All default folders already exist."
-    return {"message": message, "created": created}
+    db.add(definition)
+    db.commit()
+    db.refresh(definition)
+    return _serialize_definition(definition)
 
 
-# --- DOCUMENT ENDPOINTS ---
-
-@router.post("/upload", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
-async def upload_document(
-    file: UploadFile = File(...),
-    name: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    folder_id: Optional[int] = Form(None),
+@router.put("/default-definitions/{definition_id}", response_model=DocumentTypeDefinitionOut)
+def update_default_definition(
+    definition_id: int,
+    payload: DocumentTypeDefinitionUpdate,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_admin_user),
 ):
-    """
-    Upload a new document to GCS and create a database record.
-    """
+    definition = _get_editable_definition(db, definition_id, current_user, allow_system_default=True)
+    if payload.category is not None:
+        definition.category = payload.category.strip()
+    if payload.doc_type is not None:
+        definition.doc_type = payload.doc_type.strip()
+    if payload.description is not None:
+        definition.description = payload.description
+    if payload.fields_config is not None:
+        definition.fields_config = [field.model_dump() for field in payload.fields_config]
+    if payload.is_active is not None:
+        definition.is_active = payload.is_active
+    # Preserve the original template key so admin renames/merges
+    # don't cause the code-defined default to be recreated later.
+    if not definition.template_key:
+        definition.template_key = slugify_template_key(definition.category, definition.doc_type)
+    db.commit()
+    db.refresh(definition)
+    return _serialize_definition(definition)
+
+
+@router.delete("/default-definitions/{definition_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_default_definition(
+    definition_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_admin_user),
+):
+    definition = _get_editable_definition(db, definition_id, current_user, allow_system_default=True)
+    # Soft-delete system defaults so they stay hidden from users
+    # without being silently recreated from the built-in defaults list.
+    definition.is_active = False
+    db.commit()
+    return None
+
+
+@router.get("/entries", response_model=List[DocumentEntryOut])
+def list_entries(
+    viewing_user_id: Optional[int] = None,
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    doc_type: Optional[str] = None,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+):
+    owner_id = _resolve_owner_id(db, current_user, viewing_user_id, "view")
+    query = db.query(models.DocumentEntry).filter(models.DocumentEntry.owner_id == owner_id)
+
+    if category:
+        query = query.filter(models.DocumentEntry.category == category)
+    if doc_type:
+        query = query.filter(models.DocumentEntry.doc_type == doc_type)
+    if search:
+        like_term = f"%{search.strip()}%"
+        query = query.filter(
+            sa.or_(
+                models.DocumentEntry.title.ilike(like_term),
+                models.DocumentEntry.description.ilike(like_term),
+                models.DocumentEntry.notes.ilike(like_term),
+                models.DocumentEntry.category.ilike(like_term),
+                models.DocumentEntry.doc_type.ilike(like_term),
+                sa.cast(models.DocumentEntry.metadata_json, sa.Text).ilike(like_term),
+                models.DocumentEntry.content_text.ilike(like_term),
+                sa.text("document_entries.search_vector @@ websearch_to_tsquery('simple', :search_query)"),
+            )
+        ).params(search_query=search.strip())
+        query = query.order_by(sa.text("ts_rank(document_entries.search_vector, websearch_to_tsquery('simple', :search_query)) DESC")).params(search_query=search.strip())
+    else:
+        query = query.order_by(models.DocumentEntry.created_at.desc())
+
+    entries = query.all()
+    return [_serialize_entry(db, entry) for entry in entries]
+
+
+@router.post("/entries", response_model=DocumentEntryOut, status_code=status.HTTP_201_CREATED)
+async def create_entry(
+    title: str = Form(...),
+    category: str = Form(...),
+    doc_type: str = Form(...),
+    description: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    definition_id: Optional[int] = Form(None),
+    folder_label: Optional[str] = Form(None),
+    metadata_json: Optional[str] = Form(None),
+    viewing_user_id: Optional[int] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+):
+    owner_id = _resolve_owner_id(db, current_user, viewing_user_id, "edit")
     limits = get_user_limits(db, current_user)
     if limits["is_limited"] and limits["max_documents"] is not None:
-        existing_count = db.query(models.Document).filter(
-            models.Document.owner_id == current_user.id
-        ).count()
+        existing_count = db.query(models.DocumentEntry).filter(models.DocumentEntry.owner_id == owner_id).count()
         if existing_count >= limits["max_documents"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Free plan supports up to {limits['max_documents']} documents."
+                detail=f"Free plan supports up to {limits['max_documents']} document vault entries.",
             )
 
-    # Validate folder if specified
-    if folder_id:
-        folder = db.query(models.DocumentFolder).filter(
-            models.DocumentFolder.id == folder_id,
-            models.DocumentFolder.owner_id == current_user.id
-        ).first()
-        if not folder:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Folder not found"
-            )
-    
-    # Use provided name or original filename
-    doc_name = name if name else file.filename
-    
-    # Generate GCS path: user_id/folder_id/timestamp_filename
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    folder_path = f"{folder_id}" if folder_id else "root"
-    gcs_path = f"user_{current_user.id}/{folder_path}/{timestamp}_{file.filename}"
-    
-    try:
-        # Read file content
+    definition = _validate_definition_for_owner(db, definition_id, owner_id, current_user)
+    if definition:
+        category = definition.category
+        doc_type = definition.doc_type
+
+    parsed_metadata = {}
+    if metadata_json:
+        try:
+            parsed_metadata = json.loads(metadata_json)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid metadata JSON: {exc}") from exc
+
+    storage_path = None
+    file_name = None
+    file_type = None
+    file_size = None
+    content_text = ""
+    file_content = None
+
+    if file is not None:
         file_content = await file.read()
         file_size = len(file_content)
-        
-        # Upload to GCS
-        gcs_storage.upload_file(
-            io.BytesIO(file_content),
-            gcs_path,
-            file.content_type
-        )
-        
-        # Create database record
-        db_document = models.Document(
-            owner_id=current_user.id,
-            folder_id=folder_id,
-            name=doc_name,
-            description=description,
-            file_type=file.content_type,
-            file_size=file_size,
-            gcs_path=gcs_path
-        )
-        db.add(db_document)
-        db.commit()
-        db.refresh(db_document)
-        
-        logger.info(f"Uploaded document {db_document.id} for user {current_user.id}")
-        return db_document
-        
-    except Exception as e:
-        logger.error(f"Failed to upload document: {str(e)}")
-        # Try to clean up GCS if DB insert failed
-        try:
-            gcs_storage.delete_file(gcs_path)
-        except:
-            pass
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to upload document: {str(e)}"
-        )
+        file_name = file.filename
+        file_type = file.content_type
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        storage_path = f"vault/user_{owner_id}/{timestamp}_{file.filename}"
+        gcs_storage.upload_file(io.BytesIO(file_content), storage_path, file.content_type)
+        content_text = extract_searchable_text(file_content, file.content_type, file.filename)
 
-
-@router.get("/", response_model=List[DocumentOut])
-def list_documents(
-    folder_id: Optional[int] = None,
-    viewing_user_id: Optional[int] = None,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    List all documents the current user can access (own or authorized).
-    If folder_id is specified, only return documents in that folder.
-    If viewing_user_id is specified, only return documents for that user (must have access).
-    If viewing_user_id is None, only return documents owned by the current user.
-    """
-    if viewing_user_id is None:
-        # When viewing own account, only show own documents
-        accessible_user_ids = [current_user.id]
-    else:
-        # Check if user has access to viewing_user_id
-        accessible_user_ids = get_accessible_user_ids(db, current_user.id, "documents")
-        if viewing_user_id not in accessible_user_ids:
-            raise HTTPException(status_code=403, detail="You do not have access to view this user's documents")
-        accessible_user_ids = [viewing_user_id]
-    query = db.query(models.Document).filter(
-        models.Document.owner_id.in_(accessible_user_ids)
+    entry = models.DocumentEntry(
+        owner_id=owner_id,
+        definition_id=definition.id if definition else None,
+        category=category.strip(),
+        doc_type=doc_type.strip(),
+        title=title.strip(),
+        description=description,
+        notes=notes,
+        metadata_json=parsed_metadata,
+        folder_label=folder_label or suggest_folder_label(category, doc_type),
+        file_name=file_name,
+        file_type=file_type,
+        file_size=file_size,
+        storage_path=storage_path,
+        content_text=content_text,
     )
-    
-    if folder_id is not None:
-        query = query.filter(models.Document.folder_id == folder_id)
-    else:
-        # If no folder specified, return root documents (folder_id is None)
-        query = query.filter(models.Document.folder_id.is_(None))
-    
-    documents = query.order_by(models.Document.created_at.desc()).all()
-    
-    # Add owner_email to each document
-    result = []
-    for doc in documents:
-        owner = db.query(models.User).filter(models.User.id == doc.owner_id).first()
-        doc_dict = {
-            "id": doc.id,
-            "name": doc.name,
-            "description": doc.description,
-            "folder_id": doc.folder_id,
-            "owner_id": doc.owner_id,
-            "owner_email": owner.email if owner else None,
-            "file_type": doc.file_type,
-            "file_size": doc.file_size,
-            "gcs_path": doc.gcs_path,
-            "created_at": doc.created_at,
-            "updated_at": doc.updated_at,
-        }
-        result.append(doc_dict)
-    return result
-
-
-@router.get("/{document_id}", response_model=DocumentOut)
-def get_document(
-    document_id: int,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Get a specific document by ID (requires view permission).
-    """
-    document = db.query(models.Document).filter(models.Document.id == document_id).first()
-    
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
-        )
-    
-    # Check view permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=document.owner_id,
-        permission_type="documents",
-        required_permission="view"
-    )
-    
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view this document"
-        )
-    
-    return document
-
-
-@router.get("/{document_id}/download")
-async def download_document(
-    document_id: int,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Download a document from GCS (requires view permission).
-    """
-    document = db.query(models.Document).filter(models.Document.id == document_id).first()
-    
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
-        )
-    
-    # Check view permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=document.owner_id,
-        permission_type="documents",
-        required_permission="view"
-    )
-    
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to download this document"
-        )
-    
-    try:
-        # Download from GCS
-        file_content = gcs_storage.download_file(document.gcs_path)
-        
-        # Return as streaming response
-        return StreamingResponse(
-            io.BytesIO(file_content),
-            media_type=document.file_type or "application/octet-stream",
-            headers={
-                "Content-Disposition": f'attachment; filename="{document.name}"'
-            }
-        )
-    except Exception as e:
-        logger.error(f"Failed to download document {document_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to download document: {str(e)}"
-        )
-
-
-@router.get("/{document_id}/url")
-def get_document_url(
-    document_id: int,
-    expiration_minutes: int = 60,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Get a signed URL for temporary access to a document (requires view permission).
-    """
-    document = db.query(models.Document).filter(models.Document.id == document_id).first()
-    
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
-        )
-    
-    # Check view permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=document.owner_id,
-        permission_type="documents",
-        required_permission="view"
-    )
-    
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to access this document"
-        )
-    
-    try:
-        url = gcs_storage.generate_signed_url(document.gcs_path, expiration_minutes)
-        return {"url": url, "expires_in_minutes": expiration_minutes}
-    except Exception as e:
-        logger.error(f"Failed to generate URL for document {document_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate document URL: {str(e)}"
-        )
-
-
-@router.put("/{document_id}", response_model=DocumentOut)
-def update_document(
-    document_id: int,
-    document_update: DocumentUpdate,
-    db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
-):
-    """
-    Update a document's metadata (name, description, folder) - requires edit permission.
-    """
-    document = db.query(models.Document).filter(models.Document.id == document_id).first()
-    
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
-        )
-    
-    # Check edit permission
-    has_permission = check_permission(
-        db=db,
-        current_user_id=current_user.id,
-        primary_user_id=document.owner_id,
-        permission_type="documents",
-        required_permission="edit"
-    )
-    
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to edit this document"
-        )
-    
-    # Validate folder if being changed
-    if document_update.folder_id is not None:
-        folder = db.query(models.DocumentFolder).filter(
-            models.DocumentFolder.id == document_update.folder_id,
-            models.DocumentFolder.owner_id == current_user.id
-        ).first()
-        if not folder:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Folder not found"
-            )
-    
-    # Update fields
-    if document_update.name is not None:
-        document.name = document_update.name
-    if document_update.description is not None:
-        document.description = document_update.description
-    if document_update.folder_id is not None:
-        document.folder_id = document_update.folder_id
-    
+    db.add(entry)
     db.commit()
-    db.refresh(document)
-    
-    logger.info(f"Updated document {document_id} for user {current_user.id}")
-    return document
+    db.refresh(entry)
+    _refresh_search_vector(db, entry)
+    return _serialize_entry(db, entry)
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_document(
-    document_id: int,
+@router.get("/entries/{entry_id}", response_model=DocumentEntryOut)
+def get_entry(
+    entry_id: int,
     db: Session = Depends(database.get_db),
-    current_user: schemas.UserOut = Depends(auth.get_current_user)
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
 ):
-    """
-    Delete a document from both the database and GCS (requires edit permission).
-    """
-    document = db.query(models.Document).filter(models.Document.id == document_id).first()
-    
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
-        )
-    
-    # Check edit permission
+    entry = db.query(models.DocumentEntry).filter(models.DocumentEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vault entry not found")
     has_permission = check_permission(
         db=db,
         current_user_id=current_user.id,
-        primary_user_id=document.owner_id,
-        permission_type="documents",
-        required_permission="edit"
+        primary_user_id=entry.owner_id,
+        permission_type="document_vault",
+        required_permission="view",
     )
-    
     if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete this document"
-        )
-    
-    # Delete from GCS
-    try:
-        gcs_storage.delete_file(document.gcs_path)
-    except Exception as e:
-        logger.error(f"Failed to delete document from GCS: {str(e)}")
-        # Continue with DB deletion even if GCS deletion fails
-    
-    # Delete from database
-    db.delete(document)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this vault entry")
+    return _serialize_entry(db, entry)
+
+
+@router.put("/entries/{entry_id}", response_model=DocumentEntryOut)
+def update_entry(
+    entry_id: int,
+    payload: DocumentEntryUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+):
+    entry = db.query(models.DocumentEntry).filter(models.DocumentEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vault entry not found")
+
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=entry.owner_id,
+        permission_type="document_vault",
+        required_permission="edit",
+    )
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to edit this vault entry")
+
+    definition = _validate_definition_for_owner(db, payload.definition_id, entry.owner_id, current_user) if payload.definition_id else None
+    if definition:
+        entry.definition_id = definition.id
+        entry.category = definition.category
+        entry.doc_type = definition.doc_type
+    elif payload.definition_id is not None:
+        entry.definition_id = None
+
+    if payload.category is not None and not definition:
+        entry.category = payload.category.strip()
+    if payload.doc_type is not None and not definition:
+        entry.doc_type = payload.doc_type.strip()
+    if payload.title is not None:
+        entry.title = payload.title.strip()
+    if payload.description is not None:
+        entry.description = payload.description
+    if payload.notes is not None:
+        entry.notes = payload.notes
+    if payload.metadata_json is not None:
+        entry.metadata_json = payload.metadata_json
+    if payload.folder_label is not None:
+        entry.folder_label = payload.folder_label or suggest_folder_label(entry.category, entry.doc_type)
+
     db.commit()
-    
-    logger.info(f"Deleted document {document_id} for user {current_user.id}")
+    db.refresh(entry)
+    _refresh_search_vector(db, entry)
+    return _serialize_entry(db, entry)
+
+
+@router.delete("/entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_entry(
+    entry_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+):
+    entry = db.query(models.DocumentEntry).filter(models.DocumentEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vault entry not found")
+
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=entry.owner_id,
+        permission_type="document_vault",
+        required_permission="edit",
+    )
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to delete this vault entry")
+
+    if entry.storage_path:
+        gcs_storage.delete_file(entry.storage_path)
+
+    db.delete(entry)
+    db.commit()
     return None
+
+
+@router.get("/entries/{entry_id}/download")
+async def download_entry_file(
+    entry_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+):
+    entry = db.query(models.DocumentEntry).filter(models.DocumentEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vault entry not found")
+    if not entry.storage_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No file is attached to this vault entry")
+
+    has_permission = check_permission(
+        db=db,
+        current_user_id=current_user.id,
+        primary_user_id=entry.owner_id,
+        permission_type="document_vault",
+        required_permission="view",
+    )
+    if not has_permission:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to download this file")
+
+    file_content = gcs_storage.download_file(entry.storage_path)
+    return StreamingResponse(
+        io.BytesIO(file_content),
+        media_type=entry.file_type or "application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{entry.file_name or entry.title}"'},
+    )
+
+
+@router.post("/bootstrap-defaults", response_model=LoadDefaultsResponse)
+def bootstrap_current_user_defaults(
+    db: Session = Depends(database.get_db),
+    current_user: schemas.UserOut = Depends(auth.get_current_admin_user),
+):
+    ensure_system_default_document_types(db)
+    created = seed_default_document_types(db, current_user.id)
+    return {"created": created, "message": "Recommended defaults bootstrapped."}
 

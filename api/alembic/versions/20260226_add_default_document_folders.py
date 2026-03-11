@@ -9,7 +9,17 @@ from alembic import op
 import sqlalchemy as sa
 import json
 
-from utils.document_folder_defaults import DEFAULT_DOCUMENT_FOLDER_STRUCTURE
+DEFAULT_DOCUMENT_FOLDER_STRUCTURE = [
+    {"name": "IDs & Vital Records", "children": []},
+    {"name": "Digital Assets", "children": []},
+    {"name": "Home & Property", "children": []},
+    {"name": "Financial Records", "children": []},
+    {"name": "Legal Documents", "children": []},
+    {"name": "Health Records", "children": []},
+    {"name": "Contacts", "children": []},
+    {"name": "Aging & Care Planning", "children": []},
+    {"name": "Legacy Planning", "children": []},
+]
 
 # revision identifiers, used by Alembic.
 revision = "20260226_add_doc_folders"

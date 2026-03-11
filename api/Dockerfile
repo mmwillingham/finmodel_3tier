@@ -12,11 +12,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app/api
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /wheels /wheels_cache/
 COPY requirements.txt .
 RUN pip install --no-cache-dir --no-index --find-links=/wheels_cache/ -r requirements.txt \
     && rm -rf /wheels_cache/
 
-    COPY . /app/api
+COPY . /app/api
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

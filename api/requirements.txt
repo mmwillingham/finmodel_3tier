@@ -29,6 +29,7 @@ oauthlib
 packaging
 pandas
 passlib
+pillow
 pydantic
 pg8000 # NEW: PostgreSQL driver for Cloud SQL Connector
 alembic # NEW: For database migrations
@@ -38,9 +39,11 @@ pydantic-settings
 PyJWT
 PyNaCl
 pyOpenSSL
+pytesseract
 python-dotenv
 python-jose
 python-multipart
+PyMuPDF
 requests
 requests-oauthlib
 resolvelib

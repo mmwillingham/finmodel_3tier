@@ -1,5 +1,6 @@
 from copy import deepcopy
 from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, JSON, UniqueConstraint, Text
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -473,6 +474,55 @@ class Referral(Base):
     
     referrer = relationship("User", foreign_keys=[referrer_id], back_populates="referrals")
     registered_user = relationship("User", foreign_keys=[registered_user_id])
+
+
+class DocumentTypeDefinition(Base):
+    """
+    User-owned document type definition for the structured vault.
+    System defaults use owner_id=None and is_system_default=True.
+    """
+    __tablename__ = "document_type_definitions"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    category = Column(String, nullable=False, index=True)
+    doc_type = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    fields_config = Column(JSONB, nullable=False, default=list)
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_system_default = Column(Boolean, default=False, nullable=False)
+    template_key = Column(String, nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    owner = relationship("User")
+
+
+class DocumentEntry(Base):
+    """
+    Structured document vault entry with optional uploaded file.
+    """
+    __tablename__ = "document_entries"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    definition_id = Column(Integer, ForeignKey("document_type_definitions.id", ondelete="SET NULL"), nullable=True)
+    category = Column(String, nullable=False, index=True)
+    doc_type = Column(String, nullable=False, index=True)
+    title = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+    metadata_json = Column(JSONB, nullable=False, default=dict)
+    folder_label = Column(String, nullable=True)
+    file_name = Column(String, nullable=True)
+    file_type = Column(String, nullable=True)
+    file_size = Column(Integer, nullable=True)
+    storage_path = Column(String, nullable=True)
+    content_text = Column(Text, nullable=True)
+    search_vector = Column(TSVECTOR, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    owner = relationship("User")
+    definition = relationship("DocumentTypeDefinition")
 
 
 class DocumentFolder(Base):

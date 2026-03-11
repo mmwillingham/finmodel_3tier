@@ -583,7 +583,8 @@ def get_default_categories(
         asset_categories=global_settings.asset_categories,
         liability_categories=global_settings.liability_categories,
         income_categories=global_settings.income_categories,
-        expense_categories=global_settings.expense_categories
+        expense_categories=global_settings.expense_categories,
+        default_document_folders=global_settings.default_document_folders,
     )
 
 @router.post("/load-default-categories", response_model=schemas.UserSettingsOut)
