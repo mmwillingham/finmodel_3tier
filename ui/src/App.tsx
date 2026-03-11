@@ -64,7 +64,12 @@ const App: React.FC = () => {
 
   return (
     <BackendProvider>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         {showSandboxGate && <SandboxGate onProceed={handleProceed} />}
         <AuthProvider>
           <SettingsProvider>

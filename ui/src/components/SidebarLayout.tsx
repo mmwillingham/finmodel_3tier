@@ -863,6 +863,17 @@ export default function SidebarLayout() {
     }
   };
 
+  const handleDocumentVaultNav = (event: any) => {
+    event.preventDefault();
+    handleNavSelection();
+    navigate('/documents', {
+      state: {
+        ...(location.state || {}),
+        documentVaultResetAt: Date.now(),
+      },
+    });
+  };
+
   const applyDashboardState = (state: any) => {
     if (!state?.dashboardView) {
       return;
@@ -961,7 +972,7 @@ export default function SidebarLayout() {
             <NavLink
               to="/documents"
               className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}
-              onClick={handleNavSelection}
+              onClick={handleDocumentVaultNav}
               data-tour-id="nav-document-vault"
             >
               Document Vault
