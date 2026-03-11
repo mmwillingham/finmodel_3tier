@@ -42,6 +42,13 @@ type FolderStructureItem = {
   children?: FolderStructureItem[];
 };
 
+type ConfirmDialogState = {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  onConfirm: () => Promise<void> | void;
+};
+
 const EMPTY_FIELD: DocumentFieldConfig = {
   id: '',
   label: '',
@@ -132,6 +139,9 @@ const DocumentVaultPage = ({
   const [selectedBrowseDocType, setSelectedBrowseDocType] = useState('');
   const [visibleSensitiveFields, setVisibleSensitiveFields] = useState<Record<string, boolean>>({});
   const [visibleSensitiveModalFields, setVisibleSensitiveModalFields] = useState<Record<string, boolean>>({});
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const [confirmDialogLoading, setConfirmDialogLoading] = useState(false);
+  const [entrySubmitAttempted, setEntrySubmitAttempted] = useState(false);
   const [saveEntryAsDefinition, setSaveEntryAsDefinition] = useState(false);
   const [entryDraft, setEntryDraft] = useState<EntryDraft>(EMPTY_ENTRY);
   const [definitionDraft, setDefinitionDraft] = useState<DefinitionDraft>(EMPTY_DEFINITION);
@@ -472,6 +482,7 @@ const DocumentVaultPage = ({
   const resetEntryModal = () => {
     setEntryDraft(EMPTY_ENTRY);
     setVisibleSensitiveModalFields({});
+    setEntrySubmitAttempted(false);
     setSaveEntryAsDefinition(false);
     setShowEntryModal(false);
   };
@@ -511,6 +522,7 @@ const DocumentVaultPage = ({
     setMessage('');
     setError('');
     setVisibleSensitiveModalFields({});
+    setEntrySubmitAttempted(false);
     const matchingDefinition =
       category && docType
         ? definitions.find((definition) => definition.category === category && definition.doc_type === docType) || null
@@ -530,6 +542,7 @@ const DocumentVaultPage = ({
     setMessage('');
     setError('');
     setVisibleSensitiveModalFields({});
+    setEntrySubmitAttempted(false);
     const matchingDefinition =
       definitions.find((definition) => definition.id === entry.definition_id) ||
       definitions.find((definition) => definition.category === entry.category && definition.doc_type === entry.doc_type) ||
@@ -603,6 +616,30 @@ const DocumentVaultPage = ({
 
   const closeManageTypesModal = () => {
     setShowManageTypesModal(false);
+  };
+
+  const openConfirmDialog = (dialog: ConfirmDialogState) => {
+    setConfirmDialog(dialog);
+  };
+
+  const closeConfirmDialog = () => {
+    if (confirmDialogLoading) {
+      return;
+    }
+    setConfirmDialog(null);
+  };
+
+  const handleConfirmDialog = async () => {
+    if (!confirmDialog) {
+      return;
+    }
+    setConfirmDialogLoading(true);
+    try {
+      await confirmDialog.onConfirm();
+      setConfirmDialog(null);
+    } finally {
+      setConfirmDialogLoading(false);
+    }
   };
 
   const handleRenameCategory = async (category: string) => {
@@ -691,15 +728,6 @@ const DocumentVaultPage = ({
       ? defaultDefinitions.filter((definition) => definition.category === category)
       : definitions.filter((definition) => definition.category === category);
     const matchingEntries = adminPortal ? [] : entries.filter((entry) => entry.category === category);
-
-    const confirmMessage =
-      matchingDefinitions.length || matchingEntries.length
-        ? `Delete category "${category}" and everything inside it? This will permanently delete ${matchingDefinitions.length} document type(s) and ${matchingEntries.length} vault entr${matchingEntries.length === 1 ? 'y' : 'ies'}.`
-        : `Delete empty category "${category}"?`;
-
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
 
     setError('');
     try {
@@ -871,9 +899,6 @@ const DocumentVaultPage = ({
   };
 
   const handleDeleteDefinition = async (definition: DocumentTypeDefinition, isDefault: boolean) => {
-    if (!window.confirm(`Delete "${definition.doc_type}"?`)) {
-      return;
-    }
     setError('');
     try {
       if (isDefault) {
@@ -890,6 +915,7 @@ const DocumentVaultPage = ({
   };
 
   const handleSaveEntry = async () => {
+    setEntrySubmitAttempted(true);
     const trimmedTitle = entryDraft.title.trim();
     const trimmedCategory = entryDraft.category.trim();
     const trimmedDocType = entryDraft.docType.trim();
@@ -988,9 +1014,6 @@ const DocumentVaultPage = ({
   };
 
   const handleDeleteEntry = async (entry: DocumentEntry) => {
-    if (!window.confirm(`Delete "${entry.title}"?`)) {
-      return;
-    }
     setError('');
     try {
       await DocumentsService.deleteEntry(entry.id);
@@ -1323,7 +1346,18 @@ const DocumentVaultPage = ({
               >
                 ✏️
               </button>
-              <button onClick={() => void handleDeleteDefinition(definition, isDefault)} className="btn-icon" title="Delete">
+              <button
+                onClick={() =>
+                  openConfirmDialog({
+                    title: isDefault ? 'Delete Recommended Default' : 'Delete Document Type',
+                    message: `Delete "${definition.doc_type}"?`,
+                    confirmLabel: 'Delete',
+                    onConfirm: () => handleDeleteDefinition(definition, isDefault),
+                  })
+                }
+                className="btn-icon"
+                title="Delete"
+              >
                 🗑️
               </button>
             </td>
@@ -1788,7 +1822,18 @@ const DocumentVaultPage = ({
                                   <button onClick={() => openEditEntry(entry)} className="btn-icon" title="Edit">
                                     ✏️
                                   </button>
-                                  <button onClick={() => void handleDeleteEntry(entry)} className="btn-icon" title="Delete">
+                                  <button
+                                    onClick={() =>
+                                      openConfirmDialog({
+                                        title: 'Delete Record',
+                                        message: `Delete "${entry.title}"?`,
+                                        confirmLabel: 'Delete',
+                                        onConfirm: () => handleDeleteEntry(entry),
+                                      })
+                                    }
+                                    className="btn-icon"
+                                    title="Delete"
+                                  >
                                     🗑️
                                   </button>
                                 </div>
@@ -1935,9 +1980,6 @@ const DocumentVaultPage = ({
                 />
               )}
               <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px' }}>
-                  Title *
-                </label>
                 <input
                   className="form-input"
                   autoComplete="off"
@@ -1948,6 +1990,9 @@ const DocumentVaultPage = ({
                   placeholder="Title"
                   style={{ marginBottom: 0 }}
                 />
+                {entrySubmitAttempted && !entryDraft.title.trim() && (
+                  <div className="vault-helper-text vault-helper-text-error">Title is required.</div>
+                )}
               </div>
               <select
                 className="form-input"
@@ -1996,17 +2041,6 @@ const DocumentVaultPage = ({
               </div>
             )}
 
-            <textarea
-              className="form-input"
-              autoComplete="off"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              rows={2}
-              value={entryDraft.description}
-              onChange={(event) => setEntryDraft((current) => ({ ...current, description: event.target.value }))}
-              placeholder="Description"
-              style={{ marginTop: '12px' }}
-            />
             <textarea
               className="form-input"
               autoComplete="off"
@@ -2153,7 +2187,18 @@ const DocumentVaultPage = ({
                       <button
                         type="button"
                         className="btn-secondary"
-                        onClick={() => void handleDeleteCategory(item.category)}
+                        onClick={() => {
+                          const confirmMessage =
+                            item.definitionCount || item.entryCount
+                              ? `Delete category "${item.category}" and everything inside it? This will permanently delete ${item.definitionCount} document type(s) and ${item.entryCount} vault entr${item.entryCount === 1 ? 'y' : 'ies'}.`
+                              : `Delete empty category "${item.category}"?`;
+                          openConfirmDialog({
+                            title: 'Delete Category',
+                            message: confirmMessage,
+                            confirmLabel: 'Delete',
+                            onConfirm: () => handleDeleteCategory(item.category),
+                          });
+                        }}
                         title={
                           item.definitionCount > 0 || item.entryCount > 0
                             ? 'Delete this category and everything inside it.'
@@ -2235,7 +2280,14 @@ const DocumentVaultPage = ({
                         <button
                           type="button"
                           className="btn-icon"
-                          onClick={() => void handleDeleteDefinition(definition, false)}
+                          onClick={() =>
+                            openConfirmDialog({
+                              title: 'Delete Document Type',
+                              message: `Delete "${definition.doc_type}"?`,
+                              confirmLabel: 'Delete',
+                              onConfirm: () => handleDeleteDefinition(definition, false),
+                            })
+                          }
                           title="Delete document type"
                         >
                           🗑️
@@ -2249,6 +2301,24 @@ const DocumentVaultPage = ({
             <div className="modal-actions">
               <button onClick={closeManageTypesModal} className="btn-secondary">
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmDialog && (
+        <div className="modal-overlay">
+          <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <h2>{confirmDialog.title}</h2>
+            <p className="vault-helper-text" style={{ marginTop: 0 }}>
+              {confirmDialog.message}
+            </p>
+            <div className="modal-actions">
+              <button onClick={closeConfirmDialog} className="btn-secondary" disabled={confirmDialogLoading}>
+                Cancel
+              </button>
+              <button onClick={() => void handleConfirmDialog()} className="btn-primary" disabled={confirmDialogLoading}>
+                {confirmDialog.confirmLabel || 'Confirm'}
               </button>
             </div>
           </div>

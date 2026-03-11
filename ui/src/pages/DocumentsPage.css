@@ -407,6 +407,10 @@
   color: #e2e8f0;
 }
 
+.vault-helper-text-error {
+  color: #dc2626;
+}
+
 .vault-subtle-text {
   font-size: 0.85rem;
   color: #475569;
@@ -889,6 +893,10 @@
 .page-shell-card .vault-summary-footnote,
 .page-shell-card .vault-helper-text {
   color: #94a3b8 !important;
+}
+
+.page-shell-card .vault-helper-text-error {
+  color: #fca5a5 !important;
 }
 
 .page-shell-card .vault-notice-info {
