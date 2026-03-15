@@ -15,7 +15,6 @@ import SignupPage from './components/SignupPage';
 import SidebarLayout from './components/SidebarLayout';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import EmailConfirmationPage from './components/EmailConfirmationPage';
-import AuthCallback from './components/AuthCallback';
 import SandboxGate from './components/SandboxGate';
 import SandboxWatermark from './components/SandboxWatermark';
 
@@ -84,7 +83,6 @@ const App: React.FC = () => {
                     <Route path="/signup" element={<SignupPage />} />
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/confirm-email" element={<EmailConfirmationPage />} />
-                    <Route path="/auth/callback" element={<AuthCallback />} />
                     <Route path="/features" element={<FeaturesPage />} />
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/cache-test" element={<CacheTestPage />} />

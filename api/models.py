@@ -23,7 +23,6 @@ class User(Base):
     is_admin = Column(Boolean, default=False) # NEW FIELD
     must_change_password = Column(Boolean, default=False)  # Require password change on first login
     google_id = Column(String, unique=True, index=True, nullable=True) # NEW FIELD for Google OAuth
-    better_auth_user_id = Column(String, unique=True, index=True, nullable=True)
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
     referred_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # NEW: Track who referred this user

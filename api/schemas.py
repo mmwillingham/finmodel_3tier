@@ -28,7 +28,6 @@ class UserCreate(UserBase):
 class UserOut(BaseModel):
     id: int
     email: Optional[str] = None
-    better_auth_user_id: Optional[str] = None
     created_at: datetime
     is_confirmed: bool = False # NEW FIELD
     is_admin: bool = False # NEW FIELD

@@ -57,14 +57,6 @@ class Settings(BaseSettings):
     # Application name for emails
     APP_NAME: str = os.getenv("APP_NAME", "Financial Projector")
 
-    # Better Auth configuration
-    BETTER_AUTH_BASE_URL: str = os.getenv("BETTER_AUTH_BASE_URL", "")
-    BETTER_AUTH_ISSUER: str = os.getenv("BETTER_AUTH_ISSUER", "")
-    BETTER_AUTH_AUDIENCE: str = os.getenv("BETTER_AUTH_AUDIENCE", "")
-    BETTER_AUTH_JWKS_URL: str = os.getenv("BETTER_AUTH_JWKS_URL", "")
-    BETTER_AUTH_ALGORITHM: str = os.getenv("BETTER_AUTH_ALGORITHM", "EdDSA")
-    BETTER_AUTH_BRIDGE_TIMEOUT_SECONDS: int = int(os.getenv("BETTER_AUTH_BRIDGE_TIMEOUT_SECONDS", "30"))
-
     # Stripe configuration
     STRIPE_API_KEY: str = os.getenv("STRIPE_API_KEY", "")
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")

@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text, func
 from datetime import timedelta, datetime, date, timezone
-from urllib.parse import urlparse
 from typing import List, Optional, Set
 from starlette.responses import RedirectResponse
 from utils import google_oauth
@@ -20,7 +19,6 @@ from copy import deepcopy
 from fastapi.responses import JSONResponse
 import logging
 import stripe
-import httpx
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.types import ASGIApp, Scope, Receive, Send
@@ -140,7 +138,6 @@ class ShieldKeyMiddleware:
             "GoogleHC" in user_agent
             or path == "/token"
             or path == "/login"
-            or path.startswith("/api/auth")
         ):
             await self.app(scope, receive, send)
             return
@@ -306,11 +303,7 @@ def create_checkout_session(
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
         customer_email=current_user.email,
-        metadata={
-            "tier": payload.tier,
-            "better_auth_user_id": current_user.better_auth_user_id or "",
-            "user_id": str(current_user.id),
-        },
+        metadata={"tier": payload.tier, "user_id": str(current_user.id)},
     )
 
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
@@ -327,80 +320,6 @@ admin_router = APIRouter()
 @app.get("/", tags=["health"])
 async def root():
     return {"message": "Financial Projector API is running!"}
-
-def _is_bridge_loop(request: Request, target_url: str) -> bool:
-    incoming_host = request.url.hostname or ""
-    target_host = urlparse(target_url).hostname or ""
-    if not incoming_host or not target_host:
-        return False
-    return incoming_host == target_host and request.url.path.startswith("/api/auth")
-
-
-def _sanitize_proxy_headers(request: Request) -> dict[str, str]:
-    # Keep caller headers and drop hop-by-hop headers that should be regenerated.
-    headers = dict(request.headers)
-    for key in (
-        "host",
-        "content-length",
-        "connection",
-        "keep-alive",
-        "proxy-authenticate",
-        "proxy-authorization",
-        "te",
-        "trailers",
-        "transfer-encoding",
-        "upgrade",
-    ):
-        headers.pop(key, None)
-    return headers
-
-
-def _copy_response_headers(upstream: httpx.Response, downstream: Response) -> None:
-    excluded = {"content-length", "transfer-encoding", "connection", "content-encoding"}
-    for key, value in upstream.headers.items():
-        if key.lower() in excluded or key.lower() == "set-cookie":
-            continue
-        downstream.headers[key] = value
-    for cookie in upstream.headers.get_list("set-cookie"):
-        downstream.headers.append("set-cookie", cookie)
-
-
-@app.api_route("/api/auth", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], include_in_schema=False)
-@app.api_route("/api/auth/{auth_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], include_in_schema=False)
-async def bridge_better_auth(request: Request, auth_path: str = ""):
-    if not settings.BETTER_AUTH_BASE_URL:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Better Auth bridge is not configured.")
-
-    upstream_path = "/api/auth" + (f"/{auth_path}" if auth_path else "")
-    target_base = settings.BETTER_AUTH_BASE_URL.rstrip("/")
-    target_url = f"{target_base}{upstream_path}"
-    if request.url.query:
-        target_url = f"{target_url}?{request.url.query}"
-
-    if _is_bridge_loop(request, target_url):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Better Auth bridge loop detected. Set BETTER_AUTH_BASE_URL to your auth host, not this API host.",
-        )
-
-    try:
-        async with httpx.AsyncClient(
-            timeout=settings.BETTER_AUTH_BRIDGE_TIMEOUT_SECONDS,
-            follow_redirects=False,
-        ) as client:
-            upstream_response = await client.request(
-                method=request.method,
-                url=target_url,
-                headers=_sanitize_proxy_headers(request),
-                content=await request.body(),
-            )
-    except httpx.HTTPError as exc:
-        logger.error("Better Auth bridge request failed: %s", exc)
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Unable to reach Better Auth.")
-
-    response = Response(content=upstream_response.content, status_code=upstream_response.status_code)
-    _copy_response_headers(upstream_response, response)
-    return response
 
 # --- CONFIGURATION ---
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
@@ -1529,17 +1448,13 @@ async def stripe_webhook(
 
 def _apply_stripe_session(session_obj: dict, db: Session):
     metadata = session_obj.get("metadata") or {}
-    better_auth_id = metadata.get("better_auth_user_id")
+    metadata_user = metadata.get("user_id")
     user = None
-    if better_auth_id:
-        user = db.query(models.User).filter(models.User.better_auth_user_id == better_auth_id).first()
-    if not user:
-        metadata_user = metadata.get("user_id")
-        if metadata_user:
-            try:
-                user = db.query(models.User).filter(models.User.id == int(metadata_user)).first()
-            except (TypeError, ValueError):
-                user = None
+    if metadata_user:
+        try:
+            user = db.query(models.User).filter(models.User.id == int(metadata_user)).first()
+        except (TypeError, ValueError):
+            user = None
     if not user:
         return
 
@@ -1621,21 +1536,15 @@ def _get_user_from_header(auth_header: str | None, db: Session):
         return None
     try:
         payload = auth.decode_token(token)
-        better_auth_id = payload.get("sub") or payload.get("better_auth_user_id")
-        user_id = payload.get("user_id") or payload.get("id")
+        user_id = payload.get("sub")
     except InvalidTokenError:
         return None
-    user = None
-    if better_auth_id:
-        user = db.query(models.User).filter(models.User.better_auth_user_id == better_auth_id).first()
-    if not user and user_id:
+    if user_id:
         try:
-            user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+            return db.query(models.User).filter(models.User.id == int(user_id)).first()
         except (TypeError, ValueError):
-            user = None
-    if not user and payload.get("email"):
-        user = db.query(models.User).filter(models.User.email == payload.get("email")).first()
-    return user
+            return None
+    return None
 
 
 def _get_client_ip(request: Request) -> str | None:
