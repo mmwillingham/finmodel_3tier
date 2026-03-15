@@ -10,7 +10,7 @@ GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USER_INFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
-def get_google_auth_url():
+def get_google_auth_url(state: str | None = None):
     """
     Generates the Google OAuth authorization URL.
     """
@@ -25,6 +25,8 @@ def get_google_auth_url():
         "access_type": "offline", # To get refresh tokens
         "prompt": "consent", # To ensure refresh token is always granted on first auth
     }
+    if state:
+        params["state"] = state
     return f"{GOOGLE_AUTHORIZATION_URL}?{urlencode(params)}"
 
 async def get_google_oauth_token(code: str):

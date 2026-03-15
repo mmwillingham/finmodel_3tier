@@ -9,6 +9,7 @@ from sqlalchemy import text, func
 from datetime import timedelta, datetime, date, timezone
 from typing import List, Optional, Set
 from starlette.responses import RedirectResponse
+from urllib.parse import urlparse, urlsplit, urlunsplit, parse_qsl, urlencode
 from utils import google_oauth
 from jwt.exceptions import InvalidTokenError
 import hashlib
@@ -348,12 +349,48 @@ app.add_middleware(
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
+def _is_allowed_google_frontend_callback(callback_url: str) -> bool:
+    try:
+        parsed = urlparse(callback_url)
+    except Exception:
+        return False
+    if parsed.scheme not in ("http", "https"):
+        return False
+    if not parsed.netloc:
+        return False
+
+    configured = urlparse(settings.FRONTEND_URL or "")
+    configured_host = (configured.hostname or "").lower()
+    configured_port = configured.port
+
+    callback_host = (parsed.hostname or "").lower()
+    callback_port = parsed.port
+
+    if callback_host in ("localhost", "127.0.0.1"):
+        return True
+
+    if callback_host == configured_host:
+        return callback_port == configured_port
+
+    return False
+
+
+def _append_query_param(url: str, key: str, value: str) -> str:
+    parts = list(urlsplit(url))
+    query = dict(parse_qsl(parts[3], keep_blank_values=True))
+    query[key] = value
+    parts[3] = urlencode(query)
+    return urlunsplit(parts)
+
 @app.get("/auth/google", tags=["oauth"], summary="Initiate Google OAuth login")
 async def google_login(request: Request):
-    return RedirectResponse(url=google_oauth.get_google_auth_url())
+    callback_url = request.query_params.get("callback_url")
+    oauth_state = callback_url if callback_url and _is_allowed_google_frontend_callback(callback_url) else None
+    return RedirectResponse(url=google_oauth.get_google_auth_url(state=oauth_state))
 
 @app.get("/auth/google/callback", tags=["oauth"], summary="Handle Google OAuth callback")
-async def google_callback(code: str, db: Session = Depends(database.get_db)):
+async def google_callback(code: str, state: str | None = None, db: Session = Depends(database.get_db)):
     try:
         token_response = await google_oauth.get_google_oauth_token(code)
         access_token = token_response["access_token"]
@@ -368,7 +405,10 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
             data={"sub": str(user.id)}, expires_delta=our_access_token_expires
         )
 
-        redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
+        redirect_base = f"{settings.FRONTEND_URL.rstrip('/')}/auth/google/callback"
+        if state and _is_allowed_google_frontend_callback(state):
+            redirect_base = state
+        redirect_url = _append_query_param(redirect_base, "token", our_access_token)
         return RedirectResponse(url=redirect_url)
 
     except HTTPException as e:

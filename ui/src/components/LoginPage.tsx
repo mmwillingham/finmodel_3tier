@@ -4,6 +4,8 @@ import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
 import '../styles/AuthForms.css';
 
+const API_URL = ((process.env.REACT_APP_API_URL || 'http://localhost:8000').replace(/\/?$/, '/'));
+
 const LoginPage = () => {
     const { login } = useAuth();
     const [email, setEmail] = useState('');
@@ -31,6 +33,11 @@ const LoginPage = () => {
         }
     };
 
+    const handleGoogleLogin = () => {
+        const callbackUrl = `${window.location.origin}/auth/google/callback`;
+        window.location.href = `${API_URL}auth/google?callback_url=${encodeURIComponent(callbackUrl)}`;
+    };
+
     return (
         <div className="auth-container">
             <div className="auth-form-container">
@@ -42,7 +49,9 @@ const LoginPage = () => {
                         <label htmlFor="email">Email</label>
                         <input
                             id="email"
+                            name="email"
                             type="email"
+                            autoComplete="username"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -52,7 +61,9 @@ const LoginPage = () => {
                         <label htmlFor="password">Password</label>
                         <input
                             id="password"
+                            name="password"
                             type="password"
+                            autoComplete="current-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -62,6 +73,9 @@ const LoginPage = () => {
                         {loading ? 'Signing In...' : 'Sign In'}
                     </button>
                 </form>
+                <button type="button" className="submit-button" onClick={handleGoogleLogin}>
+                    Continue with Google
+                </button>
                 <p className="auth-switch">
                     Need an account? <Link to="/signup">Create one</Link>
                 </p>
