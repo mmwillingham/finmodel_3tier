@@ -1,6 +1,20 @@
 import axios from './api.service';
 
 const API_URL = ((process.env.REACT_APP_API_URL || 'http://localhost:8000').replace(/\/?$/, '/'));
+const FRONTEND_URL = (process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000').replace(/\/?$/, '');
+const BETTER_AUTH_BASE_URL = (process.env.REACT_APP_BETTER_AUTH_BASE_URL || API_URL.replace(/\/$/, '')).replace(/\/?$/, '');
+const BETTER_AUTH_LOGIN_PATH = process.env.REACT_APP_BETTER_AUTH_LOGIN_PATH || '/api/auth/sign-in';
+const BETTER_AUTH_CALLBACK_PATH = process.env.REACT_APP_BETTER_AUTH_CALLBACK_PATH || '/auth/callback';
+const BETTER_AUTH_CALLBACK_URL = `${FRONTEND_URL}${BETTER_AUTH_CALLBACK_PATH}`;
+
+const buildBetterAuthLoginUrl = () => {
+  if (!BETTER_AUTH_BASE_URL) {
+    throw new Error('Better Auth base URL is not configured.');
+  }
+  return `${BETTER_AUTH_BASE_URL}${BETTER_AUTH_LOGIN_PATH}?callbackUrl=${encodeURIComponent(
+    BETTER_AUTH_CALLBACK_URL,
+  )}`;
+};
 
 type Nullable<T> = T | null;
 
@@ -90,6 +104,25 @@ const AuthService = {
 
   setToken(token: string) {
     localStorage.setItem('user_token', token);
+  },
+
+  startHostedLogin() {
+    const loginUrl = buildBetterAuthLoginUrl();
+    window.location.href = loginUrl;
+  },
+
+  async handleHostedCallback(search: string) {
+    const params = new URLSearchParams(search);
+    const error = params.get('error');
+    if (error) {
+      throw new Error(error);
+    }
+    const token = params.get('token');
+    if (!token) {
+      throw new Error('Better Auth callback did not include a token.');
+    }
+    AuthService.setToken(token);
+    return token;
   },
 
     /**

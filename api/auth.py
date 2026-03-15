@@ -4,7 +4,9 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWKClient
+from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import secrets # New import for token generation
@@ -32,6 +34,49 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+_jwks_client: PyJWKClient | None = None
+
+def _get_jwk_client() -> PyJWKClient:
+    global _jwks_client
+    if not settings.BETTER_AUTH_JWKS_URL:
+        raise RuntimeError("Better Auth JWKS URL is not configured.")
+    if _jwks_client is None:
+        _jwks_client = PyJWKClient(settings.BETTER_AUTH_JWKS_URL)
+    return _jwks_client
+
+def _decode_local_token(token: str) -> dict:
+    return jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=[settings.ALGORITHM],
+        options={"verify_aud": False},
+    )
+
+def _decode_better_auth_token(token: str) -> dict:
+    jwks_client = _get_jwk_client()
+    signing_key = jwks_client.get_signing_key_from_jwt(token)
+    audience = settings.BETTER_AUTH_AUDIENCE or settings.BETTER_AUTH_BASE_URL
+    issuer = settings.BETTER_AUTH_ISSUER or settings.BETTER_AUTH_BASE_URL
+    kwargs = {}
+    if audience:
+        kwargs["audience"] = audience
+    if issuer:
+        kwargs["issuer"] = issuer
+    return jwt.decode(
+        token,
+        signing_key.key,
+        algorithms=[settings.BETTER_AUTH_ALGORITHM],
+        **kwargs,
+    )
+
+def decode_token(token: str) -> dict:
+    if settings.BETTER_AUTH_JWKS_URL:
+        return _decode_better_auth_token(token)
+    return _decode_local_token(token)
+
+def decode_local_token(token: str) -> dict:
+    return _decode_local_token(token)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -84,18 +129,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(
-            token, 
-            settings.SECRET_KEY, # 🌟 FIXED
-            algorithms=[settings.ALGORITHM] # 🌟 FIXED
-        )
-        user_id: int = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
+        payload = decode_token(token)
+        better_auth_id = payload.get("sub") or payload.get("better_auth_user_id")
+        user_id_claim = payload.get("user_id") or payload.get("id")
+    except InvalidTokenError:
         raise credentials_exception
-        
-    user = get_user(db, user_id=user_id)
+
+    user = None
+    if better_auth_id:
+        user = db.query(models.User).filter(models.User.better_auth_user_id == better_auth_id).first()
+    if not user and user_id_claim:
+        try:
+            user = db.query(models.User).filter(models.User.id == int(user_id_claim)).first()
+        except (TypeError, ValueError):
+            user = None
+    if not user and payload.get("email"):
+        user = db.query(models.User).filter(func.lower(models.User.email) == payload.get("email").lower()).first()
     if user is None:
         raise credentials_exception
     # Convert models.User object to the Pydantic schema for consistency

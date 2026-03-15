@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from typing import List, Optional, Set
 from starlette.responses import RedirectResponse
 from utils import google_oauth
-from jose import jwt, JWTError
+from jwt.exceptions import InvalidTokenError
 import hashlib
 import secrets
 import json
@@ -19,6 +19,8 @@ import traceback
 from copy import deepcopy
 from fastapi.responses import JSONResponse
 import logging
+import stripe
+import httpx
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.types import ASGIApp, Scope, Receive, Send
@@ -69,6 +71,9 @@ from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
 from utils.subscription import get_user_limits
 from config import settings
+
+if settings.STRIPE_API_KEY:
+    stripe.api_key = settings.STRIPE_API_KEY
 from webauthn import (
     generate_registration_options,
     generate_authentication_options,
@@ -86,6 +91,20 @@ from webauthn.helpers.structs import (
 )
 
 logger = logging.getLogger(__name__)
+
+def require_subscription_level(user: schemas.UserOut, minimum_level: int, feature: str):
+    if user.subscription_level < minimum_level:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"{feature} requires a higher subscription tier.",
+        )
+
+def _stripe_tier_to_level(tier: str) -> int:
+    mapping = {
+        "premium": 2,
+        "pro": 3,
+    }
+    return mapping.get(tier.lower(), 1)
 
 from starlette.types import ASGIApp, Scope, Receive, Send
 from fastapi.responses import JSONResponse
@@ -116,8 +135,13 @@ class ShieldKeyMiddleware:
         shield_key = headers.get(b"x-mmr-shield-key", b"").decode()
         expected_key = os.environ.get("MMR_SHIELD_KEY", "")
 
-        # 3. Bypass for Health Checks and Login
-        if "GoogleHC" in user_agent or path == "/token" or path == "/login":
+        # 3. Bypass for health/login/auth bridge routes
+        if (
+            "GoogleHC" in user_agent
+            or path == "/token"
+            or path == "/login"
+            or path.startswith("/api/auth")
+        ):
             await self.app(scope, receive, send)
             return
 
@@ -252,12 +276,131 @@ app.include_router(plaid_router)
 app.include_router(what_if_router)
 app.include_router(tax_router)
 
+billing_router = APIRouter(prefix="/billing", tags=["billing"])
+
+@billing_router.post(
+    "/checkout-session",
+    response_model=schemas.CheckoutSessionResponse,
+    tags=["billing"],
+)
+def create_checkout_session(
+    payload: schemas.CheckoutSessionRequest,
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    tier_price_map = {
+        "premium": settings.STRIPE_PREMIUM_PRICE_ID,
+        "pro": settings.STRIPE_PRO_PRICE_ID,
+    }
+    price_id = tier_price_map.get(payload.tier.lower())
+    if not price_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Requested tier is not supported.")
+    if not settings.STRIPE_SUCCESS_URL or not settings.STRIPE_CANCEL_URL:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Stripe redirect URLs are not configured.")
+    if not settings.STRIPE_API_KEY:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Stripe API key is missing.")
+
+    session = stripe.checkout.Session.create(
+        success_url=settings.STRIPE_SUCCESS_URL,
+        cancel_url=settings.STRIPE_CANCEL_URL,
+        mode="subscription",
+        line_items=[{"price": price_id, "quantity": 1}],
+        customer_email=current_user.email,
+        metadata={
+            "tier": payload.tier,
+            "better_auth_user_id": current_user.better_auth_user_id or "",
+            "user_id": str(current_user.id),
+        },
+    )
+
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if user:
+        user.stripe_customer_id = session.get("customer")
+        db.commit()
+    return schemas.CheckoutSessionResponse(sessionId=session.id, url=session.url)
+
+app.include_router(billing_router)
+
 # New router for admin global settings
 admin_router = APIRouter()
 
 @app.get("/", tags=["health"])
 async def root():
     return {"message": "Financial Projector API is running!"}
+
+def _is_bridge_loop(request: Request, target_url: str) -> bool:
+    incoming_host = request.url.hostname or ""
+    target_host = urlparse(target_url).hostname or ""
+    if not incoming_host or not target_host:
+        return False
+    return incoming_host == target_host and request.url.path.startswith("/api/auth")
+
+
+def _sanitize_proxy_headers(request: Request) -> dict[str, str]:
+    # Keep caller headers and drop hop-by-hop headers that should be regenerated.
+    headers = dict(request.headers)
+    for key in (
+        "host",
+        "content-length",
+        "connection",
+        "keep-alive",
+        "proxy-authenticate",
+        "proxy-authorization",
+        "te",
+        "trailers",
+        "transfer-encoding",
+        "upgrade",
+    ):
+        headers.pop(key, None)
+    return headers
+
+
+def _copy_response_headers(upstream: httpx.Response, downstream: Response) -> None:
+    excluded = {"content-length", "transfer-encoding", "connection", "content-encoding"}
+    for key, value in upstream.headers.items():
+        if key.lower() in excluded or key.lower() == "set-cookie":
+            continue
+        downstream.headers[key] = value
+    for cookie in upstream.headers.get_list("set-cookie"):
+        downstream.headers.append("set-cookie", cookie)
+
+
+@app.api_route("/api/auth", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], include_in_schema=False)
+@app.api_route("/api/auth/{auth_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], include_in_schema=False)
+async def bridge_better_auth(request: Request, auth_path: str = ""):
+    if not settings.BETTER_AUTH_BASE_URL:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Better Auth bridge is not configured.")
+
+    upstream_path = "/api/auth" + (f"/{auth_path}" if auth_path else "")
+    target_base = settings.BETTER_AUTH_BASE_URL.rstrip("/")
+    target_url = f"{target_base}{upstream_path}"
+    if request.url.query:
+        target_url = f"{target_url}?{request.url.query}"
+
+    if _is_bridge_loop(request, target_url):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Better Auth bridge loop detected. Set BETTER_AUTH_BASE_URL to your auth host, not this API host.",
+        )
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=settings.BETTER_AUTH_BRIDGE_TIMEOUT_SECONDS,
+            follow_redirects=False,
+        ) as client:
+            upstream_response = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=_sanitize_proxy_headers(request),
+                content=await request.body(),
+            )
+    except httpx.HTTPError as exc:
+        logger.error("Better Auth bridge request failed: %s", exc)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Unable to reach Better Auth.")
+
+    response = Response(content=upstream_response.content, status_code=upstream_response.status_code)
+    _copy_response_headers(upstream_response, response)
+    return response
 
 # --- CONFIGURATION ---
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES 
@@ -420,8 +563,8 @@ def _generate_otp() -> str:
 
 def _get_mfa_user_from_token(mfa_token: str, db: Session) -> models.User:
     try:
-        payload = jwt.decode(mfa_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError:
+        payload = auth.decode_local_token(mfa_token)
+    except InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
     if not payload.get("mfa"):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
@@ -1360,6 +1503,53 @@ def change_password(
     )
     return updated_user
 
+@app.post("/stripe/webhook", status_code=status.HTTP_200_OK, tags=["billing"])
+async def stripe_webhook(
+    request: Request,
+    db: Session = Depends(database.get_db),
+):
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Webhook secret is not configured.")
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature")
+    if not signature:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing Stripe signature header.")
+    try:
+        event = stripe.Webhook.construct_event(payload, signature, settings.STRIPE_WEBHOOK_SECRET)
+    except (ValueError, stripe.error.SignatureVerificationError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Stripe webhook payload.")
+
+    event_type = event.get("type")
+    if event_type == "checkout.session.completed":
+        _apply_stripe_session(event["data"]["object"], db)
+    elif event_type == "invoice.payment_succeeded" and event["data"]["object"].get("checkout_session"):
+        _apply_stripe_session(event["data"]["object"]["checkout_session"], db)
+
+    return {"status": "ok"}
+
+def _apply_stripe_session(session_obj: dict, db: Session):
+    metadata = session_obj.get("metadata") or {}
+    better_auth_id = metadata.get("better_auth_user_id")
+    user = None
+    if better_auth_id:
+        user = db.query(models.User).filter(models.User.better_auth_user_id == better_auth_id).first()
+    if not user:
+        metadata_user = metadata.get("user_id")
+        if metadata_user:
+            try:
+                user = db.query(models.User).filter(models.User.id == int(metadata_user)).first()
+            except (TypeError, ValueError):
+                user = None
+    if not user:
+        return
+
+    user.stripe_subscription_id = session_obj.get("subscription") or session_obj.get("id")
+    user.stripe_customer_id = session_obj.get("customer")
+    tier = metadata.get("tier")
+    if tier:
+        user.subscription_level = _stripe_tier_to_level(tier)
+    db.commit()
+
 @app.post("/forgot-password", status_code=status.HTTP_200_OK, tags=["auth"])
 def forgot_password(
     payload: schemas.PasswordResetRequest,
@@ -1430,13 +1620,22 @@ def _get_user_from_header(auth_header: str | None, db: Session):
     if not token:
         return None
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id:
-            return None
-    except JWTError:
+        payload = auth.decode_token(token)
+        better_auth_id = payload.get("sub") or payload.get("better_auth_user_id")
+        user_id = payload.get("user_id") or payload.get("id")
+    except InvalidTokenError:
         return None
-    return db.query(models.User).filter(models.User.id == int(user_id)).first()
+    user = None
+    if better_auth_id:
+        user = db.query(models.User).filter(models.User.better_auth_user_id == better_auth_id).first()
+    if not user and user_id:
+        try:
+            user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+        except (TypeError, ValueError):
+            user = None
+    if not user and payload.get("email"):
+        user = db.query(models.User).filter(models.User.email == payload.get("email")).first()
+    return user
 
 
 def _get_client_ip(request: Request) -> str | None:
@@ -1652,6 +1851,7 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
+    require_subscription_level(user, 2, "Creating projections")
     limits = get_user_limits(db, user)
     if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
         raise HTTPException(

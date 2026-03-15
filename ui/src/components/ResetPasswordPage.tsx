@@ -1,115 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
 import AuthService from '../services/auth.service';
 import './ResetPasswordPage.css';
 
 export default function ResetPasswordPage() {
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [token, setToken] = useState<any>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const tokenFromUrl = queryParams.get('token');
-    if (tokenFromUrl) {
-      setToken(tokenFromUrl);
-    } else {
-      setMessage("Invalid or missing password reset token.");
-    }
-  }, [location]);
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setMessage("");
-    setLoading(true);
-
-    if (!token) {
-      setMessage("Missing password reset token.");
-      setLoading(false);
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      setMessage("New password and confirmation do not match.");
-      setLoading(false);
-      return;
-    }
-
+  const handleOpenBetterAuth = () => {
     try {
-      await AuthService.resetPassword(token, newPassword);
-      setMessage("Password has been reset successfully! Redirecting to login...");
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+      AuthService.startHostedLogin();
     } catch (error: any) {
-      let displayMessage = "Failed to reset password. Please try again.";
-
-      if (error.response && error.response.data) {
-        if (typeof error.response.data.detail === 'string') {
-          displayMessage = `Failed to reset password: ${error.response.data.detail}`;
-        } else if (Array.isArray(error.response.data.detail)) {
-          const errorDetails = error.response.data.detail.map((err: any) => err.msg).join('; ');
-          displayMessage = `Failed to reset password: ${errorDetails}`;
-        } else if (error.response.data.detail) {
-          displayMessage = `Failed to reset password: ${JSON.stringify(error.response.data.detail)}`;
-        } else {
-          displayMessage = `Failed to reset password: ${JSON.stringify(error.response.data)}`;
-        }
-      } else if (error.message) {
-        displayMessage = `Failed to reset password: ${error.message}`;
-      } else {
-        displayMessage = `Failed to reset password: ${JSON.stringify(error)}`;
-      }
-      setMessage(displayMessage);
-    } finally {
-      setLoading(false);
+      console.error('Better Auth not configured', error);
     }
   };
 
   return (
     <div className="reset-password-container">
       <h2>Reset Password</h2>
-      {message && <p className="message">{message}</p>}
-
-      {!token && !message.startsWith("Invalid or missing") && (
-        <p className="info-message">Loading token...</p>
-      )}
-
-      {token && (
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="new-password">New Password:</label>
-            <input
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e: any) => setNewPassword(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirm-new-password">Confirm New Password:</label>
-            <input
-              id="confirm-new-password"
-              type="password"
-              value={confirmNewPassword}
-              onChange={(e: any) => setConfirmNewPassword(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="modal-actions">
-            <button type="submit" disabled={loading}>Reset Password</button>
-          </div>
-        </form>
-      )}
+      <p className="info-message">
+        Password reset and email verification are handled by Better Auth.
+        Click below to open the hosted experience and follow the instructions.
+      </p>
+      <button type="button" onClick={handleOpenBetterAuth}>
+        Open Better Auth
+      </button>
     </div>
   );
 }

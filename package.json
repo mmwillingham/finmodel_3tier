@@ -1,0 +1,19 @@
+{
+  "name": "finmodel_3tier",
+  "version": "1.0.0",
+  "description": "Model My Retirement",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmwillingham/finmodel_3tier.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mmwillingham/finmodel_3tier/issues"
+  },
+  "homepage": "https://github.com/mmwillingham/finmodel_3tier#readme"
+}
