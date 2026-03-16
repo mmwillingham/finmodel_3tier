@@ -4,26 +4,33 @@ import AuthService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
 import { useSettingsBackButton } from '../hooks/useSettingsBackButton';
 import ConfirmDialog from '../components/ConfirmDialog';
-import './SettingsPages.css'; // General CSS for settings pages
+import './SettingsPages.css'; 
 
 interface ConfirmDialogState {
   isOpen: boolean;
   message: string;
   onConfirm: (() => void | Promise<void>) | null;
   title: string;
-  confirmText?: string;
-  showCancel?: boolean;
+  confirmText: string;
+  showCancel: boolean;
 }
 
 const UserManagementPage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  useSettingsBackButton(); // Fix browser back button navigation
+  useSettingsBackButton(); 
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
   const [message, setMessage] = useState('');
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ 
+    isOpen: false, 
+    message: '', 
+    onConfirm: null, 
+    title: '',
+    confirmText: 'Confirm',
+    showCancel: true
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [sortField, setSortField] = useState('created_at');
@@ -46,8 +53,8 @@ const UserManagementPage = () => {
     try {
       const fetchedUsers = await AuthService.getAllManageableUsers();
       setUsers(fetchedUsers);
-    } catch (error: any) {
-      setError(`Failed to load users: ${error.response?.data?.detail || error.message}`);
+    } catch (err: any) {
+      setError(`Failed to load users: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -63,15 +70,17 @@ const UserManagementPage = () => {
       isOpen: true,
       title: 'Delete User',
       message: `Are you sure you want to delete user ${userName} (ID: ${userId})? This action cannot be undone.`,
+      confirmText: 'Delete',
+      showCancel: true,
       onConfirm: async () => {
         setLoading(true);
         setMessage('');
         try {
           await AuthService.deleteUser(userId);
           setMessage(`User ${userName} deleted successfully.`);
-          fetchUsers(); // Refresh the list
-        } catch (error: any) {
-          setMessage(`Failed to delete user ${userName}: ${error.response?.data?.detail || error.message}`);
+          fetchUsers(); 
+        } catch (err: any) {
+          setMessage(`Failed to delete user ${userName}: ${err.response?.data?.detail || err.message}`);
         } finally {
           setLoading(false);
         }
@@ -85,15 +94,17 @@ const UserManagementPage = () => {
       isOpen: true,
       title: isAdmin ? 'Make Admin' : 'Revoke Admin Status',
       message: `Are you sure you want to ${isAdmin ? 'make' : 'revoke'} admin status for user ${userName} (ID: ${userId})?`,
+      confirmText: isAdmin ? 'Make Admin' : 'Revoke Status',
+      showCancel: true,
       onConfirm: async () => {
         setLoading(true);
         setMessage('');
         try {
           await AuthService.setUserAdminStatus(userId, isAdmin);
           setMessage(`User ${userName} ${isAdmin ? 'made' : 'admin status revoked for'} successfully.`);
-          fetchUsers(); // Refresh the list
-        } catch (error: any) {
-          setMessage(`Failed to update admin status for user ${userName}: ${error.response?.data?.detail || error.message}`);
+          fetchUsers(); 
+        } catch (err: any) {
+          setMessage(`Failed to update admin status for user ${userName}: ${err.response?.data?.detail || err.message}`);
         } finally {
           setLoading(false);
         }
@@ -118,8 +129,8 @@ const UserManagementPage = () => {
           await AuthService.setUserAdminStatus(userId, isAdmin, subscriptionLevel);
           setMessage(`Subscription updated for user ${userName}.`);
           fetchUsers();
-        } catch (error: any) {
-          setMessage(`Failed to update subscription for user ${userName}: ${error.response?.data?.detail || error.message}`);
+        } catch (err: any) {
+          setMessage(`Failed to update subscription for user ${userName}: ${err.response?.data?.detail || err.message}`);
         } finally {
           setLoading(false);
         }
@@ -144,9 +155,9 @@ const UserManagementPage = () => {
       setNewUserPassword('');
       setNewUserMustChangePassword(true);
       setNewUserSubscriptionLevel(2);
-      fetchUsers(); // Refresh the list
-    } catch (error: any) {
-      setMessage(`Failed to create user: ${error.response?.data?.detail || error.message}`);
+      fetchUsers(); 
+    } catch (err: any) {
+      setMessage(`Failed to create user: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -181,13 +192,11 @@ const UserManagementPage = () => {
     let aVal = a[sortField];
     let bVal = b[sortField];
 
-    // Handle date strings
     if (sortField === 'created_at') {
       aVal = aVal ? new Date(aVal).getTime() : 0;
       bVal = bVal ? new Date(bVal).getTime() : 0;
     }
 
-    // Handle string comparisons
     if (typeof aVal === 'string') {
       aVal = aVal.toLowerCase();
       bVal = bVal.toLowerCase();
@@ -243,11 +252,8 @@ const UserManagementPage = () => {
             border: 'none', 
             padding: '8px 16px', 
             borderRadius: '4px', 
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
+            cursor: 'pointer'
           }}
-          onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.filter = 'brightness(1.08)'; }}
-          onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'linear-gradient(135deg, #0F2847 0%, #00a3e0 100%)'; }}
         >
           {showCreateForm ? 'Cancel' : 'Create User'}
         </button>
@@ -261,8 +267,6 @@ const UserManagementPage = () => {
               <label htmlFor="new-user-email">User name:</label>
               <input
                 id="new-user-email"
-                name="new-user-email"
-                autoComplete="off"
                 type="text"
                 value={newUserEmail}
                 onChange={(e: any) => setNewUserEmail(e.target.value)}
@@ -274,26 +278,20 @@ const UserManagementPage = () => {
               <label htmlFor="new-user-password">Temporary Password *:</label>
               <input
                 id="new-user-password"
-                name="new-user-password"
-                autoComplete="off"
                 type="password"
                 value={newUserPassword}
                 onChange={(e: any) => setNewUserPassword(e.target.value)}
                 required
                 minLength={8}
-                placeholder="Minimum 8 characters"
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}
               />
             </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
               <label>
                 <input
-                  name="new-user-must-change-password"
-                  autoComplete="off"
                   type="checkbox"
                   checked={newUserMustChangePassword}
                   onChange={(e: any) => setNewUserMustChangePassword(e.target.checked)}
-                  style={{ marginRight: '8px' }}
                 />
                 Require password change on first login
               </label>
@@ -302,8 +300,6 @@ const UserManagementPage = () => {
               <label htmlFor="new-user-subscription">Subscription Level:</label>
               <select
                 id="new-user-subscription"
-                name="new-user-subscription"
-                autoComplete="off"
                 value={newUserSubscriptionLevel}
                 onChange={(e: any) => setNewUserSubscriptionLevel(parseInt(e.target.value, 10))}
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}
@@ -313,38 +309,9 @@ const UserManagementPage = () => {
                 <option value={3}>Pro</option>
               </select>
             </div>
-            <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                type="submit" 
-                className="create-button" 
-                disabled={loading}
-                style={{ 
-                  background: 'linear-gradient(135deg, #0F2847 0%, #00a3e0 100%)', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '8px 16px', 
-                  borderRadius: '4px', 
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s',
-                  opacity: loading ? 0.6 : 1
-                }}
-                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!loading) e.currentTarget.style.filter = 'brightness(1.08)'; }}
-                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.filter = 'none'; }}
-              >
-                Create User
-              </button>
-              <button 
-                type="button" 
-                onClick={() => {
-                  setShowCreateForm(false);
-                  setNewUserEmail('');
-                  setNewUserPassword('');
-                  setNewUserMustChangePassword(true);
-                }}
-                className="cancel-button"
-              >
-                Cancel
-              </button>
+            <div className="form-actions">
+              <button type="submit" className="create-button" disabled={loading}>Create User</button>
+              <button type="button" onClick={() => setShowCreateForm(false)} className="cancel-button">Cancel</button>
             </div>
           </form>
         </div>
@@ -360,62 +327,40 @@ const UserManagementPage = () => {
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th onClick={() => handleSort('email')} className="sortable-header">
-                      User name {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th onClick={() => handleSort('created_at')} className="sortable-header">
-                      Date Created {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th onClick={() => handleSort('is_admin')} className="sortable-header">
-                      Admin {sortField === 'is_admin' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th onClick={() => handleSort('subscription_level')} className="sortable-header">
-                      Subscription {sortField === 'subscription_level' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
+                    <th onClick={() => handleSort('email')} className="sortable-header">User name</th>
+                    <th onClick={() => handleSort('created_at')} className="sortable-header">Date Created</th>
+                    <th onClick={() => handleSort('is_admin')} className="sortable-header">Admin</th>
+                    <th onClick={() => handleSort('subscription_level')} className="sortable-header">Subscription</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentUsers.length > 0 ? (
-                    currentUsers.map((user: any) => (
-                      <tr key={user.id}>
-                        <td>{user.id}</td>
-                        <td>{user.email || 'N/A'}</td>
-                        <td>{formatDate(user.created_at)}</td>
-                        <td>{user.is_admin ? 'Yes' : 'No'}</td>
-                        <td>
-                          <select
-                            value={user.subscription_level ?? 1}
-                            onChange={(e: any) => handleSetSubscriptionLevel(user.id, user.email, parseInt(e.target.value, 10))}
-                          >
-                            <option value={1}>Free</option>
-                            <option value={2}>Premium</option>
-                            <option value={3}>Pro</option>
-                          </select>
-                        </td>
-                        <td>
-                          <div className="user-actions">
-                            <button 
-                              onClick={() => handleDeleteUser(user.id, user.email)}
-                              className="delete-user-btn"
-                            >
-                              Delete
-                            </button>
-                            <button
-                              onClick={() => handleSetAdminStatus(user.id, user.email, !user.is_admin)}
-                              className="set-admin-status-btn"
-                            >
-                              {user.is_admin ? 'Revoke Admin' : 'Make Admin'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5}>No other users found.</td>
+                  {currentUsers.map((user: any) => (
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>{user.email || 'N/A'}</td>
+                      <td>{formatDate(user.created_at)}</td>
+                      <td>{user.is_admin ? 'Yes' : 'No'}</td>
+                      <td>
+                        <select
+                          value={user.subscription_level ?? 1}
+                          onChange={(e: any) => handleSetSubscriptionLevel(user.id, user.email, parseInt(e.target.value, 10))}
+                        >
+                          <option value={1}>Free</option>
+                          <option value={2}>Premium</option>
+                          <option value={3}>Pro</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div className="user-actions">
+                          <button onClick={() => handleDeleteUser(user.id, user.email)} className="delete-user-btn">Delete</button>
+                          <button onClick={() => handleSetAdminStatus(user.id, user.email, !user.is_admin)} className="set-admin-status-btn">
+                            {user.is_admin ? 'Revoke' : 'Admin'}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -423,33 +368,26 @@ const UserManagementPage = () => {
 
           {totalPages > 1 && (
             <div className="pagination">
-              <button 
-                onClick={() => setCurrentPage((prev: any) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
+              <button onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1}>Previous</button>
               <span>Page {currentPage} of {totalPages}</span>
-              <button 
-                onClick={() => setCurrentPage((prev: any) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
+              <button onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>Next</button>
             </div>
           )}
         </>
       )}
+
       <div className="settings-page-actions">
-        <button onClick={() => navigate('/app')} className="cancel-button">Cancel</button>
+        <button onClick={() => navigate('/app')} className="cancel-button">Back to App</button>
       </div>
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null })}
         onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        showCancel={confirmDialog.showCancel}
       />
     </div>
   );

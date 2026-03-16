@@ -45,6 +45,8 @@ type ConfirmDialogState = {
   message: string;
   onConfirm: (() => Promise<void>) | null;
   title: string;
+  confirmText: string;
+  showCancel: boolean;
 };
 
 interface AssetViewProps {
@@ -69,6 +71,8 @@ export default function AssetView({
     message: '',
     onConfirm: null,
     title: '',
+    confirmText: 'Confirm',
+    showCancel: true
   });
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
   const tableRef = useRef<HTMLTableElement | null>(null);
@@ -87,6 +91,8 @@ export default function AssetView({
       isOpen: true,
       title: 'Delete Asset',
       message: 'Delete this asset?',
+      confirmText: 'Delete',
+      showCancel: true,
       onConfirm: async () => {
         await AssetService.delete(id);
         await refreshAssets();
@@ -95,27 +101,26 @@ export default function AssetView({
   };
 
   const handleAddAsset = () => {
-    setSelectedAsset(null); // No asset selected for adding a new one
+    setSelectedAsset(null);
     setShowAssetModal(true);
   };
 
   const handleEditAsset = (asset: Asset) => {
-    setSelectedAsset(asset); // Set the asset to be edited
+    setSelectedAsset(asset);
     setShowAssetModal(true);
   };
 
   const handleCloseModal = () => {
     setShowAssetModal(false);
-    setSelectedAsset(null); // Clear selected asset on close
+    setSelectedAsset(null);
   };
 
   const handleSaveSuccess = async () => {
-    await refreshAssets(); // Refresh assets after save
-    // Also refresh income items since "Track Interest as Taxable Income" creates/updates income items
+    await refreshAssets();
     if (refreshCashflow) {
       await refreshCashflow();
     }
-    handleCloseModal(); // Close modal on successful save
+    handleCloseModal();
   };
 
   const handleSort = (key: AssetSortableKey) => {
@@ -124,7 +129,6 @@ export default function AssetView({
     setSortConfig({ key, direction: nextDirection });
   };
 
-  // Create account map for lookups
   const accountMap = useMemo(() => {
     const map = new Map<number, string>();
     if (accounts && accounts.length > 0) {
@@ -150,7 +154,6 @@ export default function AssetView({
         bValue = (b[assetKey] as string | number) ?? '';
       }
 
-      // Handle account name sorting - inline lookup to avoid function reference issues
       if (sortConfig.key === 'account') {
         const aAccountLabel =
           typeof a.account_id === 'number' ? accountMap.get(a.account_id) : undefined;
@@ -160,17 +163,14 @@ export default function AssetView({
         bValue = bAccountLabel ?? '-';
       }
 
-      // Handle null/undefined values
       if (aValue == null) aValue = '';
       if (bValue == null) bValue = '';
 
-      // Handle numeric values
       if (sortConfig.key === 'value' || sortConfig.key === 'annual_increase_percent') {
         aValue = parseFloat(String(aValue)) || 0;
         bValue = parseFloat(String(bValue)) || 0;
       }
 
-      // Compare values
       if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
@@ -179,7 +179,6 @@ export default function AssetView({
 
   const total = assets.reduce((sum: any, item: any) => sum + (item.value ?? 0), 0);
 
-  // Download functions (unchanged)
   const handleDownloadTablePdf = async (filename: string) => {
     if (tableRef.current) {
       const canvas = await html2canvas(tableRef.current);
@@ -191,7 +190,6 @@ export default function AssetView({
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${filename.replace(/\s/g, '_')}.pdf`);
-    } else {
     }
   };
 
@@ -207,9 +205,9 @@ export default function AssetView({
       const values = headers.map((header: any) => {
         let value = row[header] || '';
         if (typeof value === 'number' && valueFormatter) {
-          return `"${valueFormatter(value).replace(/"/g, '""')}"`; // Format currency and escape quotes
+          return `"${valueFormatter(value).replace(/"/g, '""')}"`;
         }
-        return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes for CSV
+        return `"${String(value).replace(/"/g, '""')}"`;
       });
       csvRows.push(values.join(','));
     });
@@ -235,7 +233,6 @@ export default function AssetView({
       link.href = URL.createObjectURL(blob);
       link.download = `${filename.replace(/\s/g, '_')}.csv`;
       link.click();
-    } else {
     }
   };
 
@@ -243,7 +240,6 @@ export default function AssetView({
     <div className="cashflow-container">
       <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Assets</h2>
 
-      {/* "Add New Asset" button to open the modal */}
       <button onClick={handleAddAsset} className="add-new-item-btn">
         Add New Asset
       </button>
@@ -285,18 +281,14 @@ export default function AssetView({
         </thead>
         <tbody>
           {sortedAssets.map((item: any) => {
-            // Check for missing required fields (name, category, value)
-            // Note: value of 0 is allowed (TESTING_PLAN.md test 2.4 assumes 0 is valid)
             const categoryValue = item.category && typeof item.category === 'string' ? item.category.trim() : (item.category || '');
             const categoryMissing = !categoryValue || (validCategories.length > 0 && !validCategories.includes(categoryValue));
             const nameMissing = !item.name;
             const valueMissing = (item.value === null || item.value === undefined);
             const hasMissingFields = nameMissing || categoryMissing || valueMissing;
             
-            // All missing or invalid fields should be yellow (like other data types)
             let rowStyle = {};
             if (hasMissingFields) {
-              // Missing required fields or invalid category (yellow/warning)
               rowStyle = { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' };
             }
             
@@ -337,7 +329,6 @@ export default function AssetView({
         <strong>Total Assets: {formatCurrency(total)}</strong>
       </div>
 
-      {/* Render the AssetFormModal */}
         <AssetFormModal
         isOpen={showAssetModal}
         onClose={handleCloseModal}
@@ -347,10 +338,12 @@ export default function AssetView({
 
         <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null })}
         onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        showCancel={confirmDialog.showCancel}
       />
     </div>
   );

@@ -29,7 +29,15 @@ const AuthorizedUsersPage = () => {
   }>({});
   
   // Confirm dialog
-  const [confirmDialog, setConfirmDialog] = useState<any>({ isOpen: false, title: '', message: '', onConfirm: null });
+  const [confirmDialog, setConfirmDialog] = useState<any>({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showCancel: true
+  });
 
   useEffect(() => {
     loadData();
@@ -374,11 +382,14 @@ const AuthorizedUsersPage = () => {
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
-      />
+        confirmText={confirmDialog.confirmText || 'Confirm'} 
+        cancelText={confirmDialog.cancelText || 'Cancel'}   
+        showCancel={confirmDialog.showCancel ?? true}      
+/>
     </div>
   );
 };

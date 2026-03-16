@@ -29,6 +29,8 @@ interface ConfirmDialogState {
   message: string;
   onConfirm: null | (() => Promise<void> | void);
   title: string;
+  confirmText: string;
+  showCancel: boolean;
 }
 
 export default function CashFlowView({
@@ -67,7 +69,14 @@ export default function CashFlowView({
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CashFlowItem | null>(null); // State to hold item being edited
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ 
+    isOpen: false, 
+    message: '', 
+    onConfirm: null, 
+    title: '',
+    confirmText: 'Confirm',
+    showCancel: true 
+  });
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
   const tableRef = useRef<HTMLTableElement | null>(null);
@@ -81,6 +90,8 @@ export default function CashFlowView({
       isOpen: true,
       title: 'Delete Item',
       message: 'Delete this item?',
+      confirmText: 'Delete',
+      showCancel: true,
       onConfirm: async () => {
         await CashFlowService.delete(String(id));
         await refreshCashflow();
@@ -575,10 +586,12 @@ export default function CashFlowView({
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null })}
         onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        showCancel={confirmDialog.showCancel}
       />
     </div>
   );

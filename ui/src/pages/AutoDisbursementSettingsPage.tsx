@@ -61,7 +61,15 @@ const AutoDisbursementSettingsPage = () => {
   const [error, setError] = useState<any>(null);
   const [message, setMessage] = useState('');
   const [editingAutoDisbursement, setEditingAutoDisbursement] = useState<any>(null);
-  const [confirmDialog, setConfirmDialog] = useState<any>({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [confirmDialog, setConfirmDialog] = useState<any>({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showCancel: true
+  });
   const [activeTab, setActiveTab] = useState('surplus'); // 'surplus' or 'disbursements'
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newAutoDisbursement, setNewAutoDisbursement] = useState<any>({
@@ -1140,13 +1148,15 @@ const AutoDisbursementSettingsPage = () => {
         </div>
       )}
 
-
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' })}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null })}
         onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText || 'Confirm'} 
+        cancelText={confirmDialog.cancelText || 'Cancel'}   
+        showCancel={confirmDialog.showCancel ?? true}      
       />
     </div>
     </ErrorBoundary>

@@ -13,15 +13,16 @@ import './SettingsPages.css'; // General CSS for settings pages
 interface ConfirmDialogState {
   isOpen: boolean;
   message: string;
-  onConfirm?: ((cascadeDelete?: boolean) => void | Promise<void>) | null;
-  onRetain?: (() => void | Promise<void>) | null;
   title: string;
+  confirmText: string;
+  showCancel: boolean;
+  onConfirm: ((arg?: any) => void | Promise<void>) | null;
+  // These MUST have '?' to stop the errors you see in your screenshots
+  cancelText?: string;
   showCascadeOption?: boolean;
   cascadeMessage?: string;
-  showCancel?: boolean;
-  cancelText?: string;
+  onRetain?: ((arg?: any) => void | Promise<void>) | null;
   showRetain?: boolean;
-  confirmText?: string;
   retainText?: string;
 }
 
@@ -42,10 +43,23 @@ const AccountsSettingsPage = () => {
     broker_phone: '',
     broker_email: '',
   });
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+    title: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showCancel: true,
+    showCascadeOption: false,
+    cascadeMessage: '',
+    onRetain: null,
+    showRetain: false,
+    retainText: 'Retain'
+  });
   const [newAccount, setNewAccount] = useState<any>({
     brokerage_id: null,
-    brokerage: '', // Legacy field - used when creating new brokerage
+    brokerage: '',
     broker_name: '',
     broker_phone: '',
     broker_email: '',
@@ -155,6 +169,7 @@ const AccountsSettingsPage = () => {
 
   const handleDeleteAccount = async (accountId: any, accountName: any) => {
     setConfirmDialog({
+      ...confirmDialog,
       isOpen: true,
       title: 'Delete Account',
       message: `Are you sure you want to delete the account "${accountName}"?\n\nThis will:\n• Remove the account link from all assets and liabilities\n• OR delete all assets and liabilities linked to this account (if you choose cascade delete)`,
@@ -166,81 +181,82 @@ const AccountsSettingsPage = () => {
             : 'Account deleted successfully! Linked assets/liabilities had their account link removed.');
           loadData();
           setTimeout(() => setMessage(''), 3000);
-          setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+          setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
         } catch (e: any) {
           const errorMessage = e.response?.data?.detail || 'Error deleting account';
           setMessage(errorMessage);
           setTimeout(() => setMessage(''), 3000);
         }
-      },
+      }, // This brace correctly ends the onConfirm function
       showCascadeOption: true,
       cascadeMessage: 'Also delete all assets and liabilities linked to this account',
       showCancel: true,
       cancelText: 'Cancel'
-    });
+    }); // This brace correctly ends the setConfirmDialog call
   };
 
   const handleDeleteBrokerage = async (brokerageId: any, brokerageName: any) => {
     try {
-      // Check if brokerage is in use
       const usage = await BrokerageService.checkBrokerageUsage(brokerageId);
       
       if (usage.in_use) {
         const accountList = usage.account_names.length > 0 
           ? `\n\nLinked accounts:\n${usage.account_names.map((name: any) => `  • ${name}`).join('\n')}`
           : '';
-        setConfirmDialog({
-          isOpen: true,
-          title: 'Delete Brokerage with Linked Accounts?',
-          message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nChoose an option:\n• Delete: Delete the brokerage, all linked accounts, and all assets/liabilities linked to those accounts\n• Retain: Delete the brokerage but keep all accounts, assets, and liabilities (they will no longer be linked to a brokerage)\n• Cancel: Do not delete anything`,
-          onConfirm: async () => {
-            try {
-              await BrokerageService.deleteBrokerage(brokerageId, true, false); // cascade=true
-              setMessage('Brokerage and linked accounts deleted successfully!');
-              loadData();
-              setTimeout(() => setMessage(''), 3000);
-              setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
-            } catch (e: any) {
-              const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
-              setMessage(errorMessage);
-              setTimeout(() => setMessage(''), 3000);
-            }
-          },
-          onRetain: async () => {
-            try {
-              await BrokerageService.deleteBrokerage(brokerageId, false, true); // retain=true
-              setMessage('Brokerage deleted successfully! Accounts, assets, and liabilities retained (no longer linked to a brokerage).');
-              loadData();
-              setTimeout(() => setMessage(''), 3000);
-              setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
-            } catch (e: any) {
-              const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
-              setMessage(errorMessage);
-              setTimeout(() => setMessage(''), 3000);
-            }
-          },
-          showCancel: true,
-          cancelText: 'Cancel',
-          showRetain: true,
-          confirmText: 'Delete',
-          retainText: 'Retain',
-          showCascadeOption: false
-        });
+          
+          setConfirmDialog({
+            ...confirmDialog, // <--- THIS is the fix for the first error
+            isOpen: true,
+            title: 'Delete Brokerage with Linked Accounts?',
+            message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nChoose an option:\n• Delete: Delete the brokerage, all linked accounts, and all assets/liabilities linked to those accounts\n• Retain: Delete the brokerage but keep all accounts, assets, and liabilities (they will no longer be linked to a brokerage)\n• Cancel: Do not delete anything`,
+            onConfirm: async () => {
+              try {
+                await BrokerageService.deleteBrokerage(brokerageId, true, false);
+                setMessage('Brokerage and linked accounts deleted successfully!');
+                loadData();
+                setTimeout(() => setMessage(''), 3000);
+                setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
+              } catch (e: any) {
+                const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+                setMessage(errorMessage);
+                setTimeout(() => setMessage(''), 3000);
+              }
+            },
+            onRetain: async () => {
+              try {
+                await BrokerageService.deleteBrokerage(brokerageId, false, true);
+                setMessage('Brokerage deleted successfully! Accounts, assets, and liabilities retained.');
+                loadData();
+                setTimeout(() => setMessage(''), 3000);
+                setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
+              } catch (e: any) {
+                const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+                setMessage(errorMessage);
+                setTimeout(() => setMessage(''), 3000);
+              }
+            },
+            showCancel: true,
+            cancelText: 'Cancel',
+            showRetain: true,
+            confirmText: 'Delete',
+            retainText: 'Retain',
+            showCascadeOption: false
+          });
         return;
       }
 
-      // Brokerage is not in use, proceed with deletion
       setConfirmDialog({
+        ...confirmDialog, // <--- THIS is the fix for the second error
         isOpen: true,
         title: 'Delete Brokerage',
         message: `Are you sure you want to delete the brokerage "${brokerageName}"?`,
         onConfirm: async () => {
           try {
-            await BrokerageService.deleteBrokerage(brokerageId, false); // cascade=false
+            await BrokerageService.deleteBrokerage(brokerageId, false);
             setMessage('Brokerage deleted successfully!');
             loadData();
             setTimeout(() => setMessage(''), 2000);
-            setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+            setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
           } catch (e: any) {
             const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
             setMessage(errorMessage);
@@ -808,7 +824,7 @@ const AccountsSettingsPage = () => {
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' })}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null })}
         onConfirm={confirmDialog.onConfirm || (() => {})}
         onRetain={confirmDialog.onRetain || undefined}
         title={confirmDialog.title}
