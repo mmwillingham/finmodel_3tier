@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 import './ResetPasswordPage.css';
 
@@ -55,66 +55,76 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="reset-password-container">
-      <h2>Reset Password</h2>
-      {message && (
-        <div className={`message ${isError ? 'error' : 'success'}`}>
-          {message}
-        </div>
-      )}
-      {!token ? (
-        <form onSubmit={handleRequestReset}>
-          <div className="form-group">
-            <label htmlFor="reset-email">Email</label>
-            <input
-              id="reset-email"
-              type="email"
-              name="reset-email"
-              autoComplete="off"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+    <div className="settings-page-container">
+      <div className="auth-card-wrapper">
+        <h2>{!token ? 'Forgot Password' : 'Reset Password'}</h2>
+        <p>
+          {!token 
+            ? 'Enter your email to receive a secure reset link.' 
+            : 'Please enter and confirm your new password below.'}
+        </p>
+  
+        {message && (
+          <div className={`message-banner ${isError ? 'error-message' : 'success-message'}`}>
+            {message}
           </div>
-          <div className="modal-actions">
-            <button type="submit" disabled={loading}>
+        )}
+  
+        {!token ? (
+          <form key="request-form" onSubmit={handleRequestReset} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="reset-email">Email Address</label>
+              <input
+                id="reset-email"
+                className="auth-input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="name@company.com"
+              />
+            </div>
+            <button className="submit-button" type="submit" disabled={loading}>
               {loading ? 'Sending...' : 'Send Reset Link'}
             </button>
-          </div>
-        </form>
-      ) : (
-        <form onSubmit={handleResetPassword}>
-          <div className="form-group">
-            <label htmlFor="new-password">New Password</label>
-            <input
-              id="new-password"
-              type="password"
-              name="new-password"
-              autoComplete="off"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirm-password">Confirm New Password</label>
-            <input
-              id="confirm-password"
-              type="password"
-              name="confirm-password"
-              autoComplete="off"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="modal-actions">
-            <button type="submit" disabled={loading}>
+          </form>
+        ) : (
+          <form key="reset-form" onSubmit={handleResetPassword} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="new-password">New Password</label>
+              <input
+                id="new-password"
+                className="auth-input"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="confirm-password">Confirm New Password</label>
+              <input
+                id="confirm-password"
+                className="auth-input"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            <button className="submit-button" type="submit" disabled={loading}>
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>
-          </div>
-        </form>
-      )}
+          </form>
+        )}
+  
+        <Link to="/login" className="back-link">
+          ← Back to Login
+        </Link>
+      </div>
     </div>
   );
 }

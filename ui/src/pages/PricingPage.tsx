@@ -3,14 +3,14 @@ import BillingService from '../services/billing.service';
 
 const tiers: { label: string; description: string; slug: 'premium' | 'pro' }[] = [
   {
-    label: 'Premium',
-    description: 'Unlock advanced budgeting, projection exports, and priority email support.',
-    slug: 'premium',
+    label: 'Pro',
+    description: 'Unlock custom charts, advanced AI models, and priority email support. Only $29/month.',
+    slug: 'pro',
   },
   {
-    label: 'Pro',
-    description: 'All Premium features plus concierge onboarding and dedicated strategy reviews.',
-    slug: 'pro',
+    label: 'Premium',
+    description: 'All Pro features plus concierge onboarding and dedicated strategy reviews. Only $49/month.',
+    slug: 'premium',
   },
 ];
 
@@ -33,7 +33,7 @@ export default function PricingPage() {
 
   return (
     <div className="settings-page-container">
-      <h2>Pricing</h2>
+      <h2 style={{ textAlign: 'center' }}>Pricing</h2>
       <p>Choose the tier that best suits your financial planning needs.</p>
       <div className="pricing-grid">
         {tiers.map((tier) => (
@@ -52,6 +52,9 @@ export default function PricingPage() {
         ))}
       </div>
       {message && <p className="error-message">{message}</p>}
+      <p style={{ marginTop: '2rem' }}>
+        For discounts or questions, please contact <a href="mailto:support@modelmyretirement.com">support@modelmyretirement.com</a>
+      </p>
     </div>
   );
 }
