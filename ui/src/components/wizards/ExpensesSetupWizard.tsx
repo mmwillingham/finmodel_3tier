@@ -265,6 +265,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Description *</label>
                       <input
                         type="text"
+                        name="expense-description"
+                        autoComplete="off"
                         value={newExpense.description}
                         onChange={(e: any) => setNewExpense({ ...newExpense, description: e.target.value })}
                         placeholder="e.g., Rent, Groceries"
@@ -274,6 +276,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>
                         <input
                           type="checkbox"
+                          name="expense-is-dynamic"
+                          autoComplete="off"
                           checked={isDynamic}
                           onChange={(e: any) => setIsDynamic(e.target.checked)}
                         />
@@ -285,6 +289,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                         <div className="form-group">
                           <label>Linked Item Type *</label>
                           <select
+                            name="linked-item-type"
+                            autoComplete="off"
                             value={linkedItemType}
                             onChange={(e: any) => {
                               setLinkedItemType(e.target.value);
@@ -302,6 +308,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <div className="form-group">
                             <label>Linked Item *</label>
                             <select
+                              name="linked-item-id"
+                              autoComplete="off"
                               value={linkedItemId || ''}
                               onChange={(e: any) => setLinkedItemId(e.target.value ? parseInt(e.target.value) : null)}
                             >
@@ -319,6 +327,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.1"
+                            name="percentage"
+                            autoComplete="off"
                             value={percentage}
                             onChange={(e: any) => setPercentage(e.target.value)}
                             placeholder="e.g., 20"
@@ -332,6 +342,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.01"
+                            name="expense-value"
+                            autoComplete="off"
                             value={newExpense.value}
                             onChange={(e: any) => setNewExpense({ ...newExpense, value: e.target.value })}
                             placeholder="0.00"
@@ -340,6 +352,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                         <div className="form-group">
                           <label>Frequency</label>
                           <select
+                            name="expense-frequency"
+                            autoComplete="off"
                             value={newExpense.frequency}
                             onChange={(e: any) => setNewExpense({ ...newExpense, frequency: e.target.value })}
                           >
@@ -352,6 +366,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.1"
+                            name="expense-inflation-percent"
+                            autoComplete="off"
                             value={newExpense.inflation_percent}
                             onChange={(e: any) => setNewExpense({ ...newExpense, inflation_percent: e.target.value })}
                             placeholder={defaultInflation.toString()}
@@ -362,6 +378,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                     <div className="form-group">
                       <label>Contributes to Asset (Optional)</label>
                       <select
+                        name="expense-contributes-to-asset-id"
+                        autoComplete="off"
                         value={newExpense.contributes_to_asset_id || ''}
                         onChange={(e: any) => setNewExpense({ ...newExpense, contributes_to_asset_id: e.target.value ? parseInt(e.target.value) : null })}
                       >
@@ -376,6 +394,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                     <div className="form-group">
                       <label>Person</label>
                       <select
+                        name="expense-person"
+                        autoComplete="off"
                         value={newExpense.person}
                         onChange={(e: any) => setNewExpense({ ...newExpense, person: e.target.value })}
                       >
@@ -388,6 +408,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>
                         <input
                           type="checkbox"
+                          name="expense-tax-deductible"
+                          autoComplete="off"
                           checked={newExpense.tax_deductible}
                           onChange={(e: any) => setNewExpense({ ...newExpense, tax_deductible: e.target.checked })}
                         />
@@ -398,6 +420,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Start Date (Optional)</label>
                       <input
                         type="date"
+                        name="expense-start-date"
+                        autoComplete="off"
                         value={newExpense.start_date}
                         onChange={(e: any) => setNewExpense({ ...newExpense, start_date: e.target.value })}
                       />
@@ -406,6 +430,8 @@ const ExpensesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>End Date (Optional)</label>
                       <input
                         type="date"
+                        name="expense-end-date"
+                        autoComplete="off"
                         value={newExpense.end_date}
                         onChange={(e: any) => setNewExpense({ ...newExpense, end_date: e.target.value })}
                       />

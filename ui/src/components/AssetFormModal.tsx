@@ -470,6 +470,8 @@ export default function AssetFormModal({
               <label htmlFor="asset-name">Name *</label>
               <input
                 id="asset-name"
+                name="asset-name"
+                autoComplete="off"
                 type="text"
                 placeholder="Name"
                 value={newItem.name}
@@ -493,6 +495,8 @@ export default function AssetFormModal({
               <label htmlFor="asset-account">Account</label>
               <select 
                 id="asset-account" 
+                name="asset-account"
+                autoComplete="off"
                 value={newItem.account_id || ''} 
                 onChange={(e: any) => setNewItem({ ...newItem, account_id: e.target.value ? parseInt(e.target.value) : null } as any)}
               >
@@ -527,6 +531,8 @@ export default function AssetFormModal({
               <label htmlFor="asset-value">Value *</label>
               <input
                 id="asset-value"
+                name="asset-value"
+                autoComplete="off"
                 type="text"
                 placeholder="Value"
                 value={newItem.value ? formatNumber(newItem.value) : ""}
@@ -556,6 +562,8 @@ export default function AssetFormModal({
               <label htmlFor="annual-change-percent">Internal Growth Rate (%)</label>
               <input
                 id="annual-change-percent"
+                name="annual-change-percent"
+                autoComplete="off"
                 type="number"
                 step="0.1"
                 placeholder="Growth Rate"
@@ -571,6 +579,8 @@ export default function AssetFormModal({
                 <label htmlFor="total-growth-rate">Total Growth Rate (%)</label>
                 <input
                   id="total-growth-rate"
+                  name="total-growth-rate"
+                  autoComplete="off"
                   type="text"
                   value={(Number(newItem.annual_increase_percent || 0) + parseFloat(retirementInterestRate || "0") + parseFloat(retirementDividendRate || "0")).toFixed(1)}
                   readOnly
@@ -583,7 +593,7 @@ export default function AssetFormModal({
 
             <div className="form-field">
               <label htmlFor="annual-change-type">Annual Change</label>
-              <select id="annual-change-type" value={newItem.annual_change_type} onChange={(e: any) => setNewItem({ ...newItem, annual_change_type: e.target.value })}>
+              <select id="annual-change-type" name="annual-change-type" autoComplete="off" value={newItem.annual_change_type} onChange={(e: any) => setNewItem({ ...newItem, annual_change_type: e.target.value })}>
                 <option value="">Select Change Type</option>
                 <option value="increase">Increase</option>
                 <option value="decrease">Decrease</option>
@@ -593,6 +603,8 @@ export default function AssetFormModal({
               <label htmlFor="asset-start-date">Start Date</label>
               <input
                 id="asset-start-date"
+                name="asset-start-date"
+                autoComplete="off"
                 type="date"
                 placeholder="Start Date"
                 value={newItem.start_date}
@@ -604,6 +616,8 @@ export default function AssetFormModal({
               <label htmlFor="asset-end-date">End Date</label>
               <input
                 id="asset-end-date"
+                name="asset-end-date"
+                autoComplete="off"
                 type="date"
                 placeholder="End Date"
                 value={newItem.end_date || ""}
@@ -639,6 +653,8 @@ export default function AssetFormModal({
                     <label htmlFor="interest-rate">Interest Rate (%)</label>
                     <input
                       id="interest-rate"
+                      name="interest-rate"
+                      autoComplete="off"
                       type="number"
                       step="0.1"
                       placeholder="Interest Rate"
@@ -687,6 +703,8 @@ export default function AssetFormModal({
                     <label htmlFor="dividend-rate">Dividend Rate (%)</label>
                     <input
                       id="dividend-rate"
+                      name="dividend-rate"
+                      autoComplete="off"
                       type="number"
                       step="0.1"
                       placeholder="Dividend Rate"
@@ -720,6 +738,8 @@ export default function AssetFormModal({
                   <label htmlFor="retirement-interest-rate">Interest Rate (%)</label>
                   <input
                     id="retirement-interest-rate"
+                    name="retirement-interest-rate"
+                    autoComplete="off"
                     type="number"
                     step="0.1"
                     placeholder="Interest Rate"
@@ -733,6 +753,8 @@ export default function AssetFormModal({
                   <label htmlFor="retirement-dividend-rate">Dividend Rate (%)</label>
                   <input
                     id="retirement-dividend-rate"
+                    name="retirement-dividend-rate"
+                    autoComplete="off"
                     type="number"
                     step="0.1"
                     placeholder="Dividend Rate"

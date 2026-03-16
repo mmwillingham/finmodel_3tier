@@ -259,6 +259,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Description *</label>
                       <input
                         type="text"
+                        name="income-description"
+                        autoComplete="off"
                         value={newIncome.description}
                         onChange={(e: any) => setNewIncome({ ...newIncome, description: e.target.value })}
                         placeholder="e.g., Salary, Rental Income"
@@ -268,6 +270,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>
                         <input
                           type="checkbox"
+                          name="income-is-dynamic"
+                          autoComplete="off"
                           checked={isDynamic}
                           onChange={(e: any) => setIsDynamic(e.target.checked)}
                         />
@@ -279,6 +283,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                         <div className="form-group">
                           <label>Linked Item Type *</label>
                           <select
+                            name="linked-item-type"
+                            autoComplete="off"
                             value={linkedItemType}
                             onChange={(e: any) => {
                               setLinkedItemType(e.target.value);
@@ -296,6 +302,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <div className="form-group">
                             <label>Linked Item *</label>
                             <select
+                              name="linked-item-id"
+                              autoComplete="off"
                               value={linkedItemId || ''}
                               onChange={(e: any) => setLinkedItemId(e.target.value ? parseInt(e.target.value) : null)}
                             >
@@ -313,6 +321,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.1"
+                            name="percentage"
+                            autoComplete="off"
                             value={percentage}
                             onChange={(e: any) => setPercentage(e.target.value)}
                             placeholder="e.g., 10"
@@ -326,6 +336,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.01"
+                            name="income-value"
+                            autoComplete="off"
                             value={newIncome.value}
                             onChange={(e: any) => setNewIncome({ ...newIncome, value: e.target.value })}
                             placeholder="0.00"
@@ -334,6 +346,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                         <div className="form-group">
                           <label>Frequency</label>
                           <select
+                            name="income-frequency"
+                            autoComplete="off"
                             value={newIncome.frequency}
                             onChange={(e: any) => setNewIncome({ ...newIncome, frequency: e.target.value })}
                           >
@@ -346,6 +360,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.1"
+                            name="income-annual-increase-percent"
+                            autoComplete="off"
                             value={newIncome.annual_increase_percent}
                             onChange={(e: any) => setNewIncome({ ...newIncome, annual_increase_percent: e.target.value })}
                             placeholder="0.0"
@@ -356,6 +372,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                     <div className="form-group">
                       <label>Person</label>
                       <select
+                        name="income-person"
+                        autoComplete="off"
                         value={newIncome.person}
                         onChange={(e: any) => setNewIncome({ ...newIncome, person: e.target.value })}
                       >
@@ -368,6 +386,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>
                         <input
                           type="checkbox"
+                          name="income-taxable"
+                          autoComplete="off"
                           checked={newIncome.taxable}
                           onChange={(e: any) => setNewIncome({ ...newIncome, taxable: e.target.checked })}
                         />
@@ -378,6 +398,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Start Date (Optional)</label>
                       <input
                         type="date"
+                        name="income-start-date"
+                        autoComplete="off"
                         value={newIncome.start_date}
                         onChange={(e: any) => setNewIncome({ ...newIncome, start_date: e.target.value })}
                       />
@@ -386,6 +408,8 @@ const IncomeSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>End Date (Optional)</label>
                       <input
                         type="date"
+                        name="income-end-date"
+                        autoComplete="off"
                         value={newIncome.end_date}
                         onChange={(e: any) => setNewIncome({ ...newIncome, end_date: e.target.value })}
                       />

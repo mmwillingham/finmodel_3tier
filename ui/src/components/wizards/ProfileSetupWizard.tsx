@@ -158,6 +158,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                 <div className="form-group">
                   <label>First Name *</label>
                   <input
+                    name="person1-first-name"
+                    autoComplete="off"
                     type="text"
                     value={person1FirstName}
                     onChange={(e: any) => setPerson1FirstName(e.target.value)}
@@ -168,6 +170,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Last Name *</label>
                   <input
                     type="text"
+                    name="person1-last-name"
+                    autoComplete="off"
                     value={person1LastName}
                     onChange={(e: any) => setPerson1LastName(e.target.value)}
                     placeholder="Enter your last name"
@@ -177,6 +181,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Date of Birth</label>
                   <input
                     type="date"
+                    name="person1-birthdate"
+                    autoComplete="off"
                     value={person1Birthdate}
                     onChange={(e: any) => setPerson1Birthdate(e.target.value)}
                   />
@@ -185,6 +191,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Cell Phone</label>
                   <input
                     type="tel"
+                    name="person1-cell-phone"
+                    autoComplete="off"
                     value={person1CellPhone}
                     onChange={(e: any) => setPerson1CellPhone(formatPhoneNumber(e.target.value))}
                     placeholder="(XXX) XXX-XXXX"
@@ -203,6 +211,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Spouse First Name</label>
                   <input
                     type="text"
+                    name="person2-first-name"
+                    autoComplete="off"
                     value={person2FirstName}
                     onChange={(e: any) => setPerson2FirstName(e.target.value)}
                     placeholder="Enter spouse's first name"
@@ -212,6 +222,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Spouse Last Name</label>
                   <input
                     type="text"
+                    name="person2-last-name"
+                    autoComplete="off"
                     value={person2LastName}
                     onChange={(e: any) => setPerson2LastName(e.target.value)}
                     placeholder="Enter spouse's last name"
@@ -221,6 +233,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Spouse Date of Birth</label>
                   <input
                     type="date"
+                    name="person2-birthdate"
+                    autoComplete="off"
                     value={person2Birthdate}
                     onChange={(e: any) => setPerson2Birthdate(e.target.value)}
                   />
@@ -229,6 +243,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Spouse Cell Phone</label>
                   <input
                     type="tel"
+                    name="person2-cell-phone"
+                    autoComplete="off"
                     value={person2CellPhone}
                     onChange={(e: any) => setPerson2CellPhone(formatPhoneNumber(e.target.value))}
                     placeholder="(XXX) XXX-XXXX"
@@ -246,6 +262,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Address</label>
                   <input
                     type="text"
+                    name="address"
+                    autoComplete="off"
                     value={address}
                     onChange={(e: any) => setAddress(e.target.value)}
                     placeholder="Street address"
@@ -255,6 +273,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>City</label>
                   <input
                     type="text"
+                    name="city"
+                    autoComplete="off"
                     value={city}
                     onChange={(e: any) => setCity(e.target.value)}
                     placeholder="City"
@@ -262,7 +282,7 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                 </div>
                 <div className="form-group">
                   <label>State</label>
-                  <select value={state} onChange={(e: any) => setState(e.target.value)}>
+                  <select name="state" autoComplete="off" value={state} onChange={(e: any) => setState(e.target.value)}>
                     <option value="">Select State</option>
                     {states.map((s: any) => (
                       <option key={s} value={s}>{s}</option>
@@ -273,6 +293,8 @@ const ProfileSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Zip Code</label>
                   <input
                     type="text"
+                    name="zip-code"
+                    autoComplete="off"
                     value={zipCode}
                     onChange={(e: any) => setZipCode(e.target.value)}
                     placeholder="Zip Code"

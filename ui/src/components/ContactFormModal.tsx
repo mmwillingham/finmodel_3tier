@@ -56,6 +56,8 @@ const ContactFormModal = ({ isOpen, onClose, contactType, label }: any) => {
             id="contact-name"
             type="text"
             value={name}
+            name="contact-name"
+            autoComplete="off"
             onChange={(e: any) => setName(e.target.value)}
             required
           />
@@ -65,6 +67,8 @@ const ContactFormModal = ({ isOpen, onClose, contactType, label }: any) => {
             id="contact-email"
             type="email"
             value={email}
+            name="contact-email"
+            autoComplete="off"
             onChange={(e: any) => setEmail(e.target.value)}
             required
           />
@@ -74,6 +78,8 @@ const ContactFormModal = ({ isOpen, onClose, contactType, label }: any) => {
             id="contact-subject"
             type="text"
             value={subject}
+            name="contact-subject"
+            autoComplete="off"
             onChange={(e: any) => setSubject(e.target.value)}
             placeholder={`${label} - Model My Retirement`}
           />
@@ -83,6 +89,8 @@ const ContactFormModal = ({ isOpen, onClose, contactType, label }: any) => {
             id="contact-message"
             rows={5}
             value={message}
+            name="contact-message"
+            autoComplete="off"
             onChange={(e: any) => setMessage(e.target.value)}
             required
           />

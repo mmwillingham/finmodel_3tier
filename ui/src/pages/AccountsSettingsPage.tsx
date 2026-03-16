@@ -384,6 +384,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="brokerage_name">Brokerage Name *</label>
                 <input
                   id="brokerage_name"
+                  name="brokerage-name"
+                  autoComplete="off"
                   type="text"
                   placeholder="e.g., Merrill Lynch"
                   value={newBrokerage.name}
@@ -395,6 +397,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="broker_name_new">Broker Name</label>
                 <input
                   id="broker_name_new"
+                  name="broker-name"
+                  autoComplete="off"
                   type="text"
                   placeholder="Optional"
                   value={newBrokerage.broker_name}
@@ -406,6 +410,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="broker_phone_new">Broker Phone</label>
                 <input
                   id="broker_phone_new"
+                  name="broker-phone"
+                  autoComplete="off"
                   type="text"
                   placeholder="Optional"
                   value={newBrokerage.broker_phone}
@@ -417,6 +423,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="broker_email_new">Broker Email</label>
                 <input
                   id="broker_email_new"
+                  name="broker-email"
+                  autoComplete="off"
                   type="email"
                   placeholder="Optional"
                   value={newBrokerage.broker_email}
@@ -505,6 +513,8 @@ const AccountsSettingsPage = () => {
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
+                name="renaming-brokerage-name"
+                autoComplete="off"
                 type="text"
                 value={renamingBrokerageName}
                 onChange={(e: any) => setRenamingBrokerageName(e.target.value)}
@@ -552,6 +562,8 @@ const AccountsSettingsPage = () => {
             </select>
             {!newAccount.brokerage_id && brokerages.length === 0 && (
               <input
+                name="new-brokerage-name"
+                autoComplete="off"
                 type="text"
                 placeholder="Enter new brokerage name"
                 value={newAccount.brokerage}
@@ -565,6 +577,8 @@ const AccountsSettingsPage = () => {
             <label htmlFor="account_name" style={{ marginBottom: '8px', display: 'block' }}>Account Name *</label>
             <input
               id="account_name"
+              name="new-account-name"
+              autoComplete="off"
               type="text"
               placeholder="e.g., Investment Account or Master CMA - Savings"
               value={newAccount.account_name}
@@ -576,6 +590,8 @@ const AccountsSettingsPage = () => {
             <label htmlFor="is_retirement" style={{ marginBottom: '8px', display: 'block' }}>Account Type</label>
             <select
               id="is_retirement"
+              name="new-account-type"
+              autoComplete="off"
               value={newAccount.is_retirement ? 'yes' : 'no'}
               onChange={(e: any) => setNewAccount({ ...newAccount, is_retirement: e.target.value === 'yes' })}
               className="input-modern"
@@ -588,6 +604,7 @@ const AccountsSettingsPage = () => {
             <label htmlFor="is_roth" style={{ marginBottom: '8px', display: 'block' }}>Roth?</label>
             <select
               id="is_roth"
+              name="new-account-roth"
               value={newAccount.is_roth ? 'yes' : 'no'}
               onChange={(e: any) => setNewAccount({ ...newAccount, is_roth: e.target.value === 'yes' })}
               className="input-modern"
@@ -600,6 +617,8 @@ const AccountsSettingsPage = () => {
             <label htmlFor="account_number" style={{ marginBottom: '8px', display: 'block' }}>Account Number</label>
             <input
               id="account_number"
+              name="new-account-number"
+              autoComplete="off"
               type="text"
               placeholder="Optional - account number or identifier"
               value={newAccount.account_number}
@@ -648,6 +667,7 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <select
+                            name="editing-brokerage-id"
                             value={editingAccount.brokerage_id || ''}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, brokerage_id: e.target.value ? parseInt(e.target.value) : null })}
                             className="input-modern"
@@ -661,6 +681,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <input
+                            name="editing-account-name"
+                            autoComplete="off"
                             type="text"
                             value={editingAccount.account_name}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
@@ -670,6 +692,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <input
+                            name="editing-account-number"
+                            autoComplete="off"
                             type="text"
                             value={editingAccount.account_number || ''}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, account_number: e.target.value })}
@@ -679,6 +703,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <select
+                            name="editing-account-type"
+                            autoComplete="off"
                             value={editingAccount.is_retirement ? 'yes' : 'no'}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, is_retirement: e.target.value === 'yes' })}
                             className="input-modern"
@@ -690,6 +716,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <select
+                            name="editing-account-roth"
+                            autoComplete="off"
                             value={editingAccount.is_roth ? 'yes' : 'no'}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, is_roth: e.target.value === 'yes' })}
                             className="input-modern"

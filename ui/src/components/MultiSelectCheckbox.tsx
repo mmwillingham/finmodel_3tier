@@ -154,6 +154,8 @@ export default function MultiSelectCheckbox({
             <div className="multi-select-checkbox-header">
               <label className="multi-select-checkbox-select-all">
                 <input
+                  name="select-all"
+                  autoComplete="off"
                   type="checkbox"
                   checked={selectedValues.length === options.length && options.length > 0}
                   onChange={toggleAll}
@@ -177,6 +179,8 @@ export default function MultiSelectCheckbox({
                     onClick={(e: any) => e.stopPropagation()}
                   >
                     <input
+                      name="select-option"
+                      autoComplete="off"
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleOption(option.id)}

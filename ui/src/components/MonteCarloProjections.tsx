@@ -1016,6 +1016,8 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
                 <Select
                   labelId="monte-carlo-view-label"
                   id="monte-carlo-view"
+                  name="monte-carlo-view"
+                  autoComplete="off"
                   value={selectedView}
                   label="View"
                   onChange={(e: any) => setSelectedView(e.target.value)}

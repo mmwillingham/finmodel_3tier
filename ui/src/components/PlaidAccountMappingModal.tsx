@@ -292,6 +292,8 @@ function PlaidAccountMappingModal({ itemId, accounts, onClose, onSuccess }: Plai
                       {showNewCategoryInput[mapping.account_id] ? (
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <input
+                            name="new-category-name"
+                            autoComplete="off"
                             type="text"
                             value={newCategoryName[mapping.account_id] || ''}
                             onChange={(e: any) => setNewCategoryName({ ...newCategoryName, [mapping.account_id]: e.target.value })}

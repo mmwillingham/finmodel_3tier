@@ -92,6 +92,8 @@ export default function ChangePasswordModal({ isOpen, onClose, requireChange = f
             <label htmlFor="current-password">Current Password:</label>
             <input
               id="current-password"
+              name="current-password"
+              autoComplete="off"
               type="password"
               value={currentPassword}
               onChange={(e: any) => setCurrentPassword(e.target.value)}
@@ -102,6 +104,8 @@ export default function ChangePasswordModal({ isOpen, onClose, requireChange = f
             <label htmlFor="new-password">New Password:</label>
             <input
               id="new-password"
+              name="new-password"
+              autoComplete="off"
               type="password"
               value={newPassword}
               onChange={(e: any) => setNewPassword(e.target.value)}
@@ -112,6 +116,8 @@ export default function ChangePasswordModal({ isOpen, onClose, requireChange = f
             <label htmlFor="confirm-new-password">Confirm New Password:</label>
             <input
               id="confirm-new-password"
+              name="confirm-new-password"
+              autoComplete="off"
               type="password"
               value={confirmNewPassword}
               onChange={(e: any) => setConfirmNewPassword(e.target.value)}

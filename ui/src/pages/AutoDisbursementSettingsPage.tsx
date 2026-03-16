@@ -646,6 +646,8 @@ const AutoDisbursementSettingsPage = () => {
                 <label htmlFor="name">Name of Distribution *</label>
                 <input
                   id="name"
+                  name="new-auto-disbursement-name"
+                  autoComplete="off"
                   ref={nameRef}
                   type="text"
                   placeholder="e.g. IRA to Savings"
@@ -679,6 +681,8 @@ const AutoDisbursementSettingsPage = () => {
                     </small>
                     <label style={{ display: 'block', marginTop: '8px' }}>
                       <input
+                        name="new-auto-disbursement-use-rmd"
+                        autoComplete="off"
                         type="checkbox"
                         checked={!!newAutoDisbursement.use_rmd}
                         onChange={(e: any) => {
@@ -821,6 +825,8 @@ const AutoDisbursementSettingsPage = () => {
                 </label>
                 <input
                   id="transfer_value"
+                  name="new-auto-disbursement-transfer-value"
+                  autoComplete="off"
                   type="number"
                   step={newAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
                   placeholder={newAutoDisbursement.transfer_type === 'percentage' ? 'e.g., 5' : 'e.g., 5000'}
@@ -850,6 +856,8 @@ const AutoDisbursementSettingsPage = () => {
                   <div style={{ marginTop: '8px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <input
+                        name="new-auto-disbursement-use-recommended-rmd"
+                        autoComplete="off"
                         type="checkbox"
                         role="switch"
                         checked={useRecommendedRmdValue}
@@ -878,6 +886,8 @@ const AutoDisbursementSettingsPage = () => {
                 <label htmlFor="start_date">Start Date</label>
                 <input
                   id="start_date"
+                  name="new-auto-disbursement-start-date"
+                  autoComplete="off"
                   type="date"
                   value={newAutoDisbursement.start_date || ''}
                   ref={startDateRef}
@@ -894,6 +904,8 @@ const AutoDisbursementSettingsPage = () => {
                 <label htmlFor="end_date">End Date</label>
                 <input
                   id="end_date"
+                  name="new-auto-disbursement-end-date"
+                  autoComplete="off"
                   type="date"
                   value={newAutoDisbursement.end_date || ''}
                   ref={endDateRef}
@@ -989,6 +1001,8 @@ const AutoDisbursementSettingsPage = () => {
                     <>
                       <td>
                         <input
+                          name="editing-auto-disbursement-name"
+                          autoComplete="off"
                           type="text"
                           value={editingAutoDisbursement.name || ''}
                           onChange={(e: any) => setEditingAutoDisbursement({ ...editingAutoDisbursement, name: e.target.value })}
@@ -1036,6 +1050,8 @@ const AutoDisbursementSettingsPage = () => {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <input
+                            name="editing-auto-disbursement-transfer-value"
+                            autoComplete="off"
                             type="number"
                             step={editingAutoDisbursement.transfer_type === 'percentage' ? '0.1' : '0.01'}
                           value={editingAutoDisbursement.transfer_value ?? ''}
@@ -1049,6 +1065,8 @@ const AutoDisbursementSettingsPage = () => {
                       </td>
                       <td>
                         <input
+                          name="editing-auto-disbursement-start-date"
+                          autoComplete="off"
                           type="date"
                           value={editingAutoDisbursement.start_date || ''}
                           onChange={(e: any) => setEditingAutoDisbursement({ ...editingAutoDisbursement, start_date: e.target.value })}
@@ -1057,6 +1075,8 @@ const AutoDisbursementSettingsPage = () => {
                       </td>
                       <td>
                         <input
+                          name="editing-auto-disbursement-end-date"
+                          autoComplete="off"
                           type="date"
                           value={editingAutoDisbursement.end_date || ''}
                           onChange={(e: any) => setEditingAutoDisbursement({ ...editingAutoDisbursement, end_date: e.target.value })}

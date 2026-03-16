@@ -286,6 +286,8 @@ const AuthorizedUsersPage = () => {
                 If the user is already registered, leave the password field empty.
               </p>
               <input
+                name="new-user-email"
+                autoComplete="off"
                 type="email"
                 placeholder="User email address"
                 value={newUserEmail}
@@ -293,6 +295,8 @@ const AuthorizedUsersPage = () => {
                 className="form-input"
               />
               <input
+                name="new-user-password"
+                autoComplete="off"
                 type="password"
                 placeholder="Temporary password (optional - creates account if user doesn't exist)"
                 value={newTemporaryPassword}

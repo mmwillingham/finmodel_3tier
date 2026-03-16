@@ -242,6 +242,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Liability Name *</label>
                       <input
                         type="text"
+                        name="liability-name"
+                        autoComplete="off"
                         value={newLiability.name}
                         onChange={(e: any) => setNewLiability({ ...newLiability, name: e.target.value })}
                         placeholder="e.g., Mortgage, Credit Card"
@@ -250,6 +252,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                     <div className="form-group">
                       <label>Category *</label>
                       <select
+                        name="liability-category"
+                        autoComplete="off"
                         value={newLiability.category}
                         onChange={(e: any) => setNewLiability({ ...newLiability, category: e.target.value })}
                       >
@@ -262,6 +266,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                     <div className="form-group">
                       <label>Loan Type *</label>
                       <select
+                        name="liability-loan-type"
+                        autoComplete="off"
                         value={newLiability.loan_type}
                         onChange={(e: any) => setNewLiability({ ...newLiability, loan_type: e.target.value })}
                       >
@@ -277,6 +283,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.01"
+                            name="liability-principal-amount"
+                            autoComplete="off"
                             value={newLiability.principal_amount}
                             onChange={(e: any) => setNewLiability({ ...newLiability, principal_amount: e.target.value })}
                             placeholder="0.00"
@@ -287,6 +295,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.01"
+                            name="liability-interest-rate"
+                            autoComplete="off"
                             value={newLiability.interest_rate}
                             onChange={(e: any) => setNewLiability({ ...newLiability, interest_rate: e.target.value })}
                             placeholder="0.00"
@@ -296,6 +306,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <label>Loan Term (Months) *</label>
                           <input
                             type="number"
+                            name="liability-loan-term-months"
+                            autoComplete="off"
                             value={newLiability.loan_term_months}
                             onChange={(e: any) => setNewLiability({ ...newLiability, loan_term_months: e.target.value })}
                             placeholder="e.g., 360"
@@ -306,6 +318,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                             <label>Calculated Monthly Payment</label>
                             <input
                               type="text"
+                              name="liability-monthly-payment"
+                              autoComplete="off"
                               value={formatCurrency(parseFloat(newLiability.monthly_payment))}
                               disabled
                               style={{ backgroundColor: '#f8f9fa' }}
@@ -316,6 +330,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <label>Loan Start Date</label>
                           <input
                             type="date"
+                            name="liability-loan-start-date"
+                            autoComplete="off"
                             value={newLiability.loan_start_date}
                             onChange={(e: any) => setNewLiability({ ...newLiability, loan_start_date: e.target.value })}
                           />
@@ -324,6 +340,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <label>
                             <input
                               type="checkbox"
+                              name="liability-decrease-by-principal-yearly"
+                              autoComplete="off"
                               checked={newLiability.decrease_by_principal_yearly}
                               onChange={(e: any) => setNewLiability({ ...newLiability, decrease_by_principal_yearly: e.target.checked })}
                             />
@@ -334,6 +352,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <label>
                             <input
                               type="checkbox"
+                              name="liability-create-payment-expense"
+                              autoComplete="off"
                               checked={newLiability.create_payment_expense}
                               onChange={(e: any) => setNewLiability({ ...newLiability, create_payment_expense: e.target.checked })}
                             />
@@ -344,6 +364,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <div className="form-group">
                             <label>Expense Category *</label>
                             <select
+                              name="liability-expense-category"
+                              autoComplete="off"
                               value={newLiability.expense_category}
                               onChange={(e: any) => setNewLiability({ ...newLiability, expense_category: e.target.value })}
                             >
@@ -362,6 +384,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.01"
+                            name="liability-value"
+                            autoComplete="off"
                             value={newLiability.value}
                             onChange={(e: any) => setNewLiability({ ...newLiability, value: e.target.value })}
                             placeholder="0.00"
@@ -372,6 +396,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                           <input
                             type="number"
                             step="0.1"
+                            name="liability-annual-increase-percent"
+                            autoComplete="off"
                             value={newLiability.annual_increase_percent}
                             onChange={(e: any) => setNewLiability({ ...newLiability, annual_increase_percent: e.target.value })}
                             placeholder="0.0"
@@ -384,6 +410,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Start Date (Optional)</label>
                       <input
                         type="date"
+                        name="liability-start-date"
+                        autoComplete="off"
                         value={newLiability.start_date}
                         onChange={(e: any) => setNewLiability({ ...newLiability, start_date: e.target.value })}
                       />
@@ -392,6 +420,8 @@ const LiabilitiesSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>End Date (Optional)</label>
                       <input
                         type="date"
+                        name="liability-end-date"
+                        autoComplete="off"
                         value={newLiability.end_date}
                         onChange={(e: any) => setNewLiability({ ...newLiability, end_date: e.target.value })}
                       />

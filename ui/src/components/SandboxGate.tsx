@@ -39,6 +39,8 @@ const SandboxGate: React.FC<SandboxGateProps> = ({ onProceed }) => {
                     gap: '10px', marginBottom: '25px', cursor: 'pointer' 
                 }} onClick={() => setRememberMe(!rememberMe)}>
                     <input 
+                        name="remember-me"
+                        autoComplete="off"
                         type="checkbox" 
                         checked={rememberMe} 
                         readOnly 

@@ -1254,6 +1254,8 @@ const DocumentVaultPage = ({
       return (
         <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
+            name="vault-boolean-field"
+            autoComplete="off"
             type="checkbox"
             checked={Boolean(value)}
             onChange={(event) => updateMetadataValue(field.id, event.target.checked)}
@@ -1431,6 +1433,8 @@ const DocumentVaultPage = ({
           />
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
+              name="vault-boolean-field"
+              autoComplete="off"
               type="checkbox"
               checked={draft.is_active}
               onChange={(event) => setDraft((current) => ({ ...current, is_active: event.target.checked }))}
@@ -1549,6 +1553,8 @@ const DocumentVaultPage = ({
                 {(['required', 'is_sensitive', 'hidden'] as const).map((flag) => (
                   <label key={flag} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input
+                      name="vault-boolean-field"
+                      autoComplete="off"
                       type="checkbox"
                       checked={Boolean(field[flag])}
                       onChange={(event) =>
@@ -1671,6 +1677,8 @@ const DocumentVaultPage = ({
             <div className="vault-filter-grid">
               <input
                 className="form-input"
+                name="vault-search"
+                autoComplete="off"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search title, notes, metadata, or file text"
@@ -2011,6 +2019,8 @@ const DocumentVaultPage = ({
             {!entryDraft.id && entryDraft.category.trim() && entryDraft.docType.trim() && !selectedDefinition && (
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
                 <input
+                  name="vault-boolean-field"
+                  autoComplete="off"
                   type="checkbox"
                   checked={saveEntryAsDefinition}
                   onChange={(event) => setSaveEntryAsDefinition(event.target.checked)}
@@ -2055,6 +2065,8 @@ const DocumentVaultPage = ({
             {!entryDraft.id && (
               <>
                 <input
+                  name="vault-file-input"
+                  autoComplete="off"
                   type="file"
                   className="form-input"
                   onChange={(event) =>

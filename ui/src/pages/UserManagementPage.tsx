@@ -261,6 +261,8 @@ const UserManagementPage = () => {
               <label htmlFor="new-user-email">User name:</label>
               <input
                 id="new-user-email"
+                name="new-user-email"
+                autoComplete="off"
                 type="text"
                 value={newUserEmail}
                 onChange={(e: any) => setNewUserEmail(e.target.value)}
@@ -272,6 +274,8 @@ const UserManagementPage = () => {
               <label htmlFor="new-user-password">Temporary Password *:</label>
               <input
                 id="new-user-password"
+                name="new-user-password"
+                autoComplete="off"
                 type="password"
                 value={newUserPassword}
                 onChange={(e: any) => setNewUserPassword(e.target.value)}
@@ -284,6 +288,8 @@ const UserManagementPage = () => {
             <div className="form-group" style={{ marginBottom: '15px' }}>
               <label>
                 <input
+                  name="new-user-must-change-password"
+                  autoComplete="off"
                   type="checkbox"
                   checked={newUserMustChangePassword}
                   onChange={(e: any) => setNewUserMustChangePassword(e.target.checked)}
@@ -296,6 +302,8 @@ const UserManagementPage = () => {
               <label htmlFor="new-user-subscription">Subscription Level:</label>
               <select
                 id="new-user-subscription"
+                name="new-user-subscription"
+                autoComplete="off"
                 value={newUserSubscriptionLevel}
                 onChange={(e: any) => setNewUserSubscriptionLevel(parseInt(e.target.value, 10))}
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}

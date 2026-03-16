@@ -336,6 +336,8 @@ export default function LiabilityFormModal({
               <label htmlFor="name">Name *</label>
               <input
                 id="name"
+                name="name"
+                autoComplete="off"
                 type="text"
                 placeholder="Name"
                 value={newItem.name}
@@ -360,6 +362,8 @@ export default function LiabilityFormModal({
                 <label htmlFor="value">Value *</label>
                 <input
                   id="value"
+                  name="value"
+                  autoComplete="off"
                   type="text"
                   placeholder="Value"
                   value={newItem.value ? formatNumber(newItem.value) : ""}
@@ -385,6 +389,8 @@ export default function LiabilityFormModal({
                 <label htmlFor="annual_increase_percent">Annual Interest Rate (%)</label> {/* Renamed label */}
                 <input
                   id="annual_increase_percent"
+                  name="annual_increase_percent"
+                  autoComplete="off"
                   type="number"
                   step="0.1"
                   placeholder="Percent"
@@ -398,6 +404,8 @@ export default function LiabilityFormModal({
                 <label htmlFor="start_date">Start Date</label>
                 <input
                   id="start_date"
+                  name="start_date"
+                  autoComplete="off"
                   type="date"
                   placeholder="Start Date"
                   value={newItem.start_date}
@@ -414,6 +422,8 @@ export default function LiabilityFormModal({
                   <label htmlFor="principal_amount">Principal Amount *</label>
                 <input
                     id="principal_amount"
+                  name="principal_amount"
+                  autoComplete="off"
                   type="text"
                   placeholder="Principal Amount"
                   value={newItem.principal_amount ? formatNumber(newItem.principal_amount) : ""}
@@ -438,6 +448,8 @@ export default function LiabilityFormModal({
                   <label htmlFor="interest_rate">Annual Interest Rate (%) *</label>
                 <input
                     id="interest_rate"
+                  name="interest_rate"
+                  autoComplete="off"
                   type="number"
                   step="0.01"
                   placeholder="Annual Interest Rate"
@@ -450,6 +462,8 @@ export default function LiabilityFormModal({
                   <label htmlFor="loan_term_months">Loan Term (Months) *</label>
                 <input
                     id="loan_term_months"
+                  name="loan_term_months"
+                  autoComplete="off"
                   type="number"
                   step="1"
                   placeholder="Loan Term (Months)"
@@ -462,6 +476,8 @@ export default function LiabilityFormModal({
                   <label htmlFor="loan_start_date">Loan Start Date *</label>
                 <input
                     id="loan_start_date"
+                  name="loan_start_date"
+                  autoComplete="off"
                   type="date"
                   value={newItem.loan_start_date}
                     onChange={handleInputChange}
@@ -473,6 +489,8 @@ export default function LiabilityFormModal({
                   <label htmlFor="monthly_payment">Calculated Monthly Payment</label>
                 <input
                     id="monthly_payment"
+                    name="monthly_payment"
+                    autoComplete="off"
                     type="text"
                     value={newItem.monthly_payment ? formatNumber(newItem.monthly_payment) : ""}
                     readOnly // Make this field read-only
@@ -515,6 +533,8 @@ export default function LiabilityFormModal({
                   </label>
                   <select
                     id="expense-category-select"
+                    name="expense-category-select"
+                    autoComplete="off"
                     value={newItem.expense_category || ""}
                     onChange={(e: any) => setNewItem({ ...newItem, expense_category: e.target.value })}
                     required

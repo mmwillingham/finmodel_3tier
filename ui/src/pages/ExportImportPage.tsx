@@ -187,6 +187,8 @@ const ExportImportPage = () => {
             <label className="filename-label">
               <span>Filename (optional):</span>
               <input
+                name="export-filename"
+                autoComplete="off"
                 type="text"
                 value={exportFilename}
                 onChange={(e: any) => setExportFilename(e.target.value)}
@@ -244,6 +246,8 @@ const ExportImportPage = () => {
           <label className="file-input-label">
             <span>Select JSON File:</span>
             <input
+              name="import-file"
+              autoComplete="off"
               type="file"
               accept=".json,application/json"
               onChange={handleFileSelect}

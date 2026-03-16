@@ -72,6 +72,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <input
+                  name="cascade-delete-checkbox"
+                  autoComplete="off"
                   type="checkbox"
                   checked={cascadeDelete}
                   onChange={(e: any) => setCascadeDelete(e.target.checked)}
