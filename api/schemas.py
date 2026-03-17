@@ -103,6 +103,13 @@ class AdminUserCreate(BaseModel):
             raise ValueError('Password must contain at least one number')
         return v
 
+class CheckoutSessionRequest(BaseModel):
+    tier: str = Field(..., description="Tier to purchase (premium/pro)")
+
+class CheckoutSessionResponse(BaseModel):
+    sessionId: str
+    url: str
+
 class CategoryUsageCheck(BaseModel):
     category_name: str
     category_type: str # e.g., 'asset', 'liability', 'income', 'expense'

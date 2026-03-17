@@ -29,7 +29,15 @@ const AuthorizedUsersPage = () => {
   }>({});
   
   // Confirm dialog
-  const [confirmDialog, setConfirmDialog] = useState<any>({ isOpen: false, title: '', message: '', onConfirm: null });
+  const [confirmDialog, setConfirmDialog] = useState<any>({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showCancel: true
+  });
 
   useEffect(() => {
     loadData();
@@ -286,6 +294,8 @@ const AuthorizedUsersPage = () => {
                 If the user is already registered, leave the password field empty.
               </p>
               <input
+                name="new-user-email"
+                autoComplete="off"
                 type="email"
                 placeholder="User email address"
                 value={newUserEmail}
@@ -293,6 +303,8 @@ const AuthorizedUsersPage = () => {
                 className="form-input"
               />
               <input
+                name="new-user-password"
+                autoComplete="off"
                 type="password"
                 placeholder="Temporary password (optional - creates account if user doesn't exist)"
                 value={newTemporaryPassword}
@@ -370,11 +382,14 @@ const AuthorizedUsersPage = () => {
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
         title={confirmDialog.title}
         message={confirmDialog.message}
-      />
+        confirmText={confirmDialog.confirmText || 'Confirm'} 
+        cancelText={confirmDialog.cancelText || 'Cancel'}   
+        showCancel={confirmDialog.showCancel ?? true}      
+/>
     </div>
   );
 };

@@ -119,6 +119,8 @@ const ReferAFriendPage = () => {
                 <label htmlFor="friend-name">Friend's Name *</label>
                 <input
                   id="friend-name"
+                  name="friend-name"
+                  autoComplete="off"
                   type="text"
                   value={friendName}
                   onChange={(e: any) => setFriendName(e.target.value)}
@@ -131,6 +133,8 @@ const ReferAFriendPage = () => {
                 <label htmlFor="friend-email">Friend's Email *</label>
                 <input
                   id="friend-email"
+                  name="friend-email"
+                  autoComplete="off"
                   type="email"
                   value={friendEmail}
                   onChange={(e: any) => setFriendEmail(e.target.value)}

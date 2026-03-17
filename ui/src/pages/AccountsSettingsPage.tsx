@@ -13,15 +13,16 @@ import './SettingsPages.css'; // General CSS for settings pages
 interface ConfirmDialogState {
   isOpen: boolean;
   message: string;
-  onConfirm?: ((cascadeDelete?: boolean) => void | Promise<void>) | null;
-  onRetain?: (() => void | Promise<void>) | null;
   title: string;
+  confirmText: string;
+  showCancel: boolean;
+  onConfirm: ((arg?: any) => void | Promise<void>) | null;
+  // These MUST have '?' to stop the errors you see in your screenshots
+  cancelText?: string;
   showCascadeOption?: boolean;
   cascadeMessage?: string;
-  showCancel?: boolean;
-  cancelText?: string;
+  onRetain?: ((arg?: any) => void | Promise<void>) | null;
   showRetain?: boolean;
-  confirmText?: string;
   retainText?: string;
 }
 
@@ -42,10 +43,23 @@ const AccountsSettingsPage = () => {
     broker_phone: '',
     broker_email: '',
   });
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+    title: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    showCancel: true,
+    showCascadeOption: false,
+    cascadeMessage: '',
+    onRetain: null,
+    showRetain: false,
+    retainText: 'Retain'
+  });
   const [newAccount, setNewAccount] = useState<any>({
     brokerage_id: null,
-    brokerage: '', // Legacy field - used when creating new brokerage
+    brokerage: '',
     broker_name: '',
     broker_phone: '',
     broker_email: '',
@@ -155,6 +169,7 @@ const AccountsSettingsPage = () => {
 
   const handleDeleteAccount = async (accountId: any, accountName: any) => {
     setConfirmDialog({
+      ...confirmDialog,
       isOpen: true,
       title: 'Delete Account',
       message: `Are you sure you want to delete the account "${accountName}"?\n\nThis will:\n• Remove the account link from all assets and liabilities\n• OR delete all assets and liabilities linked to this account (if you choose cascade delete)`,
@@ -166,81 +181,82 @@ const AccountsSettingsPage = () => {
             : 'Account deleted successfully! Linked assets/liabilities had their account link removed.');
           loadData();
           setTimeout(() => setMessage(''), 3000);
-          setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+          setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
         } catch (e: any) {
           const errorMessage = e.response?.data?.detail || 'Error deleting account';
           setMessage(errorMessage);
           setTimeout(() => setMessage(''), 3000);
         }
-      },
+      }, // This brace correctly ends the onConfirm function
       showCascadeOption: true,
       cascadeMessage: 'Also delete all assets and liabilities linked to this account',
       showCancel: true,
       cancelText: 'Cancel'
-    });
+    }); // This brace correctly ends the setConfirmDialog call
   };
 
   const handleDeleteBrokerage = async (brokerageId: any, brokerageName: any) => {
     try {
-      // Check if brokerage is in use
       const usage = await BrokerageService.checkBrokerageUsage(brokerageId);
       
       if (usage.in_use) {
         const accountList = usage.account_names.length > 0 
           ? `\n\nLinked accounts:\n${usage.account_names.map((name: any) => `  • ${name}`).join('\n')}`
           : '';
-        setConfirmDialog({
-          isOpen: true,
-          title: 'Delete Brokerage with Linked Accounts?',
-          message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nChoose an option:\n• Delete: Delete the brokerage, all linked accounts, and all assets/liabilities linked to those accounts\n• Retain: Delete the brokerage but keep all accounts, assets, and liabilities (they will no longer be linked to a brokerage)\n• Cancel: Do not delete anything`,
-          onConfirm: async () => {
-            try {
-              await BrokerageService.deleteBrokerage(brokerageId, true, false); // cascade=true
-              setMessage('Brokerage and linked accounts deleted successfully!');
-              loadData();
-              setTimeout(() => setMessage(''), 3000);
-              setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
-            } catch (e: any) {
-              const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
-              setMessage(errorMessage);
-              setTimeout(() => setMessage(''), 3000);
-            }
-          },
-          onRetain: async () => {
-            try {
-              await BrokerageService.deleteBrokerage(brokerageId, false, true); // retain=true
-              setMessage('Brokerage deleted successfully! Accounts, assets, and liabilities retained (no longer linked to a brokerage).');
-              loadData();
-              setTimeout(() => setMessage(''), 3000);
-              setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
-            } catch (e: any) {
-              const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
-              setMessage(errorMessage);
-              setTimeout(() => setMessage(''), 3000);
-            }
-          },
-          showCancel: true,
-          cancelText: 'Cancel',
-          showRetain: true,
-          confirmText: 'Delete',
-          retainText: 'Retain',
-          showCascadeOption: false
-        });
+          
+          setConfirmDialog({
+            ...confirmDialog, // <--- THIS is the fix for the first error
+            isOpen: true,
+            title: 'Delete Brokerage with Linked Accounts?',
+            message: `The brokerage "${brokerageName}" is linked to ${usage.account_count} account(s).${accountList}\n\nChoose an option:\n• Delete: Delete the brokerage, all linked accounts, and all assets/liabilities linked to those accounts\n• Retain: Delete the brokerage but keep all accounts, assets, and liabilities (they will no longer be linked to a brokerage)\n• Cancel: Do not delete anything`,
+            onConfirm: async () => {
+              try {
+                await BrokerageService.deleteBrokerage(brokerageId, true, false);
+                setMessage('Brokerage and linked accounts deleted successfully!');
+                loadData();
+                setTimeout(() => setMessage(''), 3000);
+                setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
+              } catch (e: any) {
+                const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+                setMessage(errorMessage);
+                setTimeout(() => setMessage(''), 3000);
+              }
+            },
+            onRetain: async () => {
+              try {
+                await BrokerageService.deleteBrokerage(brokerageId, false, true);
+                setMessage('Brokerage deleted successfully! Accounts, assets, and liabilities retained.');
+                loadData();
+                setTimeout(() => setMessage(''), 3000);
+                setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
+              } catch (e: any) {
+                const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
+                setMessage(errorMessage);
+                setTimeout(() => setMessage(''), 3000);
+              }
+            },
+            showCancel: true,
+            cancelText: 'Cancel',
+            showRetain: true,
+            confirmText: 'Delete',
+            retainText: 'Retain',
+            showCascadeOption: false
+          });
         return;
       }
 
-      // Brokerage is not in use, proceed with deletion
       setConfirmDialog({
+        ...confirmDialog, // <--- THIS is the fix for the second error
         isOpen: true,
         title: 'Delete Brokerage',
         message: `Are you sure you want to delete the brokerage "${brokerageName}"?`,
         onConfirm: async () => {
           try {
-            await BrokerageService.deleteBrokerage(brokerageId, false); // cascade=false
+            await BrokerageService.deleteBrokerage(brokerageId, false);
             setMessage('Brokerage deleted successfully!');
             loadData();
             setTimeout(() => setMessage(''), 2000);
-            setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' });
+            setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null });
           } catch (e: any) {
             const errorMessage = e.response?.data?.detail || 'Error deleting brokerage';
             setMessage(errorMessage);
@@ -384,6 +400,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="brokerage_name">Brokerage Name *</label>
                 <input
                   id="brokerage_name"
+                  name="brokerage-name"
+                  autoComplete="off"
                   type="text"
                   placeholder="e.g., Merrill Lynch"
                   value={newBrokerage.name}
@@ -395,6 +413,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="broker_name_new">Broker Name</label>
                 <input
                   id="broker_name_new"
+                  name="broker-name"
+                  autoComplete="off"
                   type="text"
                   placeholder="Optional"
                   value={newBrokerage.broker_name}
@@ -406,6 +426,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="broker_phone_new">Broker Phone</label>
                 <input
                   id="broker_phone_new"
+                  name="broker-phone"
+                  autoComplete="off"
                   type="text"
                   placeholder="Optional"
                   value={newBrokerage.broker_phone}
@@ -417,6 +439,8 @@ const AccountsSettingsPage = () => {
                 <label htmlFor="broker_email_new">Broker Email</label>
                 <input
                   id="broker_email_new"
+                  name="broker-email"
+                  autoComplete="off"
                   type="email"
                   placeholder="Optional"
                   value={newBrokerage.broker_email}
@@ -505,6 +529,8 @@ const AccountsSettingsPage = () => {
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
+                name="renaming-brokerage-name"
+                autoComplete="off"
                 type="text"
                 value={renamingBrokerageName}
                 onChange={(e: any) => setRenamingBrokerageName(e.target.value)}
@@ -552,6 +578,8 @@ const AccountsSettingsPage = () => {
             </select>
             {!newAccount.brokerage_id && brokerages.length === 0 && (
               <input
+                name="new-brokerage-name"
+                autoComplete="off"
                 type="text"
                 placeholder="Enter new brokerage name"
                 value={newAccount.brokerage}
@@ -565,6 +593,8 @@ const AccountsSettingsPage = () => {
             <label htmlFor="account_name" style={{ marginBottom: '8px', display: 'block' }}>Account Name *</label>
             <input
               id="account_name"
+              name="new-account-name"
+              autoComplete="off"
               type="text"
               placeholder="e.g., Investment Account or Master CMA - Savings"
               value={newAccount.account_name}
@@ -576,6 +606,8 @@ const AccountsSettingsPage = () => {
             <label htmlFor="is_retirement" style={{ marginBottom: '8px', display: 'block' }}>Account Type</label>
             <select
               id="is_retirement"
+              name="new-account-type"
+              autoComplete="off"
               value={newAccount.is_retirement ? 'yes' : 'no'}
               onChange={(e: any) => setNewAccount({ ...newAccount, is_retirement: e.target.value === 'yes' })}
               className="input-modern"
@@ -588,6 +620,7 @@ const AccountsSettingsPage = () => {
             <label htmlFor="is_roth" style={{ marginBottom: '8px', display: 'block' }}>Roth?</label>
             <select
               id="is_roth"
+              name="new-account-roth"
               value={newAccount.is_roth ? 'yes' : 'no'}
               onChange={(e: any) => setNewAccount({ ...newAccount, is_roth: e.target.value === 'yes' })}
               className="input-modern"
@@ -600,6 +633,8 @@ const AccountsSettingsPage = () => {
             <label htmlFor="account_number" style={{ marginBottom: '8px', display: 'block' }}>Account Number</label>
             <input
               id="account_number"
+              name="new-account-number"
+              autoComplete="off"
               type="text"
               placeholder="Optional - account number or identifier"
               value={newAccount.account_number}
@@ -648,6 +683,7 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <select
+                            name="editing-brokerage-id"
                             value={editingAccount.brokerage_id || ''}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, brokerage_id: e.target.value ? parseInt(e.target.value) : null })}
                             className="input-modern"
@@ -661,6 +697,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <input
+                            name="editing-account-name"
+                            autoComplete="off"
                             type="text"
                             value={editingAccount.account_name}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, account_name: e.target.value })}
@@ -670,6 +708,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <input
+                            name="editing-account-number"
+                            autoComplete="off"
                             type="text"
                             value={editingAccount.account_number || ''}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, account_number: e.target.value })}
@@ -679,6 +719,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <select
+                            name="editing-account-type"
+                            autoComplete="off"
                             value={editingAccount.is_retirement ? 'yes' : 'no'}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, is_retirement: e.target.value === 'yes' })}
                             className="input-modern"
@@ -690,6 +732,8 @@ const AccountsSettingsPage = () => {
                         </td>
                         <td style={{ padding: '8px' }}>
                           <select
+                            name="editing-account-roth"
+                            autoComplete="off"
                             value={editingAccount.is_roth ? 'yes' : 'no'}
                             onChange={(e: any) => setEditingAccount({ ...editingAccount, is_roth: e.target.value === 'yes' })}
                             className="input-modern"
@@ -780,7 +824,7 @@ const AccountsSettingsPage = () => {
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null, onRetain: null, title: '' })}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false, onConfirm: null, onRetain: null })}
         onConfirm={confirmDialog.onConfirm || (() => {})}
         onRetain={confirmDialog.onRetain || undefined}
         title={confirmDialog.title}

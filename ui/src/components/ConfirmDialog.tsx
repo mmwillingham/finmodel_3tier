@@ -8,10 +8,10 @@ interface ConfirmDialogProps {
   onRetain?: (cascade?: boolean) => void;
   title?: string;
   message: string;
-  confirmText?: string;
+  confirmText: string; 
   retainText?: string;
   cancelText?: string;
-  showCancel?: boolean;
+  showCancel?: boolean; 
   showRetain?: boolean;
   showCascadeOption?: boolean;
   cascadeMessage?: string;
@@ -24,10 +24,10 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onRetain,
   title,
   message,
-  confirmText = 'Delete',
+  confirmText, // No default value here anymore to ensure the prop is passed
   retainText = 'Retain',
   cancelText = 'Cancel',
-  showCancel = false,
+  showCancel = true, // Defaulting to true globally
   showRetain = false,
   showCascadeOption = false,
   cascadeMessage = 'Also delete linked items',
@@ -39,7 +39,6 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const handleConfirm = () => {
     onConfirm(showCascadeOption ? cascadeDelete : undefined);
     onClose();
-    // Reset cascade option when dialog closes
     setCascadeDelete(false);
   };
 
@@ -48,13 +47,11 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onRetain(showCascadeOption ? cascadeDelete : undefined);
     }
     onClose();
-    // Reset cascade option when dialog closes
     setCascadeDelete(false);
   };
 
   const handleCancel = () => {
     onClose();
-    // Reset cascade option when dialog closes
     setCascadeDelete(false);
   };
 
@@ -72,6 +69,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <input
+                  name="cascade-delete-checkbox"
+                  autoComplete="off"
                   type="checkbox"
                   checked={cascadeDelete}
                   onChange={(e: any) => setCascadeDelete(e.target.checked)}

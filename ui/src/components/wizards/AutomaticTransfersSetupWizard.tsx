@@ -232,6 +232,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }: any) => 
                       <label>Transfer Name *</label>
                       <input
                         type="text"
+                        name="transfer-name"
+                        autoComplete="off"
                         value={newTransfer.name}
                         onChange={(e: any) => setNewTransfer({ ...newTransfer, name: e.target.value })}
                         placeholder="e.g., IRA to Savings"
@@ -240,6 +242,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }: any) => 
                     <div className="form-group">
                       <label>Transfer Type *</label>
                       <select
+                        name="transfer-type"
+                        autoComplete="off"
                         value={newTransfer.transfer_type}
                         onChange={(e: any) => setNewTransfer({ ...newTransfer, transfer_type: e.target.value })}
                       >
@@ -250,6 +254,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }: any) => 
                     <div className="form-group">
                       <label>Source Asset *</label>
                       <select
+                        name="source-asset-select"
+                        autoComplete="off"
                         value={newTransfer.source_asset_id || ''}
                         onChange={(e: any) => setNewTransfer({ ...newTransfer, source_asset_id: e.target.value ? parseInt(e.target.value) : null })}
                       >
@@ -264,6 +270,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }: any) => 
                     <div className="form-group">
                       <label>Target Asset *</label>
                       <select
+                        name="target-asset-select"
+                        autoComplete="off"
                         value={newTransfer.target_asset_id || ''}
                         onChange={(e: any) => setNewTransfer({ ...newTransfer, target_asset_id: e.target.value ? parseInt(e.target.value) : null })}
                       >
@@ -279,6 +287,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }: any) => 
                       <label>Transfer Value per year * ({newTransfer.transfer_type === 'percentage' ? '%' : '$'})</label>
                       <input
                         type="number"
+                        name="transfer-value"
+                        autoComplete="off"
                         step={newTransfer.transfer_type === 'percentage' ? '0.1' : '0.01'}
                         value={newTransfer.transfer_value}
                         onChange={(e: any) => setNewTransfer({ ...newTransfer, transfer_value: e.target.value })}
@@ -289,6 +299,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }: any) => 
                       <label>Start Date (Optional)</label>
                       <input
                         type="date"
+                        name="start-date"
+                        autoComplete="off"
                         value={newTransfer.start_date}
                         onChange={(e: any) => setNewTransfer({ ...newTransfer, start_date: e.target.value })}
                       />
@@ -297,6 +309,8 @@ const AutomaticTransfersSetupWizard = ({ isOpen, onClose, onComplete }: any) => 
                       <label>End Date (Optional)</label>
                       <input
                         type="date"
+                        name="end-date"
+                        autoComplete="off"
                         value={newTransfer.end_date}
                         onChange={(e: any) => setNewTransfer({ ...newTransfer, end_date: e.target.value })}
                       />

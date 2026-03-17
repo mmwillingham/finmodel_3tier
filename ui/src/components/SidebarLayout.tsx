@@ -1241,6 +1241,8 @@ export default function SidebarLayout() {
                     <div className="scenario-through-controls">
                       <input
                         id="project-through-input"
+                        name="project-through-input"
+                        autoComplete="off"
                         type="number"
                         min={currentYear + 1}
                         max={currentYear + (subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : 50)}
@@ -1254,6 +1256,8 @@ export default function SidebarLayout() {
                     <label htmlFor="market-variability-input" className="market-label">Market Variability</label>
                     <input
                       id="market-variability-input"
+                      name="market-variability-input"
+                      autoComplete="off"
                       type="number"
                       min={1}
                       max={80}
@@ -1270,6 +1274,8 @@ export default function SidebarLayout() {
                   <div className="scenario-input-row">
                     <input
                       id="desired-networth-slider"
+                      name="desired-networth-slider"
+                      autoComplete="off"
                       type="range"
                       min={1}
                       max={50000000}

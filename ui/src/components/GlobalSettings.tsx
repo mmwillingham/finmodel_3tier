@@ -188,6 +188,8 @@ const GlobalSettings: React.FC<GlobalSettingsProps> = ({ onGlobalSettingsSaved }
                             <label htmlFor="free-max-projection-years">Max Projection Years</label>
                             <input
                                 id="free-max-projection-years"
+                                name="free-max-projection-years"
+                                autoComplete="off"
                                 type="number"
                                 min="0"
                                 value={freeMaxProjectionYears}
@@ -198,6 +200,8 @@ const GlobalSettings: React.FC<GlobalSettingsProps> = ({ onGlobalSettingsSaved }
                             <label htmlFor="free-max-documents">Max Documents</label>
                             <input
                                 id="free-max-documents"
+                                name="free-max-documents"
+                                autoComplete="off"
                                 type="number"
                                 min="0"
                                 value={freeMaxDocuments}
@@ -208,6 +212,8 @@ const GlobalSettings: React.FC<GlobalSettingsProps> = ({ onGlobalSettingsSaved }
                             <label htmlFor="free-max-whatif">Max What If Requests / Month</label>
                             <input
                                 id="free-max-whatif"
+                                name="free-max-whatif"
+                                autoComplete="off"
                                 type="number"
                                 min="0"
                                 value={freeMaxWhatIfMonthly}

@@ -165,6 +165,8 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Asset Name *</label>
                       <input
                         type="text"
+                        name="asset-name"
+                        autoComplete="off"
                         value={newAsset.name}
                         onChange={(e: any) => setNewAsset({ ...newAsset, name: e.target.value })}
                         placeholder="e.g., My Checking Account"
@@ -173,6 +175,8 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                     <div className="form-group">
                       <label>Category *</label>
                       <select
+                        name="asset-category"
+                        autoComplete="off"
                         value={newAsset.category}
                         onChange={(e: any) => setNewAsset({ ...newAsset, category: e.target.value })}
                       >
@@ -200,6 +204,8 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Current Value *</label>
                       <input
                         type="number"
+                        name="asset-value"
+                        autoComplete="off"
                         step="0.01"
                         value={newAsset.value}
                         onChange={(e: any) => setNewAsset({ ...newAsset, value: e.target.value })}
@@ -209,6 +215,8 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                     <div className="form-group">
                       <label>Annual Change Type</label>
                       <select
+                        name="asset-annual-change-type"
+                        autoComplete="off"
                         value={newAsset.annual_change_type}
                         onChange={(e: any) => setNewAsset({ ...newAsset, annual_change_type: e.target.value })}
                       >
@@ -221,6 +229,8 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Annual Rate (%)</label>
                       <input
                         type="number"
+                        name="asset-annual-increase-percent"
+                        autoComplete="off"
                         step="0.1"
                         value={newAsset.annual_increase_percent}
                         onChange={(e: any) => setNewAsset({ ...newAsset, annual_increase_percent: e.target.value })}
@@ -231,6 +241,8 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>Start Date (Optional)</label>
                       <input
                         type="date"
+                        name="asset-start-date"
+                        autoComplete="off"
                         value={newAsset.start_date}
                         onChange={(e: any) => setNewAsset({ ...newAsset, start_date: e.target.value })}
                       />
@@ -239,6 +251,8 @@ const AssetsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                       <label>End Date (Optional)</label>
                       <input
                         type="date"
+                        name="asset-end-date"
+                        autoComplete="off"
                         value={newAsset.end_date}
                         onChange={(e: any) => setNewAsset({ ...newAsset, end_date: e.target.value })}
                       />

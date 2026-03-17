@@ -121,6 +121,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Brokerage *</label>
                   <input
                     type="text"
+                    name="brokerage"
+                    autoComplete="off"
                     value={newAccount.brokerage}
                     onChange={(e: any) => setNewAccount({ ...newAccount, brokerage: e.target.value })}
                     placeholder="e.g., Chase, Fidelity, Merrill Lynch"
@@ -130,6 +132,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Broker Name (Optional)</label>
                   <input
                     type="text"
+                    name="broker-name"
+                    autoComplete="off"
                     value={newAccount.broker_name}
                     onChange={(e: any) => setNewAccount({ ...newAccount, broker_name: e.target.value })}
                     placeholder="Name of your broker/advisor"
@@ -139,6 +143,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Broker Phone (Optional)</label>
                   <input
                     type="text"
+                    name="broker-phone"
+                    autoComplete="off"
                     value={newAccount.broker_phone}
                     onChange={(e: any) => setNewAccount({ ...newAccount, broker_phone: e.target.value })}
                     placeholder="Phone number"
@@ -148,6 +154,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Broker Email (Optional)</label>
                   <input
                     type="email"
+                    name="broker-email"
+                    autoComplete="off"
                     value={newAccount.broker_email}
                     onChange={(e: any) => setNewAccount({ ...newAccount, broker_email: e.target.value })}
                     placeholder="Email address"
@@ -157,6 +165,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Account Name *</label>
                   <input
                     type="text"
+                    name="account-name"
+                    autoComplete="off"
                     value={newAccount.account_name}
                     onChange={(e: any) => setNewAccount({ ...newAccount, account_name: e.target.value })}
                     placeholder="e.g., Checking Account, Investment Account"
@@ -166,6 +176,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>Account Number (Optional)</label>
                   <input
                     type="text"
+                    name="account-number"
+                    autoComplete="off"
                     value={newAccount.account_number}
                     onChange={(e: any) => setNewAccount({ ...newAccount, account_number: e.target.value })}
                     placeholder="Last 4 digits or full number"
@@ -175,6 +187,8 @@ const AccountsSetupWizard = ({ isOpen, onClose, onComplete }: any) => {
                   <label>
                     <input
                       type="checkbox"
+                      name="is-retirement"
+                      autoComplete="off"
                       checked={newAccount.is_retirement}
                       onChange={(e: any) => setNewAccount({ ...newAccount, is_retirement: e.target.checked })}
                     />

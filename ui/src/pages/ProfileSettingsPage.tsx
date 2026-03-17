@@ -209,6 +209,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person1-first-name">First Name</label>
               <input
                 id="person1-first-name"
+                name="person1-first-name"
+                autoComplete="off"
                 type="text"
                 value={person1FirstName}
                 onChange={(e: any) => setPerson1FirstName(e.target.value)}
@@ -219,6 +221,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person1-last-name">Last Name</label>
               <input
                 id="person1-last-name"
+                name="person1-last-name"
+                autoComplete="off"
                 type="text"
                 value={person1LastName}
                 onChange={(e: any) => setPerson1LastName(e.target.value)}
@@ -229,6 +233,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person1-birthdate">Date of Birth</label>
               <input
                 id="person1-birthdate"
+                name="person1-birthdate"
+                autoComplete="off"
                 type="date"
                 value={person1Birthdate}
                 onChange={(e: any) => setPerson1Birthdate(e.target.value)}
@@ -238,6 +244,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person1-cell-phone">Cell Phone</label>
               <input
                 id="person1-cell-phone"
+                name="person1-cell-phone"
+                autoComplete="off"
                 type="tel"
                 value={person1CellPhone}
                 onChange={(e: any) => setPerson1CellPhone(formatPhoneNumber(e.target.value))}
@@ -254,6 +262,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person1-ss-fra">Full Retirement Age (FRA)</label>
                 <input
                   id="person1-ss-fra"
+                  name="person1-ss-fra"
+                  autoComplete="off"
                   type="text"
                   value={formatFRADisplay(person1Birthdate)}
                   disabled
@@ -265,6 +275,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person1-ss-pia">Full Retirement Monthly Benefit (PIA)</label>
                 <input
                   id="person1-ss-pia"
+                  name="person1-ss-pia"
+                  autoComplete="off"
                   type="number"
                   step="0.01"
                   value={person1SSPIA}
@@ -276,6 +288,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person1-ss-retirement-date">Social Security Retirement Date</label>
                 <input
                   id="person1-ss-retirement-date"
+                  name="person1-ss-retirement-date"
+                  autoComplete="off"
                   type="date"
                   value={person1SSRetirementDate}
                   onChange={(e: any) => setPerson1SSRetirementDate(e.target.value)}
@@ -287,6 +301,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person1-ss-cola">Social Security COLA (avg) %</label>
                 <input
                   id="person1-ss-cola"
+                  name="person1-ss-cola"
+                  autoComplete="off"
                   type="number"
                   step="0.1"
                   value={person1SSCOLA}
@@ -298,6 +314,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person1-ss-monthly-benefit">Monthly Benefit (calculated)</label>
                 <input
                   id="person1-ss-monthly-benefit"
+                  name="person1-ss-monthly-benefit"
+                  autoComplete="off"
                   type="text"
                   value={person1SSPIA && person1SSRetirementDate ?
                     `$${calculateMonthlyBenefit(parseFloat(person1SSPIA), person1SSRetirementDate, calculateFRADate(person1Birthdate), person1Birthdate).toFixed(2)}` :
@@ -316,6 +334,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person2-first-name">First Name</label>
               <input
                 id="person2-first-name"
+                name="person2-first-name"
+                autoComplete="off"
                 type="text"
                 value={person2FirstName}
                 onChange={(e: any) => setPerson2FirstName(e.target.value)}
@@ -326,6 +346,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person2-last-name">Last Name</label>
               <input
                 id="person2-last-name"
+                name="person2-last-name"
+                autoComplete="off"
                 type="text"
                 value={person2LastName}
                 onChange={(e: any) => setPerson2LastName(e.target.value)}
@@ -336,6 +358,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person2-birthdate">Date of Birth</label>
               <input
                 id="person2-birthdate"
+                name="person2-birthdate"
+                autoComplete="off"
                 type="date"
                 value={person2Birthdate}
                 onChange={(e: any) => setPerson2Birthdate(e.target.value)}
@@ -345,6 +369,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="person2-cell-phone">Cell Phone</label>
               <input
                 id="person2-cell-phone"
+                name="person2-cell-phone"
+                autoComplete="off"
                 type="tel"
                 value={person2CellPhone}
                 onChange={(e: any) => setPerson2CellPhone(formatPhoneNumber(e.target.value))}
@@ -361,6 +387,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person2-ss-fra">Full Retirement Age (FRA)</label>
                 <input
                   id="person2-ss-fra"
+                  name="person2-ss-fra"
+                  autoComplete="off"
                   type="text"
                   value={formatFRADisplay(person2Birthdate)}
                   disabled
@@ -372,6 +400,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person2-ss-pia">Full Retirement Monthly Benefit (PIA)</label>
                 <input
                   id="person2-ss-pia"
+                  name="person2-ss-pia"
+                  autoComplete="off"
                   type="number"
                   step="0.01"
                   value={person2SSPIA}
@@ -383,6 +413,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person2-ss-retirement-date">Social Security Retirement Date</label>
                 <input
                   id="person2-ss-retirement-date"
+                  name="person2-ss-retirement-date"
+                  autoComplete="off"
                   type="date"
                   value={person2SSRetirementDate}
                   onChange={(e: any) => setPerson2SSRetirementDate(e.target.value)}
@@ -394,6 +426,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person2-ss-cola">Social Security COLA (avg) %</label>
                 <input
                   id="person2-ss-cola"
+                  name="person2-ss-cola"
+                  autoComplete="off"
                   type="number"
                   step="0.1"
                   value={person2SSCOLA}
@@ -405,6 +439,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="person2-ss-monthly-benefit">Monthly Benefit (calculated)</label>
                 <input
                   id="person2-ss-monthly-benefit"
+                  name="person2-ss-monthly-benefit"
+                  autoComplete="off"
                   type="text"
                   value={person2SSPIA && person2SSRetirementDate ?
                     `$${calculateMonthlyBenefit(parseFloat(person2SSPIA), person2SSRetirementDate, calculateFRADate(person2Birthdate), person2Birthdate).toFixed(2)}` :
@@ -425,6 +461,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="address">Address</label>
               <input
                 id="address"
+                name="address"
+                autoComplete="off"
                 type="text"
                 value={address}
                 onChange={(e: any) => setAddress(e.target.value)}
@@ -435,6 +473,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="city">City</label>
               <input
                 id="city"
+                name="city"
+                autoComplete="off"
                 type="text"
                 value={city}
                 onChange={(e: any) => setCity(e.target.value)}
@@ -445,6 +485,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="state">State</label>
               <select
                 id="state"
+                name="state"
+                autoComplete="off"
                 value={state}
                 onChange={(e: any) => setState(e.target.value)}
               >
@@ -458,6 +500,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="zip-code">Zip Code</label>
               <input
                 id="zip-code"
+                name="zip-code"
+                autoComplete="off"
                 type="text"
                 value={zipCode}
                 onChange={(e: any) => setZipCode(e.target.value)}
@@ -468,6 +512,8 @@ const ProfileSettingsPage = () => {
               <label htmlFor="tax-filing-status">Tax Filing Status</label>
               <select
                 id="tax-filing-status"
+                name="tax-filing-status"
+                autoComplete="off"
                 value={taxFilingStatus}
                 onChange={(e: any) => setTaxFilingStatus(e.target.value)}
               >
@@ -492,6 +538,8 @@ const ProfileSettingsPage = () => {
                 <label className="switch" aria-hidden>
                   <input
                     id="mfa-enabled"
+                    name="mfa-enabled"
+                    autoComplete="off"
                     type="checkbox"
                     checked={mfaEnabled}
                     onChange={(e: any) => {
@@ -513,6 +561,8 @@ const ProfileSettingsPage = () => {
                 <label htmlFor="mfa-email">Email Verification</label>
                 <input
                   id="mfa-email"
+                  name="mfa-email"
+                  autoComplete="off"
                   type="checkbox"
                   checked={mfaEmailEnabled}
                   onChange={(e: any) => {
@@ -525,6 +575,8 @@ const ProfileSettingsPage = () => {
               <div className="form-group-horizontal">
                 <label />
                 <input
+                  name="mfa-email-display"
+                  autoComplete="username"
                   type="text"
                   readOnly
                   value={(currentUser && (((currentUser as any).username) || currentUser.email)) || ''}
@@ -537,6 +589,8 @@ const ProfileSettingsPage = () => {
                     <label htmlFor="mfa-passkey">Passkey (WebAuthn)</label>
                     <input
                       id="mfa-passkey"
+                      name="mfa-passkey"
+                      autoComplete="off"
                       type="checkbox"
                       checked={mfaPasskeyEnabled}
                       onChange={(e: any) => {
@@ -602,6 +656,8 @@ const ProfileSettingsPage = () => {
                           <div key={cred.id} style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <input
+                              name="mfa-passkey-label"
+                              autoComplete="off"
                               type="text"
                               value={cred.label || ''}
                               placeholder="Label (e.g., iPhone Face ID)"

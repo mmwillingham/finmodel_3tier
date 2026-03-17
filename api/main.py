@@ -7,11 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text, func
 from datetime import timedelta, datetime, date, timezone
-from urllib.parse import urlparse
 from typing import List, Optional, Set
 from starlette.responses import RedirectResponse
+from urllib.parse import urlparse, urlsplit, urlunsplit, parse_qsl, urlencode
 from utils import google_oauth
-from jose import jwt, JWTError
+from jwt.exceptions import InvalidTokenError
 import hashlib
 import secrets
 import json
@@ -19,6 +19,7 @@ import traceback
 from copy import deepcopy
 from fastapi.responses import JSONResponse
 import logging
+import stripe
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.types import ASGIApp, Scope, Receive, Send
@@ -69,6 +70,9 @@ from utils.permission_dependencies import get_accessible_user_ids
 from utils.permissions import check_permission
 from utils.subscription import get_user_limits
 from config import settings
+
+if settings.STRIPE_API_KEY:
+    stripe.api_key = settings.STRIPE_API_KEY
 from webauthn import (
     generate_registration_options,
     generate_authentication_options,
@@ -86,6 +90,20 @@ from webauthn.helpers.structs import (
 )
 
 logger = logging.getLogger(__name__)
+
+def require_subscription_level(user: schemas.UserOut, minimum_level: int, feature: str):
+    if user.subscription_level < minimum_level:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"{feature} requires a higher subscription tier.",
+        )
+
+def _stripe_tier_to_level(tier: str) -> int:
+    mapping = {
+        "premium": 2,
+        "pro": 3,
+    }
+    return mapping.get(tier.lower(), 1)
 
 from starlette.types import ASGIApp, Scope, Receive, Send
 from fastapi.responses import JSONResponse
@@ -116,8 +134,12 @@ class ShieldKeyMiddleware:
         shield_key = headers.get(b"x-mmr-shield-key", b"").decode()
         expected_key = os.environ.get("MMR_SHIELD_KEY", "")
 
-        # 3. Bypass for Health Checks and Login
-        if "GoogleHC" in user_agent or path == "/token" or path == "/login":
+        # 3. Bypass for health/login/auth bridge routes
+        if (
+            "GoogleHC" in user_agent
+            or path == "/token"
+            or path == "/login"
+        ):
             await self.app(scope, receive, send)
             return
 
@@ -252,6 +274,47 @@ app.include_router(plaid_router)
 app.include_router(what_if_router)
 app.include_router(tax_router)
 
+billing_router = APIRouter(prefix="/billing", tags=["billing"])
+
+@billing_router.post(
+    "/checkout-session",
+    response_model=schemas.CheckoutSessionResponse,
+    tags=["billing"],
+)
+def create_checkout_session(
+    payload: schemas.CheckoutSessionRequest,
+    current_user: schemas.UserOut = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    tier_price_map = {
+        "premium": settings.STRIPE_PREMIUM_PRICE_ID,
+        "pro": settings.STRIPE_PRO_PRICE_ID,
+    }
+    price_id = tier_price_map.get(payload.tier.lower())
+    if not price_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Requested tier is not supported.")
+    if not settings.STRIPE_SUCCESS_URL or not settings.STRIPE_CANCEL_URL:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Stripe redirect URLs are not configured.")
+    if not settings.STRIPE_API_KEY:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Stripe API key is missing.")
+
+    session = stripe.checkout.Session.create(
+        success_url=settings.STRIPE_SUCCESS_URL,
+        cancel_url=settings.STRIPE_CANCEL_URL,
+        mode="subscription",
+        line_items=[{"price": price_id, "quantity": 1}],
+        customer_email=current_user.email,
+        metadata={"tier": payload.tier, "user_id": str(current_user.id)},
+    )
+
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if user:
+        user.stripe_customer_id = session.get("customer")
+        db.commit()
+    return schemas.CheckoutSessionResponse(sessionId=session.id, url=session.url)
+
+app.include_router(billing_router)
+
 # New router for admin global settings
 admin_router = APIRouter()
 
@@ -286,12 +349,48 @@ app.add_middleware(
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
+def _is_allowed_google_frontend_callback(callback_url: str) -> bool:
+    try:
+        parsed = urlparse(callback_url)
+    except Exception:
+        return False
+    if parsed.scheme not in ("http", "https"):
+        return False
+    if not parsed.netloc:
+        return False
+
+    configured = urlparse(settings.FRONTEND_URL or "")
+    configured_host = (configured.hostname or "").lower()
+    configured_port = configured.port
+
+    callback_host = (parsed.hostname or "").lower()
+    callback_port = parsed.port
+
+    if callback_host in ("localhost", "127.0.0.1"):
+        return True
+
+    if callback_host == configured_host:
+        return callback_port == configured_port
+
+    return False
+
+
+def _append_query_param(url: str, key: str, value: str) -> str:
+    parts = list(urlsplit(url))
+    query = dict(parse_qsl(parts[3], keep_blank_values=True))
+    query[key] = value
+    parts[3] = urlencode(query)
+    return urlunsplit(parts)
+
 @app.get("/auth/google", tags=["oauth"], summary="Initiate Google OAuth login")
 async def google_login(request: Request):
-    return RedirectResponse(url=google_oauth.get_google_auth_url())
+    callback_url = request.query_params.get("callback_url")
+    oauth_state = callback_url if callback_url and _is_allowed_google_frontend_callback(callback_url) else None
+    return RedirectResponse(url=google_oauth.get_google_auth_url(state=oauth_state))
 
 @app.get("/auth/google/callback", tags=["oauth"], summary="Handle Google OAuth callback")
-async def google_callback(code: str, db: Session = Depends(database.get_db)):
+async def google_callback(code: str, state: str | None = None, db: Session = Depends(database.get_db)):
     try:
         token_response = await google_oauth.get_google_oauth_token(code)
         access_token = token_response["access_token"]
@@ -306,7 +405,10 @@ async def google_callback(code: str, db: Session = Depends(database.get_db)):
             data={"sub": str(user.id)}, expires_delta=our_access_token_expires
         )
 
-        redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={our_access_token}"
+        redirect_base = f"{settings.FRONTEND_URL.rstrip('/')}/auth/google/callback"
+        if state and _is_allowed_google_frontend_callback(state):
+            redirect_base = state
+        redirect_url = _append_query_param(redirect_base, "token", our_access_token)
         return RedirectResponse(url=redirect_url)
 
     except HTTPException as e:
@@ -420,8 +522,8 @@ def _generate_otp() -> str:
 
 def _get_mfa_user_from_token(mfa_token: str, db: Session) -> models.User:
     try:
-        payload = jwt.decode(mfa_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError:
+        payload = auth.decode_local_token(mfa_token)
+    except InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
     if not payload.get("mfa"):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token.")
@@ -1360,6 +1462,49 @@ def change_password(
     )
     return updated_user
 
+@app.post("/stripe/webhook", status_code=status.HTTP_200_OK, tags=["billing"])
+async def stripe_webhook(
+    request: Request,
+    db: Session = Depends(database.get_db),
+):
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Webhook secret is not configured.")
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature")
+    if not signature:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing Stripe signature header.")
+    try:
+        event = stripe.Webhook.construct_event(payload, signature, settings.STRIPE_WEBHOOK_SECRET)
+    except (ValueError, stripe.error.SignatureVerificationError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Stripe webhook payload.")
+
+    event_type = event.get("type")
+    if event_type == "checkout.session.completed":
+        _apply_stripe_session(event["data"]["object"], db)
+    elif event_type == "invoice.payment_succeeded" and event["data"]["object"].get("checkout_session"):
+        _apply_stripe_session(event["data"]["object"]["checkout_session"], db)
+
+    return {"status": "ok"}
+
+def _apply_stripe_session(session_obj: dict, db: Session):
+    metadata = session_obj.get("metadata") or {}
+    metadata_user = metadata.get("user_id")
+    user = None
+    if metadata_user:
+        try:
+            user = db.query(models.User).filter(models.User.id == int(metadata_user)).first()
+        except (TypeError, ValueError):
+            user = None
+    if not user:
+        return
+
+    user.stripe_subscription_id = session_obj.get("subscription") or session_obj.get("id")
+    user.stripe_customer_id = session_obj.get("customer")
+    tier = metadata.get("tier")
+    if tier:
+        user.subscription_level = _stripe_tier_to_level(tier)
+    db.commit()
+
 @app.post("/forgot-password", status_code=status.HTTP_200_OK, tags=["auth"])
 def forgot_password(
     payload: schemas.PasswordResetRequest,
@@ -1430,13 +1575,16 @@ def _get_user_from_header(auth_header: str | None, db: Session):
     if not token:
         return None
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = auth.decode_token(token)
         user_id = payload.get("sub")
-        if not user_id:
-            return None
-    except JWTError:
+    except InvalidTokenError:
         return None
-    return db.query(models.User).filter(models.User.id == int(user_id)).first()
+    if user_id:
+        try:
+            return db.query(models.User).filter(models.User.id == int(user_id)).first()
+        except (TypeError, ValueError):
+            return None
+    return None
 
 
 def _get_client_ip(request: Request) -> str | None:
@@ -1652,6 +1800,7 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
+    require_subscription_level(user, 2, "Creating projections")
     limits = get_user_limits(db, user)
     if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
         raise HTTPException(

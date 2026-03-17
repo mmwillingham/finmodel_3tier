@@ -272,6 +272,9 @@ export default function CashFlowSummary({ incomeItems = [], expenseItems = [], a
         <label>
           Project for 
           <input
+            name="projection-years"
+            autoComplete="off"
+            id="projection-years"
             type="number"
             min="1"
             max="50"

@@ -405,6 +405,7 @@ export default function CashFlowFormModal({
               <label htmlFor="description-input">Description (Name) *</label>
               <input
                 id="description-input"
+                autoComplete="off"
                 type="text"
                 placeholder="Description (Name)"
                 value={newItem.description}
@@ -428,6 +429,7 @@ export default function CashFlowFormModal({
               <label htmlFor="is-dynamic-select">Dynamic (Ex: Pct to IRA)</label>
               <select
                 id="is-dynamic-select"
+                autoComplete="off"
                 value={isDynamic ? "Yes" : "No"}
                 onChange={(e: any) => {
                   const newIsDynamic = e.target.value === "Yes";
@@ -508,6 +510,7 @@ export default function CashFlowFormModal({
                   return (
                     <input
                       id="value-input"
+                      autoComplete="off"
                       type="number"
                       step="1"
                       value={currentYearTaxValue !== null ? currentYearTaxValue : (itemToEdit?.yearly_value || 0)}
@@ -520,6 +523,7 @@ export default function CashFlowFormModal({
               })() || (
                 <input
                   id="value-input"
+                  autoComplete="off"
                   type="text"
                   placeholder={isDynamic ? "Calculated Dynamically" : "Value"}
                   value={isDynamic ? "" : (() => {
@@ -574,6 +578,8 @@ export default function CashFlowFormModal({
                 <label htmlFor="one-time-date">Date *</label>
                 <input
                   id="one-time-date"
+                  name="one-time-date"
+                  autoComplete="off"
                   type="date"
                   value={newItem.start_date || ""}
                   onChange={(e: any) => setNewItem({ ...newItem, start_date: e.target.value, end_date: e.target.value })}
@@ -662,6 +668,8 @@ export default function CashFlowFormModal({
                   <label htmlFor="percentage-input">Percentage (%) *</label>
                   <input
                     id="percentage-input"
+                    name="percentage-input"
+                    autoComplete="off"
                     type="number"
                     step="0.1"
                     min="0"
@@ -680,6 +688,8 @@ export default function CashFlowFormModal({
                 <label htmlFor="contributes-to-asset-select">Contributes to Asset (Ex: $100 to HSA) </label>
                 <select
                   id="contributes-to-asset-select"
+                  name="contributes-to-asset-select"
+                  autoComplete="off"
                   value={newItem.contributes_to_asset_id || ""}
                   onChange={(e: any) => setNewItem({ ...newItem, contributes_to_asset_id: e.target.value ? parseInt(e.target.value) : null })}
                 >
@@ -744,6 +754,8 @@ export default function CashFlowFormModal({
                 <label htmlFor="annual-increase">Annual Increase %</label>
                 <input
                   id="annual-increase"
+                  name="annual-increase"
+                  autoComplete="off"
                   type="number"
                   step="0.1"
                   placeholder="Annual Increase %"
@@ -760,6 +772,8 @@ export default function CashFlowFormModal({
                 <label htmlFor="inflation-percent">Inflation %</label>
                 <input
                   id="inflation-percent"
+                  name="inflation-percent"
+                  autoComplete="off"
                   type="number"
                   step="0.1"
                   placeholder="Inflation %"
@@ -774,6 +788,8 @@ export default function CashFlowFormModal({
               <label htmlFor="start-date-input">Start Date</label>
               <input
                 id="start-date-input"
+                name="start-date-input"
+                autoComplete="off"
                 type="date"
                 placeholder="Start Date"
                 value={newItem.start_date}
@@ -786,6 +802,8 @@ export default function CashFlowFormModal({
               <label htmlFor="end-date-input">End Date</label>
               <input
                 id="end-date-input"
+                name="end-date-input"
+                autoComplete="off"
                 type="date"
                 placeholder="End Date"
                 value={newItem.end_date || ""}

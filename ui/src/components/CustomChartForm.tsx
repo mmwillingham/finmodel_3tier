@@ -471,6 +471,8 @@ export default function CustomChartForm({
           <label htmlFor="chart-name">Name:</label>
           <input
             id="chart-name"
+            name="chart-name"
+            autoComplete="off"
             type="text"
             value={name}
             onChange={(e: any) => setName(e.target.value)}
@@ -482,6 +484,8 @@ export default function CustomChartForm({
           <label htmlFor="chart-type">Chart Type:</label>
           <select
             id="chart-type"
+            name="chart-type"
+            autoComplete="off"
             value={chartType}
             onChange={(e: any) => setChartType(e.target.value)}
             required
@@ -494,6 +498,8 @@ export default function CustomChartForm({
           <label htmlFor="display-type">Display Type:</label>
           <select
             id="display-type"
+            name="display-type"
+            autoComplete="off"
             value={displayType}
             onChange={(e: any) => setDisplayType(e.target.value)}
             required
@@ -575,6 +581,8 @@ export default function CustomChartForm({
                             return (
                               <label key={account.id} className="custom-chart-account-option">
                                 <input
+                                  name="include-selected-assets"
+                                  autoComplete="off"
                                   type="checkbox"
                                   checked={checked}
                                   onChange={() => toggleSelectedAccount(index, account.id)}
@@ -662,6 +670,8 @@ export default function CustomChartForm({
                       <label>Field:</label>
                       <input
                         type="text"
+                        name="field"
+                        autoComplete="off"
                         value={series.field}
                         onChange={(e: any) => handleSeriesChange(index, 'field', e.target.value)}
                       />
@@ -670,6 +680,8 @@ export default function CustomChartForm({
                     <div className="form-group">
                       <label>Aggregation:</label>
                       <select
+                        name="aggregation"
+                        autoComplete="off"
                         value={series.aggregation}
                         onChange={(e: any) => handleSeriesChange(index, 'aggregation', e.target.value)}
                       >
@@ -682,6 +694,8 @@ export default function CustomChartForm({
                   <label>Label:</label>
                   <input
                     type="text"
+                    name="label"
+                    autoComplete="off"
                     value={series.label}
                     onChange={(e: any) => handleSeriesChange(index, 'label', e.target.value)}
                   />
@@ -691,6 +705,8 @@ export default function CustomChartForm({
                   <label>Color:</label>
                   <input
                     type="color"
+                    name="color"
+                    autoComplete="off"
                     value={series.color}
                     onChange={(e: any) => handleSeriesChange(index, 'color', e.target.value)}
                   />
@@ -731,6 +747,8 @@ export default function CustomChartForm({
           <input
             id="x-axis-label"
             type="text"
+            name="x-axis-label"
+            autoComplete="off"
             value={xAxisLabel}
             onChange={(e: any) => setXAxisLabel(e.target.value)}
           />
@@ -741,6 +759,8 @@ export default function CustomChartForm({
           <input
             id="y-axis-label"
             type="text"
+            name="y-axis-label"
+            autoComplete="off"
             value={yAxisLabel}
             onChange={(e: any) => setYAxisLabel(e.target.value)}
           />

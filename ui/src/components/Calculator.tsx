@@ -176,6 +176,8 @@ const Calculator = ({ onProjectionCreated, editingProjection }: any) => {
                     <label>Plan Name:</label>
                     <input 
                         type="text" 
+                        name="projection-name"
+                        autoComplete="off"
                         value={projectionName} 
                         onChange={(e: any) => setProjectionName(e.target.value)} 
                         required 
@@ -185,6 +187,8 @@ const Calculator = ({ onProjectionCreated, editingProjection }: any) => {
                         type="number" 
                         min="1" 
                         max="60" 
+                        name="projection-years"
+                        autoComplete="off"
                         value={years} 
                         onChange={(e: any) => setYears(parseInt(e.target.value) || 0)} 
                         required 
@@ -209,12 +213,16 @@ const Calculator = ({ onProjectionCreated, editingProjection }: any) => {
                         {/* 1. Name */}
                         <input
                             type="text"
+                            name="account-name"
+                            autoComplete="off"
                             value={account.name}
                             onChange={(e: any) => handleAccountChange(index, 'name', e.target.value)}
                             required
                         />
                         {/* 2. Type */}
                         <select
+                            name="account-type"
+                            autoComplete="off"
                             value={account.type || INVESTMENT_TYPES[0]}
                             onChange={(e: any) => handleAccountChange(index, 'type', e.target.value)}
                         >
@@ -227,6 +235,8 @@ const Calculator = ({ onProjectionCreated, editingProjection }: any) => {
                             type="number"
                             min="0"
                             // remove step so arbitrary numbers are allowed
+                            name="account-initial-balance"
+                            autoComplete="off"
                             value={account.initial_balance}
                             onFocus={(e: any) => e.target.select()}
                             onChange={(e: any) => handleAccountChange(index, 'initial_balance', e.target.value)}
@@ -235,6 +245,8 @@ const Calculator = ({ onProjectionCreated, editingProjection }: any) => {
                         <input
                             type="number"
                             min="0"
+                            name="account-monthly-contribution"
+                            autoComplete="off"
                             value={account.monthly_contribution}
                             onFocus={(e: any) => e.target.select()}
                             onChange={(e: any) => handleAccountChange(index, 'monthly_contribution', e.target.value)}
@@ -245,6 +257,8 @@ const Calculator = ({ onProjectionCreated, editingProjection }: any) => {
                             min="0"
                             max="100"
                             step="0.1"
+                            name="account-annual-rate-percent"
+                            autoComplete="off"
                             value={account.annual_rate_percent}
                             onFocus={(e: any) => e.target.select()}
                             onChange={(e: any) => handleAccountChange(index, 'annual_rate_percent', e.target.value)}

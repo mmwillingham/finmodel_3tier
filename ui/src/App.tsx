@@ -85,6 +85,9 @@ const App: React.FC = () => {
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/confirm-email" element={<EmailConfirmationPage />} />
                     <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+                    <Route path="/auth/google/callback/" element={<GoogleAuthCallback />} />
+                    <Route path="/google/callback" element={<GoogleAuthCallback />} />
+                    <Route path="/google/callback/" element={<GoogleAuthCallback />} />
                     <Route path="/features" element={<FeaturesPage />} />
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/cache-test" element={<CacheTestPage />} />

@@ -1,47 +1,45 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import AuthService from '../services/auth.service';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AuthService from '../services/auth.service';
 
 export default function GoogleAuthCallback() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { login } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [statusMessage, setStatusMessage] = useState('Signing you in with Google...');
 
-    useEffect(() => {
-        const handleCallback = async () => {
-            const params = new URLSearchParams(location.search);
-            const token = params.get('token');
-            const error = params.get('error');
+  useEffect(() => {
+    const finalizeGoogleLogin = async () => {
+      try {
+        const params = new URLSearchParams(location.search);
+        const hashParams = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+        const token = params.get('token') || hashParams.get('token') || hashParams.get('access_token');
+        if (!token) {
+          throw new Error('Missing Google auth token.');
+        }
+        AuthService.setToken(token);
+        await login();
+        navigate('/app', { replace: true });
+      } catch (error: any) {
+        setStatusMessage(error?.message || 'Google sign-in failed. Redirecting to login...');
+        setTimeout(() => {
+          navigate('/login', {
+            replace: true,
+            state: { error: error?.message || 'Google sign-in failed.' },
+          });
+        }, 1200);
+      }
+    };
 
-            if (error) {
-                // Redirect to login with an error message
-                navigate('/login', { state: { error: `Google login failed: ${error}` } });
-                return;
-            }
+    finalizeGoogleLogin();
+  }, [location.search, location.hash, login, navigate]);
 
-            if (token) {
-                try {
-                    // Store the JWT token received from our backend
-                    AuthService.setToken(token);
-                    // After setting the token, check the user session to update context state
-                    await login();
-                    navigate('/app'); // Redirect to dashboard
-                } catch (e: any) {
-                    navigate('/login', { state: { error: 'Failed to log in after Google authentication.' } });
-                }
-            } else {
-                navigate('/login', { state: { error: 'Google login callback did not return a token.' } });
-            }
-        };
-
-        handleCallback();
-    }, [location, navigate, login]);
-
-    return (
-        <div className="auth-container">
-            <h2>Processing Google Login...</h2>
-            <p>Please wait while we log you in.</p>
-        </div>
-    );
+  return (
+    <div className="auth-container">
+      <div className="auth-form-container">
+        <h2>{statusMessage}</h2>
+      </div>
+    </div>
+  );
 }
