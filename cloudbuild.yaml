@@ -73,12 +73,18 @@ steps:
         gcloud run jobs update mmr-${_ENVIRONMENT}-migrate \
           --image $${_BACKEND_IMAGE_DIGEST} \
           --region ${_REGION} \
+          --set-env-vars=\
+            DB_HOST=${_DB_HOST},\
+            DB_USER=${_DB_USER},\
+            DB_NAME=${_DB_NAME},\
+            CLOUD_SQL_CONNECTION_NAME=${_SQL_INSTANCE} \
+          --set-secrets="DB_PASSWORD=${_DB_PASSWORD}:latest" \
           --execute-now \
           --wait
     waitFor: ['Push Backend Image']
 
 
-# 3. Deploy Backend (Standardized for Direct VPC)
+# 3. Deploy Backend
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy Backend Service'
     entrypoint: 'bash'
