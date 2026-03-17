@@ -123,18 +123,42 @@ const WhatIfPage = () => {
           </div>
 
           {error && (
-            <div className="error-message">
-              {/* This displays the "Upgrade to Pro..." message sent from the backend */}
-              <p>{error}</p>
-              
-              {/* This checks if the error is subscription-related and adds the missing functionality CTA */}
-              {(error.toLowerCase().includes('upgrade') || error.toLowerCase().includes('free plan')) && (
-                <div style={{ marginTop: '12px', padding: '10px', backgroundColor: 'rgba(255, 193, 7, 0.1)', borderRadius: '4px', border: '1px solid #ffc107' }}>
-                  <strong>Unlock AI Projections:</strong> Paid subscribers can simulate net worth changes, inflation spikes, and retirement timing.
-                  <br />
-                  <a href="/pricing" style={{ color: '#007bff', fontWeight: 'bold', textDecoration: 'underline', marginTop: '5px', display: 'inline-block' }}>
+            <div className="error-message-container" style={{ marginTop: '20px' }}>
+              {/* This check matches the 'detail' string in your updated what_if.py */}
+              {error.includes("Upgrade to Pro") || error.toLowerCase().includes("free plan") ? (
+                <div style={{ 
+                  backgroundColor: '#fff3cd', 
+                  border: '1px solid #ffeeba', 
+                  borderRadius: '12px', 
+                  padding: '30px', 
+                  textAlign: 'center',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}>
+                  <h3 style={{ color: '#856404', margin: '0 0 10px 0', fontSize: '1.25rem', fontWeight: 'bold' }}>
+                    Unlock AI Projections
+                  </h3>
+                  <p style={{ color: '#856404', margin: '0 0 20px 0', fontSize: '1rem', lineHeight: '1.5' }}>
+                    Paid subscribers can simulate net worth changes, inflation spikes, and retirement timing.
+                  </p>
+                  <a 
+                    href="/pricing" 
+                    className="btn-primary-modern"
+                    style={{ 
+                      display: 'inline-block', 
+                      textDecoration: 'none',
+                      padding: '12px 24px',
+                      backgroundColor: '#007bff',
+                      color: '#ffffff', // High contrast white text for the button
+                      borderRadius: '6px',
+                      fontWeight: '600'
+                    }}
+                  >
                     View Pricing & Plans
                   </a>
+                </div>
+              ) : (
+                <div style={{ color: '#ff4d4d', padding: '10px', textAlign: 'center' }}>
+                  {error}
                 </div>
               )}
             </div>

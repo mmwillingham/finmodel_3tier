@@ -1800,7 +1800,7 @@ def create_projection(
 ):
     """
     Creates a new projection, runs the calculation, and saves the results to the database."""
-    require_subscription_level(user, 2, "Creating projections")
+    require_subscription_level(user, 1, "Creating projections")
     limits = get_user_limits(db, user)
     if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
         raise HTTPException(
