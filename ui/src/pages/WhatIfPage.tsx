@@ -123,19 +123,18 @@ const WhatIfPage = () => {
           </div>
 
           {error && (
-            <div className="error-message" style={{ border: '1px solid #ff0000', padding: '15px', borderRadius: '8px', backgroundColor: '#fff5f5' }}>
-              <p style={{ margin: 0, fontWeight: 'bold' }}>{error}</p>
+            <div className="error-message">
+              {/* This displays the "Upgrade to Pro..." message sent from the backend */}
+              <p>{error}</p>
               
-              {/* If the error mentions Upgrade or Pricing, show a clear CTA button */}
-              {(error.includes('Upgrade') || error.includes('Pricing') || error.includes('Free plan')) && (
-                <div style={{ marginTop: '12px' }}>
-                  <button 
-                    onClick={() => window.location.href = '/pricing'}
-                    className="btn-primary-modern"
-                    style={{ backgroundColor: '#28a745', border: 'none' }}
-                  >
-                    Explore Subscription Plans
-                  </button>
+              {/* This checks if the error is subscription-related and adds the missing functionality CTA */}
+              {(error.toLowerCase().includes('upgrade') || error.toLowerCase().includes('free plan')) && (
+                <div style={{ marginTop: '12px', padding: '10px', backgroundColor: 'rgba(255, 193, 7, 0.1)', borderRadius: '4px', border: '1px solid #ffc107' }}>
+                  <strong>Unlock AI Projections:</strong> Paid subscribers can simulate net worth changes, inflation spikes, and retirement timing.
+                  <br />
+                  <a href="/pricing" style={{ color: '#007bff', fontWeight: 'bold', textDecoration: 'underline', marginTop: '5px', display: 'inline-block' }}>
+                    View Pricing & Plans
+                  </a>
                 </div>
               )}
             </div>
