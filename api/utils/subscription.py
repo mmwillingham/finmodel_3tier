@@ -17,10 +17,14 @@ def get_free_limits(db) -> Dict[str, int]:
 
 
 def get_user_limits(db, user) -> Dict[str, Optional[int]]:
-    free_limits = get_free_limits(db)
     is_free = getattr(user, "subscription_level", 1) == 1
+    
+    # We fetch the dynamic limits from the GlobalSettings table
+    free_limits = get_free_limits(db) 
+    
     return {
         "is_limited": is_free,
+        # If free: use the limit (5). If Pro: return None (unlimited).
         "max_projection_years": free_limits["projection_years"] if is_free else None,
         "max_documents": free_limits["documents"] if is_free else None,
         "max_whatif_monthly": free_limits["whatif_monthly"] if is_free else None,

@@ -268,3 +268,15 @@
   border-left-color: rgba(56, 189, 248, 0.45);
   color: #cbd5e1;
 }
+
+.error-message-container .subscription-alert-card h3,
+.error-message-container .subscription-alert-card p {
+    color: #856404 !important; /* Forces the dark gold color */
+    opacity: 1 !important;
+}
+
+.subscription-alert-card {
+    background-color: #fff3cd !important;
+    border: 1px solid #ffeeba !important;
+    color: #856404 !important;
+}

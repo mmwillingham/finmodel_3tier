@@ -182,3 +182,34 @@ select {
         z-index: 1;
     }
 }
+
+/* Modern Subscription Gate Style */
+.subscription-gate-card {
+    background: rgba(30, 41, 59, 0.7); /* Dark slate */
+    border: 1px solid rgba(56, 189, 248, 0.3); /* Subtle blue border */
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.subscription-gate-card h3 {
+    color: #38bdf8 !important; /* Bright blue title */
+    margin: 0 0 10px 0 !important;
+}
+
+.subscription-gate-card p {
+    color: #e2e8f0 !important; /* Visible off-white */
+    line-height: 1.6;
+    margin-bottom: 20px !important;
+}
+
+.limit-info-note {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-top: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}

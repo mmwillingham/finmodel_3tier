@@ -28,19 +28,21 @@ const ApplicationSettingsPage = () => {
   }, [settings]);
 
   const handleSave = async () => {
-    setMessage('');
-    setError(null);
     try {
-      await SettingsService.updateSettings({
-        default_inflation_percent: Number(inflationPercent),
-        projection_years: Number(projectionYears),
+      const updatedSettings = {
+        default_inflation_percent: inflationPercent,
+        projection_years: projectionYears,
         show_chart_totals: showChartTotals,
-      });
-      await refreshSettings();
-      navigate('/app');
-    } catch (e: any) {
-      const errorMessage = e.response?.data?.detail || 'Error saving settings';
-      setMessage(errorMessage);
+      };
+      
+      await SettingsService.updateSettings(updatedSettings);
+      
+      // Force a full page reload to the projection page.
+      // This ensures the new '20 years' setting is pulled fresh from the DB.
+      window.location.href = '/app/projections'; 
+  
+    } catch (err: any) {
+      setError('Failed to save settings');
     }
   };
 

@@ -1986,6 +1986,7 @@ def update_projection(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
+
     limits = get_user_limits(db, current_user)
     if limits["is_limited"] and limits["max_projection_years"] is not None and req.years > limits["max_projection_years"]:
         raise HTTPException(
