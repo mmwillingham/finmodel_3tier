@@ -198,7 +198,7 @@ async def ask_what_if(
     if current_user.subscription_level < 2:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Upgrade to Pro to enable What If scenarios. See Pricing page for details."
+            detail="Upgrade to Pro or Premium to enable What If scenarios. See Pricing page for details."
         )
 
     # 2. MONTHLY LIMIT CHECK
@@ -212,7 +212,7 @@ async def ask_what_if(
         if usage_count >= limits["max_whatif_monthly"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Free plan supports up to {limits['max_whatif_monthly']} What If requests per month."
+                detail=f"Free plan supports up to {limits['max_whatif_monthly']} What If requests per month.  Please upgrade to ask unlimited questions. See Pricing page for details."
             )
 
     # 3. LOG REQUEST AND RUN

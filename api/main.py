@@ -1805,7 +1805,7 @@ def create_projection(
     if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
+            detail=f"Free plan supports up to {limits['max_projection_years']} projection years.  Please upgrade to create longer projections. See Pricing page for details."
         )
 
     try:
@@ -1986,12 +1986,11 @@ def update_projection(
     if not has_permission:
         raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
-
     limits = get_user_limits(db, current_user)
     if limits["is_limited"] and limits["max_projection_years"] is not None and req.years > limits["max_projection_years"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
+            detail=f"Free plan supports up to {limits['max_projection_years']} projection years.  Please upgrade to create longer projections. See Pricing page for details."
         )
 
     # Delete existing associated data

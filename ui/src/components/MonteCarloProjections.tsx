@@ -961,8 +961,27 @@ export default function MonteCarloProjections({ incomeItems, expenseItems, asset
               step={1}
               value={sliderProjectionYears}
               valueLabelDisplay="auto"
-              onChange={(_: any, value: any) => setSliderProjectionYears(Number(value))}
-              onChangeCommitted={(_: any, value: any) => onProjectionYearsChange?.(Number(value))}
+              
+              // onChange={(_: any, value: any) => setSliderProjectionYears(Number(value))}
+              // onChangeCommitted={(_: any, value: any) => onProjectionYearsChange?.(Number(value))}
+
+              onChange={(_e: any, value: any) => {
+                const val = Array.isArray(value) ? value[0] : Number(value);
+                if (limits?.is_limited && val > 5) {
+                    setSliderProjectionYears(5);
+                } else {
+                    setSliderProjectionYears(val);
+                }
+            }}
+            onChangeCommitted={(_e: any, value: any) => {
+                const val = Array.isArray(value) ? value[0] : Number(value);
+                if (limits?.is_limited && val > 5) {
+                    onProjectionYearsChange?.(5);
+                } else {
+                    onProjectionYearsChange?.(val);
+                }
+            }}
+
             />
             {isLimitedPlan && maxProjectionYears !== undefined && (
               <Typography variant="body2" color="text.secondary">

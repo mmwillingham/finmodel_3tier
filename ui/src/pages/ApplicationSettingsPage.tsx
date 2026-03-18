@@ -39,7 +39,8 @@ const ApplicationSettingsPage = () => {
       
       // Force a full page reload to the projection page.
       // This ensures the new '20 years' setting is pulled fresh from the DB.
-      window.location.href = '/app/projections'; 
+      // window.location.href = '/app/projections';
+      window.location.href = '/app';
   
     } catch (err: any) {
       setError('Failed to save settings');

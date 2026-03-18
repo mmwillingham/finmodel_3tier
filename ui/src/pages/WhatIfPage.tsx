@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import './WhatIfPage.css';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import whatIfService from '../services/what_if.service';
 import SettingsService from '../services/settings.service';
 import { useSettingsContext } from '../context/SettingsContext';
+
 
 const exampleQuestions = [
   "Compare the long term affect on my net worth between keeping or reinvesting dividends.",
@@ -24,31 +26,33 @@ const descriptionSentences = [
 ];
 
 const WhatIfPage = () => {
+  // const { limits = { is_limited: false, max_whatif_monthly: 0 } } = useAuth() || {};
+  const auth = useAuth();
+  const limits = auth?.userSettings?.subscription_limits || { is_limited: false, max_whatif_monthly: 0 };
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [limits, setLimits] = useState<any>(null);
   
   const { refreshSettings } = useSettingsContext();
 
-  // Fix: Your service uses 'getSubscriptionLimits', not 'getLimits'
-  const fetchLimits = async () => {
-    try {
-      const response = await SettingsService.getSubscriptionLimits();
-      setLimits(response.data);
-    } catch (err) {
-      console.error('Error fetching limits:', err);
-    }
-  };
+  // // Fix: Your service uses 'getSubscriptionLimits', not 'getLimits'
+  // const fetchLimits = async () => {
+  //   try {
+  //     const response = await SettingsService.getSubscriptionLimits();
+  //     setLimits(response.data);
+  //   } catch (err) {
+  //     console.error('Error fetching limits:', err);
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchLimits();
-    if (refreshSettings) {
-      refreshSettings();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  // useEffect(() => {
+  //   fetchLimits();
+  //   if (refreshSettings) {
+  //     refreshSettings();
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +66,7 @@ const WhatIfPage = () => {
       await whatIfService.askQuestion(question, (chunk: any, fullAnswer: any) => {
         setAnswer(fullAnswer);
       });
-      fetchLimits();
+      // fetchLimits();
     } catch (err: any) {
       setError(err.message || 'An error occurred');
     } finally {
@@ -115,25 +119,33 @@ const WhatIfPage = () => {
             />
           </div>
 
-          {error && (
+          {/* If there is an error (like a 403), show the 'Feature Locked' version.
+           Otherwise, if they are just a limited user, show the 'Usage Info' version.
+           */}
+          {error ? (
             <div className="subscription-gate-card">
-              <h3>Feature Locked</h3>
+              <h3>Action Required</h3>
               <p>{error}</p>
-              <button 
-                type="button"
-                onClick={() => window.location.href='/pricing'}
-                className="btn-primary-modern"
-              >
-                Upgrade to Pro
-              </button>
+              <div style={{ marginTop: '15px' }}>
+                <button 
+                  className="btn-primary-modern"
+                  onClick={() => window.location.href='/pricing'}
+                >
+                  Upgrade to Pro
+                </button>
+              </div>
             </div>
-          )}
-
-          {limits?.is_limited && (
-            <div className="limit-info-note">
-              ℹ️ <strong>Free Tier:</strong> Projections capped at 5 years. Paid plans support up to 30 years.
+          ) : auth?.userSettings?.subscription_limits && (auth?.userSettings?.subscription_limits as any)?.is_limited ? (
+            <div className="subscription-gate-card">
+              <h3>Free Tier Status</h3>
+              <p>
+                You are currently on the Free Tier: <strong>{(auth?.userSettings?.subscription_limits as any)?.max_whatif_monthly || 0} questions/month</strong>.
+              </p>
+              <p>
+                Need more? <a href="/pricing" className="upgrade-link">Upgrade to Pro or Premium</a>.
+              </p>
             </div>
-          )}
+          ) : null}
 
           <button
             type="submit"
