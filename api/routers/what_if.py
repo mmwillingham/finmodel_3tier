@@ -126,7 +126,11 @@ async def generate_streaming_response(request: WhatIfRequest, db: Session, curre
         return
     
     # Select model name (Router already verified level is 2 or 3)
-    model_name = settings.OPENAI_MODEL_PRO if current_user.subscription_level == 3 else settings.OPENAI_MODEL_DEFAULT
+    model_name = (
+    settings.OPENAI_MODEL_PREMIUM if current_user.subscription_level == 3 
+    else settings.OPENAI_MODEL_PRO if current_user.subscription_level == 2 
+    else settings.OPENAI_MODEL_DEFAULT
+)
 
     try:
         user_id = current_user.id
