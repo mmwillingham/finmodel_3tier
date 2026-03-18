@@ -74,10 +74,12 @@ class Settings(BaseSettings):
     PLAID_REDIRECT_URI: str | None = os.getenv("PLAID_REDIRECT_URI", None)  # For OAuth flows
     
     # OpenAI API Settings
-    OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY", "") or os.getenv("_OPENAI_API_KEY", "")
-    OPENAI_MODEL_DEFAULT: str = os.getenv("OPENAI_MODEL_DEFAULT", "gpt-4o-mini")
-    OPENAI_MODEL_PRO: str = os.getenv("OPENAI_MODEL_PRO", "gpt-4o")
-
+    OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY_DEFAULT", "") or os.getenv("_OPENAI_API_KEY_DEFAULT", "")
+    OPENAI_API_KEY_PRO: str | None = os.getenv("OPENAI_API_KEY_PRO", "") or os.getenv("_OPENAI_API_KEY_PRO", "")
+    OPENAI_API_KEY_PREMIUM: str | None = os.getenv("OPENAI_API_KEY_PREMIUM", "") or os.getenv("_OPENAI_API_KEY_PREMIUM", "")
+    OPENAI_MODEL_DEFAULT: str = os.getenv("OPENAI_MODEL_DEFAULT")
+    OPENAI_MODEL_PRO: str = os.getenv("OPENAI_MODEL_PRO")
+    OPENAI_MODEL_PREMIUM: str = os.getenv("OPENAI_MODEL_PREMIUM")
     # Contact form rate limit (per hour)
     CONTACT_RATE_LIMIT_PER_HOUR: int = int(os.getenv("CONTACT_RATE_LIMIT_PER_HOUR", "5"))
 
