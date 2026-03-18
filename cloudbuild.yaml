@@ -140,7 +140,7 @@ steps:
             OPENAI_API_KEY_DEFAULT=${_OPENAI_API_KEY_DEFAULT}:latest,\
             OPENAI_API_KEY_PRO=${_OPENAI_API_KEY_PRO}:latest,\
             OPENAI_API_KEY_PREMIUM=${_OPENAI_API_KEY_PREMIUM}:latest,\
-            MMR_SHIELD_KEY=_MMR_SHIELD_KEY:1,\
+            MMR_SHIELD_KEY=${_MMR_SHIELD_KEY}:latest,\
             STRIPE_API_KEY=${_STRIPE_API_KEY_SECRET}:latest,\
             STRIPE_WEBHOOK_SECRET=${_STRIPE_WEBHOOK_SECRET_NAME}:latest" \
           --cpu=1 \
