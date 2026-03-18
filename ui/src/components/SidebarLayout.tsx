@@ -544,13 +544,14 @@ export default function SidebarLayout() {
     const maxYears = subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : null;
     
     if (maxYears != null && value > maxYears) {
-      setProjectionYearsOverride(maxYears);
-      setShowLimitWarning(true); // Trigger the warning
+        setProjectionYearsOverride(maxYears);
+        // This is where you use the variable that was already declared
+        setShowLimitWarning(true); 
     } else {
-      setProjectionYearsOverride(value);
-      setShowLimitWarning(false); // Clear warning if they go back under the limit
+        setProjectionYearsOverride(value);
+        setShowLimitWarning(false); 
     }
-  };
+};
 
   // Handle password change completion - refresh user data from context
   const handlePasswordChangeComplete = () => {
@@ -1099,7 +1100,7 @@ export default function SidebarLayout() {
 
       <main className="main-content">
       {showLimitWarning && (
-        <div className="mui-alert-custom" style={{ 
+        <div style={{ 
           margin: '20px', 
           padding: '15px', 
           backgroundColor: 'rgba(211, 47, 47, 0.1)', 
@@ -1108,13 +1109,16 @@ export default function SidebarLayout() {
           color: '#f44336',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: '10px',
+          fontSize: '14px',
+          position: 'relative',
+          zIndex: 10
         }}>
-          <span style={{ fontSize: '20px' }}>⚠️</span>
+          <span style={{ fontSize: '18px' }}>⚠️</span>
           <div>
             Free plan supports up to 5 projection years. Showing results for 5 years. 
-            <NavLink to="/pricing" style={{ color: '#f44336', marginLeft: '5px', fontWeight: 'bold' }}>
-              See Pricing page to upgrade to a subscription level...
+            <NavLink to="/pricing" style={{ color: '#f44336', marginLeft: '5px', fontWeight: 'bold', textDecoration: 'underline' }}>
+              See Pricing page to upgrade to a subscription level.
             </NavLink>
           </div>
         </div>

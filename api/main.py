@@ -1988,11 +1988,13 @@ def update_projection(
         raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
     limits = get_user_limits(db, current_user)
-    if limits["is_limited"] and limits["max_projection_years"] is not None and req.years > limits["max_projection_years"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years.  Please upgrade to create longer projections. See Pricing page for details."
-        )
+    calculation_years = req.years
+    calculation_years = req.years
+
+    if limits["is_limited"] and limits["max_projection_years"] is not None:
+        if calculation_years > limits["max_projection_years"]:
+            # Silently cap the years to the limit (e.g., 5)
+            calculation_years = limits["max_projection_years"]
 
     # Delete existing associated data
     db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
@@ -2001,11 +2003,12 @@ def update_projection(
     # Recalculate projection
     try:
         result = calculations.calculate_projection(
-            years=req.years,
+            years=calculation_years,  # <--- USE THE CAPPED VARIABLE HERE
             accounts=req.accounts,
             db=db,
             owner_id=current_user.id
         )
+        
     except Exception as e:
         logger.error(f"Error during projection calculation in update_projection for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Projection calculation failed: {str(e)}")
