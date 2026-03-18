@@ -257,3 +257,83 @@ code {
   margin-left: auto;
   padding-left: 1rem;
 }
+
+/* THE NUCLEAR FIX FOR WHITE MUI BOXES */
+.MuiPaper-root, 
+.MuiBox-root,
+.subscription-gate-card,
+.answer-section,
+[class*="MuiPaper-root"] {
+    background-color: #1e293b !important;
+    background: #1e293b !important;
+    color: #f8fafc !important;
+    background-image: none !important; /* This is the specific line that kills the white MUI overlay */
+    box-shadow: none !important;
+}
+
+/* Force the Textarea/Question field to be dark */
+.MuiInputBase-root, 
+.MuiOutlinedInput-root,
+textarea {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+/* Fix the text visibility inside the boxes */
+.MuiTypography-root,
+.subscription-gate-card p,
+.subscription-gate-card h3 {
+    color: #f8fafc !important;
+}
+
+
+/* Pricing Page Styles */
+
+/* --- THE PERMANENT LAYOUT FIX --- */
+
+/* 1. Move the entire content area to the right of the sidebar */
+.settings-page-container {
+  padding: 80px 40px !important;
+  min-height: 100vh;
+  color: #f8fafc !important;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* centers everything horizontally */
+  justify-content: flex-start;
+
+  max-width: 1200px;
+  margin: 0 auto;        /* true centering */
+}
+
+/* 2. Force the cards into a horizontal row that doesn't stack */
+.pricing-grid {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 30px;
+  margin: 40px 0;
+  width: 100%;
+}
+
+/* 3. Define the cards as solid, dark blocks */
+.pricing-card {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  border-radius: 16px !important;
+  padding: 40px !important;
+  width: 350px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-image: none !important; /* Kills the MUI white glow */
+}
+
+/* 4. Keep the button at the bottom of the card */
+.submit-button {
+  background-color: #0ea5e9 !important;
+  margin-top: auto !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
+  font-weight: bold !important;
+  cursor: pointer;
+}

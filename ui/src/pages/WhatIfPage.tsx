@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import './WhatIfPage.css';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import whatIfService from '../services/what_if.service';
 import SettingsService from '../services/settings.service';
+import { useSettingsContext } from '../context/SettingsContext';
+
 
 const exampleQuestions = [
   "Compare the long term affect on my net worth between keeping or reinvesting dividends.",
@@ -23,126 +26,132 @@ const descriptionSentences = [
 ];
 
 const WhatIfPage = () => {
+  // const { limits = { is_limited: false, max_whatif_monthly: 0 } } = useAuth() || {};
+  const auth = useAuth();
+  const limits = auth?.userSettings?.subscription_limits || { is_limited: false, max_whatif_monthly: 0 };
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
-  const [limits, setLimits] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { refreshSettings } = useSettingsContext();
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadLimits = async () => {
-      try {
-        const response = await SettingsService.getSubscriptionLimits();
-        if (isMounted) {
-          setLimits(response.data);
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setLimits(null);
-        }
-      }
-    };
-    loadLimits();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // // Fix: Your service uses 'getSubscriptionLimits', not 'getLimits'
+  // const fetchLimits = async () => {
+  //   try {
+  //     const response = await SettingsService.getSubscriptionLimits();
+  //     setLimits(response.data);
+  //   } catch (err) {
+  //     console.error('Error fetching limits:', err);
+  //   }
+  // };
 
-  const handleSubmit = async (e: any) => {
+  // useEffect(() => {
+  //   fetchLimits();
+  //   if (refreshSettings) {
+  //     refreshSettings();
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []); 
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) {
-      setError('Please enter a question');
-      return;
-    }
-
+    if (!question.trim()) return;
     setLoading(true);
     setError(null);
     setAnswer('');
 
     try {
+      // Using your existing service pattern
       await whatIfService.askQuestion(question, (chunk: any, fullAnswer: any) => {
-        // Update answer incrementally as chunks arrive
         setAnswer(fullAnswer);
       });
+      // fetchLimits();
     } catch (err: any) {
-      const message = err.message || 'Failed to get answer. Please try again.';
-      setError(message);
+      setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExampleClick = (exampleQuestion: any) => {
-    setQuestion(exampleQuestion);
-    setAnswer('');
-    setError(null);
+  const handleExampleClick = (q: string) => {
+    setQuestion(q);
   };
 
   return (
     <div className="what-if-page">
-      <div className="what-if-container">
-        <h1>What If?</h1>
-        <p className="what-if-description">
-          {descriptionSentences.map((sentence: any, index: any) => (
-            <React.Fragment key={sentence}>
-              {sentence}
-              {index < descriptionSentences.length - 1 && <br />}
-            </React.Fragment>
+      <div className="what-if-container page-shell-card">
+        <h1>What If Scenarios</h1>
+        
+        <div className="what-if-description">
+          {descriptionSentences.map((s, i) => (
+            <p key={i} style={{ margin: '4px 0' }}>{s}</p>
           ))}
-        </p>
+        </div>
 
         <div className="examples-section">
           <h3>Example Questions:</h3>
           <div className="examples-grid">
-            {exampleQuestions.map((example: any, index: any) => (
+            {exampleQuestions.map((q, i) => (
               <button
-                key={index}
+                key={i}
+                type="button"
                 className="example-button"
-                onClick={() => handleExampleClick(example)}
+                onClick={() => handleExampleClick(q)}
                 disabled={loading}
               >
-                {example}
+                {q}
               </button>
             ))}
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="what-if-form">
+        <form onSubmit={handleSubmit} className="question-form">
           <div className="form-group">
             <label htmlFor="question">Your Question:</label>
             <textarea
               id="question"
               value={question}
-              onChange={(e: any) => setQuestion(e.target.value)}
-              placeholder="Ask a 'What If?' question about your finances..."
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="e.g., How will retiring at 62 instead of 67 affect my net worth in 2045?"
               rows={4}
               disabled={loading}
-              className="question-input"
             />
           </div>
 
-          {error && (
-            <div className="error-message">
-              {error}
-              {error.toLowerCase().includes('free plan') && (
-                <div style={{ marginTop: '8px' }}>
-                  Upgrade on the <a href="/pricing">Pricing</a> page to unlock more requests.
-                </div>
-              )}
+          {/* If there is an error (like a 403), show the 'Feature Locked' version.
+           Otherwise, if they are just a limited user, show the 'Usage Info' version.
+           */}
+          {error ? (
+            <div className="subscription-gate-card">
+              <h2>Action Required</h2>
+              <p>{error}</p>
+              <div style={{ marginTop: '15px' }}>
+                <button 
+                  className="btn-primary-modern"
+                  onClick={() => window.location.href='/pricing'}
+                >
+                  Upgrade to Pro or Premium
+                </button>
+              </div>
             </div>
-          )}
-
-          {limits?.is_limited && limits.max_whatif_monthly != null && (
-            <div style={{ fontSize: '0.9em', color: '#666', marginTop: '10px' }}>
-              Free plan: up to {limits.max_whatif_monthly} What If requests per month.
+          ) : auth?.userSettings?.subscription_limits && (auth?.userSettings?.subscription_limits as any)?.is_limited ? (
+            <div className="subscription-gate-card">
+              <h3>Free Tier Status</h3>
+              <p>
+                You are currently on the Free Tier: <strong>{(auth?.userSettings?.subscription_limits as any)?.max_whatif_monthly || 0} questions/month</strong>.
+              </p>
+              <p>
+                Need more? <a href="/pricing" className="upgrade-link">Upgrade to Pro or Premium</a>.
+              </p>
             </div>
-          )}
+          ) : null}
 
           <button
             type="submit"
             className="btn-primary-modern"
             disabled={loading || !question.trim()}
+            style={{ marginTop: '20px' }}
           >
             {loading ? 'Analyzing...' : 'Ask Question'}
           </button>
@@ -153,16 +162,7 @@ const WhatIfPage = () => {
             <h3>Answer:</h3>
             <div className="answer-content">
               {answer ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    a: ({ node: _node, ...props }) => (
-                      <a {...props} target="_blank" rel="noreferrer" />
-                    ),
-                  }}
-                >
-                  {answer}
-                </ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
               ) : (
                 <p>Thinking...</p>
               )}

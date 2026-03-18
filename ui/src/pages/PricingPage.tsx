@@ -32,16 +32,52 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="settings-page-container">
-      <h2 style={{ textAlign: 'center' }}>Pricing</h2>
-      <p>Choose the tier that best suits your financial planning needs.</p>
-      <div className="pricing-grid">
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px',
+      background: '#020617',
+      color: '#f8fafc'
+    }}>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>
+        Pricing
+      </h1>
+      <p style={{ color: '#94a3b8' }}>
+        Choose the tier that best suits your financial planning needs.
+      </p>
+      <div style={{
+        display: 'flex',
+        gap: '30px',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginTop: '40px'
+      }}>
         {tiers.map((tier) => (
-          <div key={tier.slug} className="pricing-card">
+          <div key={tier.slug} style={{
+            background: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: '16px',
+            padding: '30px',
+            width: '320px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <h3>{tier.label}</h3>
             <p>{tier.description}</p>
             <button
-              className="submit-button"
+              style={{
+                marginTop: 'auto',
+                padding: '12px',
+                borderRadius: '8px',
+                background: '#0ea5e9',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
               type="button"
               onClick={() => handleUpgrade(tier.slug)}
               disabled={loadingTier !== null}

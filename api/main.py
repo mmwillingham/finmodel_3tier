@@ -100,8 +100,8 @@ def require_subscription_level(user: schemas.UserOut, minimum_level: int, featur
 
 def _stripe_tier_to_level(tier: str) -> int:
     mapping = {
-        "premium": 2,
-        "pro": 3,
+        "premium": 3,
+        "pro": 2,
     }
     return mapping.get(tier.lower(), 1)
 
@@ -1798,23 +1798,24 @@ def create_projection(
     user: schemas.UserOut = Depends(auth.get_current_user), 
     db: Session = Depends(database.get_db)
 ):
-    """
-    Creates a new projection, runs the calculation, and saves the results to the database."""
-    require_subscription_level(user, 2, "Creating projections")
+    require_subscription_level(user, 1, "Creating projections")
     limits = get_user_limits(db, user)
-    if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
-        )
+
+    # If they are over the limit, just force the value to the max allowed (e.g., 5)
+    if limits["is_limited"] and limits["max_projection_years"] is not None:
+        if projection_data.years > limits["max_projection_years"]:
+            projection_data.years = limits["max_projection_years"]
 
     try:
+        # This will now run for 5 years instead of crashing
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
             accounts=projection_data.accounts,
             db=db,
             owner_id=user.id
         )
+        return projection_results
+        
     except Exception as e:
         logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
@@ -1987,11 +1988,13 @@ def update_projection(
         raise HTTPException(status_code=403, detail="You do not have permission to edit this projection")
     
     limits = get_user_limits(db, current_user)
-    if limits["is_limited"] and limits["max_projection_years"] is not None and req.years > limits["max_projection_years"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years."
-        )
+    calculation_years = req.years
+    calculation_years = req.years
+
+    if limits["is_limited"] and limits["max_projection_years"] is not None:
+        if calculation_years > limits["max_projection_years"]:
+            # Silently cap the years to the limit (e.g., 5)
+            calculation_years = limits["max_projection_years"]
 
     # Delete existing associated data
     db.query(models.ProjectedAccount).filter(models.ProjectedAccount.projection_id == projection_id).delete()
@@ -2000,11 +2003,12 @@ def update_projection(
     # Recalculate projection
     try:
         result = calculations.calculate_projection(
-            years=req.years,
+            years=calculation_years,  # <--- USE THE CAPPED VARIABLE HERE
             accounts=req.accounts,
             db=db,
             owner_id=current_user.id
         )
+        
     except Exception as e:
         logger.error(f"Error during projection calculation in update_projection for user {current_user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Projection calculation failed: {str(e)}")

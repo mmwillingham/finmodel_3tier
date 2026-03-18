@@ -126,6 +126,7 @@ export default function SidebarLayout() {
   const expenseRatio = totalIncome ? Math.min(100, Math.max(0, (totalExpenses / totalIncome) * 100)) : 0;
   const projectionYearsEffective = projectionYearsOverride ?? projectionYears;
   const currentYearSurplusDeficit = cashFlowNet;
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
 
   useEffect(() => {
     setHomeProjectionYears(Math.max(1, Number(projectionYearsEffective) || 20));
@@ -459,7 +460,7 @@ export default function SidebarLayout() {
       return;
     }
     if (viewingUserSettings) {
-      setProjectionYears(viewingUserSettings.projection_years || 20);
+      setProjectionYears(viewingUserSettings.projection_years || 5);
       setShowChartTotals(viewingUserSettings.show_chart_totals ?? true);
     }
   }, [viewingUserId, viewingUserSettings, currentUser?.id]);
@@ -469,7 +470,7 @@ export default function SidebarLayout() {
       return;
     }
     const effectiveSettings = viewingUserSettings || userSettings;
-    const preferredYears = effectiveSettings?.projection_years ?? 20;
+    const preferredYears = effectiveSettings?.projection_years ?? 5;
     if (preferredYears !== projectionYears) {
       setProjectionYears(preferredYears);
     }
@@ -541,9 +542,16 @@ export default function SidebarLayout() {
 
   const handleProjectionYearsChange = (value: any) => {
     const maxYears = subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : null;
-    const nextValue = maxYears != null ? Math.min(value, maxYears) : value;
-    setProjectionYearsOverride(nextValue);
-  };
+    
+    if (maxYears != null && value > maxYears) {
+        setProjectionYearsOverride(maxYears);
+        // This is where you use the variable that was already declared
+        setShowLimitWarning(true); 
+    } else {
+        setProjectionYearsOverride(value);
+        setShowLimitWarning(false); 
+    }
+};
 
   // Handle password change completion - refresh user data from context
   const handlePasswordChangeComplete = () => {
@@ -1091,6 +1099,30 @@ export default function SidebarLayout() {
       </aside>
 
       <main className="main-content">
+      {showLimitWarning && (
+        <div style={{ 
+          margin: '20px', 
+          padding: '15px', 
+          backgroundColor: 'rgba(211, 47, 47, 0.1)', 
+          border: '1px solid #d32f2f', 
+          borderRadius: '4px',
+          color: '#f44336',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '14px',
+          position: 'relative',
+          zIndex: 10
+        }}>
+          <span style={{ fontSize: '18px' }}>⚠️</span>
+          <div>
+            Free plan supports up to 5 projection years. Showing results for 5 years. 
+            <NavLink to="/pricing" style={{ color: '#f44336', marginLeft: '5px', fontWeight: 'bold', textDecoration: 'underline' }}>
+              See Pricing page to upgrade to a subscription level.
+            </NavLink>
+          </div>
+        </div>
+      )}
         {loading && (
           <div style={{ padding: '20px' }}>
             <SkeletonList count={6} />

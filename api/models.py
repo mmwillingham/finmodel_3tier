@@ -26,7 +26,7 @@ class User(Base):
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
     referred_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # NEW: Track who referred this user
-    subscription_level = Column(Integer, default=1)  # 1=Free, 2=Premium, 3=Pro
+    subscription_level = Column(Integer, default=1)  # 1=Free, 2=Pro, 3=Premium
     mfa_enabled = Column(Boolean, default=False)
     mfa_email_enabled = Column(Boolean, default=False)
     mfa_phone_number = Column(String, nullable=True)
@@ -286,7 +286,7 @@ class UserSettings(Base):
     city = Column(String, default="")
     state = Column(String, default="")
     zip_code = Column(String, default="")
-    projection_years = Column(Integer, default=15)
+    projection_years = Column(Integer, default=5)
     show_chart_totals = Column(Boolean, default=True) # New field
     surplus_asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True)  # Designated asset for surplus/deficit
     tax_filing_status = Column(String, default="Single")  # Tax filing status: Single, Married Filing Jointly, etc.

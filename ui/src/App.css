@@ -182,3 +182,37 @@ select {
         z-index: 1;
     }
 }
+
+/* Fixes the white-on-white invisible text and crammed layout */
+.subscription-gate-card {
+    background-color: #1e293b !important; /* Dark slate */
+    border: 1px solid #3b82f6; /* Branding blue */
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    color: #f8fafc; /* Off-white text */
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Spreads out the crammed text */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.subscription-gate-card h3 {
+    color: #60a5fa; /* Lighter blue for heading */
+    margin: 0;
+}
+
+.subscription-gate-card p {
+    line-height: 1.6;
+    margin: 0;
+}
+
+
+/* FORCE DARK THEME ON ALL CARDS & DIALOGS */
+.MuiPaper-root, .MuiCard-root, .Paper-root, .subscription-gate-card {
+    background-color: #1e293b !important; /* Dark Slate */
+    color: #f8fafc !important; /* Off-white text */
+    border: 1px solid #334155 !important;
+}
+
+

@@ -304,7 +304,7 @@ class UserSettingsBase(BaseModel):
     city: str = ""
     state: str = ""
     zip_code: str = ""
-    projection_years: int = 15
+    projection_years: int = 5
     show_chart_totals: bool = True
     surplus_asset_id: Optional[int] = None  # Designated asset for surplus/deficit
     tax_filing_status: str = "Single"  # Tax filing status: Single, Married Filing Jointly, etc.

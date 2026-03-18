@@ -120,6 +120,9 @@ steps:
             MAIL_SSL=False,\
             USE_CREDENTIALS=True,\
             VALIDATE_CERTS=True,\
+            OPENAI_MODEL_DEFAULT=${_OPENAI_MODEL_DEFAULT},\
+            OPENAI_MODEL_PRO=${_OPENAI_MODEL_PRO},\
+            OPENAI_MODEL_PREMIUM=${_OPENAI_MODEL_PREMIUM},\
             STRIPE_PREMIUM_PRICE_ID=${_STRIPE_PREMIUM_PRICE_ID},\
             STRIPE_PRO_PRICE_ID=${_STRIPE_PRO_PRICE_ID},\
             STRIPE_SUCCESS_URL=$${STRIPE_SUCCESS_URL},\
@@ -131,12 +134,13 @@ steps:
             GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET},\
             GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},\
             MAIL_PASSWORD=_MAIL_PASSWORD:1,\
-            PLAID_SECRET=_PLAID_SECRET:1,\
-            PLAID_ENCRYPTION_KEY=_PLAID_ENCRYPTION_KEY:1,\
-            PLAID_CLIENT_ID=_PLAID_CLIENT_ID:1,\
-            OPENAI_API_KEY=_OPENAI_API_KEY:1,\
-            OPENAI_API_KEY_PRO=_OPENAI_API_KEY_PRO:1,\
-            MMR_SHIELD_KEY=_MMR_SHIELD_KEY:1,\
+            PLAID_SECRET=${_PLAID_SECRET}:latest,\
+            PLAID_ENCRYPTION_KEY=${_PLAID_ENCRYPTION_KEY}:latest,\
+            PLAID_CLIENT_ID=${_PLAID_CLIENT_ID}:latest,\
+            OPENAI_API_KEY_DEFAULT=${_OPENAI_API_KEY_DEFAULT}:latest,\
+            OPENAI_API_KEY_PRO=${_OPENAI_API_KEY_PRO}:latest,\
+            OPENAI_API_KEY_PREMIUM=${_OPENAI_API_KEY_PREMIUM}:latest,\
+            MMR_SHIELD_KEY=${_MMR_SHIELD_KEY}:latest,\
             STRIPE_API_KEY=${_STRIPE_API_KEY_SECRET}:latest,\
             STRIPE_WEBHOOK_SECRET=${_STRIPE_WEBHOOK_SECRET_NAME}:latest" \
           --cpu=1 \
@@ -204,5 +208,5 @@ options:
 
 availableSecrets:
   secretManager:
-  - versionName: projects/${PROJECT_ID}/secrets/_MMR_SHIELD_KEY/versions/latest
+  - versionName: projects/${PROJECT_ID}/secrets/MMR_SHIELD_KEY/versions/latest
     env: 'MMR_SHIELD_KEY'  

@@ -125,12 +125,17 @@ async def generate_streaming_response(request: WhatIfRequest, db: Session, curre
         yield f"data: {json.dumps({'error': 'OpenAI API key not configured. Please contact support.'})}\n\n"
         return
     
+    # Select model name (Router already verified level is 2 or 3)
+    model_name = (
+    settings.OPENAI_MODEL_PREMIUM if current_user.subscription_level == 3 
+    else settings.OPENAI_MODEL_PRO if current_user.subscription_level == 2 
+    else settings.OPENAI_MODEL_DEFAULT
+)
+
     try:
-        # Get financial summary for the current user (or viewing user if authorized)
         user_id = current_user.id
         financial_data = get_financial_summary(db, user_id)
         
-        # Create the prompt for OpenAI
         system_prompt = """You are a financial planning assistant helping users explore "What If?" scenarios with their financial data. 
 You have access to their current financial situation including assets, liabilities, income, and expenses.
 Provide thoughtful, helpful analysis based on their question and financial data. Be specific with numbers when possible.
@@ -161,11 +166,8 @@ User's Question: {request.question}
 
 Please provide a detailed answer to their "What If?" question, using their actual financial data to inform your response."""
         
-        # Call OpenAI API with streaming
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
         
-        model_name = settings.OPENAI_MODEL_PRO if current_user.subscription_level == 3 else settings.OPENAI_MODEL_DEFAULT
-
         stream = client.chat.completions.create(
             model=model_name,
             messages=[
@@ -174,18 +176,15 @@ Please provide a detailed answer to their "What If?" question, using their actua
             ],
             temperature=0.7,
             stream=True,
-            max_tokens=4000  # Increased from 1000 to allow for complete, detailed responses
+            max_tokens=4000
         )
         
-        # Stream chunks as Server-Sent Events
         for chunk in stream:
             if chunk.choices and len(chunk.choices) > 0:
                 delta = chunk.choices[0].delta
                 if hasattr(delta, 'content') and delta.content:
-                    # Send each content chunk as an SSE event
                     yield f"data: {json.dumps({'chunk': delta.content})}\n\n"
         
-        # Send completion event
         yield f"data: {json.dumps({'done': True})}\n\n"
         
     except Exception as e:
@@ -199,11 +198,14 @@ async def ask_what_if(
     db: Session = Depends(database.get_db),
     current_user: schemas.UserOut = Depends(auth.get_current_user)
 ):
-    """
-    Ask a "What If?" question about financial scenarios.
-    The AI will analyze the user's financial data and provide insights.
-    Returns a streaming response (Server-Sent Events) so answers appear progressively.
-    """
+    # 1. SUBSCRIPTION LEVEL CHECK (Block Level 1)
+    if current_user.subscription_level < 2:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Upgrade to Pro or Premium to enable What If scenarios. See Pricing page for details."
+        )
+
+    # 2. MONTHLY LIMIT CHECK
     limits = get_user_limits(db, current_user)
     if limits["is_limited"] and limits["max_whatif_monthly"] is not None:
         start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -214,9 +216,10 @@ async def ask_what_if(
         if usage_count >= limits["max_whatif_monthly"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Free plan supports up to {limits['max_whatif_monthly']} What If requests per month."
+                detail=f"Free plan supports up to {limits['max_whatif_monthly']} What If requests per month.  Please upgrade to ask unlimited questions. See Pricing page for details."
             )
 
+    # 3. LOG REQUEST AND RUN
     db.add(models.WhatIfRequestLog(user_id=current_user.id))
     db.commit()
 
@@ -226,6 +229,6 @@ async def ask_what_if(
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "X-Accel-Buffering": "no",
         }
     )
