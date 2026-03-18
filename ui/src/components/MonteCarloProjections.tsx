@@ -49,8 +49,10 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 const FEDERAL_TAX_EXPENSE_DESCRIPTION = "Federal Income Tax (Calculated)";
 
 export default function MonteCarloProjections({ incomeItems, expenseItems, assets, liabilities, projectionYears, formatCurrency, showProjectionYearSelector = false, onProjectionYearsChange, maxProjectionYears, isLimitedPlan = false }: MonteCarloProjectionsProps) {
-  const { userSettings } = useAuth();
-  const typedUserSettings: any = userSettings;
+  const auth = useAuth() as any;
+  const userSettings = auth?.userSettings;
+  const typedUserSettings = userSettings; 
+  const limits = userSettings?.subscription_limits || { is_limited: false, max_whatif_monthly: 0 };
   const currentYear = new Date().getFullYear();
   const chartRef = useRef<any>(null);
   const tableRef = useRef<any>(null);
