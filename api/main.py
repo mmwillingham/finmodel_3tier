@@ -1798,23 +1798,24 @@ def create_projection(
     user: schemas.UserOut = Depends(auth.get_current_user), 
     db: Session = Depends(database.get_db)
 ):
-    """
-    Creates a new projection, runs the calculation, and saves the results to the database."""
     require_subscription_level(user, 1, "Creating projections")
     limits = get_user_limits(db, user)
-    if limits["is_limited"] and limits["max_projection_years"] is not None and projection_data.years > limits["max_projection_years"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Free plan supports up to {limits['max_projection_years']} projection years.  Please upgrade to create longer projections. See Pricing page for details."
-        )
+
+    # If they are over the limit, just force the value to the max allowed (e.g., 5)
+    if limits["is_limited"] and limits["max_projection_years"] is not None:
+        if projection_data.years > limits["max_projection_years"]:
+            projection_data.years = limits["max_projection_years"]
 
     try:
+        # This will now run for 5 years instead of crashing
         projection_results = calculations.calculate_projection(
             years=projection_data.years,
             accounts=projection_data.accounts,
             db=db,
             owner_id=user.id
         )
+        return projection_results
+        
     except Exception as e:
         logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))

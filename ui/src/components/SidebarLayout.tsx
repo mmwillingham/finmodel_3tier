@@ -126,6 +126,7 @@ export default function SidebarLayout() {
   const expenseRatio = totalIncome ? Math.min(100, Math.max(0, (totalExpenses / totalIncome) * 100)) : 0;
   const projectionYearsEffective = projectionYearsOverride ?? projectionYears;
   const currentYearSurplusDeficit = cashFlowNet;
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
 
   useEffect(() => {
     setHomeProjectionYears(Math.max(1, Number(projectionYearsEffective) || 20));
@@ -541,8 +542,14 @@ export default function SidebarLayout() {
 
   const handleProjectionYearsChange = (value: any) => {
     const maxYears = subscriptionLimits?.is_limited ? subscriptionLimits.max_projection_years : null;
-    const nextValue = maxYears != null ? Math.min(value, maxYears) : value;
-    setProjectionYearsOverride(nextValue);
+    
+    if (maxYears != null && value > maxYears) {
+      setProjectionYearsOverride(maxYears);
+      setShowLimitWarning(true); // Trigger the warning
+    } else {
+      setProjectionYearsOverride(value);
+      setShowLimitWarning(false); // Clear warning if they go back under the limit
+    }
   };
 
   // Handle password change completion - refresh user data from context
@@ -1091,6 +1098,27 @@ export default function SidebarLayout() {
       </aside>
 
       <main className="main-content">
+      {showLimitWarning && (
+        <div className="mui-alert-custom" style={{ 
+          margin: '20px', 
+          padding: '15px', 
+          backgroundColor: 'rgba(211, 47, 47, 0.1)', 
+          border: '1px solid #d32f2f', 
+          borderRadius: '4px',
+          color: '#f44336',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '20px' }}>⚠️</span>
+          <div>
+            Free plan supports up to 5 projection years. Showing results for 5 years. 
+            <NavLink to="/pricing" style={{ color: '#f44336', marginLeft: '5px', fontWeight: 'bold' }}>
+              See Pricing page to upgrade to a subscription level...
+            </NavLink>
+          </div>
+        </div>
+      )}
         {loading && (
           <div style={{ padding: '20px' }}>
             <SkeletonList count={6} />
