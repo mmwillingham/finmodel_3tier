@@ -206,7 +206,7 @@ steps:
 options:
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
 
-availableSecrets:
-  secretManager:
-  - versionName: projects/${PROJECT_ID}/secrets/_MMR_SHIELD_KEY/versions/latest
-    env: 'MMR_SHIELD_KEY'  
+# availableSecrets:
+#   secretManager:
+#   - versionName: projects/${PROJECT_ID}/secrets/_MMR_SHIELD_KEY/versions/latest
+#     env: 'MMR_SHIELD_KEY'  
