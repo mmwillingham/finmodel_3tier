@@ -305,8 +305,8 @@ const UserManagementPage = () => {
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}
               >
                 <option value={1}>Free</option>
-                <option value={2}>Premium</option>
-                <option value={3}>Pro</option>
+                <option value={2}>Pro</option>
+                <option value={3}>Premium</option>
               </select>
             </div>
             <div className="form-actions">
@@ -347,8 +347,8 @@ const UserManagementPage = () => {
                           onChange={(e: any) => handleSetSubscriptionLevel(user.id, user.email, parseInt(e.target.value, 10))}
                         >
                           <option value={1}>Free</option>
-                          <option value={2}>Premium</option>
-                          <option value={3}>Pro</option>
+                          <option value={2}>Pro</option>
+                          <option value={3}>Premium</option>
                         </select>
                       </td>
                       <td>

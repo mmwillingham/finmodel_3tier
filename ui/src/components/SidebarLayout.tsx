@@ -460,7 +460,7 @@ export default function SidebarLayout() {
       return;
     }
     if (viewingUserSettings) {
-      setProjectionYears(viewingUserSettings.projection_years || 20);
+      setProjectionYears(viewingUserSettings.projection_years || 5);
       setShowChartTotals(viewingUserSettings.show_chart_totals ?? true);
     }
   }, [viewingUserId, viewingUserSettings, currentUser?.id]);
@@ -470,7 +470,7 @@ export default function SidebarLayout() {
       return;
     }
     const effectiveSettings = viewingUserSettings || userSettings;
-    const preferredYears = effectiveSettings?.projection_years ?? 20;
+    const preferredYears = effectiveSettings?.projection_years ?? 5;
     if (preferredYears !== projectionYears) {
       setProjectionYears(preferredYears);
     }

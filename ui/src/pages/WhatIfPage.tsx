@@ -124,14 +124,14 @@ const WhatIfPage = () => {
            */}
           {error ? (
             <div className="subscription-gate-card">
-              <h3>Action Required</h3>
+              <h2>Action Required</h2>
               <p>{error}</p>
               <div style={{ marginTop: '15px' }}>
                 <button 
                   className="btn-primary-modern"
                   onClick={() => window.location.href='/pricing'}
                 >
-                  Upgrade to Pro
+                  Upgrade to Pro or Premium
                 </button>
               </div>
             </div>

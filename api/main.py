@@ -100,8 +100,8 @@ def require_subscription_level(user: schemas.UserOut, minimum_level: int, featur
 
 def _stripe_tier_to_level(tier: str) -> int:
     mapping = {
-        "premium": 2,
-        "pro": 3,
+        "premium": 3,
+        "pro": 2,
     }
     return mapping.get(tier.lower(), 1)
 
