@@ -76,6 +76,17 @@ export default function BalanceSheetProjection({ assets, liabilities, incomeItem
     if (!assets || !liabilities) {
       return;
     }
+
+    const hasBalanceInputs =
+      ((assets?.length ?? 0) > 0) ||
+      ((liabilities?.length ?? 0) > 0);
+
+    if (!hasBalanceInputs) {
+      setProjectionData(null);
+      setError(missingDataMessage);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     setError(null);
