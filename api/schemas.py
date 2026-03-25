@@ -140,8 +140,8 @@ class ProjectedAccountCreate(ProjectedAccountBase):
     pass
 
 class ProjectedAccountOut(ProjectedAccountBase):
-    id: int
-    projection_id: int
+    id: int | None = None
+    projection_id: int | None = None
     model_config = ConfigDict(from_attributes=True)
 
 # --- CALCULATION INPUT SCHEMAS ---
