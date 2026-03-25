@@ -1074,6 +1074,14 @@ export default function SidebarLayout() {
             >
               Cash Flow
             </button>
+            <button 
+              className={`nav-btn ${view === 'what-if' ? 'active' : ''}`} 
+              onClick={() => openDashboardView('what-if', { cashFlowView: null })}
+              data-tour-id="nav-what-if"
+            >
+              What If?
+            </button>
+
             <button
               className={`nav-btn ${view === 'monte-carlo' ? 'active' : ''}`}
               onClick={() => openDashboardView('monte-carlo', { cashFlowView: null })}
@@ -1086,13 +1094,6 @@ export default function SidebarLayout() {
               data-tour-id="nav-custom-charts"
             >
               Custom
-            </button>
-            <button 
-              className={`nav-btn ${view === 'what-if' ? 'active' : ''}`} 
-              onClick={() => openDashboardView('what-if', { cashFlowView: null })}
-              data-tour-id="nav-what-if"
-            >
-              What If?
             </button>
           </section>
         </nav>

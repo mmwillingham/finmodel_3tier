@@ -1,9 +1,12 @@
 import os
 import sentry_sdk
 from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter, Header
-from starlette.requests import Request
+from fastapi.exceptions import ResponseValidationError
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ValidationError
+from starlette.requests import Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text, func
 from datetime import timedelta, datetime, date, timezone
@@ -17,7 +20,6 @@ import secrets
 import json
 import traceback
 from copy import deepcopy
-from fastapi.responses import JSONResponse
 import logging
 import stripe
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -160,6 +162,17 @@ app = FastAPI(title="Financial Projector API",
     _proxy_headers=True, 
     redirect_slashes=False
 )
+
+
+@app.exception_handler(ResponseValidationError)
+async def handle_response_validation_error(request: Request, exc: ResponseValidationError):
+    logger.error(
+        "Response validation failed for %s: %s",
+        request.url.path,
+        exc.errors(),
+        exc_info=True,
+    )
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Response validation failed"})
 
 # Track container start time
 start_time = datetime.now(timezone.utc)
@@ -1814,8 +1827,6 @@ def create_projection(
             db=db,
             owner_id=user.id
         )
-        return projection_results
-        
     except Exception as e:
         logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
@@ -1843,18 +1854,29 @@ def create_projection(
     db.refresh(db_projection) # Refresh to load relationships
 
     # Construct response with data_json from calculations
-    return schemas.ProjectionResponse(
-        id=db_projection.id,
-        name=db_projection.name,
-        years=db_projection.years,
-        final_value=db_projection.final_value,
-        total_contributed=db_projection.total_contributed,
-        total_growth=db_projection.total_growth,
-        timestamp=db_projection.timestamp,
-        accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
-        time_series_data=[],  # Excluded to save memory - use data_json instead
-        data_json=projection_results.get("data_json")  # Include data_json from calculations
-    )
+    try:
+        response_payload = schemas.ProjectionResponse(
+            id=db_projection.id,
+            name=db_projection.name,
+            years=db_projection.years,
+            final_value=db_projection.final_value,
+            total_contributed=db_projection.total_contributed,
+            total_growth=db_projection.total_growth,
+            timestamp=db_projection.timestamp,
+            accounts_data=[schemas.ProjectedAccountOut.model_validate(acc) for acc in projection_results["projected_accounts"]],
+            time_series_data=[],  # Excluded to save memory - use data_json instead
+            data_json=projection_results.get("data_json")  # Include data_json from calculations
+        )
+    except ValidationError as validation_error:
+        logger.error(
+            "Projection response validation failed for user %s: %s",
+            user.id,
+            validation_error.errors(),
+            exc_info=True,
+        )
+        raise
+
+    return response_payload
 
 @app.get("/projections/{projection_id}", response_model=schemas.ProjectionDetailOut, tags=["projections"])
 def get_projection_details(

@@ -1372,7 +1372,18 @@ function CashFlowOverview({
     if (!assets || !liabilities) {
       return;
     }
-    
+
+    const hasCashFlowInputs =
+      ((incomeItems?.length ?? 0) > 0) ||
+      ((expenseItems?.length ?? 0) > 0);
+
+    if (!hasCashFlowInputs) {
+      setProjectionData(null);
+      setError(missingDataMessage);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
@@ -1509,6 +1520,25 @@ function CashFlowOverview({
           cash_flow_item_id: expense.id || null  // Pass the expense item ID for tax_deductible lookup
         } as any);
       });
+
+      // Ensure the backend has at least one asset or liability account to avoid the 500 error
+      if (assetAccounts.length === 0 && liabilityAccounts.length === 0) {
+        assetAccounts.push({
+          name: "Cash Flow Placeholder Asset",
+          account_type: "asset",
+          initial_value: 0.0,
+          contribution: 0.0,
+          growth_rate: 0.0,
+          loan_type: null,
+          principal_amount: null,
+          interest_rate: null,
+          loan_term_months: null,
+          loan_start_date: null,
+          monthly_payment: null,
+          start_date: null,
+          end_date: null,
+        });
+      }
 
       const allAccounts = [...assetAccounts, ...liabilityAccounts, ...incomeAccounts, ...expenseAccounts];
       
@@ -2433,7 +2463,13 @@ function CashFlowOverview({
   }
   
   if (error) {
-    return <div>{error === missingDataMessage ? error : `Error: ${error}`}</div>;
+    return (
+      <Box className="projection-error-message">
+        <Alert severity={error === missingDataMessage ? "info" : "error"} variant="outlined">
+          {error === missingDataMessage ? error : `Error: ${error}`}
+        </Alert>
+      </Box>
+    );
   }
 
   // Build datasets array dynamically
