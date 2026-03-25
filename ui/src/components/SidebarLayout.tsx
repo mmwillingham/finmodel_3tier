@@ -1333,7 +1333,7 @@ export default function SidebarLayout() {
 {/*}                      <span>Confidence Net Worth {`>`} {formatCurrency(desiredNetWorthTarget)}</span> */}
                       <span className="scenario-confidence-label">Confidence Level</span>
                       <span className="metric-value metric-value--inline">
-                        {dashboardSimulation.confidenceAboveTarget == null ? "Calculating..." : `${dashboardSimulation.confidenceAboveTarget.toFixed(1)}%`}
+                        {dashboardSimulation.confidenceAboveTarget == null ? "..." : `${dashboardSimulation.confidenceAboveTarget.toFixed(1)}%`}
                       </span>
                       {activeTooltip === "projection" && (
                         <div
