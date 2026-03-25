@@ -1827,8 +1827,6 @@ def create_projection(
             db=db,
             owner_id=user.id
         )
-        return projection_results
-        
     except Exception as e:
         logger.error(f"Error during projection calculation for user {user.id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
