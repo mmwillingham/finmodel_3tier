@@ -1,6 +1,7 @@
 import os
 import sentry_sdk
 from fastapi import FastAPI, Depends, HTTPException, Response, status, BackgroundTasks, APIRouter, Header
+from fastapi.exceptions import ResponseValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
@@ -161,6 +162,17 @@ app = FastAPI(title="Financial Projector API",
     _proxy_headers=True, 
     redirect_slashes=False
 )
+
+
+@app.exception_handler(ResponseValidationError)
+async def handle_response_validation_error(request: Request, exc: ResponseValidationError):
+    logger.error(
+        "Response validation failed for %s: %s",
+        request.url.path,
+        exc.errors(),
+        exc_info=True,
+    )
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Response validation failed"})
 
 # Track container start time
 start_time = datetime.now(timezone.utc)
